@@ -1,10 +1,10 @@
 # Progress: README
 
 Started: Tue Jan 20 15:15:38 CET 2026
-Last updated: Tue Jan 20 16:00:00 CET 2026 (Iteration 11)
+Last updated: Tue Jan 20 16:05:00 CET 2026 (Iteration 12)
 
 ## Completed This Iteration
-- Created Pages/Media/Index.vue gallery page
+- Integrated PhotoSwipe lightbox functionality for photo gallery
 
 ## Status
 
@@ -32,7 +32,7 @@ IN_PROGRESS
 - [x] Frontend: Create MediaCard.vue component
 - [x] Frontend: Create Pages/Media/Upload.vue page
 - [x] Frontend: Create Pages/Media/Index.vue (gallery) page
-- [ ] Frontend: Integrate PhotoSwipe for lightbox functionality
+- [x] Frontend: Integrate PhotoSwipe for lightbox functionality
 - [ ] Validation: Test media upload end-to-end
 - [ ] Validation: Test gallery display end-to-end
 
@@ -381,4 +381,40 @@ IN_PROGRESS
     - Tailwind CSS styling
     - Component composition with MediaGrid
   - Ready for end-to-end testing with backend
+
+### Iteration 12
+- Integrated PhotoSwipe v5.4.0 for lightbox functionality in media gallery:
+  - Added PhotoSwipeLightbox import and CSS to Media/Index.vue
+  - Created initPhotoSwipe() function to initialize lightbox:
+    - Filters media items to include only photos
+    - Maps photo data to PhotoSwipe dataSource format
+    - Includes image URL, dimensions, and metadata (filename, dates)
+    - Configures lightbox with padding, opacity, and zoom animations
+  - Helper functions for image URL and dimension resolution:
+    - getImageUrl() - Resolves best quality image (large/medium/small conversion or original)
+    - getImageDimensions() - Extracts dimensions from conversion or falls back to original
+  - Updated handleMediaClick() to distinguish between media types:
+    - Photos: Opens in PhotoSwipe lightbox with correct index in photo-only array
+    - Videos/Documents: Continues to navigate to detail page
+  - Custom caption UI element:
+    - Displays filename below image in lightbox
+    - Dark background overlay with white text
+    - Updates dynamically when sliding between images
+  - Lifecycle management:
+    - onMounted() - Initializes PhotoSwipe on component mount
+    - watch() - Reinitializes when media data changes (pagination, filtering, search)
+    - onUnmounted() - Properly destroys lightbox instance to prevent memory leaks
+  - Styling:
+    - Custom scoped CSS for caption with dark background
+    - Uses :deep() selector to style PhotoSwipe elements
+  - Features:
+    - Seamless zoom animations
+    - Keyboard navigation (arrow keys, ESC to close)
+    - Touch/swipe gestures on mobile
+    - Full-screen support
+    - Image counter display
+    - Download and share buttons (PhotoSwipe defaults)
+  - PhotoSwipe is now fully functional for the photo gallery
+  - Videos and documents still navigate to detail pages as expected
+  - Ready for end-to-end testing
 
