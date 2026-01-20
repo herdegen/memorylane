@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Jobs\GenerateMediaConversions;
+use App\Jobs\ProcessUploadedMedia;
 use App\Models\Media;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -23,7 +25,7 @@ class MediaService
      */
     public function getPaginatedMedia(array $filters = [], int $perPage = 24): LengthAwarePaginator
     {
-        $query = Media::with(['user'])
+        $query = Media::with(['user', 'conversions', 'metadata'])
             ->orderBy('taken_at', 'desc')
             ->orderBy('uploaded_at', 'desc');
 
@@ -39,9 +41,18 @@ class MediaService
 
         $media = $query->paginate($perPage);
 
-        // Add signed URLs for each media item
+        // Add signed URLs for each media item and its conversions
         $media->getCollection()->transform(function ($item) {
             $item->url = $this->s3Service->getTemporaryUrl($item->file_path);
+
+            // Add signed URLs for conversions
+            if ($item->conversions) {
+                $item->conversions->transform(function ($conversion) {
+                    $conversion->url = $this->s3Service->getTemporaryUrl($conversion->file_path);
+                    return $conversion;
+                });
+            }
+
             return $item;
         });
 
@@ -86,6 +97,10 @@ class MediaService
             'height' => $dimensions['height'] ?? null,
             'uploaded_at' => now(),
         ]);
+
+        // Dispatch background jobs for processing
+        ProcessUploadedMedia::dispatch($media);
+        GenerateMediaConversions::dispatch($media);
 
         return $media;
     }
