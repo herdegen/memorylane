@@ -19,7 +19,7 @@ IN_PROGRESS
 - [x] Backend: Create MediaController with upload/list/delete endpoints
 - [x] Backend: Add media routes to web.php
 - [x] Backend: Create MediaService for business logic
-- [ ] Backend: Create S3Service for file operations
+- [x] Backend: Create S3Service for file operations
 - [ ] Backend: Create ExifExtractor service
 - [ ] Backend: Create ProcessUploadedMedia job
 - [ ] Backend: Create GenerateMediaConversions job
@@ -60,4 +60,25 @@ IN_PROGRESS
 - All business logic moved from controller to service layer
 - Controller now only handles HTTP concerns (validation, responses, authorization)
 - Clean separation of concerns following Laravel best practices
+
+### Iteration 3
+- Created S3Service with comprehensive S3/storage operations:
+  - upload() - Upload files to S3 with configurable visibility
+  - delete() - Delete files from storage
+  - exists() - Check if file exists
+  - getTemporaryUrl() - Generate signed URLs with custom options
+  - getDownloadUrl() - Generate download URLs with proper headers
+  - generateFilePath() - Generate unique file paths using UUID
+  - size() - Get file size
+  - mimeType() - Get file MIME type
+  - url() - Get public URL
+  - copy() / move() - File manipulation operations
+  - getDisk() / setDisk() - Disk management
+- Refactored MediaService to use S3Service via dependency injection
+- Removed S3-specific logic from MediaService:
+  - Removed direct Storage::disk() calls
+  - Removed generateFilePath() and uploadToStorage() methods
+  - Updated all methods to delegate storage operations to S3Service
+- Clean separation: MediaService handles media business logic, S3Service handles storage operations
+- Service can now work with different storage disks by changing configuration
 

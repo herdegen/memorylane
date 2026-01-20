@@ -4,12 +4,16 @@ namespace App\Services;
 
 use App\Models\Media;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class MediaService
 {
+    protected S3Service $s3Service;
+
+    public function __construct(S3Service $s3Service)
+    {
+        $this->s3Service = $s3Service;
+    }
     /**
      * Get paginated media with filters.
      *
@@ -37,7 +41,7 @@ class MediaService
 
         // Add signed URLs for each media item
         $media->getCollection()->transform(function ($item) {
-            $item->url = $this->getSignedUrl($item);
+            $item->url = $this->s3Service->getTemporaryUrl($item->file_path);
             return $item;
         });
 
@@ -62,10 +66,10 @@ class MediaService
         $type = $this->determineMediaType($mimeType);
 
         // Generate unique file path
-        $filePath = $this->generateFilePath($file, $type);
+        $filePath = $this->s3Service->generateFilePath($type, $file->getClientOriginalExtension());
 
         // Upload to storage
-        $this->uploadToStorage($file, $filePath);
+        $this->s3Service->upload($file, $filePath);
 
         // Get image dimensions if it's an image
         $dimensions = $this->getImageDimensions($file, $mimeType);
@@ -96,9 +100,7 @@ class MediaService
     public function deleteMedia(Media $media): void
     {
         // Delete from storage
-        if (Storage::disk('scaleway')->exists($media->file_path)) {
-            Storage::disk('scaleway')->delete($media->file_path);
-        }
+        $this->s3Service->delete($media->file_path);
 
         // Soft delete the media record
         $media->delete();
@@ -113,10 +115,7 @@ class MediaService
      */
     public function getSignedUrl(Media $media, int $expirationMinutes = 60): string
     {
-        return Storage::disk('scaleway')->temporaryUrl(
-            $media->file_path,
-            now()->addMinutes($expirationMinutes)
-        );
+        return $this->s3Service->getTemporaryUrl($media->file_path, $expirationMinutes);
     }
 
     /**
@@ -127,13 +126,7 @@ class MediaService
      */
     public function getDownloadUrl(Media $media): string
     {
-        return Storage::disk('scaleway')->temporaryUrl(
-            $media->file_path,
-            now()->addMinutes(5),
-            [
-                'ResponseContentDisposition' => 'attachment; filename="' . $media->original_name . '"'
-            ]
-        );
+        return $this->s3Service->getDownloadUrl($media->file_path, $media->original_name);
     }
 
     /**
@@ -150,42 +143,6 @@ class MediaService
             return 'video';
         } else {
             return 'document';
-        }
-    }
-
-    /**
-     * Generate a unique file path for storage.
-     *
-     * @param UploadedFile $file
-     * @param string $type
-     * @return string
-     */
-    protected function generateFilePath(UploadedFile $file, string $type): string
-    {
-        $extension = $file->getClientOriginalExtension();
-        $filename = Str::uuid() . '.' . $extension;
-        return "media/{$type}s/" . date('Y/m') . "/{$filename}";
-    }
-
-    /**
-     * Upload file to storage.
-     *
-     * @param UploadedFile $file
-     * @param string $filePath
-     * @return void
-     * @throws \Exception
-     */
-    protected function uploadToStorage(UploadedFile $file, string $filePath): void
-    {
-        try {
-            Storage::disk('scaleway')->putFileAs(
-                dirname($filePath),
-                $file,
-                basename($filePath),
-                'private'
-            );
-        } catch (\Exception $e) {
-            throw new \Exception('Failed to upload file to storage: ' . $e->getMessage());
         }
     }
 
