@@ -1,6 +1,10 @@
 # Progress: README
 
 Started: Tue Jan 20 15:15:38 CET 2026
+Last updated: Tue Jan 20 15:35:00 CET 2026 (Iteration 5)
+
+## Completed This Iteration
+- Created ProcessUploadedMedia job for asynchronous media processing
 
 ## Status
 
@@ -21,7 +25,7 @@ IN_PROGRESS
 - [x] Backend: Create MediaService for business logic
 - [x] Backend: Create S3Service for file operations
 - [x] Backend: Create ExifExtractor service
-- [ ] Backend: Create ProcessUploadedMedia job
+- [x] Backend: Create ProcessUploadedMedia job
 - [ ] Backend: Create GenerateMediaConversions job
 - [ ] Frontend: Create MediaUploader.vue component with Uppy integration
 - [ ] Frontend: Create MediaGrid.vue component
@@ -102,4 +106,29 @@ IN_PROGRESS
   - Graceful error handling with logging
   - Returns structured array matching MediaMetadata model fields
 - Both files validated with PHP syntax checker (no errors)
+
+### Iteration 5
+- Created ProcessUploadedMedia job (app/Jobs/ProcessUploadedMedia.php):
+  - Implements ShouldQueue interface for async processing
+  - Uses Queueable, InteractsWithQueue, SerializesModels traits
+  - Configured with 3 retry attempts and 5-minute timeout
+  - handle() method processes media asynchronously:
+    - Extracts EXIF data for photos
+    - Updates Media.taken_at timestamp from EXIF DateTimeOriginal
+    - Comprehensive logging for debugging and monitoring
+  - extractExifData() method:
+    - Downloads file from S3 to temporary location
+    - Calls ExifExtractor service to extract EXIF data
+    - Saves all EXIF metadata to MediaMetadata model using updateOrCreate
+    - Returns taken_at timestamp for updating Media model
+    - Cleans up temporary files after processing
+    - Non-critical errors don't fail the job
+  - downloadFileToTemp() method:
+    - Safely downloads files from S3 to temp directory
+    - Validates file exists before download
+    - Generates unique temp file path
+    - Error handling with detailed logging
+  - failed() method for permanent failure handling
+  - Ready to be dispatched from MediaService after upload
+- Validated with PHP syntax checker (no errors)
 
