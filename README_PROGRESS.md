@@ -1,10 +1,10 @@
 # Progress: README
 
 Started: Tue Jan 20 15:15:38 CET 2026
-Last updated: Tue Jan 20 15:47:00 CET 2026 (Iteration 7)
+Last updated: Tue Jan 20 16:00:00 CET 2026 (Iteration 8)
 
 ## Completed This Iteration
-- Created MediaUploader.vue component with drag-and-drop functionality
+- Created MediaGrid.vue component for displaying media in a responsive grid
 
 ## Status
 
@@ -28,7 +28,7 @@ IN_PROGRESS
 - [x] Backend: Create ProcessUploadedMedia job
 - [x] Backend: Create GenerateMediaConversions job
 - [x] Frontend: Create MediaUploader.vue component with Uppy integration
-- [ ] Frontend: Create MediaGrid.vue component
+- [x] Frontend: Create MediaGrid.vue component
 - [ ] Frontend: Create MediaCard.vue component
 - [ ] Frontend: Create Pages/Media/Upload.vue page
 - [ ] Frontend: Create Pages/Media/Index.vue (gallery) page
@@ -208,4 +208,41 @@ IN_PROGRESS
 - Fixed package.json dependency conflicts by removing incompatible Uppy packages
 - Implemented custom upload solution using Vue 3 + axios instead of Uppy library
 - Component follows existing codebase patterns (NavLink.vue, AppLayout.vue)
+
+### Iteration 8
+- Created MediaGrid.vue component (resources/js/Components/MediaGrid.vue):
+  - Responsive grid layout (2-6 columns based on screen size)
+  - Filter tabs for all/photos/videos/documents with active state styling
+  - Displays media thumbnails with hover effects
+  - Loading state with animated spinner
+  - Empty state with helpful message
+  - Photo display with thumbnail URL from conversions
+  - Video display with play icon overlay and duration badge
+  - Document display with file extension badge
+  - Hover overlay showing filename and date
+  - Selection mode with checkboxes (optional prop)
+  - Media click event emission for lightbox integration
+  - Load more button for pagination
+  - Lazy loading images with loading="lazy"
+  - Helper functions:
+    - getThumbnailUrl() - Gets small/thumbnail conversion or fallback to original
+    - getFileExtension() - Extracts file extension for documents
+    - formatDate() - Human-readable date formatting (today, yesterday, X days ago)
+    - formatDuration() - Formats video duration (MM:SS or HH:MM:SS)
+    - isSelected() - Checks if media is selected
+    - toggleSelection() - Handles selection checkbox clicks
+  - Props for customization:
+    - media: Array of media items
+    - loading: Boolean loading state
+    - currentFilter: Current filter value
+    - filterTabs: Configurable filter tabs with counts
+    - selectable: Enable selection mode
+    - selectedIds: Array of selected media IDs
+    - hasMorePages: Show load more button
+    - emptyStateMessage: Custom empty state message
+  - Emits events: media-click, filter-change, load-more, selection-change
+  - Tailwind CSS styling consistent with existing components
+  - Composition API using <script setup>
+  - French language UI
+  - Follows codebase patterns from MediaUploader.vue and NavLink.vue
 
