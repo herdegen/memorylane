@@ -1,10 +1,10 @@
 # Progress: README
 
 Started: Tue Jan 20 15:15:38 CET 2026
-Last updated: Tue Jan 20 15:35:00 CET 2026 (Iteration 5)
+Last updated: Tue Jan 20 15:45:00 CET 2026 (Iteration 6)
 
 ## Completed This Iteration
-- Created ProcessUploadedMedia job for asynchronous media processing
+- Created MediaConversion model and GenerateMediaConversions job
 
 ## Status
 
@@ -26,7 +26,7 @@ IN_PROGRESS
 - [x] Backend: Create S3Service for file operations
 - [x] Backend: Create ExifExtractor service
 - [x] Backend: Create ProcessUploadedMedia job
-- [ ] Backend: Create GenerateMediaConversions job
+- [x] Backend: Create GenerateMediaConversions job
 - [ ] Frontend: Create MediaUploader.vue component with Uppy integration
 - [ ] Frontend: Create MediaGrid.vue component
 - [ ] Frontend: Create MediaCard.vue component
@@ -131,4 +131,49 @@ IN_PROGRESS
   - failed() method for permanent failure handling
   - Ready to be dispatched from MediaService after upload
 - Validated with PHP syntax checker (no errors)
+
+### Iteration 6
+- Created MediaConversion model (app/Models/MediaConversion.php):
+  - Maps to media_conversions database table
+  - Mass-assignable fields: media_id, conversion_name, file_path, width, height, size, mime_type
+  - Proper casting: width, height, size as integers
+  - Relationship: belongsTo Media model
+- Created GenerateMediaConversions job (app/Jobs/GenerateMediaConversions.php):
+  - Implements ShouldQueue interface for async processing
+  - Uses Queueable, InteractsWithQueue, SerializesModels traits
+  - Configured with 3 retry attempts and 10-minute timeout
+  - Image conversions configuration:
+    - thumbnail: 150x150 cover (cropped)
+    - small: 400x400 contain (aspect ratio preserved)
+    - medium: 800x800 contain
+    - large: 1600x1600 contain
+  - Video conversions configuration:
+    - thumbnail: 150x150 extracted from video at 1 second
+    - small: 640x480
+    - medium: 1280x720
+  - generateImageConversions() method:
+    - Downloads original from S3 to temp location
+    - Uses Intervention Image v3 with GD driver
+    - Generates multiple sizes with configurable fit modes
+    - Saves as JPEG with 85% quality
+    - Uploads all conversions back to S3
+    - Creates MediaConversion records with dimensions and file info
+    - Comprehensive logging for each conversion
+  - generateVideoConversions() method:
+    - Downloads original from S3 to temp location
+    - Uses FFMpeg to extract thumbnail frame
+    - Generates thumbnail from 1-second mark
+    - Resizes thumbnail using Intervention Image
+    - Uploads thumbnail to S3
+    - Creates MediaConversion record
+  - downloadFileToTemp() method:
+    - Downloads files from S3 with proper extension preservation
+    - Error handling and validation
+  - uploadConversionToS3() method:
+    - Generates conversion file paths in same directory as original
+    - Naming pattern: {filename}_{conversion_name}.{ext}
+    - Uploads to S3 using S3Service
+  - failed() method for permanent failure handling
+  - Ready to be dispatched from MediaService after upload
+- Both files validated with PHP syntax checker (no errors)
 
