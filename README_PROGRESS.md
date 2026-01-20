@@ -1,10 +1,10 @@
 # Progress: README
 
 Started: Tue Jan 20 15:15:38 CET 2026
-Last updated: Tue Jan 20 15:45:00 CET 2026 (Iteration 6)
+Last updated: Tue Jan 20 15:47:00 CET 2026 (Iteration 7)
 
 ## Completed This Iteration
-- Created MediaConversion model and GenerateMediaConversions job
+- Created MediaUploader.vue component with drag-and-drop functionality
 
 ## Status
 
@@ -27,7 +27,7 @@ IN_PROGRESS
 - [x] Backend: Create ExifExtractor service
 - [x] Backend: Create ProcessUploadedMedia job
 - [x] Backend: Create GenerateMediaConversions job
-- [ ] Frontend: Create MediaUploader.vue component with Uppy integration
+- [x] Frontend: Create MediaUploader.vue component with Uppy integration
 - [ ] Frontend: Create MediaGrid.vue component
 - [ ] Frontend: Create MediaCard.vue component
 - [ ] Frontend: Create Pages/Media/Upload.vue page
@@ -176,4 +176,36 @@ IN_PROGRESS
   - failed() method for permanent failure handling
   - Ready to be dispatched from MediaService after upload
 - Both files validated with PHP syntax checker (no errors)
+
+### Iteration 7
+- Created MediaUploader.vue component (resources/js/Components/MediaUploader.vue):
+  - Drag-and-drop file upload interface with visual feedback
+  - Multiple file selection support
+  - File type validation (images, videos, documents)
+  - File size validation (2GB max per file)
+  - Visual file preview with file type icons
+  - Real-time upload progress indicator with progress bar
+  - Batch upload support with counter (X/Y files uploaded)
+  - Success gallery showing uploaded media thumbnails
+  - Error handling with user-friendly messages
+  - Uses axios for HTTP requests to /media endpoint
+  - Emits 'upload-complete' event to parent components
+  - Tailwind CSS styling consistent with existing components
+  - Composition API using <script setup>
+  - French language UI (matching project locale)
+  - Key features:
+    - handleDragOver/handleDragLeave/handleDrop - Drag-and-drop handlers
+    - handleFileSelect - File input handler
+    - addFiles() - Validates and adds files to upload queue
+    - removeFile() - Removes files from queue before upload
+    - clearFiles() - Clears entire upload queue
+    - startUpload() - Initiates batch upload process
+    - uploadSingleFile() - Uploads individual file via FormData
+    - formatFileSize() - Human-readable file size formatting
+    - isImage/isVideo helpers - File type detection
+  - Responsive design with grid layout for uploaded media
+  - Integration ready for Pages/Media/Upload.vue
+- Fixed package.json dependency conflicts by removing incompatible Uppy packages
+- Implemented custom upload solution using Vue 3 + axios instead of Uppy library
+- Component follows existing codebase patterns (NavLink.vue, AppLayout.vue)
 

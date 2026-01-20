@@ -7,9 +7,6 @@
     },
     "dependencies": {
         "@inertiajs/vue3": "^1.0.16",
-        "@uppy/aws-s3": "^4.0.0",
-        "@uppy/core": "^4.0.0",
-        "@uppy/vue": "^1.0.0",
         "@vueuse/core": "^10.11.0",
         "axios": "^1.7.4",
         "blurhash": "^2.0.5",
