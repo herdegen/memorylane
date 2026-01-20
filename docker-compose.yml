@@ -1,0 +1,159 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: memorylane_postgres
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-memorylane}
+      POSTGRES_USER: ${DB_USERNAME:-memorylane}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    networks:
+      - memorylane
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-memorylane}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache & Queue
+  redis:
+    image: redis:7-alpine
+    container_name: memorylane_redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - memorylane
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Meilisearch Search Engine
+  meilisearch:
+    image: getmeili/meilisearch:v1.6
+    container_name: memorylane_meilisearch
+    environment:
+      MEILI_MASTER_KEY: ${MEILISEARCH_KEY:-masterKey}
+      MEILI_NO_ANALYTICS: ${MEILI_NO_ANALYTICS:-true}
+      MEILI_ENV: ${MEILI_ENV:-development}
+      MEILI_HTTP_ADDR: 'meilisearch:7700'
+    volumes:
+      - meilisearch_data:/meili_data
+    ports:
+      - "${MEILISEARCH_PORT:-7700}:7700"
+    networks:
+      - memorylane
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # PHP-FPM Application
+  app:
+    build:
+      context: ./docker/app
+      dockerfile: Dockerfile
+      args:
+        - UID=${UID:-1000}
+        - GID=${GID:-1000}
+    container_name: memorylane_app
+    working_dir: /var/www/html
+    volumes:
+      - ./backend:/var/www/html
+      - ./docker/app/php.ini:/usr/local/etc/php/conf.d/custom.ini
+    environment:
+      - PHP_IDE_CONFIG=serverName=memorylane
+    networks:
+      - memorylane
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+
+  # Nginx Web Server
+  nginx:
+    build:
+      context: ./docker/nginx
+      dockerfile: Dockerfile
+    container_name: memorylane_nginx
+    volumes:
+      - ./backend:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "${APP_PORT:-8000}:80"
+    networks:
+      - memorylane
+    depends_on:
+      - app
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Laravel Horizon (Queue Worker Dashboard)
+  horizon:
+    build:
+      context: ./docker/app
+      dockerfile: Dockerfile
+      args:
+        - UID=${UID:-1000}
+        - GID=${GID:-1000}
+    container_name: memorylane_horizon
+    working_dir: /var/www/html
+    command: php artisan horizon
+    volumes:
+      - ./backend:/var/www/html
+    networks:
+      - memorylane
+    depends_on:
+      - app
+      - redis
+    restart: unless-stopped
+
+  # Laravel Scheduler
+  scheduler:
+    build:
+      context: ./docker/app
+      dockerfile: Dockerfile
+      args:
+        - UID=${UID:-1000}
+        - GID=${GID:-1000}
+    container_name: memorylane_scheduler
+    working_dir: /var/www/html
+    command: /bin/sh -c "while true; do php artisan schedule:run --verbose --no-interaction & sleep 60; done"
+    volumes:
+      - ./backend:/var/www/html
+    networks:
+      - memorylane
+    depends_on:
+      - app
+    restart: unless-stopped
+
+networks:
+  memorylane:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  meilisearch_data:
+    driver: local
