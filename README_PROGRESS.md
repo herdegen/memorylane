@@ -18,7 +18,7 @@ IN_PROGRESS
 ### Phase 1: Foundations (Features - In Progress)
 - [x] Backend: Create MediaController with upload/list/delete endpoints
 - [x] Backend: Add media routes to web.php
-- [ ] Backend: Create MediaService for business logic
+- [x] Backend: Create MediaService for business logic
 - [ ] Backend: Create S3Service for file operations
 - [ ] Backend: Create ExifExtractor service
 - [ ] Backend: Create ProcessUploadedMedia job
@@ -46,4 +46,18 @@ IN_PROGRESS
   - Authorization check for deletions
   - Soft deletes
   - File validation (2GB max, specific MIME types)
+
+### Iteration 2
+- Created MediaService with comprehensive business logic methods:
+  - getPaginatedMedia() - Handles media listing with filters and pagination
+  - uploadMedia() - Manages complete upload workflow
+  - deleteMedia() - Handles deletion from storage and database
+  - getSignedUrl() - Generates temporary signed URLs
+  - getDownloadUrl() - Creates download URLs with proper headers
+  - determineMediaType() - Maps MIME types to media types
+  - Internal helper methods for file path generation, storage upload, and image dimensions
+- Refactored MediaController to use MediaService via dependency injection
+- All business logic moved from controller to service layer
+- Controller now only handles HTTP concerns (validation, responses, authorization)
+- Clean separation of concerns following Laravel best practices
 
