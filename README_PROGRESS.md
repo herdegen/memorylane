@@ -1,10 +1,10 @@
 # Progress: README
 
 Started: Tue Jan 20 15:15:38 CET 2026
-Last updated: Tue Jan 20 15:43:00 CET 2026 (Iteration 10)
+Last updated: Tue Jan 20 16:00:00 CET 2026 (Iteration 11)
 
 ## Completed This Iteration
-- Created Pages/Media/Upload.vue page for media upload interface
+- Created Pages/Media/Index.vue gallery page
 
 ## Status
 
@@ -31,7 +31,7 @@ IN_PROGRESS
 - [x] Frontend: Create MediaGrid.vue component
 - [x] Frontend: Create MediaCard.vue component
 - [x] Frontend: Create Pages/Media/Upload.vue page
-- [ ] Frontend: Create Pages/Media/Index.vue (gallery) page
+- [x] Frontend: Create Pages/Media/Index.vue (gallery) page
 - [ ] Frontend: Integrate PhotoSwipe for lightbox functionality
 - [ ] Validation: Test media upload end-to-end
 - [ ] Validation: Test gallery display end-to-end
@@ -323,4 +323,62 @@ IN_PROGRESS
     - Tailwind CSS styling consistent with Dashboard.vue
     - Component composition with MediaUploader
   - Ready for user testing and end-to-end validation
+
+### Iteration 11
+- Created Pages/Media/Index.vue page (resources/js/Pages/Media/Index.vue):
+  - Complete gallery page using AppLayout wrapper
+  - Page header with title, description, and "Télécharger" (Upload) button
+  - Search bar with debounced search functionality:
+    - Magnifying glass icon
+    - Real-time search with 300ms debounce delay
+    - Preserves state and scroll position during search
+  - Integrates MediaGrid component for displaying media:
+    - Passes media items from paginated backend response
+    - Forwards all necessary props (loading, filters, pagination)
+    - Handles all MediaGrid events (filter-change, media-click, load-more)
+  - Filter functionality:
+    - All/Photos/Videos/Documents tabs
+    - Updates URL parameters with filter state
+    - Preserves scroll position during filter changes
+  - Pagination support:
+    - "Load more" button for infinite scroll
+    - Tracks current page and last page
+    - Appends new items to existing list
+    - Loading state during pagination requests
+  - Event handlers:
+    - handleFilterChange() - Updates filter and reloads media
+    - performSearch() - Executes search query
+    - debouncedSearch() - Debounces search input
+    - handleMediaClick() - Navigates to media detail page
+    - handleLoadMore() - Loads next page of media
+  - Computed properties:
+    - mediaItems - Extracts media data from Laravel pagination object
+    - hasMorePages - Checks if more pages available
+    - filterTabs - Builds filter tabs with counts
+    - emptyStateMessage - Dynamic message based on current filter/search
+  - URL state management:
+    - Uses Inertia.js router for navigation
+    - Preserves state and scroll during requests
+    - Clean URL parameters (undefined filters removed)
+    - Support for page, type, and search query parameters
+  - Route integration:
+    - Connects to MediaController::index() method
+    - Uses route('media.index') for all requests
+    - Uses route('media.show', id) for detail navigation
+    - Uses route('media.create') for upload button
+  - Responsive design:
+    - Max-width container (max-w-7xl)
+    - Proper spacing and padding
+    - White cards with rounded corners and shadows
+    - Consistent with Upload.vue and Dashboard.vue styling
+  - Props from backend:
+    - media: Laravel pagination object with data/current_page/last_page/total
+    - filters: Current filter state (type, search)
+  - French language UI throughout
+  - Follows existing codebase patterns:
+    - Uses AppLayout, Link, and router from Inertia.js
+    - Composition API with <script setup>
+    - Tailwind CSS styling
+    - Component composition with MediaGrid
+  - Ready for end-to-end testing with backend
 
