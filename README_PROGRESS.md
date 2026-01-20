@@ -1,10 +1,10 @@
 # Progress: README
 
 Started: Tue Jan 20 15:15:38 CET 2026
-Last updated: Tue Jan 20 16:00:00 CET 2026 (Iteration 8)
+Last updated: Tue Jan 20 16:15:00 CET 2026 (Iteration 9)
 
 ## Completed This Iteration
-- Created MediaGrid.vue component for displaying media in a responsive grid
+- Created MediaCard.vue component for displaying individual media items
 
 ## Status
 
@@ -29,7 +29,7 @@ IN_PROGRESS
 - [x] Backend: Create GenerateMediaConversions job
 - [x] Frontend: Create MediaUploader.vue component with Uppy integration
 - [x] Frontend: Create MediaGrid.vue component
-- [ ] Frontend: Create MediaCard.vue component
+- [x] Frontend: Create MediaCard.vue component
 - [ ] Frontend: Create Pages/Media/Upload.vue page
 - [ ] Frontend: Create Pages/Media/Index.vue (gallery) page
 - [ ] Frontend: Integrate PhotoSwipe for lightbox functionality
@@ -245,4 +245,43 @@ IN_PROGRESS
   - Composition API using <script setup>
   - French language UI
   - Follows codebase patterns from MediaUploader.vue and NavLink.vue
+
+### Iteration 9
+- Created MediaCard.vue component (resources/js/Components/MediaCard.vue):
+  - Reusable component for displaying individual media items
+  - Extracted from MediaGrid.vue for better modularity and reusability
+  - Aspect-square card with rounded corners and hover effects
+  - Hover scale animation (scale-105) and shadow on hover
+  - Supports three media types:
+    - Photo: Displays thumbnail image with lazy loading
+    - Video: Shows thumbnail with play icon overlay and duration badge
+    - Document: Shows file icon with file extension badge
+  - Thumbnail URL resolution:
+    - Prioritizes 'small' or 'thumbnail' conversion from media.conversions
+    - Falls back to original URL if conversions unavailable
+  - Hover overlay with gradient background showing:
+    - Filename (truncated if too long)
+    - Formatted date (relative: "Aujourd'hui", "Hier", "Il y a X jours", or absolute date)
+  - Optional selection mode with checkbox:
+    - Positioned in top-right corner
+    - Visual feedback (indigo background when selected)
+    - Click stops propagation to prevent triggering media click
+  - Media type badges:
+    - Video duration badge (MM:SS or HH:MM:SS format) in top-left corner
+  - Computed properties for all data transformations:
+    - thumbnailUrl - Resolves best thumbnail from conversions
+    - fileExtension - Extracts and uppercases file extension
+    - formattedDate - Relative or absolute date formatting
+    - formattedDuration - Video duration in human-readable format
+  - Props:
+    - media (required): Media object with all properties
+    - selectable (default: false): Enable selection checkbox
+    - isSelected (default: false): Selection state
+  - Emits events:
+    - click: When card is clicked (passes media object)
+    - toggle-selection: When selection checkbox is clicked (passes media object)
+  - Tailwind CSS styling consistent with MediaGrid and other components
+  - Composition API using <script setup>
+  - French language UI for date formatting
+  - Ready to be used in MediaGrid or other components for consistent media display
 
