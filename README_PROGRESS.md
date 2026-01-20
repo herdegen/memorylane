@@ -1,10 +1,10 @@
 # Progress: README
 
 Started: Tue Jan 20 15:15:38 CET 2026
-Last updated: Tue Jan 20 16:15:00 CET 2026 (Iteration 9)
+Last updated: Tue Jan 20 15:43:00 CET 2026 (Iteration 10)
 
 ## Completed This Iteration
-- Created MediaCard.vue component for displaying individual media items
+- Created Pages/Media/Upload.vue page for media upload interface
 
 ## Status
 
@@ -30,7 +30,7 @@ IN_PROGRESS
 - [x] Frontend: Create MediaUploader.vue component with Uppy integration
 - [x] Frontend: Create MediaGrid.vue component
 - [x] Frontend: Create MediaCard.vue component
-- [ ] Frontend: Create Pages/Media/Upload.vue page
+- [x] Frontend: Create Pages/Media/Upload.vue page
 - [ ] Frontend: Create Pages/Media/Index.vue (gallery) page
 - [ ] Frontend: Integrate PhotoSwipe for lightbox functionality
 - [ ] Validation: Test media upload end-to-end
@@ -284,4 +284,43 @@ IN_PROGRESS
   - Composition API using <script setup>
   - French language UI for date formatting
   - Ready to be used in MediaGrid or other components for consistent media display
+
+### Iteration 10
+- Created Pages/Media/Upload.vue page (resources/js/Pages/Media/Upload.vue):
+  - Complete upload page using AppLayout wrapper
+  - Integrates MediaUploader component for drag-and-drop file upload
+  - Page header with title and description
+  - Upload section with MediaUploader component
+  - Recent uploads list section that displays after successful uploads:
+    - Shows thumbnails for photos with preview images
+    - Shows type-specific icons for videos and documents
+    - Displays filename, file size, and media type
+    - Success badge indicating "Téléchargé" status
+    - Link to view full gallery
+  - Informational section explaining background processing:
+    - Blue info box with icon
+    - Lists automatic processing features (EXIF extraction, thumbnails, geolocation)
+    - User-friendly explanation of async processing
+  - handleUploadComplete() handler:
+    - Receives uploaded media from MediaUploader component
+    - Adds media to recentUploads list
+    - Maintains max 10 recent items for display
+  - Helper functions:
+    - formatFileSize() - Converts bytes to human-readable format
+    - formatMediaType() - Translates media type to French labels
+  - Page features:
+    - Responsive layout with max-width container
+    - Consistent spacing and padding
+    - French language UI throughout
+    - Integration with existing navigation (route: /media/upload)
+  - Route integration:
+    - Connects to existing MediaController::create() method
+    - Uses route name 'media.create'
+    - Accessible via /media/upload URL
+  - Follows existing codebase patterns:
+    - Uses AppLayout and Link from Inertia.js
+    - Composition API with <script setup>
+    - Tailwind CSS styling consistent with Dashboard.vue
+    - Component composition with MediaUploader
+  - Ready for user testing and end-to-end validation
 
