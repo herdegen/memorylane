@@ -20,7 +20,7 @@ IN_PROGRESS
 - [x] Backend: Add media routes to web.php
 - [x] Backend: Create MediaService for business logic
 - [x] Backend: Create S3Service for file operations
-- [ ] Backend: Create ExifExtractor service
+- [x] Backend: Create ExifExtractor service
 - [ ] Backend: Create ProcessUploadedMedia job
 - [ ] Backend: Create GenerateMediaConversions job
 - [ ] Frontend: Create MediaUploader.vue component with Uppy integration
@@ -81,4 +81,25 @@ IN_PROGRESS
   - Updated all methods to delegate storage operations to S3Service
 - Clean separation: MediaService handles media business logic, S3Service handles storage operations
 - Service can now work with different storage disks by changing configuration
+
+### Iteration 4
+- Created MediaMetadata model:
+  - Maps to media_metadata database table
+  - Contains mass-assignable fields: media_id, exif_data, camera_make, camera_model, iso, aperture, shutter_speed, focal_length, latitude, longitude, altitude
+  - Proper casting: exif_data as array, numeric fields as integers/decimals
+  - Relationship: belongsTo Media model
+- Created ExifExtractor service with comprehensive EXIF extraction:
+  - extract() - Main method to extract EXIF data from UploadedFile or file path
+  - Extracts camera information: make, model
+  - Extracts photo settings: ISO, aperture, shutter speed, focal length
+  - Extracts GPS coordinates: latitude, longitude, altitude (with DMS to decimal conversion)
+  - Extracts date taken from EXIF DateTimeOriginal
+  - sanitizeExifData() - Removes binary data and thumbnails for storage efficiency
+  - convertGpsCoordinate() - Converts GPS DMS format to decimal degrees
+  - evaluateFraction() - Parses EXIF fraction strings (e.g., "1/125") to float
+  - isImageFile() - Validates file type (supports JPEG, TIFF)
+  - getEmptyExifData() - Returns empty structure when EXIF unavailable
+  - Graceful error handling with logging
+  - Returns structured array matching MediaMetadata model fields
+- Both files validated with PHP syntax checker (no errors)
 
