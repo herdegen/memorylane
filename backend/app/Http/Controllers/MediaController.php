@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Media;
+use App\Models\User;
 use App\Services\MediaService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -15,12 +16,32 @@ class MediaController extends Controller
     {
         $this->mediaService = $mediaService;
     }
+
+    /**
+     * Get the current user ID (authenticated or default).
+     * Temporary solution until authentication is implemented.
+     */
+    private function getCurrentUserId(): string
+    {
+        // If authenticated, use auth user
+        if (auth()->check()) {
+            return auth()->id();
+        }
+
+        // Otherwise, use first user as default
+        $user = User::first();
+        if (!$user) {
+            throw new \Exception('No users found. Please create a user first.');
+        }
+
+        return $user->id;
+    }
     /**
      * Display a listing of media.
      */
     public function index(Request $request)
     {
-        $filters = $request->only(['type', 'search']);
+        $filters = $request->only(['type', 'search', 'tags']);
         $media = $this->mediaService->getPaginatedMedia($filters);
 
         return Inertia::render('Media/Index', [
@@ -49,7 +70,7 @@ class MediaController extends Controller
         try {
             $media = $this->mediaService->uploadMedia(
                 $request->file('file'),
-                auth()->id()
+                $this->getCurrentUserId()
             );
 
             // Generate signed URL for response
@@ -72,10 +93,18 @@ class MediaController extends Controller
      */
     public function show(Media $media)
     {
-        $media->load(['user']);
+        $media->load(['user', 'tags', 'conversions', 'metadata']);
 
         // Generate signed URL
         $media->url = $this->mediaService->getSignedUrl($media);
+
+        // Generate signed URLs for conversions
+        if ($media->conversions) {
+            $media->conversions->transform(function ($conversion) {
+                $conversion->url = $this->mediaService->getSignedUrl($media, $conversion->file_path);
+                return $conversion;
+            });
+        }
 
         return Inertia::render('Media/Show', [
             'media' => $media,
@@ -87,8 +116,8 @@ class MediaController extends Controller
      */
     public function destroy(Media $media)
     {
-        // Authorization check
-        if ($media->user_id !== auth()->id()) {
+        // Authorization check (temporary until auth is implemented)
+        if ($media->user_id !== $this->getCurrentUserId()) {
             return response()->json([
                 'error' => 'Unauthorized'
             ], 403);

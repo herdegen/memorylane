@@ -25,13 +25,21 @@ class MediaService
      */
     public function getPaginatedMedia(array $filters = [], int $perPage = 24): LengthAwarePaginator
     {
-        $query = Media::with(['user', 'conversions', 'metadata'])
+        $query = Media::with(['user', 'conversions', 'metadata', 'tags'])
             ->orderBy('taken_at', 'desc')
             ->orderBy('uploaded_at', 'desc');
 
         // Filter by type if provided
         if (isset($filters['type'])) {
             $query->where('type', $filters['type']);
+        }
+
+        // Filter by tags if provided
+        if (isset($filters['tags']) && !empty($filters['tags'])) {
+            $tagIds = is_array($filters['tags']) ? $filters['tags'] : [$filters['tags']];
+            $query->whereHas('tags', function ($q) use ($tagIds) {
+                $q->whereIn('tags.id', $tagIds);
+            });
         }
 
         // Search by name if provided
@@ -63,11 +71,11 @@ class MediaService
      * Upload a media file and create database record.
      *
      * @param UploadedFile $file
-     * @param int $userId
+     * @param string $userId
      * @return Media
      * @throws \Exception
      */
-    public function uploadMedia(UploadedFile $file, int $userId): Media
+    public function uploadMedia(UploadedFile $file, string $userId): Media
     {
         $originalName = $file->getClientOriginalName();
         $mimeType = $file->getMimeType();
@@ -79,8 +87,11 @@ class MediaService
         // Generate unique file path
         $filePath = $this->s3Service->generateFilePath($type, $file->getClientOriginalExtension());
 
+        // Determine visibility (public for local/public disks, private for S3)
+        $visibility = in_array($this->s3Service->getDisk(), ['local', 'public']) ? 'public' : 'private';
+
         // Upload to storage
-        $this->s3Service->upload($file, $filePath);
+        $this->s3Service->upload($file, $filePath, $visibility);
 
         // Get image dimensions if it's an image
         $dimensions = $this->getImageDimensions($file, $mimeType);

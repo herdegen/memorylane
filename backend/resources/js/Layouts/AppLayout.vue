@@ -1,42 +1,33 @@
 <template>
   <div class="min-h-screen bg-gray-100">
-    <!-- Navigation -->
     <nav class="bg-white shadow-sm">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
           <div class="flex">
-            <!-- Logo -->
             <div class="flex-shrink-0 flex items-center">
-              <Link href="/" class="text-xl font-bold text-gray-900">
+              <Link href="/" class="text-xl font-bold text-gray-900 hover:text-indigo-600 transition">
                 MemoryLane
               </Link>
             </div>
-
-            <!-- Navigation Links -->
-            <div class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
+            <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
               <NavLink href="/" :active="$page.component === 'Dashboard'">
                 Accueil
               </NavLink>
               <NavLink href="/media" :active="$page.component.startsWith('Media/')">
-                Médias
+                Galerie
               </NavLink>
-              <NavLink href="/albums" :active="$page.component.startsWith('Albums/')">
-                Albums
+              <NavLink href="/media/upload" :active="$page.component === 'Media/Upload'">
+                Télécharger
               </NavLink>
-            </div>
-          </div>
-
-          <!-- User Menu -->
-          <div class="hidden sm:flex sm:items-center sm:ml-6">
-            <div class="ml-3 relative">
-              <span class="text-sm text-gray-700">Utilisateur</span>
+              <NavLink href="/tags" :active="$page.component.startsWith('Tags/')">
+                Tags
+              </NavLink>
             </div>
           </div>
         </div>
       </div>
     </nav>
 
-    <!-- Page Content -->
     <main>
       <slot />
     </main>

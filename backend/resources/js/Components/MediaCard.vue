@@ -86,6 +86,24 @@
       class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200"
     >
       <div class="absolute bottom-0 left-0 right-0 p-3 text-white">
+        <!-- Tags -->
+        <div v-if="media.tags && media.tags.length > 0" class="flex flex-wrap gap-1 mb-2">
+          <span
+            v-for="tag in media.tags.slice(0, 3)"
+            :key="tag.id"
+            class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+            :style="{ backgroundColor: tag.color || '#6366f1' }"
+          >
+            {{ tag.name }}
+          </span>
+          <span
+            v-if="media.tags.length > 3"
+            class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-200"
+          >
+            +{{ media.tags.length - 3 }}
+          </span>
+        </div>
+
         <p class="text-xs font-medium truncate">
           {{ media.original_name }}
         </p>

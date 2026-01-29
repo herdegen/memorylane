@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\MediaController;
+use App\Http\Controllers\TagController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -17,6 +18,21 @@ Route::prefix('media')->name('media.')->group(function () {
     Route::get('/{media}', [MediaController::class, 'show'])->name('show');
     Route::delete('/{media}', [MediaController::class, 'destroy'])->name('destroy');
     Route::get('/{media}/download', [MediaController::class, 'download'])->name('download');
+});
+
+// Tag routes
+Route::prefix('tags')->name('tags.')->group(function () {
+    Route::get('/', [TagController::class, 'index'])->name('index');
+    Route::post('/', [TagController::class, 'store'])->name('store');
+    Route::put('/{tag}', [TagController::class, 'update'])->name('update');
+    Route::delete('/{tag}', [TagController::class, 'destroy'])->name('destroy');
+
+    // Attach/detach tags to/from media
+    Route::post('/attach', [TagController::class, 'attach'])->name('attach');
+    Route::post('/detach', [TagController::class, 'detach'])->name('detach');
+
+    // Get tags for a specific media
+    Route::get('/media/{media}', [TagController::class, 'mediaTags'])->name('media');
 });
 
 // Health check endpoint for Docker

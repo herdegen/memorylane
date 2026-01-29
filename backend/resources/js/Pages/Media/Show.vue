@@ -1,0 +1,222 @@
+<template>
+  <AppLayout>
+    <div class="py-12">
+      <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <!-- Back button -->
+        <div class="mb-6">
+          <Link
+            href="/media"
+            class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 transition"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            Retour à la galerie
+          </Link>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Media preview (left side - 2 columns) -->
+          <div class="lg:col-span-2">
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+              <!-- Image -->
+              <div v-if="media.type === 'photo'" class="relative bg-black">
+                <img
+                  :src="media.url"
+                  :alt="media.original_name"
+                  class="w-full h-auto max-h-[70vh] object-contain mx-auto"
+                />
+              </div>
+
+              <!-- Video -->
+              <div v-else-if="media.type === 'video'" class="relative bg-black">
+                <video
+                  :src="media.url"
+                  controls
+                  class="w-full h-auto max-h-[70vh] mx-auto"
+                >
+                  Votre navigateur ne supporte pas la lecture de vidéos.
+                </video>
+              </div>
+
+              <!-- Document -->
+              <div v-else class="flex flex-col items-center justify-center p-12 bg-gray-50">
+                <svg class="h-24 w-24 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">{{ media.original_name }}</h3>
+                <p class="text-sm text-gray-500 mb-4">Document ({{ formatFileSize(media.size) }})</p>
+                <a
+                  :href="`/media/${media.id}/download`"
+                  class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+                >
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Télécharger
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Media info (right side - 1 column) -->
+          <div class="space-y-6">
+            <!-- Basic info -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+              <h2 class="text-lg font-semibold text-gray-900 mb-4">Informations</h2>
+
+              <dl class="space-y-3">
+                <div>
+                  <dt class="text-sm font-medium text-gray-500">Nom</dt>
+                  <dd class="mt-1 text-sm text-gray-900">{{ media.original_name }}</dd>
+                </div>
+
+                <div>
+                  <dt class="text-sm font-medium text-gray-500">Type</dt>
+                  <dd class="mt-1">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                      {{ formatType(media.type) }}
+                    </span>
+                  </dd>
+                </div>
+
+                <div>
+                  <dt class="text-sm font-medium text-gray-500">Taille</dt>
+                  <dd class="mt-1 text-sm text-gray-900">{{ formatFileSize(media.size) }}</dd>
+                </div>
+
+                <div v-if="media.width && media.height">
+                  <dt class="text-sm font-medium text-gray-500">Dimensions</dt>
+                  <dd class="mt-1 text-sm text-gray-900">{{ media.width }} × {{ media.height }}px</dd>
+                </div>
+
+                <div v-if="media.duration">
+                  <dt class="text-sm font-medium text-gray-500">Durée</dt>
+                  <dd class="mt-1 text-sm text-gray-900">{{ formatDuration(media.duration) }}</dd>
+                </div>
+
+                <div>
+                  <dt class="text-sm font-medium text-gray-500">Téléchargé le</dt>
+                  <dd class="mt-1 text-sm text-gray-900">{{ formatDate(media.uploaded_at) }}</dd>
+                </div>
+
+                <div v-if="media.taken_at">
+                  <dt class="text-sm font-medium text-gray-500">Pris le</dt>
+                  <dd class="mt-1 text-sm text-gray-900">{{ formatDate(media.taken_at) }}</dd>
+                </div>
+
+                <div v-if="media.user">
+                  <dt class="text-sm font-medium text-gray-500">Uploadé par</dt>
+                  <dd class="mt-1 text-sm text-gray-900">{{ media.user.name }}</dd>
+                </div>
+              </dl>
+            </div>
+
+            <!-- Tags -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+              <h2 class="text-lg font-semibold text-gray-900 mb-4">Tags</h2>
+              <TagInput :media-id="media.id" :initial-tags="media.tags || []" @tags-updated="handleTagsUpdated" />
+            </div>
+
+            <!-- Actions -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+              <h2 class="text-lg font-semibold text-gray-900 mb-4">Actions</h2>
+              <div class="space-y-2">
+                <a
+                  :href="`/media/${media.id}/download`"
+                  class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition"
+                >
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Télécharger
+                </a>
+
+                <button
+                  @click="deleteMedia"
+                  class="w-full inline-flex items-center justify-center px-4 py-2 border border-red-300 rounded-lg text-sm font-medium text-red-700 bg-white hover:bg-red-50 transition"
+                >
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Supprimer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </AppLayout>
+</template>
+
+<script setup>
+import { router, Link } from '@inertiajs/vue3';
+import AppLayout from '@/Layouts/AppLayout.vue';
+import TagInput from '@/Components/TagInput.vue';
+import axios from 'axios';
+
+const props = defineProps({
+  media: {
+    type: Object,
+    required: true,
+  },
+});
+
+const handleTagsUpdated = (tags) => {
+  console.log('Tags updated:', tags);
+};
+
+const deleteMedia = async () => {
+  if (!confirm('Êtes-vous sûr de vouloir supprimer ce média ? Cette action est irréversible.')) {
+    return;
+  }
+
+  try {
+    await axios.delete(`/media/${props.media.id}`);
+    router.visit('/media');
+  } catch (error) {
+    alert('Erreur lors de la suppression: ' + (error.response?.data?.message || error.message));
+  }
+};
+
+const formatType = (type) => {
+  const types = {
+    photo: 'Photo',
+    video: 'Vidéo',
+    document: 'Document',
+  };
+  return types[type] || type;
+};
+
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+};
+
+const formatDuration = (seconds) => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+  return `${minutes}:${secs.toString().padStart(2, '0')}`;
+};
+
+const formatDate = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+</script>
