@@ -45,7 +45,7 @@ class TagController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:tags,name',
             'color' => 'nullable|string|max:7',
-            'type' => 'nullable|in:person,place,event,other',
+            'type' => 'nullable|in:general,location,event,custom',
         ]);
 
         $tag = Tag::create($validated);
@@ -64,7 +64,7 @@ class TagController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:tags,name,' . $tag->id,
             'color' => 'nullable|string|max:7',
-            'type' => 'nullable|in:person,place,event,other',
+            'type' => 'nullable|in:general,location,event,custom',
         ]);
 
         $tag->update($validated);
