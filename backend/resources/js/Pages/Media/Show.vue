@@ -118,6 +118,16 @@
               <TagInput :media-id="media.id" :initial-tags="media.tags || []" @tags-updated="handleTagsUpdated" />
             </div>
 
+            <!-- Geolocation -->
+            <GeolocationEditor
+              :media-id="media.id"
+              :initial-latitude="media.metadata?.latitude"
+              :initial-longitude="media.metadata?.longitude"
+              :initial-altitude="media.metadata?.altitude"
+              @updated="handleGeolocationUpdated"
+              @removed="handleGeolocationRemoved"
+            />
+
             <!-- Actions -->
             <div class="bg-white rounded-lg shadow-sm p-6">
               <h2 class="text-lg font-semibold text-gray-900 mb-4">Actions</h2>
@@ -154,6 +164,7 @@
 import { router, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import TagInput from '@/Components/TagInput.vue';
+import GeolocationEditor from '@/Components/GeolocationEditor.vue';
 import axios from 'axios';
 
 const props = defineProps({
@@ -165,6 +176,14 @@ const props = defineProps({
 
 const handleTagsUpdated = (tags) => {
   console.log('Tags updated:', tags);
+};
+
+const handleGeolocationUpdated = (metadata) => {
+  console.log('Geolocation updated:', metadata);
+};
+
+const handleGeolocationRemoved = () => {
+  console.log('Geolocation removed');
 };
 
 const deleteMedia = async () => {

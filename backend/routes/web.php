@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\TagController;
+use App\Http\Controllers\MapController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -33,6 +34,16 @@ Route::prefix('tags')->name('tags.')->group(function () {
 
     // Get tags for a specific media
     Route::get('/media/{media}', [TagController::class, 'mediaTags'])->name('media');
+});
+
+// Map routes
+Route::prefix('map')->name('map.')->group(function () {
+    Route::get('/', [MapController::class, 'index'])->name('index');
+    Route::get('/media', [MapController::class, 'getGeolocatedMedia'])->name('media');
+    Route::post('/media/{media}/geolocation', [MapController::class, 'updateGeolocation'])->name('updateGeolocation');
+    Route::delete('/media/{media}/geolocation', [MapController::class, 'removeGeolocation'])->name('removeGeolocation');
+    Route::get('/search', [MapController::class, 'searchLocation'])->name('searchLocation');
+    Route::get('/nearby', [MapController::class, 'getNearbyMedia'])->name('nearby');
 });
 
 // Health check endpoint for Docker

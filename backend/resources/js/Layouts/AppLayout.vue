@@ -22,6 +22,9 @@
               <NavLink href="/tags" :active="$page.component.startsWith('Tags/')">
                 Tags
               </NavLink>
+              <NavLink href="/map" :active="$page.component.startsWith('Map/')">
+                Carte
+              </NavLink>
             </div>
           </div>
         </div>
