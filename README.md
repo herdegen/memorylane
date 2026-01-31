@@ -9,6 +9,7 @@ MemoryLane est une plateforme de gestion de médias familiaux permettant de stoc
 - **PostgreSQL 16** - Base de données
 - **Redis 7** - Cache & Queues
 - **Inertia.js** - Bridge Laravel-Vue
+- **Filament v3.3** - Admin Panel
 
 ### Frontend
 - **Vue 3** (Composition API)
@@ -84,9 +85,24 @@ docker-compose exec app php artisan migrate
 docker-compose exec app npm run build
 ```
 
-### 5. Accéder à l'application
+### 5. Créer un utilisateur admin
+
+```bash
+# Créer un utilisateur admin via Tinker
+docker-compose exec app php artisan tinker
+
+# Dans Tinker, exécuter :
+User::create([
+    'name' => 'Admin',
+    'email' => 'admin@memorylane.com',
+    'password' => Hash::make('password')
+]);
+```
+
+### 6. Accéder à l'application
 
 - **Application** : http://localhost:8000
+- **Admin Panel** : http://localhost:8000/admin (admin@memorylane.com / password)
 - **Meilisearch** : http://localhost:7700
 - **Horizon** (queues) : http://localhost:8000/horizon
 
@@ -210,13 +226,48 @@ MEILISEARCH_KEY=masterKey
 
 ## 🧪 Tests
 
+Le projet dispose d'une suite de tests complète couvrant toutes les fonctionnalités principales.
+
+### Suites de tests disponibles
+
+- **TagTest** (11 tests) - Tests complets du système de tags
+- **MediaTest** (11 tests) - Tests de gestion des médias
+- **TagAttachmentTest** (11 tests) - Tests d'attachement tags-médias
+- **MapControllerTest** (11 tests) - Tests de géolocalisation & carte
+- **FilamentAdminTest** (17 tests) - Tests du panel admin Filament
+
+**Total : 61 tests couvrant ~100 assertions**
+
+### Commandes de test
+
 ```bash
-# Exécuter les tests
+# Exécuter tous les tests
 docker-compose exec app php artisan test
+
+# Exécuter une suite spécifique
+docker-compose exec app php artisan test --filter=TagTest
+docker-compose exec app php artisan test --filter=MediaTest
+docker-compose exec app php artisan test --filter=MapControllerTest
+docker-compose exec app php artisan test --filter=FilamentAdminTest
 
 # Avec couverture
 docker-compose exec app php artisan test --coverage
+
+# Tests en parallèle (plus rapide)
+docker-compose exec app php artisan test --parallel
 ```
+
+### Couverture des tests
+
+- ✅ CRUD Tags (création, lecture, mise à jour, suppression)
+- ✅ Attachement/détachement tags sur médias
+- ✅ Validation des données (UUID, champs requis)
+- ✅ Upload et gestion des médias
+- ✅ Extraction de métadonnées EXIF
+- ✅ Géolocalisation (CRUD, validation, calculs de distance)
+- ✅ Recherche de lieux (Nominatim)
+- ✅ Panel admin Filament (authentification, ressources)
+- ✅ Soft deletes et restauration
 
 ## 📦 Packages principaux
 
@@ -236,6 +287,42 @@ docker-compose exec app php artisan test --coverage
 - `leaflet` - Cartes
 - `pinia` - State management
 
+## 🔑 Panel Administrateur (Filament)
+
+L'application dispose d'un panel d'administration complet construit avec Filament v3.3.
+
+### Accès
+- **URL** : http://localhost:8000/admin
+- **Credentials par défaut** : admin@memorylane.com / password
+
+### Fonctionnalités
+
+#### Gestion des Médias
+- Liste complète avec recherche et filtres
+- Visualisation des métadonnées (dimensions, taille, durée, etc.)
+- Édition des propriétés
+- Gestion du soft delete (corbeille)
+- Actions en masse (suppression, restauration)
+
+#### Gestion des Tags
+- CRUD complet des tags
+- Recherche et tri
+- Visualisation du nombre d'utilisations
+- Gestion des types de tags (général, lieu, personne, événement)
+
+#### Gestion des Utilisateurs
+- Liste et recherche d'utilisateurs
+- Création/édition de comptes
+- Gestion des codes PIN
+- Statistiques par utilisateur
+
+### Personnalisation
+- Thème Amber
+- Interface responsive
+- Widgets de statistiques
+- Navigation intuitive
+- Support multi-langues
+
 ## 🗺️ Roadmap
 
 ### Phase 1 : Fondations ✅
@@ -248,12 +335,13 @@ docker-compose exec app php artisan test --coverage
 - [x] Extraction EXIF automatique
 - [x] Génération thumbnails (4 tailles)
 
-### Phase 2 : Fonctionnalités Core (En cours)
+### Phase 2 : Fonctionnalités Core ✅
 - [x] Système de tags complet
   - [x] Gestion des tags (création, édition, suppression)
   - [x] Tagging des médias avec autocomplete
   - [x] Filtrage par tags dans la galerie
   - [x] Affichage des tags sur les cartes médias
+  - [x] Tests complets (22 tests)
 - [x] Géolocalisation complète
   - [x] Extraction GPS automatique depuis EXIF
   - [x] Carte interactive avec Leaflet.js + OpenStreetMap
@@ -261,6 +349,17 @@ docker-compose exec app php artisan test --coverage
   - [x] Filtrage par zone géographique (rayon)
   - [x] Édition manuelle des coordonnées GPS
   - [x] Affichage médias géolocalisés sur carte
+  - [x] Tests complets (11 tests)
+- [x] Panel Admin Filament
+  - [x] Gestion complète des médias
+  - [x] Gestion des tags
+  - [x] Gestion des utilisateurs
+  - [x] Dashboard administrateur
+  - [x] Tests complets (17 tests)
+- [x] Suite de tests complète
+  - [x] 61 tests couvrant toutes les fonctionnalités
+  - [x] Tests unitaires et d'intégration
+  - [x] Validation des données
 - [ ] Albums
 
 ### Phase 3 : IA & Reconnaissance Faciale
