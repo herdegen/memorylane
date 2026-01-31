@@ -238,20 +238,30 @@ docker-compose exec app php artisan test --coverage
 
 ## 🗺️ Roadmap
 
-### Phase 1 : Fondations ✅ (En cours)
-- [x] Environnement Docker
+### Phase 1 : Fondations ✅
+- [x] Environnement Docker (7 services)
 - [x] Laravel 11 + Vue 3 + Inertia.js
-- [x] Migrations base de données
-- [x] Configuration S3 Scaleway
-- [ ] Upload basique médias
-- [ ] Galerie photos
+- [x] Migrations base de données (UUID, soft deletes)
+- [x] Configuration S3 Scaleway (stockage local en dev)
+- [x] Upload basique médias (drag-and-drop)
+- [x] Galerie photos (grille responsive + PhotoSwipe)
+- [x] Extraction EXIF automatique
+- [x] Génération thumbnails (4 tailles)
 
-### Phase 2 : Fonctionnalités Core
-- [ ] Extraction EXIF automatique
-- [ ] Génération thumbnails
-- [ ] Système de tags
+### Phase 2 : Fonctionnalités Core (En cours)
+- [x] Système de tags complet
+  - [x] Gestion des tags (création, édition, suppression)
+  - [x] Tagging des médias avec autocomplete
+  - [x] Filtrage par tags dans la galerie
+  - [x] Affichage des tags sur les cartes médias
+- [x] Géolocalisation complète
+  - [x] Extraction GPS automatique depuis EXIF
+  - [x] Carte interactive avec Leaflet.js + OpenStreetMap
+  - [x] Recherche de lieux avec Nominatim
+  - [x] Filtrage par zone géographique (rayon)
+  - [x] Édition manuelle des coordonnées GPS
+  - [x] Affichage médias géolocalisés sur carte
 - [ ] Albums
-- [ ] Géolocalisation
 
 ### Phase 3 : IA & Reconnaissance Faciale
 - [ ] Intégration Google Vision API

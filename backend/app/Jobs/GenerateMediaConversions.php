@@ -341,8 +341,11 @@ class GenerateMediaConversions implements ShouldQueue
         $filename = pathinfo($this->media->file_path, PATHINFO_FILENAME);
         $conversionPath = "{$directory}/{$filename}_{$conversionName}.{$extension}";
 
+        // Determine visibility based on disk
+        $visibility = in_array($s3Service->getDisk(), ['local', 'public']) ? 'public' : 'private';
+
         // Upload to S3
-        $s3Service->upload($localPath, $conversionPath);
+        $s3Service->putFile($localPath, $conversionPath, $visibility);
 
         return $conversionPath;
     }

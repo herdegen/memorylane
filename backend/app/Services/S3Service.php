@@ -41,6 +41,32 @@ class S3Service
     }
 
     /**
+     * Upload a file from local path to storage.
+     *
+     * @param string $localPath Local file path
+     * @param string $storagePath Path in storage
+     * @param string $visibility
+     * @return string The path where the file was stored
+     * @throws \Exception
+     */
+    public function putFile(string $localPath, string $storagePath, string $visibility = 'private'): string
+    {
+        try {
+            $contents = file_get_contents($localPath);
+
+            Storage::disk($this->disk)->put(
+                $storagePath,
+                $contents,
+                $visibility
+            );
+
+            return $storagePath;
+        } catch (\Exception $e) {
+            throw new \Exception('Failed to upload file to storage: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Delete a file from S3 storage.
      *
      * @param string $path
@@ -68,6 +94,7 @@ class S3Service
 
     /**
      * Get a temporary signed URL for a file.
+     * For local/public disks, returns a regular URL since they don't support signed URLs.
      *
      * @param string $path
      * @param int $expirationMinutes
@@ -76,6 +103,12 @@ class S3Service
      */
     public function getTemporaryUrl(string $path, int $expirationMinutes = 60, array $options = []): string
     {
+        // For local/public disks, use regular URL (they don't support temporaryUrl)
+        if (in_array($this->disk, ['local', 'public'])) {
+            return $this->url($path);
+        }
+
+        // For S3-compatible storage, use temporaryUrl with signature
         return Storage::disk($this->disk)->temporaryUrl(
             $path,
             now()->addMinutes($expirationMinutes),
@@ -85,6 +118,7 @@ class S3Service
 
     /**
      * Get a download URL with proper headers.
+     * For local/public disks, returns a regular URL (headers handled by controller).
      *
      * @param string $path
      * @param string $filename
@@ -93,6 +127,12 @@ class S3Service
      */
     public function getDownloadUrl(string $path, string $filename, int $expirationMinutes = 5): string
     {
+        // For local/public disks, just return the URL (download headers handled by controller)
+        if (in_array($this->disk, ['local', 'public'])) {
+            return $this->url($path);
+        }
+
+        // For S3-compatible storage, add download headers to signed URL
         return $this->getTemporaryUrl($path, $expirationMinutes, [
             'ResponseContentDisposition' => 'attachment; filename="' . $filename . '"'
         ]);
