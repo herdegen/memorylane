@@ -21,11 +21,6 @@ class TagController extends Controller
             $query->where('name', 'like', '%' . $request->search . '%');
         }
 
-        // Filter by type if provided
-        if ($request->has('type')) {
-            $query->where('type', $request->type);
-        }
-
         $tags = $query->orderBy('name')->get();
 
         if ($request->wantsJson()) {
@@ -45,15 +40,18 @@ class TagController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:tags,name',
             'color' => 'nullable|string|max:7',
-            'type' => 'nullable|in:general,location,event,custom',
         ]);
 
         $tag = Tag::create($validated);
 
-        return response()->json([
-            'message' => 'Tag created successfully',
-            'tag' => $tag,
-        ], 201);
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'Tag created successfully',
+                'tag' => $tag,
+            ], 201);
+        }
+
+        return redirect()->back()->with('success', 'Tag créé avec succès');
     }
 
     /**
@@ -64,27 +62,34 @@ class TagController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:tags,name,' . $tag->id,
             'color' => 'nullable|string|max:7',
-            'type' => 'nullable|in:general,location,event,custom',
         ]);
 
         $tag->update($validated);
 
-        return response()->json([
-            'message' => 'Tag updated successfully',
-            'tag' => $tag,
-        ]);
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'Tag updated successfully',
+                'tag' => $tag,
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Tag modifié avec succès');
     }
 
     /**
      * Remove the specified tag.
      */
-    public function destroy(Tag $tag)
+    public function destroy(Request $request, Tag $tag)
     {
         $tag->delete();
 
-        return response()->json([
-            'message' => 'Tag deleted successfully',
-        ]);
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'Tag deleted successfully',
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Tag supprimé avec succès');
     }
 
     /**

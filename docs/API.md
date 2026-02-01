@@ -12,9 +12,13 @@ http://localhost:8000
 
 ## Authentication
 
-Pour le moment, l'application n'utilise pas d'authentification API. Les routes sont publiques pendant le développement.
+L'application utilise l'authentification web standard (Session) pour le frontend et Laravel Sanctum pour l'API.
+Toutes les routes nécessitent une authentification.
 
-En production, Laravel Sanctum sera utilisé pour les tokens API.
+## Sécurité
+
+⚠️ **Sécurité** : Toutes les routes sont désormais protégées par le middleware `auth`.
+Les utilisateurs non authentifiés sont redirigés vers la page de login.
 
 ## Endpoints
 

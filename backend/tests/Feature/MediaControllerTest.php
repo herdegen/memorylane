@@ -38,7 +38,7 @@ class MediaControllerTest extends TestCase
         // Create some media
         Media::factory()->count(5)->create(['user_id' => $this->user->id]);
 
-        $response = $this->get('/media');
+        $response = $this->actingAs($this->user)->get('/media');
 
         $response->assertStatus(200);
     }
@@ -52,7 +52,7 @@ class MediaControllerTest extends TestCase
         Media::factory()->photo()->count(3)->create(['user_id' => $this->user->id]);
         Media::factory()->video()->count(2)->create(['user_id' => $this->user->id]);
 
-        $response = $this->get('/media?type=photo');
+        $response = $this->actingAs($this->user)->get('/media?type=photo');
 
         $response->assertStatus(200);
         // The response contains Inertia props with paginated media
@@ -73,7 +73,7 @@ class MediaControllerTest extends TestCase
             'original_name' => 'work-document.pdf',
         ]);
 
-        $response = $this->get('/media?search=vacation');
+        $response = $this->actingAs($this->user)->get('/media?search=vacation');
 
         $response->assertStatus(200);
     }
@@ -85,7 +85,7 @@ class MediaControllerTest extends TestCase
     {
         $media = Media::factory()->create(['user_id' => $this->user->id]);
 
-        $response = $this->get("/media/{$media->id}");
+        $response = $this->actingAs($this->user)->get("/media/{$media->id}");
 
         $response->assertStatus(200);
     }
@@ -97,7 +97,7 @@ class MediaControllerTest extends TestCase
     {
         $media = Media::factory()->create(['user_id' => $this->user->id]);
 
-        $response = $this->deleteJson("/media/{$media->id}");
+        $response = $this->actingAs($this->user)->deleteJson("/media/{$media->id}");
 
         $response->assertStatus(200)
             ->assertJson(['message' => 'Media deleted successfully']);
@@ -115,7 +115,7 @@ class MediaControllerTest extends TestCase
     {
         $file = UploadedFile::fake()->image('test-photo.jpg', 1920, 1080);
 
-        $response = $this->postJson('/media', [
+        $response = $this->actingAs($this->user)->postJson('/media', [
             'file' => $file,
         ]);
 
@@ -151,7 +151,7 @@ class MediaControllerTest extends TestCase
         $media3 = Media::factory()->create(['user_id' => $this->user->id]);
         $media3->tags()->attach([$tag1->id, $tag2->id]);
 
-        $response = $this->get("/media?tags[]={$tag1->id}");
+        $response = $this->actingAs($this->user)->get("/media?tags[]={$tag1->id}");
 
         $response->assertStatus(200);
         // Should return media1 and media3 (both have tag1)
@@ -164,7 +164,7 @@ class MediaControllerTest extends TestCase
     {
         $file = UploadedFile::fake()->create('malicious.exe', 1000);
 
-        $response = $this->postJson('/media', [
+        $response = $this->actingAs($this->user)->postJson('/media', [
             'file' => $file,
         ]);
 
@@ -180,7 +180,7 @@ class MediaControllerTest extends TestCase
         // Create a file larger than max allowed (2GB limit)
         $file = UploadedFile::fake()->create('huge-file.jpg', 2100000); // > 2GB
 
-        $response = $this->postJson('/media', [
+        $response = $this->actingAs($this->user)->postJson('/media', [
             'file' => $file,
         ]);
 

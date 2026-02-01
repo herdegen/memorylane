@@ -23,6 +23,7 @@ class User extends Authenticatable implements FilamentUser
         'name',
         'email',
         'password',
+        'role',
         'pin_code',
         'avatar_id',
         'person_id',
@@ -55,12 +56,18 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
+     * Check if the user is an admin.
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    /**
      * Determine if the user can access the Filament admin panel.
      */
     public function canAccessPanel(Panel $panel): bool
     {
-        // Allow all authenticated users to access the admin panel
-        // In the future, you can add role-based access control here
-        return true;
+        return $this->isAdmin();
     }
 }

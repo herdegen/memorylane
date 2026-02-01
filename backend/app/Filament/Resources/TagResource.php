@@ -17,7 +17,13 @@ class TagResource extends Resource
 {
     protected static ?string $model = Tag::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-tag';
+
+    protected static ?string $navigationLabel = 'Tags';
+
+    protected static ?string $modelLabel = 'Tag';
+
+    protected static ?string $pluralModelLabel = 'Tags';
 
     public static function form(Form $form): Form
     {
@@ -25,16 +31,14 @@ class TagResource extends Resource
             ->schema([
                 Forms\Components\TextInput::make('name')
                     ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('type')
-                    ->required()
                     ->maxLength(255)
-                    ->default('general'),
+                    ->label('Nom'),
                 Forms\Components\TextInput::make('slug')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('color')
-                    ->maxLength(7),
+                    ->maxLength(255)
+                    ->label('Slug')
+                    ->helperText('Laissez vide pour générer automatiquement'),
+                Forms\Components\ColorPicker::make('color')
+                    ->label('Couleur'),
             ]);
     }
 
@@ -42,22 +46,24 @@ class TagResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\ColorColumn::make('color')
+                    ->label('Couleur'),
                 Tables\Columns\TextColumn::make('name')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('type')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->label('Nom')
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('slug')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('color')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('media_count')
+                    ->label('Médias')
+                    ->counts('media')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Créé le')
+                    ->dateTime('d/m/Y')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 //

@@ -1,0 +1,419 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+// =============================================================================
+// Variables
+// =============================================================================
+:root {
+  --color-primary: theme('colors.indigo.600');
+  --color-primary-hover: theme('colors.indigo.700');
+  --color-primary-light: theme('colors.indigo.100');
+  --color-success: theme('colors.green.500');
+  --color-warning: theme('colors.yellow.500');
+  --color-danger: theme('colors.red.500');
+}
+
+// =============================================================================
+// Layout
+// =============================================================================
+@layer components {
+  .page-container {
+    @apply py-12;
+  }
+
+  .page-content {
+    @apply max-w-7xl mx-auto sm:px-6 lg:px-8;
+  }
+
+  .page-header {
+    @apply mb-6;
+
+    h1 {
+      @apply text-3xl font-bold text-gray-900;
+    }
+
+    p {
+      @apply mt-2 text-gray-600;
+    }
+  }
+}
+
+// =============================================================================
+// Cards
+// =============================================================================
+@layer components {
+  .card {
+    @apply bg-white overflow-hidden shadow-sm sm:rounded-lg;
+
+    &--padded {
+      @apply p-6;
+    }
+  }
+
+  .card-body {
+    @apply p-6;
+  }
+
+  .card-title {
+    @apply text-xl font-semibold text-gray-900 mb-4;
+  }
+
+  // Action card (Dashboard quick actions)
+  .action-card {
+    @apply bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition border-l-4;
+
+    &--indigo {
+      @apply border-indigo-500;
+    }
+
+    &--green {
+      @apply border-green-500;
+    }
+
+    &--blue {
+      @apply border-blue-500;
+    }
+
+    &--purple {
+      @apply border-purple-500;
+    }
+  }
+
+  .action-card-content {
+    @apply flex items-center;
+  }
+
+  .action-card-icon {
+    @apply p-3 rounded-full;
+
+    &--indigo {
+      @apply bg-indigo-100 text-indigo-600;
+    }
+
+    &--green {
+      @apply bg-green-100 text-green-600;
+    }
+
+    &--blue {
+      @apply bg-blue-100 text-blue-600;
+    }
+
+    &--purple {
+      @apply bg-purple-100 text-purple-600;
+    }
+  }
+
+  .action-card-text {
+    @apply ml-4;
+
+    h3 {
+      @apply font-semibold text-gray-900;
+    }
+
+    p {
+      @apply text-sm text-gray-500;
+    }
+  }
+}
+
+// =============================================================================
+// Feature items
+// =============================================================================
+@layer components {
+  .feature-item {
+    @apply flex items-start p-4 bg-gray-50 rounded-lg;
+  }
+
+  .feature-icon {
+    @apply flex-shrink-0;
+
+    &--available {
+      @apply text-green-500;
+    }
+
+    &--coming {
+      @apply text-yellow-500;
+    }
+  }
+
+  .feature-content {
+    @apply ml-3;
+
+    h3 {
+      @apply text-sm font-medium text-gray-900;
+    }
+
+    p {
+      @apply text-sm text-gray-500;
+    }
+  }
+}
+
+// =============================================================================
+// Buttons
+// =============================================================================
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 border border-transparent
+           text-sm font-medium rounded-md transition ease-in-out duration-150
+           focus:outline-none focus:ring-2 focus:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply btn text-white bg-indigo-600 hover:bg-indigo-700
+           focus:ring-indigo-500 active:bg-indigo-900;
+  }
+
+  .btn-secondary {
+    @apply btn text-gray-700 bg-white border-gray-300
+           hover:bg-gray-50 focus:ring-indigo-500;
+  }
+
+  .btn-danger {
+    @apply btn text-white bg-red-600 hover:bg-red-700
+           focus:ring-red-500 active:bg-red-900;
+  }
+
+  .btn-success {
+    @apply btn text-white bg-green-600 hover:bg-green-700
+           focus:ring-green-500 active:bg-green-900;
+  }
+
+  .btn-admin {
+    @apply inline-flex items-center px-3 py-2 text-sm font-medium
+           text-amber-700 bg-amber-100 rounded-md hover:bg-amber-200 transition;
+  }
+
+  .btn-lg {
+    @apply px-6 py-3 text-base;
+  }
+
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+
+  .btn-full {
+    @apply w-full;
+  }
+}
+
+// =============================================================================
+// Forms
+// =============================================================================
+@layer components {
+  .form-group {
+    @apply mb-4;
+  }
+
+  .form-label {
+    @apply block text-sm font-medium text-gray-700 mb-2;
+  }
+
+  .form-input {
+    @apply w-full px-4 py-2 border border-gray-300 rounded-lg
+           focus:ring-2 focus:ring-indigo-500 focus:border-transparent
+           sm:text-sm;
+
+    &--error {
+      @apply border-red-500 bg-red-50;
+    }
+  }
+
+  .form-select {
+    @apply form-input cursor-pointer;
+  }
+
+  .form-checkbox {
+    @apply h-4 w-4 text-indigo-600 focus:ring-indigo-500
+           border-gray-300 rounded;
+  }
+
+  .form-error {
+    @apply mt-1 text-sm text-red-600;
+  }
+
+  .form-helper {
+    @apply mt-1 text-sm text-gray-500;
+  }
+}
+
+// =============================================================================
+// Alerts
+// =============================================================================
+@layer components {
+  .alert {
+    @apply rounded-md p-4 mb-4;
+  }
+
+  .alert-success {
+    @apply alert bg-green-50;
+
+    p {
+      @apply text-sm text-green-700;
+    }
+  }
+
+  .alert-error {
+    @apply alert bg-red-50;
+
+    p {
+      @apply text-sm text-red-800;
+    }
+  }
+
+  .alert-warning {
+    @apply alert bg-yellow-50;
+
+    p {
+      @apply text-sm text-yellow-700;
+    }
+  }
+}
+
+// =============================================================================
+// Tags
+// =============================================================================
+@layer components {
+  .tag-item {
+    @apply flex items-center justify-between p-4 border border-gray-200
+           rounded-lg hover:border-indigo-300 transition;
+  }
+
+  .tag-color {
+    @apply w-4 h-4 rounded-full;
+  }
+
+  .tag-info {
+    @apply flex items-center gap-3;
+  }
+
+  .tag-name {
+    @apply font-medium text-gray-900;
+  }
+
+  .tag-count {
+    @apply text-sm text-gray-500;
+  }
+}
+
+// =============================================================================
+// Grid layouts
+// =============================================================================
+@layer components {
+  .grid-2 {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-4;
+  }
+
+  .grid-3 {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4;
+  }
+
+  .grid-4 {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6;
+  }
+}
+
+// =============================================================================
+// Icons
+// =============================================================================
+@layer components {
+  .icon {
+    @apply w-6 h-6;
+  }
+
+  .icon-sm {
+    @apply w-4 h-4;
+  }
+
+  .icon-lg {
+    @apply w-8 h-8;
+  }
+
+  .icon-xl {
+    @apply w-12 h-12;
+  }
+}
+
+// =============================================================================
+// Navigation
+// =============================================================================
+@layer components {
+  .nav-link {
+    @apply inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition;
+
+    &--active {
+      @apply border-indigo-500 text-gray-900;
+    }
+
+    &--inactive {
+      @apply border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300;
+    }
+  }
+
+  .mobile-nav-link {
+    @apply block pl-3 pr-4 py-2 border-l-4 text-base font-medium transition;
+
+    &--active {
+      @apply bg-indigo-50 border-indigo-500 text-indigo-700;
+    }
+
+    &--inactive {
+      @apply border-transparent text-gray-600 hover:text-gray-800
+             hover:bg-gray-50 hover:border-gray-300;
+    }
+  }
+}
+
+// =============================================================================
+// Dropdown
+// =============================================================================
+@layer components {
+  .dropdown {
+    @apply absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg
+           py-1 z-50 ring-1 ring-black ring-opacity-5;
+  }
+
+  .dropdown-item {
+    @apply block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100;
+  }
+
+  .dropdown-divider {
+    @apply my-1 border-t border-gray-100;
+  }
+}
+
+// =============================================================================
+// Empty states
+// =============================================================================
+@layer components {
+  .empty-state {
+    @apply text-center py-12;
+  }
+
+  .empty-state-icon {
+    @apply text-gray-400 text-5xl mb-4;
+  }
+
+  .empty-state-title {
+    @apply text-lg font-medium text-gray-900 mb-2;
+  }
+
+  .empty-state-text {
+    @apply text-gray-600;
+  }
+}
+
+// =============================================================================
+// Utilities
+// =============================================================================
+@layer utilities {
+  .text-muted {
+    @apply text-gray-500;
+  }
+
+  .text-title {
+    @apply text-gray-900 font-semibold;
+  }
+}

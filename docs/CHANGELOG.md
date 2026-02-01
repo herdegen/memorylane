@@ -53,7 +53,7 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
   - Pagination (24 items/page)
 
 #### Tests
-- 🧪 **Suite de Tests Complète (57 tests)**
+- 🧪 **Suite de Tests Complète (61 tests)**
   - TagControllerTest (7 tests) - Gestion des tags
   - TagAttachmentTest (11 tests) - Attachement tags-médias
   - MediaControllerTest (9 tests) - Gestion des médias

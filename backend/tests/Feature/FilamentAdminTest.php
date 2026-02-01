@@ -20,7 +20,7 @@ class FilamentAdminTest extends TestCase
         parent::setUp();
 
         // Create admin user
-        $this->adminUser = User::factory()->create([
+        $this->adminUser = User::factory()->admin()->create([
             'name' => 'Admin User',
             'email' => 'admin@memorylane.com',
             'password' => Hash::make('password'),

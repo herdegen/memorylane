@@ -26,7 +26,7 @@ class MapControllerTest extends TestCase
      */
     public function test_map_index_loads(): void
     {
-        $response = $this->get('/map');
+        $response = $this->actingAs($this->user)->get('/map');
 
         $response->assertStatus(200);
     }
@@ -46,7 +46,7 @@ class MapControllerTest extends TestCase
         // Create media without geolocation
         $media2 = Media::factory()->create(['user_id' => $this->user->id]);
 
-        $response = $this->getJson('/map/media');
+        $response = $this->actingAs($this->user)->getJson('/map/media');
 
         $response->assertStatus(200)
             ->assertJsonCount(1); // Only media with geolocation
@@ -76,7 +76,7 @@ class MapControllerTest extends TestCase
             'longitude' => 4.8357,
         ]);
 
-        $response = $this->getJson('/map/media?type=photo');
+        $response = $this->actingAs($this->user)->getJson('/map/media?type=photo');
 
         $response->assertStatus(200)
             ->assertJsonCount(1);
@@ -104,7 +104,7 @@ class MapControllerTest extends TestCase
             'longitude' => 4.8357,
         ]);
 
-        $response = $this->getJson("/map/media?tags[]={$tag->id}");
+        $response = $this->actingAs($this->user)->getJson("/map/media?tags[]={$tag->id}");
 
         $response->assertStatus(200)
             ->assertJsonCount(1);
@@ -117,7 +117,7 @@ class MapControllerTest extends TestCase
     {
         $media = Media::factory()->create(['user_id' => $this->user->id]);
 
-        $response = $this->postJson("/map/media/{$media->id}/geolocation", [
+        $response = $this->actingAs($this->user)->postJson("/map/media/{$media->id}/geolocation", [
             'latitude' => 48.8566,
             'longitude' => 2.3522,
             'altitude' => 35,
@@ -145,7 +145,7 @@ class MapControllerTest extends TestCase
             'longitude' => 2.3522,
         ]);
 
-        $response = $this->deleteJson("/map/media/{$media->id}/geolocation");
+        $response = $this->actingAs($this->user)->deleteJson("/map/media/{$media->id}/geolocation");
 
         $response->assertStatus(200)
             ->assertJson(['message' => 'Geolocation removed successfully']);
@@ -164,7 +164,7 @@ class MapControllerTest extends TestCase
     {
         $media = Media::factory()->create(['user_id' => $this->user->id]);
 
-        $response = $this->postJson("/map/media/{$media->id}/geolocation", [
+        $response = $this->actingAs($this->user)->postJson("/map/media/{$media->id}/geolocation", [
             'latitude' => 100, // Invalid: > 90
             'longitude' => 2.3522,
         ]);
@@ -180,7 +180,7 @@ class MapControllerTest extends TestCase
     {
         $media = Media::factory()->create(['user_id' => $this->user->id]);
 
-        $response = $this->postJson("/map/media/{$media->id}/geolocation", [
+        $response = $this->actingAs($this->user)->postJson("/map/media/{$media->id}/geolocation", [
             'latitude' => 48.8566,
             'longitude' => 200, // Invalid: > 180
         ]);
@@ -215,7 +215,7 @@ class MapControllerTest extends TestCase
             'longitude' => 4.8357,
         ]);
 
-        $response = $this->getJson('/map/nearby?latitude=48.8566&longitude=2.3522&radius=5');
+        $response = $this->actingAs($this->user)->getJson('/map/nearby?latitude=48.8566&longitude=2.3522&radius=5');
 
         $response->assertStatus(200);
 
@@ -228,7 +228,7 @@ class MapControllerTest extends TestCase
      */
     public function test_location_search_requires_query(): void
     {
-        $response = $this->getJson('/map/search?query=Pa');
+        $response = $this->actingAs($this->user)->getJson('/map/search?query=Pa');
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['query']);
@@ -241,7 +241,7 @@ class MapControllerTest extends TestCase
     {
         // This test requires internet connection to Nominatim API
         // We'll just test that the endpoint accepts the request
-        $response = $this->getJson('/map/search?query=Paris');
+        $response = $this->actingAs($this->user)->getJson('/map/search?query=Paris');
 
         // Should return 200 if Nominatim is accessible, or 500 if network issue
         $this->assertContains($response->status(), [200, 500]);

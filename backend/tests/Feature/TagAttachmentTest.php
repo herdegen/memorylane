@@ -31,7 +31,7 @@ class TagAttachmentTest extends TestCase
      */
     public function test_can_attach_tag_to_media(): void
     {
-        $response = $this->postJson('/tags/attach', [
+        $response = $this->actingAs($this->user)->postJson('/tags/attach', [
             'media_id' => $this->media->id,
             'tag_id' => $this->tag->id,
         ]);
@@ -52,13 +52,13 @@ class TagAttachmentTest extends TestCase
     public function test_attaching_same_tag_twice_does_not_duplicate(): void
     {
         // Attach tag first time
-        $this->postJson('/tags/attach', [
+        $this->actingAs($this->user)->postJson('/tags/attach', [
             'media_id' => $this->media->id,
             'tag_id' => $this->tag->id,
         ])->assertStatus(200);
 
         // Attach same tag second time
-        $this->postJson('/tags/attach', [
+        $this->actingAs($this->user)->postJson('/tags/attach', [
             'media_id' => $this->media->id,
             'tag_id' => $this->tag->id,
         ])->assertStatus(200);
@@ -75,7 +75,7 @@ class TagAttachmentTest extends TestCase
         // First attach the tag
         $this->media->tags()->attach($this->tag->id);
 
-        $response = $this->postJson('/tags/detach', [
+        $response = $this->actingAs($this->user)->postJson('/tags/detach', [
             'media_id' => $this->media->id,
             'tag_id' => $this->tag->id,
         ]);
@@ -96,7 +96,7 @@ class TagAttachmentTest extends TestCase
     public function test_attach_validates_media_id(): void
     {
         // Use a valid UUID format but non-existent media
-        $response = $this->postJson('/tags/attach', [
+        $response = $this->actingAs($this->user)->postJson('/tags/attach', [
             'media_id' => '00000000-0000-0000-0000-000000000000',
             'tag_id' => $this->tag->id,
         ]);
@@ -110,7 +110,7 @@ class TagAttachmentTest extends TestCase
      */
     public function test_attach_validates_tag_id(): void
     {
-        $response = $this->postJson('/tags/attach', [
+        $response = $this->actingAs($this->user)->postJson('/tags/attach', [
             'media_id' => $this->media->id,
             'tag_id' => 99999,
         ]);
@@ -124,7 +124,7 @@ class TagAttachmentTest extends TestCase
      */
     public function test_attach_requires_both_ids(): void
     {
-        $response = $this->postJson('/tags/attach', []);
+        $response = $this->actingAs($this->user)->postJson('/tags/attach', []);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['media_id', 'tag_id']);
@@ -136,7 +136,7 @@ class TagAttachmentTest extends TestCase
     public function test_detach_validates_media_id(): void
     {
         // Use a valid UUID format but non-existent media
-        $response = $this->postJson('/tags/detach', [
+        $response = $this->actingAs($this->user)->postJson('/tags/detach', [
             'media_id' => '00000000-0000-0000-0000-000000000000',
             'tag_id' => $this->tag->id,
         ]);
@@ -150,7 +150,7 @@ class TagAttachmentTest extends TestCase
      */
     public function test_detach_validates_tag_id(): void
     {
-        $response = $this->postJson('/tags/detach', [
+        $response = $this->actingAs($this->user)->postJson('/tags/detach', [
             'media_id' => $this->media->id,
             'tag_id' => 99999,
         ]);
@@ -170,7 +170,7 @@ class TagAttachmentTest extends TestCase
 
         $this->media->tags()->attach([$tag1->id, $tag2->id]);
 
-        $response = $this->getJson("/tags/media/{$this->media->id}");
+        $response = $this->actingAs($this->user)->getJson("/tags/media/{$this->media->id}");
 
         $response->assertStatus(200)
             ->assertJsonCount(2)

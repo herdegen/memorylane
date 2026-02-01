@@ -605,3 +605,21 @@ vendor/bin/php-cs-fixer fix
 - [Laravel Testing Docs](https://laravel.com/docs/testing)
 - [PHPUnit Manual](https://phpunit.de/manual/current/en/index.html)
 - [Filament Testing](https://filamentphp.com/docs/panels/testing)
+
+## Vérification Automatique (CI Local)
+
+Pour détecter rapidement les erreurs de build (comme une dépendance manquante ou une erreur de syntaxe JS) avant de commit, un script d'automatisation est disponible.
+
+### Script `verify.sh`
+
+Ce script exécute la chaîne complète de validation :
+1. **Build Frontend** (`npm run build`) : Vérifie la compilation des assets, le SCSS, et les dépendances JS.
+2. **Tests Backend** (`php artisan test`) : Vérifie la logique métier PHP.
+
+```bash
+# Rendre le script exécutable
+chmod +x verify.sh
+
+# Lancer la vérification
+./verify.sh
+```

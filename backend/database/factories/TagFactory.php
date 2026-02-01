@@ -32,7 +32,6 @@ class TagFactory extends Factory
         return [
             'name' => fake()->unique()->words(2, true),
             'color' => fake()->randomElement($colors),
-            'type' => fake()->randomElement(['general', 'location', 'event', 'custom']),
         ];
     }
 }

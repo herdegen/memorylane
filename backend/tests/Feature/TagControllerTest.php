@@ -33,16 +33,14 @@ class TagControllerTest extends TestCase
         $tagData = [
             'name' => 'Vacances',
             'color' => '#FF5733',
-            'type' => 'event',
         ];
 
-        $response = $this->postJson('/tags', $tagData);
+        $response = $this->actingAs($this->user)->postJson('/tags', $tagData);
 
         $response->assertStatus(201)
             ->assertJsonPath('tag.name', 'Vacances')
             ->assertJsonPath('tag.slug', 'vacances')
-            ->assertJsonPath('tag.color', '#FF5733')
-            ->assertJsonPath('tag.type', 'event');
+            ->assertJsonPath('tag.color', '#FF5733');
 
         $this->assertDatabaseHas('tags', [
             'name' => 'Vacances',
@@ -61,7 +59,7 @@ class TagControllerTest extends TestCase
             'color' => '#3498DB',
         ];
 
-        $response = $this->postJson('/tags', $tagData);
+        $response = $this->actingAs($this->user)->postJson('/tags', $tagData);
 
         $response->assertStatus(201)
             ->assertJsonPath('tag.slug', 'voyage-en-famille');
@@ -80,11 +78,11 @@ class TagControllerTest extends TestCase
         // Create some tags
         Tag::factory()->count(3)->create();
 
-        $response = $this->getJson('/tags');
+        $response = $this->actingAs($this->user)->getJson('/tags');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                '*' => ['id', 'name', 'slug', 'color', 'type', 'media_count'],
+                '*' => ['id', 'name', 'slug', 'color', 'media_count'],
             ])
             ->assertJsonCount(3);
     }
@@ -104,7 +102,7 @@ class TagControllerTest extends TestCase
             'color' => '#FFFFFF',
         ];
 
-        $response = $this->putJson("/tags/{$tag->id}", $updateData);
+        $response = $this->actingAs($this->user)->putJson("/tags/{$tag->id}", $updateData);
 
         $response->assertStatus(200)
             ->assertJsonPath('tag.name', 'New Name')
@@ -124,7 +122,7 @@ class TagControllerTest extends TestCase
     {
         $tag = Tag::factory()->create();
 
-        $response = $this->deleteJson("/tags/{$tag->id}");
+        $response = $this->actingAs($this->user)->deleteJson("/tags/{$tag->id}");
 
         $response->assertStatus(200)
             ->assertJson(['message' => 'Tag deleted successfully']);
@@ -139,7 +137,7 @@ class TagControllerTest extends TestCase
      */
     public function test_tag_name_is_required(): void
     {
-        $response = $this->postJson('/tags', [
+        $response = $this->actingAs($this->user)->postJson('/tags', [
             'color' => '#FF5733',
         ]);
 
@@ -154,7 +152,7 @@ class TagControllerTest extends TestCase
     {
         Tag::factory()->create(['name' => 'Duplicate']);
 
-        $response = $this->postJson('/tags', [
+        $response = $this->actingAs($this->user)->postJson('/tags', [
             'name' => 'Duplicate',
             'color' => '#FF5733',
         ]);
