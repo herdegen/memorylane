@@ -1,4 +1,4 @@
-FROM php:8.3-fpm-alpine
+FROM docker.io/library/php:8.3-fpm-alpine
 
 # Arguments
 ARG UID=1000
@@ -50,8 +50,8 @@ RUN pecl install redis && \
 RUN pecl install imagick && \
     docker-php-ext-enable imagick
 
-# Install Composer
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+# Install Composer (compatible avec Podman)
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer
 
 # Install Node.js and npm
 RUN apk add --no-cache nodejs npm

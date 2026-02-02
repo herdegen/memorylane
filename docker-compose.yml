@@ -1,7 +1,7 @@
 services:
   # PostgreSQL Database
   postgres:
-    image: postgres:16-alpine
+    image: docker.io/library/postgres:16-alpine
     container_name: memorylane_postgres
     environment:
       POSTGRES_DB: ${DB_DATABASE:-memorylane}
@@ -23,7 +23,7 @@ services:
 
   # Redis Cache & Queue
   redis:
-    image: redis:7-alpine
+    image: docker.io/library/redis:7-alpine
     container_name: memorylane_redis
     command: redis-server --appendonly yes
     volumes:
@@ -40,7 +40,7 @@ services:
 
   # Meilisearch Search Engine
   meilisearch:
-    image: getmeili/meilisearch:v1.6
+    image: docker.io/getmeili/meilisearch:v1.6
     container_name: memorylane_meilisearch
     environment:
       MEILI_MASTER_KEY: ${MEILISEARCH_KEY:-masterKey}
