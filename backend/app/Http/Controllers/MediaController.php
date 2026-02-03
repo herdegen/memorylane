@@ -93,7 +93,7 @@ class MediaController extends Controller
      */
     public function show(Media $media)
     {
-        $media->load(['user', 'tags', 'conversions', 'metadata']);
+        $media->load(['user', 'tags', 'conversions', 'metadata', 'people']);
 
         // Generate signed URL
         $media->url = $this->mediaService->getSignedUrl($media);
@@ -109,6 +109,32 @@ class MediaController extends Controller
         return Inertia::render('Media/Show', [
             'media' => $media,
         ]);
+    }
+
+    /**
+     * Update the specified media.
+     */
+    public function update(Request $request, Media $media)
+    {
+        if ($media->user_id !== $this->getCurrentUserId()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'title' => 'nullable|string|max:255',
+            'description' => 'nullable|string|max:2000',
+        ]);
+
+        $media->update($validated);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'Media mis a jour',
+                'media' => $media,
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Media mis a jour');
     }
 
     /**

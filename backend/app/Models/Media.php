@@ -20,6 +20,8 @@ class Media extends Model
         'user_id',
         'type',
         'original_name',
+        'title',
+        'description',
         'file_path',
         'mime_type',
         'size',
@@ -82,6 +84,16 @@ class Media extends Model
     {
         return $this->belongsToMany(Album::class, 'album_media')
             ->withPivot('order')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get the people tagged in this media.
+     */
+    public function people()
+    {
+        return $this->belongsToMany(Person::class, 'media_person')
+            ->withPivot('face_coordinates')
             ->withTimestamps();
     }
 }

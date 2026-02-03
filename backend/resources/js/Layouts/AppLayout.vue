@@ -22,6 +22,12 @@
               <NavLink href="/tags" :active="$page.component.startsWith('Tags/')">
                 Tags
               </NavLink>
+              <NavLink href="/albums" :active="$page.component.startsWith('Albums/')">
+                Albums
+              </NavLink>
+              <NavLink href="/people" :active="$page.component.startsWith('People/')">
+                Personnes
+              </NavLink>
               <NavLink href="/map" :active="$page.component.startsWith('Map/')">
                 Carte
               </NavLink>
@@ -94,6 +100,12 @@
           </MobileNavLink>
           <MobileNavLink href="/tags" :active="$page.component.startsWith('Tags/')">
             Tags
+          </MobileNavLink>
+          <MobileNavLink href="/albums" :active="$page.component.startsWith('Albums/')">
+            Albums
+          </MobileNavLink>
+          <MobileNavLink href="/people" :active="$page.component.startsWith('People/')">
+            Personnes
           </MobileNavLink>
           <MobileNavLink href="/map" :active="$page.component.startsWith('Map/')">
             Carte

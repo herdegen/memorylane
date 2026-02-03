@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\AlbumController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\MediaController;
+use App\Http\Controllers\PersonController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\MapController;
@@ -42,6 +44,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/upload', [MediaController::class, 'create'])->name('create');
         Route::post('/', [MediaController::class, 'store'])->name('store');
         Route::get('/{media}', [MediaController::class, 'show'])->name('show');
+        Route::put('/{media}', [MediaController::class, 'update'])->name('update');
         Route::delete('/{media}', [MediaController::class, 'destroy'])->name('destroy');
         Route::get('/{media}/download', [MediaController::class, 'download'])->name('download');
     });
@@ -70,7 +73,39 @@ Route::middleware('auth')->group(function () {
         Route::get('/search', [MapController::class, 'searchLocation'])->name('searchLocation');
         Route::get('/nearby', [MapController::class, 'getNearbyMedia'])->name('nearby');
     });
+
+    // Album routes
+    Route::prefix('albums')->name('albums.')->group(function () {
+        Route::get('/', [AlbumController::class, 'index'])->name('index');
+        Route::post('/', [AlbumController::class, 'store'])->name('store');
+        Route::get('/{album}', [AlbumController::class, 'show'])->name('show');
+        Route::put('/{album}', [AlbumController::class, 'update'])->name('update');
+        Route::delete('/{album}', [AlbumController::class, 'destroy'])->name('destroy');
+
+        // Media management
+        Route::post('/{album}/media', [AlbumController::class, 'addMedia'])->name('addMedia');
+        Route::delete('/{album}/media', [AlbumController::class, 'removeMedia'])->name('removeMedia');
+        Route::put('/{album}/media/reorder', [AlbumController::class, 'reorderMedia'])->name('reorderMedia');
+
+        // Sharing
+        Route::post('/{album}/share', [AlbumController::class, 'generateShareToken'])->name('generateShare');
+        Route::delete('/{album}/share', [AlbumController::class, 'revokeShareToken'])->name('revokeShare');
+    });
+
+    // People routes
+    Route::prefix('people')->name('people.')->group(function () {
+        Route::get('/', [PersonController::class, 'index'])->name('index');
+        Route::post('/', [PersonController::class, 'store'])->name('store');
+        Route::get('/{person}', [PersonController::class, 'show'])->name('show');
+        Route::put('/{person}', [PersonController::class, 'update'])->name('update');
+        Route::delete('/{person}', [PersonController::class, 'destroy'])->name('destroy');
+        Route::post('/attach', [PersonController::class, 'attachToMedia'])->name('attach');
+        Route::post('/detach', [PersonController::class, 'detachFromMedia'])->name('detach');
+    });
 });
+
+// Public shared album route
+Route::get('/albums/shared/{token}', [AlbumController::class, 'showShared'])->name('albums.shared');
 
 // Health check endpoint for Docker
 Route::get('/health', function () {

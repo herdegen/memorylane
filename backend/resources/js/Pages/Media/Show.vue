@@ -61,62 +61,21 @@
 
           <!-- Media info (right side - 1 column) -->
           <div class="space-y-6">
-            <!-- Basic info -->
-            <div class="bg-white rounded-lg shadow-sm p-6">
-              <h2 class="text-lg font-semibold text-gray-900 mb-4">Informations</h2>
-
-              <dl class="space-y-3">
-                <div>
-                  <dt class="text-sm font-medium text-gray-500">Nom</dt>
-                  <dd class="mt-1 text-sm text-gray-900">{{ media.original_name }}</dd>
-                </div>
-
-                <div>
-                  <dt class="text-sm font-medium text-gray-500">Type</dt>
-                  <dd class="mt-1">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                      {{ formatType(media.type) }}
-                    </span>
-                  </dd>
-                </div>
-
-                <div>
-                  <dt class="text-sm font-medium text-gray-500">Taille</dt>
-                  <dd class="mt-1 text-sm text-gray-900">{{ formatFileSize(media.size) }}</dd>
-                </div>
-
-                <div v-if="media.width && media.height">
-                  <dt class="text-sm font-medium text-gray-500">Dimensions</dt>
-                  <dd class="mt-1 text-sm text-gray-900">{{ media.width }} × {{ media.height }}px</dd>
-                </div>
-
-                <div v-if="media.duration">
-                  <dt class="text-sm font-medium text-gray-500">Durée</dt>
-                  <dd class="mt-1 text-sm text-gray-900">{{ formatDuration(media.duration) }}</dd>
-                </div>
-
-                <div>
-                  <dt class="text-sm font-medium text-gray-500">Téléchargé le</dt>
-                  <dd class="mt-1 text-sm text-gray-900">{{ formatDate(media.uploaded_at) }}</dd>
-                </div>
-
-                <div v-if="media.taken_at">
-                  <dt class="text-sm font-medium text-gray-500">Pris le</dt>
-                  <dd class="mt-1 text-sm text-gray-900">{{ formatDate(media.taken_at) }}</dd>
-                </div>
-
-                <div v-if="media.user">
-                  <dt class="text-sm font-medium text-gray-500">Uploadé par</dt>
-                  <dd class="mt-1 text-sm text-gray-900">{{ media.user.name }}</dd>
-                </div>
-              </dl>
-            </div>
+            <!-- Basic info with editor -->
+            <MediaInfoEditor :media="media" @updated="handleMediaUpdated" />
 
             <!-- Tags -->
             <div class="bg-white rounded-lg shadow-sm p-6">
               <h2 class="text-lg font-semibold text-gray-900 mb-4">Tags</h2>
               <TagInput :media-id="media.id" :initial-tags="media.tags || []" @tags-updated="handleTagsUpdated" />
             </div>
+
+            <!-- People -->
+            <PersonInput
+              :media-id="media.id"
+              :initial-people="media.people || []"
+              @people-updated="handlePeopleUpdated"
+            />
 
             <!-- Geolocation -->
             <GeolocationEditor
@@ -164,7 +123,9 @@
 import { router, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import TagInput from '@/Components/TagInput.vue';
+import PersonInput from '@/Components/PersonInput.vue';
 import GeolocationEditor from '@/Components/GeolocationEditor.vue';
+import MediaInfoEditor from '@/Components/MediaInfoEditor.vue';
 import axios from 'axios';
 
 const props = defineProps({
@@ -173,6 +134,10 @@ const props = defineProps({
     required: true,
   },
 });
+
+const handleMediaUpdated = (updatedMedia) => {
+  router.reload();
+};
 
 const handleTagsUpdated = (tags) => {
   console.log('Tags updated:', tags);
@@ -184,6 +149,10 @@ const handleGeolocationUpdated = (metadata) => {
 
 const handleGeolocationRemoved = () => {
   console.log('Geolocation removed');
+};
+
+const handlePeopleUpdated = (people) => {
+  console.log('People updated:', people);
 };
 
 const deleteMedia = async () => {

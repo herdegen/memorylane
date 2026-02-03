@@ -24,6 +24,10 @@ class AuthController extends Controller
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
+        ], [
+            'email.required' => 'L\'adresse email est requise.',
+            'email.email' => 'L\'adresse email doit être valide.',
+            'password.required' => 'Le mot de passe est requis.',
         ]);
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
@@ -32,8 +36,10 @@ class AuthController extends Controller
             return redirect()->intended('/dashboard');
         }
 
+        // Return errors on both fields for better UX
         return back()->withErrors([
-            'email' => 'Email ou mot de passe incorrect.',
+            'email' => 'Ces identifiants ne correspondent pas à nos enregistrements.',
+            'password' => 'Veuillez vérifier votre mot de passe.',
         ])->onlyInput('email');
     }
 

@@ -11,17 +11,26 @@
         <!-- Create new tag form -->
         <div class="card">
           <h2>Créer un nouveau tag</h2>
+
+          <FormError
+            v-if="errorMessage"
+            type="error"
+            :message="errorMessage"
+            dismissible
+            @dismiss="errorMessage = null"
+          />
+
           <form @submit.prevent="createTag" class="flex gap-4 items-end">
             <div class="flex-1">
-              <label class="form-label">Nom du tag</label>
-              <input
+              <FormField
                 v-model="form.name"
+                id="tag-name"
                 type="text"
-                required
-                class="form-input"
+                label="Nom du tag"
                 placeholder="Ex: Famille, Vacances, Paris..."
+                :error="form.errors.name"
+                required
               />
-              <div v-if="form.errors.name" class="form-error">{{ form.errors.name }}</div>
             </div>
             <div>
               <label class="form-label">Couleur</label>
@@ -31,13 +40,12 @@
                 class="form-input-color"
               />
             </div>
-            <button
+            <FormButton
               type="submit"
-              :disabled="form.processing"
-              class="btn-primary"
-            >
-              {{ form.processing ? 'Création...' : 'Créer' }}
-            </button>
+              text="Créer"
+              loading-text="Création..."
+              :loading="form.processing"
+            />
           </form>
         </div>
 
@@ -87,8 +95,12 @@
 </template>
 
 <script setup>
+import { ref } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import FormField from '@/Components/Forms/FormField.vue';
+import FormError from '@/Components/Forms/FormError.vue';
+import FormButton from '@/Components/Forms/FormButton.vue';
 import TrashIcon from '@/Components/Icons/TrashIcon.vue';
 
 const props = defineProps({
@@ -103,12 +115,17 @@ const form = useForm({
   color: '#6366f1',
 });
 
+const errorMessage = ref(null);
+
 const createTag = () => {
+  errorMessage.value = null;
   form.post('/tags', {
     onSuccess: () => form.reset(),
     onError: (errors) => {
       if (errors.message) {
-        alert('Erreur: ' + errors.message);
+        errorMessage.value = errors.message;
+      } else {
+        errorMessage.value = 'Une erreur est survenue lors de la création du tag.';
       }
     },
   });
@@ -121,7 +138,7 @@ const deleteTag = (tag) => {
 
   router.delete(`/tags/${tag.id}`, {
     onError: (errors) => {
-      alert('Erreur lors de la suppression du tag: ' + (errors.message || 'Une erreur est survenue'));
+      errorMessage.value = errors.message || 'Erreur lors de la suppression du tag.';
     }
   });
 };

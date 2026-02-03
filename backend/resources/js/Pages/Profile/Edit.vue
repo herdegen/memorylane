@@ -12,69 +12,56 @@
               Mettez à jour les informations de votre compte.
             </p>
 
-            <div v-if="flash.success" class="mb-4 rounded-md bg-green-50 p-4">
-              <p class="text-sm text-green-700">{{ flash.success }}</p>
-            </div>
+            <FormError
+              v-if="flash.success"
+              type="success"
+              :message="flash.success"
+              dismissible
+              @dismiss="flash.success = null"
+            />
 
             <form @submit.prevent="updateProfile" class="space-y-6">
-              <div>
-                <label for="name" class="block text-sm font-medium text-gray-700">Nom</label>
-                <input
-                  id="name"
-                  v-model="profileForm.name"
-                  type="text"
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                  :class="{ 'border-red-500': profileForm.errors.name }"
-                />
-                <p v-if="profileForm.errors.name" class="mt-2 text-sm text-red-600">
-                  {{ profileForm.errors.name }}
-                </p>
-              </div>
+              <FormField
+                v-model="profileForm.name"
+                id="name"
+                type="text"
+                label="Nom"
+                placeholder="Votre nom"
+                :error="profileForm.errors.name"
+                required
+              />
 
-              <div>
-                <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-                <input
-                  id="email"
-                  v-model="profileForm.email"
-                  type="email"
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                  :class="{ 'border-red-500': profileForm.errors.email }"
-                />
-                <p v-if="profileForm.errors.email" class="mt-2 text-sm text-red-600">
-                  {{ profileForm.errors.email }}
-                </p>
-              </div>
+              <FormField
+                v-model="profileForm.email"
+                id="email"
+                type="email"
+                label="Email"
+                placeholder="votre@email.com"
+                :error="profileForm.errors.email"
+                autocomplete="email"
+                required
+              />
 
-              <div>
-                <label for="pin_code" class="block text-sm font-medium text-gray-700">
-                  Code PIN (optionnel)
-                </label>
-                <input
-                  id="pin_code"
-                  v-model="profileForm.pin_code"
-                  type="text"
-                  maxlength="6"
-                  placeholder="Code PIN pour accès rapide"
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                  :class="{ 'border-red-500': profileForm.errors.pin_code }"
-                />
-                <p v-if="profileForm.errors.pin_code" class="mt-2 text-sm text-red-600">
-                  {{ profileForm.errors.pin_code }}
-                </p>
-              </div>
+              <FormField
+                v-model="profileForm.pin_code"
+                id="pin_code"
+                type="text"
+                label="Code PIN (optionnel)"
+                placeholder="Code PIN pour accès rapide"
+                :error="profileForm.errors.pin_code"
+                help="Maximum 6 caractères"
+              />
 
               <div class="flex items-center gap-4">
-                <button
+                <FormButton
                   type="submit"
-                  :disabled="profileForm.processing"
-                  class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 disabled:opacity-50"
-                >
-                  <span v-if="profileForm.processing">Enregistrement...</span>
-                  <span v-else>Enregistrer</span>
-                </button>
+                  text="Enregistrer"
+                  loading-text="Enregistrement..."
+                  :loading="profileForm.processing"
+                />
                 <Link
                   href="/profile"
-                  class="text-sm text-gray-600 hover:text-gray-900"
+                  class="text-sm text-gray-600 hover:text-gray-900 transition-colors"
                 >
                   Annuler
                 </Link>
@@ -94,59 +81,46 @@
             </p>
 
             <form @submit.prevent="updatePassword" class="space-y-6">
-              <div>
-                <label for="current_password" class="block text-sm font-medium text-gray-700">
-                  Mot de passe actuel
-                </label>
-                <input
-                  id="current_password"
-                  v-model="passwordForm.current_password"
-                  type="password"
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                  :class="{ 'border-red-500': passwordForm.errors.current_password }"
-                />
-                <p v-if="passwordForm.errors.current_password" class="mt-2 text-sm text-red-600">
-                  {{ passwordForm.errors.current_password }}
-                </p>
-              </div>
+              <FormField
+                v-model="passwordForm.current_password"
+                id="current_password"
+                type="password"
+                label="Mot de passe actuel"
+                placeholder="••••••••"
+                :error="passwordForm.errors.current_password"
+                autocomplete="current-password"
+                required
+              />
 
-              <div>
-                <label for="password" class="block text-sm font-medium text-gray-700">
-                  Nouveau mot de passe
-                </label>
-                <input
-                  id="password"
-                  v-model="passwordForm.password"
-                  type="password"
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                  :class="{ 'border-red-500': passwordForm.errors.password }"
-                />
-                <p v-if="passwordForm.errors.password" class="mt-2 text-sm text-red-600">
-                  {{ passwordForm.errors.password }}
-                </p>
-              </div>
+              <FormField
+                v-model="passwordForm.password"
+                id="password"
+                type="password"
+                label="Nouveau mot de passe"
+                placeholder="••••••••"
+                :error="passwordForm.errors.password"
+                autocomplete="new-password"
+                help="Minimum 8 caractères recommandés"
+                required
+              />
 
-              <div>
-                <label for="password_confirmation" class="block text-sm font-medium text-gray-700">
-                  Confirmer le mot de passe
-                </label>
-                <input
-                  id="password_confirmation"
-                  v-model="passwordForm.password_confirmation"
-                  type="password"
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                />
-              </div>
+              <FormField
+                v-model="passwordForm.password_confirmation"
+                id="password_confirmation"
+                type="password"
+                label="Confirmer le mot de passe"
+                placeholder="••••••••"
+                autocomplete="new-password"
+                required
+              />
 
               <div class="flex items-center gap-4">
-                <button
+                <FormButton
                   type="submit"
-                  :disabled="passwordForm.processing"
-                  class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 disabled:opacity-50"
-                >
-                  <span v-if="passwordForm.processing">Enregistrement...</span>
-                  <span v-else>Modifier le mot de passe</span>
-                </button>
+                  text="Modifier le mot de passe"
+                  loading-text="Enregistrement..."
+                  :loading="passwordForm.processing"
+                />
               </div>
             </form>
           </div>
@@ -159,6 +133,9 @@
 <script setup>
 import { Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import FormField from '@/Components/Forms/FormField.vue';
+import FormError from '@/Components/Forms/FormError.vue';
+import FormButton from '@/Components/Forms/FormButton.vue';
 import { useAuth } from '@/Composables/useAuth';
 
 const props = defineProps({
