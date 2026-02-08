@@ -47,9 +47,6 @@ class LoginTest extends TestCase
 
         $this->assertGuest();
         $response->assertSessionHasErrors(['email', 'password']);
-
-        // Dump les erreurs pour debug
-        dump('Erreurs retournées:', session()->get('errors'));
     }
 
     public function test_users_cannot_authenticate_with_invalid_email(): void
