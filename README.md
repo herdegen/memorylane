@@ -1,394 +1,342 @@
 # MemoryLane - Hub Familial Multimédia
 
-MemoryLane est une plateforme de gestion de médias familiaux permettant de stocker, organiser et partager photos, vidéos et documents pour votre famille. L'application intègre la reconnaissance faciale par IA, la géolocalisation et un arbre généalogique.
+MemoryLane est une plateforme de gestion de médias familiaux permettant de stocker, organiser et partager photos, vidéos et documents pour votre famille.
 
-## 🚀 Technologies
+## Technologies
 
 ### Backend
 - **Laravel 11** - Framework PHP
-- **PostgreSQL 16** - Base de données
+- **PostgreSQL 16** - Base de données (UUID primary keys)
 - **Redis 7** - Cache & Queues
-- **Inertia.js** - Bridge Laravel-Vue
-- **Filament v3.3** - Admin Panel
+- **Inertia.js** - Bridge Laravel-Vue (SPA sans API séparée)
+- **Filament v3.3** - Panel d'administration
 
 ### Frontend
-- **Vue 3** (Composition API)
+- **Vue 3** (Composition API + `<script setup>`)
 - **Vite 5** - Build tool
 - **Tailwind CSS 3** - Styling
-- **Pinia** - State management
-
-### Services Externes
-- **Scaleway S3** - Stockage médias
-- **Google Vision API** - Reconnaissance faciale
-- **Meilisearch** - Moteur de recherche
+- **PhotoSwipe** - Carousel lightbox (albums)
 
 ### Infrastructure
-- **Docker** & Docker Compose
+- **Podman** / Docker Compose
 - **Nginx** - Serveur web
-- **Laravel Horizon** - Monitoring queues
+- **S3-compatible** - Stockage médias (Scaleway ou disque local)
 
-## 📋 Prérequis
+## Fonctionnalités
 
-- Docker Desktop avec WSL2 (Windows) ou Docker (Linux/Mac)
-- Node.js 20+ (pour développement local)
-- Composer 2+ (pour développement local)
+### Authentification
+- Login/logout avec validation Inertia
+- Gestion des sessions (UUID)
+- Panel admin protégé (Filament)
+
+### Galerie de médias
+- Upload drag-and-drop (photos, vidéos, documents)
+- Galerie responsive avec filtres (type, recherche, tags)
+- Extraction automatique des métadonnées EXIF
+- Génération de thumbnails (4 tailles)
+- Clic sur un média ouvre l'éditeur (titre, description, tags, personnes, géolocalisation)
+
+### Albums
+- Création, édition, suppression d'albums
+- Ajout/retrait de médias dans un album via un picker
+- Réordonnement des médias
+- Carousel PhotoSwipe pour visualiser les photos d'un album
+- Partage d'albums :
+  - Visibilité publique/privée
+  - Lien partageable avec token unique
+  - Révocation du lien de partage
+- Couverture automatique (premier média ajouté)
+
+### Système de personnes
+- CRUD complet des personnes (nom, date de naissance/décès, notes, avatar)
+- Slug auto-généré et unique
+- Tagging de personnes sur les médias (relation many-to-many via `media_person`)
+- Autocomplete avec création rapide depuis l'éditeur de média
+- Page profil d'une personne avec ses médias associés
+- Page listing de toutes les personnes
+
+### Tags
+- Création, édition, suppression de tags
+- Tagging de médias avec autocomplete
+- Filtrage par tags dans la galerie
+- Tags colorés affichés sur les cartes médias
+
+### Géolocalisation
+- Extraction GPS automatique depuis EXIF
+- Carte interactive avec Leaflet.js + OpenStreetMap
+- Recherche de lieux avec Nominatim
+- Édition manuelle des coordonnées GPS
+- Filtrage par zone géographique
+
+### Panel Admin (Filament)
+- Gestion des médias, tags, utilisateurs
+- Dashboard avec statistiques
+- Soft delete avec corbeille
+
+## Installation
+
+### Prérequis
+
+- Podman ou Docker avec Compose
+- WSL2 (Windows) ou Linux/Mac
 - Git
 
-## 🛠️ Installation
-
-### 1. Cloner le projet
+### Démarrage rapide
 
 ```bash
+# Cloner le projet
 git clone <repository-url> memorylane
 cd memorylane
+
+# Copier et configurer l'environnement
+cp backend/.env.example backend/.env
+
+# Démarrer les conteneurs
+podman-compose up -d --build
+# ou: docker-compose up -d --build
+
+# Installer les dépendances
+podman-compose exec app composer install
+podman-compose exec app npm install
+
+# Générer la clé, migrer, builder
+podman-compose exec app php artisan key:generate
+podman-compose exec app php artisan migrate
+podman-compose exec app npm run build
 ```
 
-### 2. Configuration de l'environnement
+### Créer un utilisateur
 
 ```bash
-# Copier le fichier d'environnement
-cp .env.example .env
+podman-compose exec app php artisan tinker
 
-# Éditer .env et configurer :
-# - Les identifiants base de données
-# - Les clés Scaleway S3
-# - Les clés Google Cloud Vision API
-# - La clé Meilisearch
-```
-
-### 3. Configuration Docker Desktop (Windows WSL2)
-
-1. Installer [Docker Desktop](https://www.docker.com/products/docker-desktop)
-2. Activer l'intégration WSL2 dans Docker Desktop :
-   - Settings → Resources → WSL Integration
-   - Activer votre distribution WSL2
-
-### 4. Démarrer l'environnement
-
-```bash
-# Construire et démarrer les conteneurs
-docker-compose up -d --build
-
-# Installer les dépendances PHP
-docker-compose exec app composer install
-
-# Installer les dépendances JavaScript
-docker-compose exec app npm install
-
-# Générer la clé d'application
-docker-compose exec app php artisan key:generate
-
-# Exécuter les migrations
-docker-compose exec app php artisan migrate
-
-# Builder les assets
-docker-compose exec app npm run build
-```
-
-### 5. Créer un utilisateur admin
-
-```bash
-# Créer un utilisateur admin via Tinker
-docker-compose exec app php artisan tinker
-
-# Dans Tinker, exécuter :
+# Dans Tinker :
 User::create([
     'name' => 'Admin',
     'email' => 'admin@memorylane.com',
-    'password' => Hash::make('password')
+    'password' => Hash::make('password'),
+    'role' => 'admin',
 ]);
 ```
 
-### 6. Accéder à l'application
+### Accès
 
-- **Application** : http://localhost:8000
-- **Admin Panel** : http://localhost:8000/admin (admin@memorylane.com / password)
-- **Meilisearch** : http://localhost:7700
-- **Horizon** (queues) : http://localhost:8000/horizon
+| Service | URL |
+|---------|-----|
+| Application | http://localhost:8000 |
+| Admin Panel | http://localhost:8000/admin |
 
-## 🔧 Développement
+> Pour la configuration Podman détaillée, voir [PODMAN_SETUP.md](PODMAN_SETUP.md)
+
+## Structure du projet
+
+```
+memorylane/
+├── docker/                          # Configurations Docker/Podman
+│   ├── app/                         # PHP-FPM
+│   ├── nginx/                       # Nginx
+│   └── postgres/                    # PostgreSQL
+├── backend/                         # Application Laravel
+│   ├── app/
+│   │   ├── Http/Controllers/
+│   │   │   ├── AlbumController.php  # CRUD albums + partage + médias
+│   │   │   ├── AuthController.php   # Login/logout
+│   │   │   ├── MediaController.php  # CRUD médias + upload
+│   │   │   ├── PersonController.php # CRUD personnes + attach/detach
+│   │   │   ├── TagController.php    # CRUD tags + attach/detach
+│   │   │   ├── MapController.php    # Géolocalisation
+│   │   │   └── ProfileController.php
+│   │   ├── Models/
+│   │   │   ├── Album.php            # Albums (share token, slug, soft delete)
+│   │   │   ├── Media.php            # Médias (titre, description, personnes)
+│   │   │   ├── Person.php           # Personnes (slug unique, dates)
+│   │   │   ├── Tag.php
+│   │   │   └── User.php
+│   │   └── Services/
+│   │       └── MediaService.php     # Upload, URLs signées, conversions
+│   ├── database/
+│   │   ├── migrations/              # Toutes les migrations (UUID)
+│   │   └── factories/               # Factories pour tests
+│   ├── resources/js/
+│   │   ├── Components/
+│   │   │   ├── AlbumCard.vue        # Carte album
+│   │   │   ├── AlbumFormModal.vue   # Modal création/édition album
+│   │   │   ├── MediaCard.vue        # Carte média
+│   │   │   ├── MediaGrid.vue        # Grille responsive
+│   │   │   ├── MediaInfoEditor.vue  # Éditeur titre/description
+│   │   │   ├── MediaPickerModal.vue # Sélecteur médias pour albums
+│   │   │   ├── PersonInput.vue      # Autocomplete personnes
+│   │   │   ├── PersonFormModal.vue  # Modal création personne
+│   │   │   ├── SharePanel.vue       # Contrôles de partage
+│   │   │   ├── TagInput.vue         # Autocomplete tags
+│   │   │   └── GeolocationEditor.vue
+│   │   ├── Pages/
+│   │   │   ├── Albums/              # Index, Show, Shared
+│   │   │   ├── Auth/                # Login
+│   │   │   ├── Media/               # Index (galerie), Show (éditeur), Upload
+│   │   │   ├── People/              # Index, Show
+│   │   │   ├── Map/                 # Carte interactive
+│   │   │   └── Tags/                # Index
+│   │   └── Layouts/
+│   │       └── AppLayout.vue        # Navigation principale
+│   ├── routes/web.php               # Toutes les routes
+│   └── tests/Feature/               # Tests fonctionnels
+├── podman-compose.yml
+└── README.md
+```
+
+## Base de données
+
+### Tables principales
+
+| Table | Description |
+|-------|-------------|
+| `users` | Utilisateurs (UUID) |
+| `media` | Photos/vidéos/documents (titre, description, type, dimensions) |
+| `media_metadata` | Métadonnées EXIF (GPS, appareil, date) |
+| `media_conversions` | Thumbnails et versions optimisées |
+| `tags` | Tags avec couleur et slug |
+| `taggables` | Pivot polymorphique tags-médias |
+| `albums` | Albums (slug, share_token, is_public, soft delete) |
+| `album_media` | Pivot album-média avec ordre |
+| `people` | Personnes (nom, slug, dates, notes, avatar) |
+| `media_person` | Pivot média-personne (avec face_coordinates) |
+
+### Commandes migrations
+
+```bash
+podman-compose exec app php artisan migrate
+podman-compose exec app php artisan migrate:rollback
+podman-compose exec app php artisan migrate:fresh
+```
+
+## Tests
+
+### Suites de tests
+
+| Suite | Tests | Description |
+|-------|-------|-------------|
+| `AlbumControllerTest` | 18 | CRUD albums, ajout/retrait médias, partage, autorisations |
+| `PersonControllerTest` | 16 | CRUD personnes, attach/detach médias, slug unique, autorisations |
+| `MediaUpdateTest` | 8 | Édition titre/description, validation, autorisations |
+| `MediaControllerTest` | 10 | Upload, listing, filtres, suppression |
+| `TagControllerTest` | 7 | CRUD tags, validation |
+| `TagAttachmentTest` | 11 | Attachement/détachement tags-médias |
+| `MapControllerTest` | 11 | Géolocalisation, recherche, carte |
+| `FilamentAdminTest` | 17 | Panel admin Filament |
+| `LoginTest` | 4 | Authentification |
+
+**Total : ~100 tests**
+
+### Lancer les tests
+
+```bash
+# Tous les tests
+podman-compose exec app php artisan test
+
+# Une suite spécifique
+podman-compose exec app php artisan test --filter=AlbumControllerTest
+podman-compose exec app php artisan test --filter=PersonControllerTest
+
+# Avec couverture
+podman-compose exec app php artisan test --coverage
+```
+
+## Routes API
+
+### Médias (`/media`)
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| GET | `/media` | Liste (Inertia ou JSON) |
+| POST | `/media` | Upload |
+| GET | `/media/{id}` | Détail + éditeur |
+| PUT | `/media/{id}` | Mise à jour titre/description |
+| DELETE | `/media/{id}` | Suppression |
+
+### Albums (`/albums`)
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| GET | `/albums` | Liste des albums |
+| POST | `/albums` | Créer un album |
+| GET | `/albums/{id}` | Détail + carousel |
+| PUT | `/albums/{id}` | Modifier |
+| DELETE | `/albums/{id}` | Supprimer |
+| POST | `/albums/{id}/media` | Ajouter des médias |
+| DELETE | `/albums/{id}/media` | Retirer des médias |
+| PUT | `/albums/{id}/media/reorder` | Réordonner |
+| POST | `/albums/{id}/share` | Générer lien de partage |
+| DELETE | `/albums/{id}/share` | Révoquer le partage |
+| GET | `/albums/shared/{token}` | Vue publique partagée |
+
+### Personnes (`/people`)
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| GET | `/people` | Liste (Inertia ou JSON) |
+| POST | `/people` | Créer |
+| GET | `/people/{id}` | Profil + médias |
+| PUT | `/people/{id}` | Modifier |
+| DELETE | `/people/{id}` | Supprimer |
+| POST | `/people/attach` | Associer personne à un média |
+| POST | `/people/detach` | Dissocier personne d'un média |
+
+### Tags (`/tags`)
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| GET | `/tags` | Liste |
+| POST | `/tags` | Créer |
+| PUT | `/tags/{id}` | Modifier |
+| DELETE | `/tags/{id}` | Supprimer |
+| POST | `/tags/attach` | Attacher à un média |
+| POST | `/tags/detach` | Détacher d'un média |
+
+## Développement
 
 ### Commandes utiles
 
 ```bash
-# Démarrer le serveur de développement (hot reload)
-docker-compose exec app npm run dev
+# Hot reload frontend
+podman-compose exec app npm run dev
 
-# Accéder au conteneur app
-docker-compose exec app bash
+# Accéder au conteneur
+podman-compose exec app bash
 
-# Voir les logs
-docker-compose logs -f app
-docker-compose logs -f nginx
-docker-compose logs -f postgres
+# Logs
+podman-compose logs -f app
 
-# Arrêter les conteneurs
-docker-compose down
-
-# Arrêter et supprimer les volumes
-docker-compose down -v
-
-# Reconstruire les images
-docker-compose build --no-cache
+# Redémarrer
+podman-compose restart
 ```
 
-### Structure du projet
+## Roadmap
 
-```
-memorylane/
-├── docker/                      # Configurations Docker
-│   ├── app/                     # PHP-FPM
-│   ├── nginx/                   # Nginx
-│   └── postgres/                # PostgreSQL
-├── backend/                     # Application Laravel
-│   ├── app/
-│   │   ├── Http/Controllers/    # Contrôleurs
-│   │   ├── Models/              # Modèles Eloquent
-│   │   ├── Services/            # Logique métier
-│   │   └── Jobs/                # Jobs asynchrones
-│   ├── database/migrations/     # Migrations DB
-│   ├── resources/
-│   │   ├── js/                  # Code Vue.js
-│   │   │   ├── Components/      # Composants réutilisables
-│   │   │   ├── Pages/           # Pages Inertia
-│   │   │   ├── Layouts/         # Layouts
-│   │   │   └── Stores/          # Stores Pinia
-│   │   └── views/               # Templates Blade
-│   └── routes/                  # Fichiers de routes
-├── docker-compose.yml
-├── .env.example
-└── README.md
-```
-
-## 📊 Base de données
-
-### Migrations créées
-
-- **users** : Utilisateurs (avec code PIN)
-- **media** : Photos/vidéos/documents
-- **media_metadata** : Métadonnées EXIF
-- **media_conversions** : Thumbnails & versions optimisées
-- **tags** : Système de tags
-- **albums** : Albums de médias
-- **locations** : Lieux (hiérarchiques)
-
-### Exécuter les migrations
-
-```bash
-docker-compose exec app php artisan migrate
-
-# Rollback
-docker-compose exec app php artisan migrate:rollback
-
-# Refresh (drop all + migrate)
-docker-compose exec app php artisan migrate:fresh
-```
-
-## 🔐 Configuration Services Externes
-
-### Scaleway S3
-
-1. Créer un compte [Scaleway](https://www.scaleway.com/)
-2. Créer un bucket S3 dans la région `fr-par`
-3. Générer des clés d'accès API
-4. Configurer dans `.env` :
-
-```env
-SCALEWAY_ACCESS_KEY=your-access-key
-SCALEWAY_SECRET_KEY=your-secret-key
-SCALEWAY_REGION=fr-par
-SCALEWAY_BUCKET=memorylane
-SCALEWAY_ENDPOINT=https://s3.fr-par.scw.cloud
-FILESYSTEM_DISK=scaleway
-```
-
-### Google Vision API
-
-1. Créer un projet [Google Cloud](https://console.cloud.google.com/)
-2. Activer l'API Cloud Vision
-3. Créer une clé de compte de service (JSON)
-4. Télécharger le fichier JSON et le placer dans `backend/storage/`
-5. Configurer dans `.env` :
-
-```env
-GOOGLE_CLOUD_PROJECT=your-project-id
-GOOGLE_APPLICATION_CREDENTIALS=/var/www/html/storage/google-credentials.json
-```
-
-### Meilisearch
-
-Meilisearch est déjà configuré dans Docker. La clé par défaut est dans `.env` :
-
-```env
-MEILISEARCH_HOST=http://meilisearch:7700
-MEILISEARCH_KEY=masterKey
-```
-
-## 🧪 Tests
-
-Le projet dispose d'une suite de tests complète couvrant toutes les fonctionnalités principales.
-
-### Suites de tests disponibles
-
-- **TagTest** (11 tests) - Tests complets du système de tags
-- **MediaTest** (11 tests) - Tests de gestion des médias
-- **TagAttachmentTest** (11 tests) - Tests d'attachement tags-médias
-- **MapControllerTest** (11 tests) - Tests de géolocalisation & carte
-- **FilamentAdminTest** (17 tests) - Tests du panel admin Filament
-
-**Total : 61 tests couvrant ~100 assertions**
-
-### Commandes de test
-
-```bash
-# Exécuter tous les tests
-docker-compose exec app php artisan test
-
-# Exécuter une suite spécifique
-docker-compose exec app php artisan test --filter=TagTest
-docker-compose exec app php artisan test --filter=MediaTest
-docker-compose exec app php artisan test --filter=MapControllerTest
-docker-compose exec app php artisan test --filter=FilamentAdminTest
-
-# Avec couverture
-docker-compose exec app php artisan test --coverage
-
-# Tests en parallèle (plus rapide)
-docker-compose exec app php artisan test --parallel
-```
-
-### Couverture des tests
-
-- ✅ CRUD Tags (création, lecture, mise à jour, suppression)
-- ✅ Attachement/détachement tags sur médias
-- ✅ Validation des données (UUID, champs requis)
-- ✅ Upload et gestion des médias
-- ✅ Extraction de métadonnées EXIF
-- ✅ Géolocalisation (CRUD, validation, calculs de distance)
-- ✅ Recherche de lieux (Nominatim)
-- ✅ Panel admin Filament (authentification, ressources)
-- ✅ Soft deletes et restauration
-
-## 📦 Packages principaux
-
-### Laravel
-- `inertiajs/inertia-laravel` - Bridge Inertia.js
-- `spatie/laravel-medialibrary` - Gestion médias
-- `spatie/laravel-permission` - Permissions
-- `intervention/image` - Manipulation images
-- `pbmedia/laravel-ffmpeg` - Traitement vidéo
-- `google/cloud-vision` - Reconnaissance faciale
-- `laravel/horizon` - Queues monitoring
-
-### Vue.js
-- `@inertiajs/vue3` - Inertia Vue 3
-- `photoswipe` - Galerie lightbox
-- `@uppy/core` - Upload fichiers
-- `leaflet` - Cartes
-- `pinia` - State management
-
-## 🔑 Panel Administrateur (Filament)
-
-L'application dispose d'un panel d'administration complet construit avec Filament v3.3.
-
-### Accès
-- **URL** : http://localhost:8000/admin
-- **Credentials par défaut** : admin@memorylane.com / password
-
-### Fonctionnalités
-
-#### Gestion des Médias
-- Liste complète avec recherche et filtres
-- Visualisation des métadonnées (dimensions, taille, durée, etc.)
-- Édition des propriétés
-- Gestion du soft delete (corbeille)
-- Actions en masse (suppression, restauration)
-
-#### Gestion des Tags
-- CRUD complet des tags
-- Recherche et tri
-- Visualisation du nombre d'utilisations
-- Gestion des types de tags (général, lieu, personne, événement)
-
-#### Gestion des Utilisateurs
-- Liste et recherche d'utilisateurs
-- Création/édition de comptes
-- Gestion des codes PIN
-- Statistiques par utilisateur
-
-### Personnalisation
-- Thème Amber
-- Interface responsive
-- Widgets de statistiques
-- Navigation intuitive
-- Support multi-langues
-
-## 🗺️ Roadmap
-
-### Phase 1 : Fondations ✅
-- [x] Environnement Docker (7 services)
+### Phase 1 : Fondations
+- [x] Environnement Docker/Podman
 - [x] Laravel 11 + Vue 3 + Inertia.js
 - [x] Migrations base de données (UUID, soft deletes)
-- [x] Configuration S3 Scaleway (stockage local en dev)
-- [x] Upload basique médias (drag-and-drop)
-- [x] Galerie photos (grille responsive + PhotoSwipe)
+- [x] Upload médias (drag-and-drop)
+- [x] Galerie photos responsive
 - [x] Extraction EXIF automatique
-- [x] Génération thumbnails (4 tailles)
+- [x] Génération thumbnails
 
-### Phase 2 : Fonctionnalités Core ✅
+### Phase 2 : Fonctionnalités Core
 - [x] Système de tags complet
-  - [x] Gestion des tags (création, édition, suppression)
-  - [x] Tagging des médias avec autocomplete
-  - [x] Filtrage par tags dans la galerie
-  - [x] Affichage des tags sur les cartes médias
-  - [x] Tests complets (22 tests)
-- [x] Géolocalisation complète
-  - [x] Extraction GPS automatique depuis EXIF
-  - [x] Carte interactive avec Leaflet.js + OpenStreetMap
-  - [x] Recherche de lieux avec Nominatim
-  - [x] Filtrage par zone géographique (rayon)
-  - [x] Édition manuelle des coordonnées GPS
-  - [x] Affichage médias géolocalisés sur carte
-  - [x] Tests complets (11 tests)
+- [x] Géolocalisation + carte interactive
 - [x] Panel Admin Filament
-  - [x] Gestion complète des médias
-  - [x] Gestion des tags
-  - [x] Gestion des utilisateurs
-  - [x] Dashboard administrateur
-  - [x] Tests complets (17 tests)
-- [x] Suite de tests complète
-  - [x] 61 tests couvrant toutes les fonctionnalités
-  - [x] Tests unitaires et d'intégration
-  - [x] Validation des données
-- [ ] Albums
+- [x] Albums avec partage (public + lien token)
+- [x] Édition titre/description des médias
+- [x] Système de personnes (CRUD + tagging sur médias)
+- [x] Suite de tests (~100 tests)
 
-### Phase 3 : IA & Reconnaissance Faciale
+### Phase 3 : IA & Reconnaissance
 - [ ] Intégration Google Vision API
-- [ ] Détection visages
-- [ ] Clustering automatique
-- [ ] Assignment manuel personnes
+- [ ] Détection et clustering de visages
+- [ ] Suggestion automatique de personnes
 
 ### Phase 4 : Arbre Généalogique
 - [ ] Import GEDCOM (Généanet)
 - [ ] Visualisation arbre
 - [ ] Liaison personnes-photos
 
-## 🤝 Contribution
-
-Ce projet est personnel/familial. Les contributions externes ne sont pas acceptées pour le moment.
-
-## 📝 License
-
-Propriétaire - Usage familial uniquement
-
-## 🆘 Support
-
-Pour toute question ou problème :
-- Vérifier les logs : `docker-compose logs -f`
-- Redémarrer les conteneurs : `docker-compose restart`
-- Reconstruire : `docker-compose up -d --build`
-
 ---
 
-**Version actuelle** : 1.0.0-alpha
-**Dernière mise à jour** : Janvier 2025
+**Version** : 1.1.0 | **Dernière mise à jour** : Février 2026
