@@ -166,8 +166,24 @@
   </AppLayout>
 </template>
 
+<style scoped>
+:deep(.pswp__custom-caption) {
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  padding: 12px 16px;
+  font-size: 14px;
+  text-align: center;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  border-radius: 0 0 4px 4px;
+}
+</style>
+
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -175,6 +191,8 @@ import MediaCard from '@/Components/MediaCard.vue';
 import AlbumFormModal from '@/Components/AlbumFormModal.vue';
 import SharePanel from '@/Components/SharePanel.vue';
 import MediaPickerModal from '@/Components/MediaPickerModal.vue';
+import PhotoSwipeLightbox from 'photoswipe/lightbox';
+import 'photoswipe/style.css';
 
 const props = defineProps({
   album: {
@@ -187,10 +205,13 @@ const showSharePanel = ref(false);
 const showEditModal = ref(false);
 const showAddMediaModal = ref(false);
 const selectedMediaIds = ref([]);
+let lightbox = null;
 
 const albumMediaIds = computed(() => {
   return props.album.media?.map((m) => m.id) || [];
 });
+
+const albumMedia = computed(() => props.album.media || []);
 
 const isSelected = (id) => selectedMediaIds.value.includes(id);
 
@@ -204,7 +225,15 @@ const toggleSelection = (media) => {
 };
 
 const handleMediaClick = (media) => {
-  router.visit(`/media/${media.id}`);
+  if (media.type === 'photo') {
+    const photoItems = albumMedia.value.filter(item => item.type === 'photo');
+    const photoIndex = photoItems.findIndex(item => item.id === media.id);
+    if (photoIndex !== -1 && lightbox) {
+      lightbox.loadAndOpen(photoIndex);
+    }
+  } else {
+    router.visit(`/media/${media.id}`);
+  }
 };
 
 const handleAlbumUpdated = () => {
@@ -243,4 +272,84 @@ const deleteAlbum = async () => {
     console.error('Failed to delete album:', error);
   }
 };
+
+// PhotoSwipe helpers
+const getImageUrl = (media) => {
+  if (media.conversions && media.conversions.length > 0) {
+    const large = media.conversions.find(c => c.conversion_name === 'large');
+    if (large?.url) return large.url;
+    const medium = media.conversions.find(c => c.conversion_name === 'medium');
+    if (medium?.url) return medium.url;
+  }
+  return media.url;
+};
+
+const getImageDimensions = (media) => {
+  if (media.conversions && media.conversions.length > 0) {
+    const large = media.conversions.find(c => c.conversion_name === 'large');
+    if (large?.width && large?.height) return { width: large.width, height: large.height };
+  }
+  return { width: media.width || 1600, height: media.height || 1200 };
+};
+
+const initPhotoSwipe = () => {
+  if (lightbox) {
+    lightbox.destroy();
+    lightbox = null;
+  }
+
+  const photoItems = albumMedia.value.filter(item => item.type === 'photo');
+  if (photoItems.length === 0) return;
+
+  lightbox = new PhotoSwipeLightbox({
+    dataSource: photoItems.map(media => {
+      const dims = getImageDimensions(media);
+      return {
+        src: getImageUrl(media),
+        width: dims.width,
+        height: dims.height,
+        alt: media.title || media.original_name,
+        caption: media.title || media.original_name,
+      };
+    }),
+    pswpModule: () => import('photoswipe'),
+    padding: { top: 50, bottom: 50, left: 50, right: 50 },
+    bgOpacity: 0.9,
+    showHideAnimationType: 'zoom',
+    appendToEl: document.body,
+  });
+
+  lightbox.on('uiRegister', function() {
+    lightbox.pswp.ui.registerElement({
+      name: 'custom-caption',
+      order: 9,
+      isButton: false,
+      appendTo: 'root',
+      html: '',
+      onInit: (el) => {
+        lightbox.pswp.on('change', () => {
+          const data = lightbox.pswp.currSlide.data;
+          el.innerHTML = `<div class="pswp__custom-caption">${data.caption || ''}</div>`;
+        });
+      }
+    });
+  });
+
+  lightbox.init();
+};
+
+watch(() => props.album.media, () => {
+  initPhotoSwipe();
+}, { deep: true });
+
+onMounted(() => {
+  initPhotoSwipe();
+});
+
+onUnmounted(() => {
+  if (lightbox) {
+    lightbox.destroy();
+    lightbox = null;
+  }
+});
 </script>

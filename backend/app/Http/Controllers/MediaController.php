@@ -44,6 +44,10 @@ class MediaController extends Controller
         $filters = $request->only(['type', 'search', 'tags']);
         $media = $this->mediaService->getPaginatedMedia($filters);
 
+        if ($request->wantsJson()) {
+            return response()->json($media);
+        }
+
         return Inertia::render('Media/Index', [
             'media' => $media,
             'filters' => $filters,
