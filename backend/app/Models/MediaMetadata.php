@@ -26,6 +26,12 @@ class MediaMetadata extends Model
         'latitude',
         'longitude',
         'altitude',
+        'vision_labels',
+        'vision_status',
+        'vision_provider',
+        'vision_processed_at',
+        'vision_error',
+        'vision_faces_count',
     ];
 
     /**
@@ -43,6 +49,9 @@ class MediaMetadata extends Model
             'latitude' => 'decimal:8',
             'longitude' => 'decimal:8',
             'altitude' => 'decimal:2',
+            'vision_labels' => 'array',
+            'vision_processed_at' => 'datetime',
+            'vision_faces_count' => 'integer',
         ];
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Jobs\Concerns\DownloadsMediaToTemp;
 use App\Models\Media;
 use App\Models\MediaConversion;
 use App\Services\S3Service;
@@ -10,7 +11,6 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
 use FFMpeg\FFMpeg;
@@ -18,7 +18,7 @@ use FFMpeg\Coordinate\TimeCode;
 
 class GenerateMediaConversions implements ShouldQueue
 {
-    use Queueable, InteractsWithQueue, SerializesModels;
+    use Queueable, InteractsWithQueue, SerializesModels, DownloadsMediaToTemp;
 
     /**
      * The number of times the job may be attempted.
@@ -281,47 +281,6 @@ class GenerateMediaConversions implements ShouldQueue
                 'error' => $e->getMessage(),
             ]);
             throw $e;
-        }
-    }
-
-    /**
-     * Download file from S3 to a temporary location.
-     *
-     * @param S3Service $s3Service
-     * @return string|null The temporary file path, or null on failure
-     */
-    protected function downloadFileToTemp(S3Service $s3Service): ?string
-    {
-        try {
-            $disk = Storage::disk($s3Service->getDisk());
-
-            if (!$disk->exists($this->media->file_path)) {
-                Log::error('GenerateMediaConversions: File does not exist in S3', [
-                    'media_id' => $this->media->id,
-                    'file_path' => $this->media->file_path,
-                ]);
-                return null;
-            }
-
-            // Get file extension from original filename
-            $extension = pathinfo($this->media->original_name, PATHINFO_EXTENSION);
-
-            // Create temporary file with proper extension
-            $tempPath = sys_get_temp_dir() . '/media_' . $this->media->id . '_' . uniqid() . '.' . $extension;
-
-            // Download file contents from S3
-            $contents = $disk->get($this->media->file_path);
-
-            // Write to temporary file
-            file_put_contents($tempPath, $contents);
-
-            return $tempPath;
-        } catch (\Exception $e) {
-            Log::error('GenerateMediaConversions: Failed to download file to temp', [
-                'media_id' => $this->media->id,
-                'error' => $e->getMessage(),
-            ]);
-            return null;
         }
     }
 

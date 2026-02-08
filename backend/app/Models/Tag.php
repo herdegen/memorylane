@@ -14,6 +14,7 @@ class Tag extends Model
         'name',
         'slug',
         'color',
+        'type',
     ];
 
     /**

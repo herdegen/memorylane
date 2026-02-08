@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\AnalyzeMediaWithVision;
 use App\Jobs\GenerateMediaConversions;
 use App\Jobs\ProcessUploadedMedia;
 use App\Models\Media;
@@ -112,6 +113,11 @@ class MediaService
         // Dispatch background jobs for processing
         ProcessUploadedMedia::dispatch($media);
         GenerateMediaConversions::dispatch($media);
+
+        // Dispatch Vision AI analysis if enabled
+        if (config('vision.enabled')) {
+            AnalyzeMediaWithVision::dispatch($media)->delay(now()->addSeconds(5));
+        }
 
         return $media;
     }

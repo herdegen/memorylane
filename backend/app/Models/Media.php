@@ -96,4 +96,12 @@ class Media extends Model
             ->withPivot('face_coordinates')
             ->withTimestamps();
     }
+
+    /**
+     * Get the detected faces in this media.
+     */
+    public function detectedFaces()
+    {
+        return $this->hasMany(DetectedFace::class);
+    }
 }

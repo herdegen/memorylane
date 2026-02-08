@@ -19,12 +19,13 @@
           <!-- Media preview (left side - 2 columns) -->
           <div class="lg:col-span-2">
             <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-              <!-- Image -->
+              <!-- Image with face detection overlay -->
               <div v-if="media.type === 'photo'" class="relative bg-black">
-                <img
-                  :src="media.url"
+                <FaceDetectionOverlay
+                  :image-url="media.url"
                   :alt="media.original_name"
-                  class="w-full h-auto max-h-[70vh] object-contain mx-auto"
+                  :faces="media.detected_faces || []"
+                  @face-click="handleFaceClick"
                 />
               </div>
 
@@ -69,6 +70,32 @@
               <h2 class="text-lg font-semibold text-gray-900 mb-4">Tags</h2>
               <TagInput :media-id="media.id" :initial-tags="media.tags || []" @tags-updated="handleTagsUpdated" />
             </div>
+
+            <!-- Vision AI Status -->
+            <VisionStatusBadge
+              v-if="media.type === 'photo'"
+              :media-id="media.id"
+              :initial-status="media.metadata?.vision_status"
+              :initial-faces-count="media.metadata?.vision_faces_count || 0"
+              :initial-error="media.metadata?.vision_error"
+              @analysis-complete="handleAnalysisComplete"
+            />
+
+            <!-- Face Match Panel -->
+            <FaceMatchPanel
+              v-if="selectedFace"
+              :face="selectedFace"
+              :media-id="media.id"
+              @matched="handleFaceMatched"
+              @dismissed="handleFaceDismissed"
+              @close="selectedFace = null"
+            />
+
+            <!-- Vision AI Labels -->
+            <VisionLabels
+              v-if="media.type === 'photo' && media.metadata?.vision_labels"
+              :labels="media.metadata.vision_labels"
+            />
 
             <!-- People -->
             <PersonInput
@@ -120,12 +147,17 @@
 </template>
 
 <script setup>
+import { ref } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import TagInput from '@/Components/TagInput.vue';
 import PersonInput from '@/Components/PersonInput.vue';
 import GeolocationEditor from '@/Components/GeolocationEditor.vue';
 import MediaInfoEditor from '@/Components/MediaInfoEditor.vue';
+import FaceDetectionOverlay from '@/Components/FaceDetectionOverlay.vue';
+import FaceMatchPanel from '@/Components/FaceMatchPanel.vue';
+import VisionStatusBadge from '@/Components/VisionStatusBadge.vue';
+import VisionLabels from '@/Components/VisionLabels.vue';
 import axios from 'axios';
 
 const props = defineProps({
@@ -134,6 +166,8 @@ const props = defineProps({
     required: true,
   },
 });
+
+const selectedFace = ref(null);
 
 const handleMediaUpdated = (updatedMedia) => {
   router.reload();
@@ -153,6 +187,26 @@ const handleGeolocationRemoved = () => {
 
 const handlePeopleUpdated = (people) => {
   console.log('People updated:', people);
+};
+
+const handleFaceClick = (face) => {
+  if (face.status === 'unmatched') {
+    selectedFace.value = face;
+  }
+};
+
+const handleFaceMatched = () => {
+  selectedFace.value = null;
+  router.reload();
+};
+
+const handleFaceDismissed = () => {
+  selectedFace.value = null;
+  router.reload();
+};
+
+const handleAnalysisComplete = () => {
+  router.reload();
 };
 
 const deleteMedia = async () => {

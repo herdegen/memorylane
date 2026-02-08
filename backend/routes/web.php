@@ -7,6 +7,7 @@ use App\Http\Controllers\PersonController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\MapController;
+use App\Http\Controllers\VisionController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -90,6 +91,16 @@ Route::middleware('auth')->group(function () {
         // Sharing
         Route::post('/{album}/share', [AlbumController::class, 'generateShareToken'])->name('generateShare');
         Route::delete('/{album}/share', [AlbumController::class, 'revokeShareToken'])->name('revokeShare');
+    });
+
+    // Vision AI routes
+    Route::prefix('vision')->name('vision.')->group(function () {
+        Route::get('/media/{media}/faces', [VisionController::class, 'faces'])->name('faces');
+        Route::post('/faces/{detectedFace}/match', [VisionController::class, 'matchFace'])->name('matchFace');
+        Route::post('/faces/{detectedFace}/dismiss', [VisionController::class, 'dismissFace'])->name('dismissFace');
+        Route::get('/media/{media}/labels', [VisionController::class, 'labels'])->name('labels');
+        Route::post('/media/{media}/analyze', [VisionController::class, 'reanalyze'])->name('reanalyze');
+        Route::get('/media/{media}/status', [VisionController::class, 'status'])->name('status');
     });
 
     // People routes

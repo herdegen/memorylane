@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Jobs\Concerns\DownloadsMediaToTemp;
 use App\Models\Media;
 use App\Models\MediaMetadata;
 use App\Services\ExifExtractor;
@@ -11,11 +12,10 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 
 class ProcessUploadedMedia implements ShouldQueue
 {
-    use Queueable, InteractsWithQueue, SerializesModels;
+    use Queueable, InteractsWithQueue, SerializesModels, DownloadsMediaToTemp;
 
     /**
      * The number of times the job may be attempted.
@@ -135,44 +135,6 @@ class ProcessUploadedMedia implements ShouldQueue
                 'error' => $e->getMessage(),
             ]);
             // Don't rethrow - EXIF extraction is not critical
-            return null;
-        }
-    }
-
-    /**
-     * Download file from S3 to a temporary location.
-     *
-     * @param S3Service $s3Service
-     * @return string|null The temporary file path, or null on failure
-     */
-    protected function downloadFileToTemp(S3Service $s3Service): ?string
-    {
-        try {
-            $disk = Storage::disk($s3Service->getDisk());
-
-            if (!$disk->exists($this->media->file_path)) {
-                Log::error('ProcessUploadedMedia: File does not exist in S3', [
-                    'media_id' => $this->media->id,
-                    'file_path' => $this->media->file_path,
-                ]);
-                return null;
-            }
-
-            // Create temporary file
-            $tempPath = sys_get_temp_dir() . '/media_' . $this->media->id . '_' . uniqid() . '.tmp';
-
-            // Download file contents from S3
-            $contents = $disk->get($this->media->file_path);
-
-            // Write to temporary file
-            file_put_contents($tempPath, $contents);
-
-            return $tempPath;
-        } catch (\Exception $e) {
-            Log::error('ProcessUploadedMedia: Failed to download file to temp', [
-                'media_id' => $this->media->id,
-                'error' => $e->getMessage(),
-            ]);
             return null;
         }
     }

@@ -97,7 +97,7 @@ class MediaController extends Controller
      */
     public function show(Media $media)
     {
-        $media->load(['user', 'tags', 'conversions', 'metadata', 'people']);
+        $media->load(['user', 'tags', 'conversions', 'metadata', 'people', 'detectedFaces.person']);
 
         // Generate signed URL
         $media->url = $this->mediaService->getSignedUrl($media);

@@ -76,4 +76,9 @@ class Person extends Model
             ->withPivot('face_coordinates')
             ->withTimestamps();
     }
+
+    public function detectedFaces()
+    {
+        return $this->hasMany(DetectedFace::class);
+    }
 }
