@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Models\Album;
 use App\Models\Media;
+use App\Models\Person;
 use App\Models\Tag;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -252,5 +254,132 @@ class FilamentAdminTest extends TestCase
         // Both active and deleted should be visible in admin panel
         $this->assertEquals(2, Media::withTrashed()->count());
         $this->assertEquals(1, Media::onlyTrashed()->count());
+    }
+
+    /**
+     * Test admin can view albums list page.
+     */
+    public function test_admin_can_view_albums_list(): void
+    {
+        Album::factory()->count(3)->create(['user_id' => $this->adminUser->id]);
+
+        $response = $this->actingAs($this->adminUser)
+            ->get('/admin/albums');
+
+        $response->assertStatus(200);
+    }
+
+    /**
+     * Test admin can view album create page.
+     */
+    public function test_admin_can_view_album_create_page(): void
+    {
+        $response = $this->actingAs($this->adminUser)
+            ->get('/admin/albums/create');
+
+        $response->assertStatus(200);
+    }
+
+    /**
+     * Test admin can view album edit page.
+     */
+    public function test_admin_can_view_album_edit_page(): void
+    {
+        $album = Album::factory()->create(['user_id' => $this->adminUser->id]);
+
+        $response = $this->actingAs($this->adminUser)
+            ->get("/admin/albums/{$album->id}/edit");
+
+        $response->assertStatus(200);
+    }
+
+    /**
+     * Test album resource shows correct data.
+     */
+    public function test_album_resource_displays_album_data(): void
+    {
+        $album = Album::factory()->create([
+            'user_id' => $this->adminUser->id,
+            'name' => 'Vacances 2025',
+        ]);
+
+        $response = $this->actingAs($this->adminUser)
+            ->get('/admin/albums');
+
+        $response->assertStatus(200)
+            ->assertSee('Vacances 2025');
+    }
+
+    /**
+     * Test admin can view people list page.
+     */
+    public function test_admin_can_view_people_list(): void
+    {
+        Person::factory()->count(3)->create(['user_id' => $this->adminUser->id]);
+
+        $response = $this->actingAs($this->adminUser)
+            ->get('/admin/people');
+
+        $response->assertStatus(200);
+    }
+
+    /**
+     * Test admin can view person create page.
+     */
+    public function test_admin_can_view_person_create_page(): void
+    {
+        $response = $this->actingAs($this->adminUser)
+            ->get('/admin/people/create');
+
+        $response->assertStatus(200);
+    }
+
+    /**
+     * Test admin can view person edit page.
+     */
+    public function test_admin_can_view_person_edit_page(): void
+    {
+        $person = Person::factory()->create(['user_id' => $this->adminUser->id]);
+
+        $response = $this->actingAs($this->adminUser)
+            ->get("/admin/people/{$person->id}/edit");
+
+        $response->assertStatus(200);
+    }
+
+    /**
+     * Test person resource shows correct data.
+     */
+    public function test_person_resource_displays_person_data(): void
+    {
+        $person = Person::factory()->create([
+            'user_id' => $this->adminUser->id,
+            'name' => 'Jean Dupont',
+        ]);
+
+        $response = $this->actingAs($this->adminUser)
+            ->get('/admin/people');
+
+        $response->assertStatus(200)
+            ->assertSee('Jean Dupont');
+    }
+
+    /**
+     * Test user can be linked to a person.
+     */
+    public function test_user_resource_shows_linked_person(): void
+    {
+        $person = Person::factory()->create([
+            'user_id' => $this->adminUser->id,
+            'name' => 'Admin Personne',
+        ]);
+
+        $this->adminUser->update(['person_id' => $person->id]);
+
+        $response = $this->actingAs($this->adminUser)
+            ->get('/admin/users');
+
+        $response->assertStatus(200)
+            ->assertSee('Admin Personne');
     }
 }

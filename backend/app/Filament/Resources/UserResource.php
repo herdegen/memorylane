@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource\RelationManagers;
+use App\Models\Person;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -17,7 +18,13 @@ class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-users';
+
+    protected static ?string $navigationLabel = 'Utilisateurs';
+
+    protected static ?string $modelLabel = 'Utilisateur';
+
+    protected static ?string $pluralModelLabel = 'Utilisateurs';
 
     public static function form(Form $form): Form
     {
@@ -25,21 +32,41 @@ class UserResource extends Resource
             ->schema([
                 Forms\Components\TextInput::make('name')
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->label('Nom'),
                 Forms\Components\TextInput::make('email')
                     ->email()
                     ->required()
-                    ->maxLength(255),
-                Forms\Components\DateTimePicker::make('email_verified_at'),
+                    ->maxLength(255)
+                    ->label('Email'),
+                Forms\Components\DateTimePicker::make('email_verified_at')
+                    ->label('Email vérifié le'),
                 Forms\Components\TextInput::make('password')
                     ->password()
-                    ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->dehydrateStateUsing(fn ($state) => filled($state) ? bcrypt($state) : null)
+                    ->dehydrated(fn ($state) => filled($state))
+                    ->required(fn (string $context): bool => $context === 'create')
+                    ->label('Mot de passe')
+                    ->helperText('Laissez vide pour ne pas modifier'),
                 Forms\Components\TextInput::make('pin_code')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('avatar_id'),
-                Forms\Components\TextInput::make('person_id'),
-                Forms\Components\TextInput::make('preferences'),
+                    ->maxLength(255)
+                    ->label('Code PIN'),
+                Forms\Components\Select::make('role')
+                    ->options([
+                        'user' => 'Utilisateur',
+                        'admin' => 'Administrateur',
+                    ])
+                    ->default('user')
+                    ->required()
+                    ->label('Rôle'),
+                Forms\Components\Select::make('person_id')
+                    ->label('Personne liée')
+                    ->relationship('person', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->nullable()
+                    ->helperText('Lier ce compte à une personne de l\'arbre généalogique'),
             ]);
     }
 
@@ -47,30 +74,44 @@ class UserResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')
-                    ->label('ID'),
                 Tables\Columns\TextColumn::make('name')
-                    ->searchable(),
+                    ->label('Nom')
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('email')
+                    ->label('Email')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('role')
+                    ->label('Rôle')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'admin' => 'danger',
+                        default => 'gray',
+                    })
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('person.name')
+                    ->label('Personne liée')
+                    ->placeholder('—')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('email_verified_at')
-                    ->dateTime()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('pin_code')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('avatar_id'),
-                Tables\Columns\TextColumn::make('person_id'),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
+                    ->label('Vérifié le')
+                    ->dateTime('d/m/Y')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Créé le')
+                    ->dateTime('d/m/Y')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('role')
+                    ->options([
+                        'user' => 'Utilisateur',
+                        'admin' => 'Administrateur',
+                    ])
+                    ->label('Rôle'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
