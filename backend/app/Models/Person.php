@@ -18,10 +18,17 @@ class Person extends Model
         'user_id',
         'name',
         'slug',
+        'maiden_name',
         'birth_date',
+        'birth_place',
         'death_date',
+        'death_place',
         'avatar_media_id',
         'notes',
+        'father_id',
+        'mother_id',
+        'gender',
+        'gedcom_id',
     ];
 
     protected function casts(): array
@@ -80,5 +87,56 @@ class Person extends Model
     public function detectedFaces()
     {
         return $this->hasMany(DetectedFace::class);
+    }
+
+    public function father()
+    {
+        return $this->belongsTo(Person::class, 'father_id');
+    }
+
+    public function mother()
+    {
+        return $this->belongsTo(Person::class, 'mother_id');
+    }
+
+    public function childrenAsFather()
+    {
+        return $this->hasMany(Person::class, 'father_id');
+    }
+
+    public function childrenAsMother()
+    {
+        return $this->hasMany(Person::class, 'mother_id');
+    }
+
+    public function getChildrenAttribute()
+    {
+        return Person::where('father_id', $this->id)
+            ->orWhere('mother_id', $this->id)
+            ->get();
+    }
+
+    public function spousesAsFirst()
+    {
+        return $this->belongsToMany(Person::class, 'person_relationships', 'person1_id', 'person2_id')
+            ->withPivot('type', 'start_date', 'end_date', 'start_place')
+            ->withTimestamps();
+    }
+
+    public function spousesAsSecond()
+    {
+        return $this->belongsToMany(Person::class, 'person_relationships', 'person2_id', 'person1_id')
+            ->withPivot('type', 'start_date', 'end_date', 'start_place')
+            ->withTimestamps();
+    }
+
+    public function getSpousesAttribute()
+    {
+        return $this->spousesAsFirst->merge($this->spousesAsSecond);
+    }
+
+    public function getParentsAttribute()
+    {
+        return collect([$this->father, $this->mother])->filter()->values();
     }
 }

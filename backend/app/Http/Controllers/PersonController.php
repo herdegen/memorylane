@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Person;
+use App\Models\PersonRelationship;
 use App\Models\Media;
 use App\Services\MediaService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class PersonController extends Controller
@@ -45,10 +47,16 @@ class PersonController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'gender' => 'nullable|in:M,F,U',
+            'maiden_name' => 'nullable|string|max:255',
             'birth_date' => 'nullable|date',
+            'birth_place' => 'nullable|string|max:255',
             'death_date' => 'nullable|date|after_or_equal:birth_date',
+            'death_place' => 'nullable|string|max:255',
             'avatar_media_id' => 'nullable|exists:media,id',
             'notes' => 'nullable|string|max:2000',
+            'father_id' => 'nullable|exists:people,id',
+            'mother_id' => 'nullable|exists:people,id',
         ]);
 
         $person = Person::create([
@@ -73,12 +81,45 @@ class PersonController extends Controller
             abort(403);
         }
 
-        $person->load(['avatar.conversions']);
+        $person->load(['avatar.conversions', 'father', 'mother']);
         $person->loadCount('media');
 
         if ($person->avatar) {
             $person->avatar_url = $this->getAvatarUrl($person->avatar);
         }
+
+        // Load children
+        $children = Person::where('father_id', $person->id)
+            ->orWhere('mother_id', $person->id)
+            ->with('avatar.conversions')
+            ->get();
+
+        $children->transform(function ($child) {
+            if ($child->avatar) {
+                $child->avatar_url = $this->getAvatarUrl($child->avatar);
+            }
+            return $child;
+        });
+
+        // Load spouses (bidirectional)
+        $spouseIds = DB::table('person_relationships')
+            ->where(function ($q) use ($person) {
+                $q->where('person1_id', $person->id)
+                    ->orWhere('person2_id', $person->id);
+            })
+            ->get()
+            ->map(fn ($r) => $r->person1_id === $person->id ? $r->person2_id : $r->person1_id);
+
+        $spouses = Person::whereIn('id', $spouseIds)
+            ->with('avatar.conversions')
+            ->get();
+
+        $spouses->transform(function ($spouse) {
+            if ($spouse->avatar) {
+                $spouse->avatar_url = $this->getAvatarUrl($spouse->avatar);
+            }
+            return $spouse;
+        });
 
         $media = $person->media()
             ->with(['conversions', 'tags'])
@@ -101,12 +142,18 @@ class PersonController extends Controller
             return response()->json([
                 'person' => $person,
                 'media' => $media,
+                'children' => $children,
+                'spouses' => $spouses,
             ]);
         }
 
         return Inertia::render('People/Show', [
             'person' => $person,
             'media' => $media,
+            'father' => $person->father,
+            'mother' => $person->mother,
+            'children' => $children,
+            'spouses' => $spouses,
         ]);
     }
 
@@ -118,10 +165,16 @@ class PersonController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'gender' => 'nullable|in:M,F,U',
+            'maiden_name' => 'nullable|string|max:255',
             'birth_date' => 'nullable|date',
+            'birth_place' => 'nullable|string|max:255',
             'death_date' => 'nullable|date|after_or_equal:birth_date',
+            'death_place' => 'nullable|string|max:255',
             'avatar_media_id' => 'nullable|exists:media,id',
             'notes' => 'nullable|string|max:2000',
+            'father_id' => 'nullable|exists:people,id',
+            'mother_id' => 'nullable|exists:people,id',
         ]);
 
         $person->update($validated);
@@ -196,6 +249,109 @@ class PersonController extends Controller
         return response()->json([
             'message' => 'Personne retiree du media',
         ]);
+    }
+
+    public function setParent(Request $request, Person $person)
+    {
+        if ($person->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'parent_id' => 'required|exists:people,id',
+            'parent_type' => 'required|in:father,mother',
+        ]);
+
+        $parent = Person::findOrFail($validated['parent_id']);
+        if ($parent->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        if ($validated['parent_id'] === $person->id) {
+            return response()->json(['message' => 'Une personne ne peut pas etre son propre parent'], 422);
+        }
+
+        $person->update([
+            $validated['parent_type'].'_id' => $validated['parent_id'],
+        ]);
+
+        return response()->json([
+            'message' => 'Parent defini',
+            'person' => $person->fresh(),
+        ]);
+    }
+
+    public function removeParent(Request $request, Person $person)
+    {
+        if ($person->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'parent_type' => 'required|in:father,mother',
+        ]);
+
+        $person->update([
+            $validated['parent_type'].'_id' => null,
+        ]);
+
+        return response()->json(['message' => 'Parent retire']);
+    }
+
+    public function addSpouse(Request $request, Person $person)
+    {
+        if ($person->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'spouse_id' => 'required|exists:people,id',
+            'type' => 'nullable|in:spouse,partner',
+            'start_date' => 'nullable|date',
+            'start_place' => 'nullable|string|max:255',
+        ]);
+
+        $spouse = Person::findOrFail($validated['spouse_id']);
+        if ($spouse->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        if ($validated['spouse_id'] === $person->id) {
+            return response()->json(['message' => 'Une personne ne peut pas etre son propre conjoint'], 422);
+        }
+
+        $ids = [$person->id, $validated['spouse_id']];
+        sort($ids);
+
+        PersonRelationship::firstOrCreate(
+            ['person1_id' => $ids[0], 'person2_id' => $ids[1], 'type' => $validated['type'] ?? 'spouse'],
+            [
+                'start_date' => $validated['start_date'] ?? null,
+                'start_place' => $validated['start_place'] ?? null,
+            ]
+        );
+
+        return response()->json(['message' => 'Relation ajoutee']);
+    }
+
+    public function removeSpouse(Request $request, Person $person)
+    {
+        if ($person->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'spouse_id' => 'required|exists:people,id',
+        ]);
+
+        $ids = [$person->id, $validated['spouse_id']];
+        sort($ids);
+
+        PersonRelationship::where('person1_id', $ids[0])
+            ->where('person2_id', $ids[1])
+            ->delete();
+
+        return response()->json(['message' => 'Relation supprimee']);
     }
 
     private function getAvatarUrl(Media $media): string

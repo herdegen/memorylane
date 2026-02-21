@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\AlbumController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\FamilyTreeController;
+use App\Http\Controllers\GedcomImportController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\PersonController;
 use App\Http\Controllers\ProfileController;
@@ -112,6 +114,25 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{person}', [PersonController::class, 'destroy'])->name('destroy');
         Route::post('/attach', [PersonController::class, 'attachToMedia'])->name('attach');
         Route::post('/detach', [PersonController::class, 'detachFromMedia'])->name('detach');
+
+        // Family relationships
+        Route::post('/{person}/parent', [PersonController::class, 'setParent'])->name('setParent');
+        Route::delete('/{person}/parent', [PersonController::class, 'removeParent'])->name('removeParent');
+        Route::post('/{person}/spouse', [PersonController::class, 'addSpouse'])->name('addSpouse');
+        Route::delete('/{person}/spouse', [PersonController::class, 'removeSpouse'])->name('removeSpouse');
+    });
+
+    // Family Tree routes
+    Route::prefix('family-tree')->name('family-tree.')->group(function () {
+        Route::get('/', [FamilyTreeController::class, 'index'])->name('index');
+        Route::get('/data', [FamilyTreeController::class, 'treeData'])->name('data');
+        Route::get('/data/{person}', [FamilyTreeController::class, 'subtree'])->name('subtree');
+
+        // GEDCOM import
+        Route::get('/import', [GedcomImportController::class, 'index'])->name('import');
+        Route::post('/import/upload', [GedcomImportController::class, 'upload'])->name('import.upload');
+        Route::get('/import/{gedcomImport}/review', [GedcomImportController::class, 'review'])->name('import.review');
+        Route::post('/import/{gedcomImport}/confirm', [GedcomImportController::class, 'confirm'])->name('import.confirm');
     });
 });
 

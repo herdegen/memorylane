@@ -28,6 +28,9 @@
               <NavLink href="/people" :active="$page.component.startsWith('People/')">
                 Personnes
               </NavLink>
+              <NavLink href="/family-tree" :active="$page.component.startsWith('FamilyTree/')">
+                Arbre
+              </NavLink>
               <NavLink href="/map" :active="$page.component.startsWith('Map/')">
                 Carte
               </NavLink>
@@ -106,6 +109,9 @@
           </MobileNavLink>
           <MobileNavLink href="/people" :active="$page.component.startsWith('People/')">
             Personnes
+          </MobileNavLink>
+          <MobileNavLink href="/family-tree" :active="$page.component.startsWith('FamilyTree/')">
+            Arbre
           </MobileNavLink>
           <MobileNavLink href="/map" :active="$page.component.startsWith('Map/')">
             Carte

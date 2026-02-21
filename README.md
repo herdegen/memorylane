@@ -10,12 +10,14 @@ MemoryLane est une plateforme de gestion de médias familiaux permettant de stoc
 - **Redis 7** - Cache & Queues
 - **Inertia.js** - Bridge Laravel-Vue (SPA sans API séparée)
 - **Filament v3.3** - Panel d'administration
+- **Google Cloud Vision API** - Détection de visages et labels IA (provider swappable)
 
 ### Frontend
 - **Vue 3** (Composition API + `<script setup>`)
 - **Vite 5** - Build tool
 - **Tailwind CSS 3** - Styling
 - **PhotoSwipe** - Carousel lightbox (albums)
+- **family-chart** - Visualisation arbre généalogique (D3-based)
 
 ### Infrastructure
 - **Podman** / Docker Compose
@@ -48,10 +50,12 @@ MemoryLane est une plateforme de gestion de médias familiaux permettant de stoc
 - Couverture automatique (premier média ajouté)
 
 ### Système de personnes
-- CRUD complet des personnes (nom, date de naissance/décès, notes, avatar)
+- CRUD complet des personnes (nom, genre, date de naissance/décès, lieu, notes, avatar)
 - Slug auto-généré et unique
 - Tagging de personnes sur les médias (relation many-to-many via `media_person`)
 - Autocomplete avec création rapide depuis l'éditeur de média
+- **Relations familiales** : père, mère, conjoints, enfants
+- Panel famille interactif sur la fiche personne (RelationshipPicker)
 - Page profil d'une personne avec ses médias associés
 - Page listing de toutes les personnes
 
@@ -60,6 +64,26 @@ MemoryLane est une plateforme de gestion de médias familiaux permettant de stoc
 - Tagging de médias avec autocomplete
 - Filtrage par tags dans la galerie
 - Tags colorés affichés sur les cartes médias
+
+### IA & Reconnaissance visuelle (Vision AI)
+- **Architecture provider-swappable** : interface unique (`VisionServiceInterface`) avec implémentation Google Cloud Vision et possibilité de basculer vers une alternative locale gratuite (DeepFace/InsightFace)
+- **Détection de visages** : bounding boxes positionnées en % sur l'image, overlay interactif
+- **Matching de visages** : associer un visage détecté à une personne existante ou en créer une nouvelle
+- **Détection de labels** : catégorisation automatique des photos (Nature, Famille, Animaux, etc.)
+- **Auto-tagging** : les labels IA créent automatiquement des tags de type `ai` (violet)
+- **Traitement asynchrone** : job en queue déclenché automatiquement après upload
+- **Suivi du statut** : badge temps réel (pending → processing → completed/failed) avec polling
+- **Re-analyse** : possibilité de relancer l'analyse IA sur une photo
+
+### Arbre Généalogique
+- Import GEDCOM (format standard Geneanet/MyHeritage/Ancestry)
+- Parseur GEDCOM custom (INDI + FAM, gestion des dates, encodage)
+- Matching intelligent à l'import : score 0-100 (nom, dates) avec auto-match >= 80%
+- Import en 3 étapes : upload → review matching → confirmation
+- Visualisation interactive de l'arbre (SVG, pan/zoom, clic sur nœud)
+- Relations familiales : père, mère, conjoints (avec dates mariage/divorce)
+- Panel famille interactif sur la fiche personne (RelationshipPicker)
+- Sous-arbre centré sur une personne (3 générations haut/bas)
 
 ### Géolocalisation
 - Extraction GPS automatique depuis EXIF
@@ -138,22 +162,42 @@ memorylane/
 │   └── postgres/                    # PostgreSQL
 ├── backend/                         # Application Laravel
 │   ├── app/
+│   │   ├── Contracts/
+│   │   │   └── VisionServiceInterface.php  # Interface provider-swappable
 │   │   ├── Http/Controllers/
 │   │   │   ├── AlbumController.php  # CRUD albums + partage + médias
 │   │   │   ├── AuthController.php   # Login/logout
+│   │   │   ├── FamilyTreeController.php  # Arbre généalogique + données JSON
+│   │   │   ├── GedcomImportController.php # Import GEDCOM (upload, matching, confirm)
 │   │   │   ├── MediaController.php  # CRUD médias + upload
-│   │   │   ├── PersonController.php # CRUD personnes + attach/detach
+│   │   │   ├── PersonController.php # CRUD personnes + relations familiales
 │   │   │   ├── TagController.php    # CRUD tags + attach/detach
 │   │   │   ├── MapController.php    # Géolocalisation
+│   │   │   ├── VisionController.php # Visages, labels, analyse IA
 │   │   │   └── ProfileController.php
+│   │   ├── Jobs/
+│   │   │   ├── AnalyzeMediaWithVision.php    # Job analyse IA async
+│   │   │   ├── ProcessUploadedMedia.php      # Extraction EXIF
+│   │   │   ├── GenerateMediaConversions.php  # Thumbnails
+│   │   │   └── Concerns/
+│   │   │       └── DownloadsMediaToTemp.php  # Trait partagé download
 │   │   ├── Models/
 │   │   │   ├── Album.php            # Albums (share token, slug, soft delete)
+│   │   │   ├── DetectedFace.php     # Visages détectés par l'IA
 │   │   │   ├── Media.php            # Médias (titre, description, personnes)
-│   │   │   ├── Person.php           # Personnes (slug unique, dates)
-│   │   │   ├── Tag.php
+│   │   │   ├── MediaMetadata.php    # Métadonnées EXIF + vision
+│   │   │   ├── Person.php           # Personnes (slug, dates, relations familiales)
+│   │   │   ├── PersonRelationship.php # Relations conjoints/partenaires
+│   │   │   ├── GedcomImport.php     # Sessions d'import GEDCOM
+│   │   │   ├── Tag.php              # Tags (type: general|ai)
 │   │   │   └── User.php
 │   │   └── Services/
-│   │       └── MediaService.php     # Upload, URLs signées, conversions
+│   │       ├── MediaService.php     # Upload, URLs signées, conversions
+│   │       ├── GedcomParserService.php  # Parseur GEDCOM custom (INDI + FAM)
+│   │       ├── GedcomImportService.php  # Matching + import GEDCOM
+│   │       └── Vision/
+│   │           ├── GoogleVisionService.php  # Implémentation Google
+│   │           └── NullVisionService.php    # No-op (vision désactivée)
 │   ├── database/
 │   │   ├── migrations/              # Toutes les migrations (UUID)
 │   │   └── factories/               # Factories pour tests
@@ -161,20 +205,27 @@ memorylane/
 │   │   ├── Components/
 │   │   │   ├── AlbumCard.vue        # Carte album
 │   │   │   ├── AlbumFormModal.vue   # Modal création/édition album
+│   │   │   ├── FaceDetectionOverlay.vue  # Overlay visages sur image
+│   │   │   ├── FaceMatchPanel.vue   # Panel matching visage → personne
 │   │   │   ├── MediaCard.vue        # Carte média
 │   │   │   ├── MediaGrid.vue        # Grille responsive
 │   │   │   ├── MediaInfoEditor.vue  # Éditeur titre/description
 │   │   │   ├── MediaPickerModal.vue # Sélecteur médias pour albums
 │   │   │   ├── PersonInput.vue      # Autocomplete personnes
-│   │   │   ├── PersonFormModal.vue  # Modal création personne
+│   │   │   ├── PersonFormModal.vue  # Modal création/édition personne (+ genre)
+│   │   │   ├── RelationshipPicker.vue # Sélecteur de relation familiale
+│   │   │   ├── FamilyPanel.vue      # Panel famille (parents, conjoints, enfants)
 │   │   │   ├── SharePanel.vue       # Contrôles de partage
 │   │   │   ├── TagInput.vue         # Autocomplete tags
+│   │   │   ├── VisionLabels.vue     # Labels IA (chips violet)
+│   │   │   ├── VisionStatusBadge.vue # Badge statut analyse IA
 │   │   │   └── GeolocationEditor.vue
 │   │   ├── Pages/
 │   │   │   ├── Albums/              # Index, Show, Shared
 │   │   │   ├── Auth/                # Login
 │   │   │   ├── Media/               # Index (galerie), Show (éditeur), Upload
-│   │   │   ├── People/              # Index, Show
+│   │   │   ├── People/              # Index, Show (+ FamilyPanel)
+│   │   │   ├── FamilyTree/          # Index (arbre), Import (GEDCOM)
 │   │   │   ├── Map/                 # Carte interactive
 │   │   │   └── Tags/                # Index
 │   │   └── Layouts/
@@ -193,14 +244,17 @@ memorylane/
 |-------|-------------|
 | `users` | Utilisateurs (UUID) |
 | `media` | Photos/vidéos/documents (titre, description, type, dimensions) |
-| `media_metadata` | Métadonnées EXIF (GPS, appareil, date) |
+| `media_metadata` | Métadonnées EXIF (GPS, appareil, date) + champs vision IA |
 | `media_conversions` | Thumbnails et versions optimisées |
-| `tags` | Tags avec couleur et slug |
+| `tags` | Tags avec couleur, slug et type (general/ai) |
 | `taggables` | Pivot polymorphique tags-médias |
 | `albums` | Albums (slug, share_token, is_public, soft delete) |
 | `album_media` | Pivot album-média avec ordre |
-| `people` | Personnes (nom, slug, dates, notes, avatar) |
+| `people` | Personnes (nom, slug, genre, dates, father_id, mother_id, avatar) |
+| `person_relationships` | Relations conjoints/partenaires (dates mariage/divorce) |
 | `media_person` | Pivot média-personne (avec face_coordinates) |
+| `detected_faces` | Visages détectés par l'IA (bounding box, confiance, émotions, statut) |
+| `gedcom_imports` | Sessions d'import GEDCOM (parsed_data JSON, status, matching) |
 
 ### Commandes migrations
 
@@ -223,10 +277,13 @@ podman-compose exec app php artisan migrate:fresh
 | `TagControllerTest` | 7 | CRUD tags, validation |
 | `TagAttachmentTest` | 11 | Attachement/détachement tags-médias |
 | `MapControllerTest` | 11 | Géolocalisation, recherche, carte |
+| `VisionControllerTest` | 12 | Détection visages, matching, labels, re-analyse, autorisations |
 | `FilamentAdminTest` | 17 | Panel admin Filament |
+| `FamilyRelationshipTest` | 11 | Relations familiales, arbre, autorisations |
+| `GedcomImportTest` | 8 | Parseur GEDCOM, upload, matching, import |
 | `LoginTest` | 4 | Authentification |
 
-**Total : ~100 tests**
+**Total : 136 tests**
 
 ### Lancer les tests
 
@@ -236,7 +293,7 @@ podman-compose exec app php artisan test
 
 # Une suite spécifique
 podman-compose exec app php artisan test --filter=AlbumControllerTest
-podman-compose exec app php artisan test --filter=PersonControllerTest
+podman-compose exec app php artisan test --filter=VisionControllerTest
 
 # Avec couverture
 podman-compose exec app php artisan test --coverage
@@ -278,6 +335,21 @@ podman-compose exec app php artisan test --coverage
 | DELETE | `/people/{id}` | Supprimer |
 | POST | `/people/attach` | Associer personne à un média |
 | POST | `/people/detach` | Dissocier personne d'un média |
+| POST | `/people/{id}/parent` | Définir père/mère |
+| DELETE | `/people/{id}/parent` | Retirer père/mère |
+| POST | `/people/{id}/spouse` | Ajouter un conjoint |
+| DELETE | `/people/{id}/spouse` | Retirer un conjoint |
+
+### Arbre Généalogique (`/family-tree`)
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| GET | `/family-tree` | Page arbre (Inertia) |
+| GET | `/family-tree/data` | Données JSON de l'arbre complet |
+| GET | `/family-tree/data/{person}` | Sous-arbre centré sur une personne |
+| GET | `/family-tree/import` | Page import GEDCOM |
+| POST | `/family-tree/import/upload` | Upload + parse GEDCOM |
+| GET | `/family-tree/import/{id}/review` | Suggestions de matching |
+| POST | `/family-tree/import/{id}/confirm` | Confirmer l'import |
 
 ### Tags (`/tags`)
 | Méthode | Route | Description |
@@ -288,6 +360,56 @@ podman-compose exec app php artisan test --coverage
 | DELETE | `/tags/{id}` | Supprimer |
 | POST | `/tags/attach` | Attacher à un média |
 | POST | `/tags/detach` | Détacher d'un média |
+
+### Vision IA (`/vision`)
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| GET | `/vision/media/{id}/faces` | Visages détectés (hors dismissed) |
+| POST | `/vision/faces/{id}/match` | Matcher un visage à une personne |
+| POST | `/vision/faces/{id}/dismiss` | Ignorer un visage détecté |
+| GET | `/vision/media/{id}/labels` | Labels IA détectés |
+| POST | `/vision/media/{id}/analyze` | (Re)lancer l'analyse IA |
+| GET | `/vision/media/{id}/status` | Statut du traitement IA |
+
+## Configuration Vision IA
+
+L'analyse IA est optionnelle et désactivée par défaut. L'architecture utilise un pattern **provider-swappable** : une interface unique `VisionServiceInterface` avec des implémentations interchangeables.
+
+### Providers disponibles
+
+| Provider | Env `VISION_PROVIDER` | Description |
+|----------|----------------------|-------------|
+| Google Cloud Vision | `google` | API cloud payante, haute précision |
+| Null (désactivé) | — | No-op, retourne des résultats vides |
+| Local *(futur)* | `local` | Alternative gratuite via DeepFace/InsightFace |
+
+### Variables d'environnement
+
+```env
+# Activer/désactiver l'analyse IA
+VISION_ENABLED=false
+
+# Provider : google (par défaut)
+VISION_PROVIDER=google
+
+# Google Cloud Vision
+GOOGLE_CLOUD_PROJECT=your-project-id
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/credentials.json
+
+# Seuils de confiance
+VISION_FACE_CONFIDENCE=0.75
+VISION_LABEL_CONFIDENCE=0.70
+VISION_LABEL_MAX=15
+
+# Auto-tagging : crée des tags automatiquement depuis les labels IA
+VISION_AUTO_TAG=true
+```
+
+### Ajouter un nouveau provider
+
+1. Créer une classe implémentant `VisionServiceInterface` dans `app/Services/Vision/`
+2. Ajouter le case dans le `match` de `AppServiceProvider`
+3. Configurer `VISION_PROVIDER=nom_du_provider` dans `.env`
 
 ## Développement
 
@@ -328,15 +450,23 @@ podman-compose restart
 - [x] Suite de tests (~100 tests)
 
 ### Phase 3 : IA & Reconnaissance
-- [ ] Intégration Google Vision API
-- [ ] Détection et clustering de visages
-- [ ] Suggestion automatique de personnes
+- [x] Architecture provider-swappable (VisionServiceInterface)
+- [x] Intégration Google Cloud Vision API (visages + labels)
+- [x] Overlay interactif des visages détectés sur les photos
+- [x] Workflow de matching : visage → personne (existante ou nouvelle)
+- [x] Auto-tagging depuis les labels IA (tags type `ai`)
+- [x] Traitement asynchrone (job en queue) + suivi statut temps réel
+- [x] Re-analyse IA sur demande
+- [x] Tests VisionController (12 tests) — total : 117 tests
 
 ### Phase 4 : Arbre Généalogique
-- [ ] Import GEDCOM (Généanet)
-- [ ] Visualisation arbre
-- [ ] Liaison personnes-photos
+- [x] Relations familiales (père, mère, conjoints) avec panel interactif
+- [x] Import GEDCOM custom (parseur INDI + FAM, gestion dates/encodage)
+- [x] Matching intelligent à l'import (score 0-100, auto-match >= 80%)
+- [x] Visualisation arbre interactive (SVG, pan/zoom, recherche)
+- [x] Sous-arbre centré sur une personne (3 générations)
+- [x] Tests FamilyRelationship (11) + GedcomImport (8) — total : 136 tests
 
 ---
 
-**Version** : 1.1.0 | **Dernière mise à jour** : Février 2026
+**Version** : 1.3.0 | **Dernière mise à jour** : Février 2026
