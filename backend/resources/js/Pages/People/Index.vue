@@ -48,7 +48,11 @@
 
             <!-- Info -->
             <div class="p-4">
-              <h3 class="text-lg font-semibold text-gray-900 truncate">{{ person.name }}</h3>
+              <h3 class="text-lg font-semibold text-gray-900 truncate">
+                <span v-if="person.gender === 'M'" class="text-blue-500">&#9794;</span>
+                <span v-else-if="person.gender === 'F'" class="text-pink-500">&#9792;</span>
+                {{ person.name }}
+              </h3>
               <p class="text-sm text-gray-500 mt-1">
                 {{ person.media_count }} {{ person.media_count === 1 ? 'media' : 'medias' }}
               </p>

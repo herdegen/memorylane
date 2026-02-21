@@ -136,7 +136,9 @@ class MapController extends Controller
         ]);
 
         try {
-            $response = Http::get('https://nominatim.openstreetmap.org/search', [
+            $response = Http::withHeaders([
+                'User-Agent' => 'MemoryLane/1.3.0 (family media hub)',
+            ])->get('https://nominatim.openstreetmap.org/search', [
                 'q' => $validated['query'],
                 'format' => 'json',
                 'limit' => 10,

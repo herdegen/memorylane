@@ -216,9 +216,19 @@ function updateMarkers() {
   const bounds = [];
 
   geolocatedMedia.value.forEach(media => {
-    const marker = L.marker([media.latitude, media.longitude]);
+    const thumbIcon = L.divIcon({
+      className: 'custom-thumb-marker',
+      html: `<div style="width:48px;height:48px;border-radius:8px;overflow:hidden;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);background:#e5e7eb;">
+        <img src="${media.thumbnail_url}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'" />
+      </div>
+      <div style="width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:8px solid #fff;margin:0 auto;filter:drop-shadow(0 2px 2px rgba(0,0,0,0.2));"></div>`,
+      iconSize: [48, 56],
+      iconAnchor: [24, 56],
+      popupAnchor: [0, -56],
+    });
 
-    // Create popup content
+    const marker = L.marker([media.latitude, media.longitude], { icon: thumbIcon });
+
     const popupContent = `
       <div class="text-center">
         <img src="${media.thumbnail_url}" alt="${media.original_name}" class="w-32 h-32 object-cover rounded mb-2" />
@@ -341,9 +351,8 @@ function clearSelection() {
 </script>
 
 <style scoped>
-/* Fix Leaflet marker icons */
-:deep(.leaflet-marker-icon) {
-  margin-left: -12px !important;
-  margin-top: -41px !important;
+:deep(.custom-thumb-marker) {
+  background: none !important;
+  border: none !important;
 }
 </style>

@@ -67,9 +67,12 @@
               :key="tag.id"
               class="tag-item"
             >
-              <div class="flex items-center gap-3">
+              <Link
+                :href="`/media?tags[]=${tag.id}`"
+                class="flex items-center gap-3 flex-1 hover:opacity-75 transition"
+              >
                 <div
-                  class="w-4 h-4 rounded-full"
+                  class="w-4 h-4 rounded-full flex-shrink-0"
                   :style="{ backgroundColor: tag.color || '#6366f1' }"
                 ></div>
                 <div>
@@ -78,9 +81,9 @@
                     {{ tag.media_count }} {{ tag.media_count > 1 ? 'médias' : 'média' }}
                   </p>
                 </div>
-              </div>
+              </Link>
               <button
-                @click="deleteTag(tag)"
+                @click.stop="deleteTag(tag)"
                 class="btn-icon-danger"
                 title="Supprimer ce tag"
               >
@@ -96,7 +99,7 @@
 
 <script setup>
 import { ref } from 'vue';
-import { useForm, router } from '@inertiajs/vue3';
+import { useForm, router, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FormField from '@/Components/Forms/FormField.vue';
 import FormError from '@/Components/Forms/FormError.vue';
