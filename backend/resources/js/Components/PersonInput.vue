@@ -1,10 +1,10 @@
 <template>
-  <div class="bg-white rounded-lg shadow-sm p-6">
+  <div class="bg-white rounded-xl border border-surface-200 shadow-sm p-6">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold text-gray-900">Personnes</h2>
+      <h2 class="text-lg font-semibold text-surface-900">Personnes</h2>
       <button
         @click="showCreateModal = true"
-        class="text-sm text-indigo-600 hover:text-indigo-800"
+        class="text-sm text-brand-600 hover:text-brand-800"
       >
         + Nouvelle personne
       </button>
@@ -42,7 +42,7 @@
       </span>
     </div>
 
-    <div v-else class="text-sm text-gray-500 mb-3">
+    <div v-else class="text-sm text-surface-500 mb-3">
       Aucune personne identifiee
     </div>
 
@@ -57,10 +57,10 @@
         @keydown.escape="showSuggestions = false"
         type="text"
         placeholder="Ajouter une personne..."
-        class="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+        class="w-full px-4 py-2 pr-10 border border-surface-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm"
       />
       <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
         </svg>
       </div>
@@ -68,14 +68,14 @@
       <!-- Suggestions dropdown -->
       <div
         v-if="showSuggestions && filteredPeople.length > 0"
-        class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-auto"
+        class="absolute z-10 w-full mt-1 bg-white border border-surface-200 rounded-lg shadow-lg max-h-48 overflow-auto"
       >
         <button
           v-for="person in filteredPeople"
           :key="person.id"
           @mousedown.prevent="addPerson(person)"
           type="button"
-          class="w-full px-4 py-2 text-left hover:bg-gray-50 transition flex items-center gap-2"
+          class="w-full px-4 py-2 text-left hover:bg-surface-50 transition flex items-center gap-2"
         >
           <div
             v-if="person.avatar_url"
@@ -88,20 +88,20 @@
           >
             {{ person.name.charAt(0).toUpperCase() }}
           </div>
-          <span class="text-sm text-gray-900">{{ person.name }}</span>
-          <span class="text-xs text-gray-500 ml-auto">{{ person.media_count }} medias</span>
+          <span class="text-sm text-surface-900">{{ person.name }}</span>
+          <span class="text-xs text-surface-500 ml-auto">{{ person.media_count }} medias</span>
         </button>
       </div>
 
       <!-- No results -->
       <div
         v-if="showSuggestions && searchQuery && filteredPeople.length === 0 && availablePeople.length > 0"
-        class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4 text-center text-sm text-gray-500"
+        class="absolute z-10 w-full mt-1 bg-white border border-surface-200 rounded-lg shadow-lg p-4 text-center text-sm text-surface-500"
       >
         <p>Aucune personne trouvee pour "{{ searchQuery }}"</p>
         <button
           @mousedown.prevent="showCreateModal = true"
-          class="mt-2 text-indigo-600 hover:text-indigo-800"
+          class="mt-2 text-brand-600 hover:text-brand-800"
         >
           Creer "{{ searchQuery }}"
         </button>

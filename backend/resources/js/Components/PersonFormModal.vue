@@ -7,7 +7,7 @@
   >
     <!-- Backdrop -->
     <div
-      class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+      class="fixed inset-0 bg-surface-900 bg-opacity-50 transition-opacity"
       @click="$emit('close')"
     ></div>
 
@@ -18,8 +18,8 @@
         @click.stop
       >
         <!-- Header -->
-        <div class="bg-white px-6 py-4 border-b border-gray-200">
-          <h3 class="text-lg font-semibold text-gray-900">
+        <div class="bg-white px-6 py-4 border-b border-surface-200">
+          <h3 class="text-lg font-semibold text-surface-900">
             {{ person ? 'Modifier la personne' : 'Nouvelle personne' }}
           </h3>
         </div>
@@ -27,7 +27,7 @@
         <!-- Form -->
         <form @submit.prevent="submit" class="px-6 py-4 space-y-4">
           <div>
-            <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
+            <label for="name" class="block text-sm font-medium text-surface-700 mb-1">
               Nom <span class="text-red-500">*</span>
             </label>
             <input
@@ -35,20 +35,20 @@
               v-model="form.name"
               type="text"
               required
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               placeholder="Prenom Nom"
             />
             <p v-if="errors.name" class="mt-1 text-sm text-red-600">{{ errors.name }}</p>
           </div>
 
           <div>
-            <label for="gender" class="block text-sm font-medium text-gray-700 mb-1">
+            <label for="gender" class="block text-sm font-medium text-surface-700 mb-1">
               Genre
             </label>
             <select
               id="gender"
               v-model="form.gender"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
             >
               <option value="U">Non specifie</option>
               <option value="M">Masculin</option>
@@ -58,49 +58,49 @@
 
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label for="birth_date" class="block text-sm font-medium text-gray-700 mb-1">
+              <label for="birth_date" class="block text-sm font-medium text-surface-700 mb-1">
                 Date de naissance
               </label>
               <input
                 id="birth_date"
                 v-model="form.birth_date"
                 type="date"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               />
             </div>
 
             <div>
-              <label for="death_date" class="block text-sm font-medium text-gray-700 mb-1">
+              <label for="death_date" class="block text-sm font-medium text-surface-700 mb-1">
                 Date de deces
               </label>
               <input
                 id="death_date"
                 v-model="form.death_date"
                 type="date"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               />
             </div>
           </div>
 
           <div>
-            <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">
+            <label for="notes" class="block text-sm font-medium text-surface-700 mb-1">
               Notes
             </label>
             <textarea
               id="notes"
               v-model="form.notes"
               rows="3"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               placeholder="Notes sur cette personne..."
             ></textarea>
           </div>
         </form>
 
         <!-- Footer -->
-        <div class="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+        <div class="bg-surface-50 px-6 py-4 flex justify-end gap-3">
           <button
             type="button"
-            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+            class="px-4 py-2 text-sm font-medium text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50"
             @click="$emit('close')"
           >
             Annuler
@@ -108,7 +108,7 @@
           <button
             type="submit"
             :disabled="submitting"
-            class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+            class="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50"
             @click="submit"
           >
             {{ submitting ? 'Enregistrement...' : (person ? 'Enregistrer' : 'Creer') }}

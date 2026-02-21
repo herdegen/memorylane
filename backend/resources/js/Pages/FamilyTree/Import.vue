@@ -4,22 +4,22 @@
       <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
         <Link
           href="/family-tree"
-          class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 mb-6"
+          class="inline-flex items-center text-sm text-surface-500 hover:text-surface-700 mb-6"
         >
           &larr; Retour a l'arbre
         </Link>
 
-        <h1 class="text-2xl font-bold text-gray-900 mb-6">Importer un fichier GEDCOM</h1>
+        <h1 class="text-2xl font-bold text-surface-900 mb-6">Importer un fichier GEDCOM</h1>
 
         <!-- Step 1: Upload -->
         <div v-if="step === 'upload'" class="bg-white rounded-lg shadow-md p-6">
-          <p class="text-gray-600 mb-4">
+          <p class="text-surface-600 mb-4">
             Selectionnez un fichier GEDCOM (.ged) exporte depuis Geneanet ou un autre logiciel de genealogie.
           </p>
 
           <div
-            class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center"
-            :class="{ 'border-indigo-400 bg-indigo-50': isDragging }"
+            class="border-2 border-dashed border-surface-300 rounded-lg p-8 text-center"
+            :class="{ 'border-brand-400 bg-brand-50': isDragging }"
             @dragover.prevent="isDragging = true"
             @dragleave="isDragging = false"
             @drop.prevent="handleDrop"
@@ -31,35 +31,35 @@
               class="hidden"
               @change="handleFileSelect"
             />
-            <svg class="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="mx-auto h-12 w-12 text-surface-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
             <button
               @click="$refs.fileInput.click()"
-              class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+              class="px-6 py-3 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50"
               :disabled="uploading"
             >
               {{ uploading ? 'Analyse en cours...' : 'Choisir un fichier' }}
             </button>
-            <p class="mt-2 text-sm text-gray-500">ou glissez-deposez un fichier .ged ici</p>
+            <p class="mt-2 text-sm text-surface-500">ou glissez-deposez un fichier .ged ici</p>
           </div>
 
           <p v-if="uploadError" class="mt-4 text-red-600 text-sm">{{ uploadError }}</p>
 
           <!-- Previous imports -->
           <div v-if="imports.length > 0" class="mt-8">
-            <h3 class="font-semibold text-gray-900 mb-3">Imports precedents</h3>
+            <h3 class="font-semibold text-surface-900 mb-3">Imports precedents</h3>
             <div v-for="imp in imports" :key="imp.id" class="flex items-center justify-between py-2 border-b">
               <div>
                 <span class="font-medium">{{ imp.filename }}</span>
-                <span class="text-sm text-gray-500 ml-2">{{ imp.individuals_count }} individus</span>
+                <span class="text-sm text-surface-500 ml-2">{{ imp.individuals_count }} individus</span>
               </div>
               <span
                 :class="{
                   'text-green-600': imp.status === 'completed',
                   'text-yellow-600': imp.status === 'matching',
                   'text-red-600': imp.status === 'failed',
-                  'text-gray-500': imp.status === 'pending',
+                  'text-surface-500': imp.status === 'pending',
                 }"
                 class="text-sm font-medium"
               >
@@ -74,7 +74,7 @@
           <div class="flex justify-between items-center mb-6">
             <div>
               <h2 class="text-lg font-semibold">Verification des correspondances</h2>
-              <p class="text-sm text-gray-500">
+              <p class="text-sm text-surface-500">
                 {{ suggestions.length }} individus trouves dans le fichier.
                 Choisissez de creer, associer ou ignorer chaque personne.
               </p>
@@ -88,7 +88,7 @@
               </button>
               <button
                 @click="setAllDecisions('skip')"
-                class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                class="px-3 py-1 text-sm bg-surface-100 text-surface-700 rounded hover:bg-surface-200"
               >
                 Tout ignorer
               </button>
@@ -103,19 +103,19 @@
               :class="{
                 'border-green-300 bg-green-50': decisions[suggestion.gedcom_id] === 'create',
                 'border-blue-300 bg-blue-50': decisions[suggestion.gedcom_id]?.startsWith('match_'),
-                'border-gray-200 bg-gray-50': decisions[suggestion.gedcom_id] === 'skip',
+                'border-surface-200 bg-surface-50': decisions[suggestion.gedcom_id] === 'skip',
               }"
             >
               <div class="flex items-center justify-between">
                 <div>
                   <span class="font-medium">{{ suggestion.name }}</span>
-                  <span v-if="suggestion.birth_date" class="text-sm text-gray-500 ml-2">
+                  <span v-if="suggestion.birth_date" class="text-sm text-surface-500 ml-2">
                     {{ suggestion.birth_date }}
                   </span>
-                  <span v-if="suggestion.death_date" class="text-sm text-gray-500">
+                  <span v-if="suggestion.death_date" class="text-sm text-surface-500">
                     - {{ suggestion.death_date }}
                   </span>
-                  <span class="text-xs text-gray-400 ml-2">
+                  <span class="text-xs text-surface-400 ml-2">
                     {{ suggestion.sex === 'M' ? 'Homme' : suggestion.sex === 'F' ? 'Femme' : '' }}
                   </span>
                 </div>
@@ -123,14 +123,14 @@
                 <div class="flex gap-2">
                   <button
                     @click="decisions[suggestion.gedcom_id] = 'create'"
-                    :class="decisions[suggestion.gedcom_id] === 'create' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700'"
+                    :class="decisions[suggestion.gedcom_id] === 'create' ? 'bg-green-600 text-white' : 'bg-surface-100 text-surface-700'"
                     class="px-3 py-1 text-sm rounded"
                   >
                     Creer
                   </button>
                   <button
                     @click="decisions[suggestion.gedcom_id] = 'skip'"
-                    :class="decisions[suggestion.gedcom_id] === 'skip' ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-700'"
+                    :class="decisions[suggestion.gedcom_id] === 'skip' ? 'bg-surface-600 text-white' : 'bg-surface-100 text-surface-700'"
                     class="px-3 py-1 text-sm rounded"
                   >
                     Ignorer
@@ -139,7 +139,7 @@
               </div>
 
               <div v-if="suggestion.matches.length > 0" class="mt-3">
-                <p class="text-xs text-gray-500 mb-1">Correspondances possibles :</p>
+                <p class="text-xs text-surface-500 mb-1">Correspondances possibles :</p>
                 <div class="flex flex-wrap gap-2">
                   <button
                     v-for="match in suggestion.matches"
@@ -159,14 +159,14 @@
           <div class="mt-6 flex justify-end gap-3">
             <button
               @click="step = 'upload'"
-              class="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              class="px-4 py-2 text-sm text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50"
             >
               Annuler
             </button>
             <button
               @click="confirmImport"
               :disabled="importing"
-              class="px-6 py-2 text-sm text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+              class="px-6 py-2 text-sm text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50"
             >
               {{ importing ? 'Import en cours...' : 'Confirmer l\'import' }}
             </button>
@@ -178,15 +178,15 @@
           <svg class="mx-auto h-16 w-16 text-green-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
           </svg>
-          <h2 class="text-xl font-semibold text-gray-900 mb-2">Import termine</h2>
-          <div class="text-gray-600 space-y-1">
+          <h2 class="text-xl font-semibold text-surface-900 mb-2">Import termine</h2>
+          <div class="text-surface-600 space-y-1">
             <p>{{ importStats.created }} personne(s) creee(s)</p>
             <p>{{ importStats.matched }} personne(s) associee(s)</p>
             <p>{{ importStats.skipped }} personne(s) ignoree(s)</p>
           </div>
           <Link
             href="/family-tree"
-            class="mt-6 inline-flex items-center px-6 py-2 text-sm text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
+            class="mt-6 inline-flex items-center px-6 py-2 text-sm text-white bg-brand-600 rounded-lg hover:bg-brand-700"
           >
             Voir l'arbre genealogique
           </Link>

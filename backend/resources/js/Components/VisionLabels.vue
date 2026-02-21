@@ -1,6 +1,6 @@
 <template>
-  <div v-if="labels && labels.length > 0" class="bg-white rounded-lg shadow-sm p-6">
-    <h2 class="text-lg font-semibold text-gray-900 mb-4">Labels IA</h2>
+  <div v-if="labels && labels.length > 0" class="bg-white rounded-xl border border-surface-200 shadow-sm p-6">
+    <h2 class="text-lg font-semibold text-surface-900 mb-4">Labels IA</h2>
     <div class="flex flex-wrap gap-2">
       <span
         v-for="label in labels"

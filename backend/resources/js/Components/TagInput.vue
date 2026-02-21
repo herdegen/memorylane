@@ -33,10 +33,10 @@
         @keydown.escape="showSuggestions = false"
         type="text"
         placeholder="Ajouter un tag..."
-        class="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+        class="w-full px-4 py-2 pr-10 border border-surface-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm"
       />
       <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
         </svg>
       </div>
@@ -44,28 +44,28 @@
       <!-- Suggestions dropdown -->
       <div
         v-if="showSuggestions && filteredTags.length > 0"
-        class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-auto"
+        class="absolute z-10 w-full mt-1 bg-white border border-surface-200 rounded-lg shadow-lg max-h-48 overflow-auto"
       >
         <button
           v-for="tag in filteredTags"
           :key="tag.id"
           @mousedown.prevent="addTag(tag)"
           type="button"
-          class="w-full px-4 py-2 text-left hover:bg-gray-50 transition flex items-center gap-2"
+          class="w-full px-4 py-2 text-left hover:bg-surface-50 transition flex items-center gap-2"
         >
           <div
             class="w-3 h-3 rounded-full"
             :style="{ backgroundColor: tag.color || '#6366f1' }"
           ></div>
-          <span class="text-sm text-gray-900">{{ tag.name }}</span>
-          <span class="text-xs text-gray-500 ml-auto">{{ tag.media_count }} médias</span>
+          <span class="text-sm text-surface-900">{{ tag.name }}</span>
+          <span class="text-xs text-surface-500 ml-auto">{{ tag.media_count }} médias</span>
         </button>
       </div>
 
       <!-- No results -->
       <div
         v-if="showSuggestions && searchQuery && filteredTags.length === 0 && availableTags.length > 0"
-        class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4 text-center text-sm text-gray-500"
+        class="absolute z-10 w-full mt-1 bg-white border border-surface-200 rounded-lg shadow-lg p-4 text-center text-sm text-surface-500"
       >
         Aucun tag trouvé pour "{{ searchQuery }}"
       </div>

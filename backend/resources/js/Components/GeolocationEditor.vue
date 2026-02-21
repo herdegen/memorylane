@@ -1,28 +1,28 @@
 <template>
-  <div class="bg-white rounded-lg shadow-sm p-6">
+  <div class="bg-white rounded-xl border border-surface-200 shadow-sm p-6">
     <h3 class="text-lg font-semibold mb-4">Géolocalisation</h3>
 
     <!-- Current location display -->
     <div v-if="hasLocation" class="mb-4 p-4 bg-green-50 rounded-lg">
-      <div class="text-sm text-gray-700 mb-2">
+      <div class="text-sm text-surface-700 mb-2">
         <strong>Latitude:</strong> {{ currentLatitude }}
       </div>
-      <div class="text-sm text-gray-700 mb-2">
+      <div class="text-sm text-surface-700 mb-2">
         <strong>Longitude:</strong> {{ currentLongitude }}
       </div>
-      <div v-if="currentAltitude" class="text-sm text-gray-700">
+      <div v-if="currentAltitude" class="text-sm text-surface-700">
         <strong>Altitude:</strong> {{ currentAltitude }}m
       </div>
       <div class="mt-3 flex gap-2">
         <button
           @click="viewOnMap"
-          class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm"
+          class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 text-sm"
         >
           Voir sur la carte
         </button>
         <button
           @click="showEditForm = true"
-          class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm"
+          class="px-4 py-2 bg-surface-200 text-surface-700 rounded-lg hover:bg-surface-300 text-sm"
         >
           Modifier
         </button>
@@ -36,13 +36,13 @@
     </div>
 
     <!-- No location message -->
-    <div v-else class="mb-4 p-4 bg-gray-50 rounded-lg">
-      <p class="text-sm text-gray-600 mb-3">
+    <div v-else class="mb-4 p-4 bg-surface-50 rounded-lg">
+      <p class="text-sm text-surface-600 mb-3">
         Aucune géolocalisation disponible pour ce média.
       </p>
       <button
         @click="showEditForm = true"
-        class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm"
+        class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 text-sm"
       >
         Ajouter une localisation
       </button>
@@ -54,7 +54,7 @@
 
       <!-- Location search -->
       <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700 mb-2">
+        <label class="block text-sm font-medium text-surface-700 mb-2">
           Rechercher un lieu
         </label>
         <input
@@ -62,16 +62,16 @@
           @input="debounceLocationSearch"
           type="text"
           placeholder="Paris, France..."
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          class="w-full px-3 py-2 border border-surface-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
         />
 
         <!-- Search results -->
-        <div v-if="locationResults.length > 0" class="mt-2 border border-gray-200 rounded-lg max-h-40 overflow-y-auto">
+        <div v-if="locationResults.length > 0" class="mt-2 border border-surface-200 rounded-lg max-h-40 overflow-y-auto">
           <button
             v-for="result in locationResults"
             :key="result.place_id"
             @click="selectSearchResult(result)"
-            class="w-full text-left px-3 py-2 hover:bg-gray-100 border-b border-gray-100 last:border-b-0 text-sm"
+            class="w-full text-left px-3 py-2 hover:bg-surface-100 border-b border-surface-100 last:border-b-0 text-sm"
           >
             {{ result.display_name }}
           </button>
@@ -81,7 +81,7 @@
       <!-- Manual input -->
       <div class="space-y-3">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
+          <label class="block text-sm font-medium text-surface-700 mb-1">
             Latitude (-90 à 90)
           </label>
           <input
@@ -90,12 +90,12 @@
             step="0.000001"
             min="-90"
             max="90"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            class="w-full px-3 py-2 border border-surface-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
           />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
+          <label class="block text-sm font-medium text-surface-700 mb-1">
             Longitude (-180 à 180)
           </label>
           <input
@@ -104,19 +104,19 @@
             step="0.000001"
             min="-180"
             max="180"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            class="w-full px-3 py-2 border border-surface-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
           />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
+          <label class="block text-sm font-medium text-surface-700 mb-1">
             Altitude (optionnel, en mètres)
           </label>
           <input
             v-model.number="editForm.altitude"
             type="number"
             step="0.1"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            class="w-full px-3 py-2 border border-surface-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
           />
         </div>
       </div>
@@ -126,13 +126,13 @@
         <button
           @click="saveLocation"
           :disabled="!isFormValid"
-          class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+          class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:bg-surface-300 disabled:cursor-not-allowed"
         >
           Enregistrer
         </button>
         <button
           @click="cancelEdit"
-          class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+          class="px-4 py-2 bg-surface-200 text-surface-700 rounded-lg hover:bg-surface-300"
         >
           Annuler
         </button>

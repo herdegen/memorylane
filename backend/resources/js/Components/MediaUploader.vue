@@ -3,15 +3,15 @@
     <div class="upload-area">
       <div
         ref="dropZone"
-        class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-indigo-400 transition-colors duration-200"
-        :class="{ 'border-indigo-500 bg-indigo-50': isDragging }"
+        class="border-2 border-dashed border-surface-300 rounded-lg p-8 text-center hover:border-brand-400 transition-colors duration-200"
+        :class="{ 'border-brand-500 bg-brand-50': isDragging }"
         @dragover.prevent="handleDragOver"
         @dragleave="handleDragLeave"
         @drop.prevent="handleDrop"
       >
         <div v-if="!uploading && files.length === 0" class="space-y-4">
           <svg
-            class="mx-auto h-12 w-12 text-gray-400"
+            class="mx-auto h-12 w-12 text-surface-400"
             stroke="currentColor"
             fill="none"
             viewBox="0 0 48 48"
@@ -27,11 +27,11 @@
           <div>
             <label
               for="file-upload"
-              class="cursor-pointer text-indigo-600 hover:text-indigo-500 font-medium"
+              class="cursor-pointer text-brand-600 hover:text-brand-500 font-medium"
             >
               Choisir des fichiers
             </label>
-            <span class="text-gray-600"> ou glisser-déposer</span>
+            <span class="text-surface-600"> ou glisser-déposer</span>
             <input
               id="file-upload"
               ref="fileInput"
@@ -42,7 +42,7 @@
               @change="handleFileSelect"
             />
           </div>
-          <p class="text-xs text-gray-500">
+          <p class="text-xs text-surface-500">
             JPG, PNG, GIF, WEBP, MP4, MOV, AVI, PDF, DOC, DOCX jusqu'à 2GB
           </p>
         </div>
@@ -51,7 +51,7 @@
           <div v-if="uploading" class="space-y-2">
             <div class="flex items-center justify-center space-x-2">
               <svg
-                class="animate-spin h-5 w-5 text-indigo-600"
+                class="animate-spin h-5 w-5 text-brand-600"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -70,15 +70,15 @@
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 ></path>
               </svg>
-              <span class="text-gray-700 font-medium">Téléchargement en cours...</span>
+              <span class="text-surface-700 font-medium">Téléchargement en cours...</span>
             </div>
-            <div class="w-full bg-gray-200 rounded-full h-2">
+            <div class="w-full bg-surface-200 rounded-full h-2">
               <div
-                class="bg-indigo-600 h-2 rounded-full transition-all duration-300"
+                class="bg-brand-600 h-2 rounded-full transition-all duration-300"
                 :style="{ width: `${uploadProgress}%` }"
               ></div>
             </div>
-            <p class="text-sm text-gray-600">
+            <p class="text-sm text-surface-600">
               {{ uploadedCount }} / {{ totalFiles }} fichier(s) téléchargé(s)
             </p>
           </div>
@@ -87,7 +87,7 @@
             <div
               v-for="file in files"
               :key="file.id"
-              class="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200"
+              class="flex items-center justify-between p-3 bg-white rounded-lg border border-surface-200"
             >
               <div class="flex items-center space-x-3 flex-1 min-w-0">
                 <div class="flex-shrink-0">
@@ -121,7 +121,7 @@
                   </svg>
                   <svg
                     v-else
-                    class="h-6 w-6 text-gray-500"
+                    class="h-6 w-6 text-surface-500"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -135,10 +135,10 @@
                   </svg>
                 </div>
                 <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-gray-900 truncate">
+                  <p class="text-sm font-medium text-surface-900 truncate">
                     {{ file.name }}
                   </p>
-                  <p class="text-xs text-gray-500">{{ formatFileSize(file.size) }}</p>
+                  <p class="text-xs text-surface-500">{{ formatFileSize(file.size) }}</p>
                 </div>
               </div>
               <button
@@ -160,14 +160,14 @@
             <div class="flex space-x-3 pt-2">
               <button
                 type="button"
-                class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                class="flex-1 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors font-medium"
                 @click="startUpload"
               >
                 Télécharger {{ files.length }} fichier(s)
               </button>
               <button
                 type="button"
-                class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                class="px-4 py-2 bg-surface-200 text-surface-700 rounded-lg hover:bg-surface-300 transition-colors"
                 @click="clearFiles"
               >
                 Annuler
@@ -199,14 +199,14 @@
       </div>
 
       <div v-if="uploadedMedia.length > 0" class="mt-6">
-        <h3 class="text-lg font-medium text-gray-900 mb-3">
+        <h3 class="text-lg font-medium text-surface-900 mb-3">
           Fichiers téléchargés avec succès
         </h3>
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
           <div
             v-for="media in uploadedMedia"
             :key="media.id"
-            class="relative group aspect-square rounded-lg overflow-hidden bg-gray-100"
+            class="relative group aspect-square rounded-lg overflow-hidden bg-surface-100"
           >
             <img
               v-if="media.type === 'photo'"
@@ -216,10 +216,10 @@
             />
             <div
               v-else
-              class="w-full h-full flex items-center justify-center bg-gray-200"
+              class="w-full h-full flex items-center justify-center bg-surface-200"
             >
               <svg
-                class="h-12 w-12 text-gray-400"
+                class="h-12 w-12 text-surface-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"

@@ -1,6 +1,6 @@
 <template>
   <div
-    class="relative group aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer transition-transform duration-200 hover:scale-105 hover:shadow-lg"
+    class="relative group aspect-square rounded-lg overflow-hidden bg-surface-100 cursor-pointer transition-transform duration-200 hover:scale-105 hover:shadow-lg"
     @click="$emit('click', media)"
   >
     <!-- Image Thumbnail -->
@@ -26,10 +26,10 @@
       />
       <div
         v-else
-        class="w-full h-full flex items-center justify-center bg-gray-200"
+        class="w-full h-full flex items-center justify-center bg-surface-200"
       >
         <svg
-          class="h-12 w-12 text-gray-400"
+          class="h-12 w-12 text-surface-400"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -61,10 +61,10 @@
     <!-- Document Thumbnail -->
     <div
       v-else
-      class="w-full h-full flex flex-col items-center justify-center bg-gray-200"
+      class="w-full h-full flex flex-col items-center justify-center bg-surface-200"
     >
       <svg
-        class="h-12 w-12 text-gray-400"
+        class="h-12 w-12 text-surface-400"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -76,7 +76,7 @@
           d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
         />
       </svg>
-      <span class="mt-2 text-xs text-gray-500 truncate max-w-full px-2">
+      <span class="mt-2 text-xs text-surface-500 truncate max-w-full px-2">
         {{ fileExtension }}
       </span>
     </div>
@@ -98,7 +98,7 @@
           </span>
           <span
             v-if="media.tags.length > 3"
-            class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-200"
+            class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-700 text-surface-200"
           >
             +{{ media.tags.length - 3 }}
           </span>
@@ -107,7 +107,7 @@
         <p class="text-xs font-medium truncate">
           {{ media.original_name }}
         </p>
-        <p class="text-xs text-gray-300 mt-1">
+        <p class="text-xs text-surface-300 mt-1">
           {{ formattedDate }}
         </p>
       </div>
@@ -123,7 +123,7 @@
         :class="[
           'w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all',
           isSelected
-            ? 'bg-indigo-600 border-indigo-600'
+            ? 'bg-brand-600 border-brand-600'
             : 'bg-white bg-opacity-80 border-white hover:bg-opacity-100'
         ]"
       >

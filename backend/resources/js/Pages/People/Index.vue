@@ -5,12 +5,12 @@
         <!-- Header -->
         <div class="flex justify-between items-center mb-8">
           <div>
-            <h1 class="text-2xl font-bold text-gray-900">Personnes</h1>
-            <p class="mt-1 text-sm text-gray-500">Gerez les personnes presentes sur vos medias</p>
+            <h1 class="text-2xl font-bold text-surface-900">Personnes</h1>
+            <p class="mt-1 text-sm text-surface-500">Gerez les personnes presentes sur vos medias</p>
           </div>
           <button
             @click="showCreateModal = true"
-            class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
+            class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700"
           >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -31,7 +31,7 @@
             @click="goToPerson(person)"
           >
             <!-- Avatar -->
-            <div class="aspect-square bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center">
+            <div class="aspect-square bg-gradient-to-br from-purple-100 to-brand-100 flex items-center justify-center">
               <img
                 v-if="person.avatar_url"
                 :src="person.avatar_url"
@@ -48,15 +48,15 @@
 
             <!-- Info -->
             <div class="p-4">
-              <h3 class="text-lg font-semibold text-gray-900 truncate">
+              <h3 class="text-lg font-semibold text-surface-900 truncate">
                 <span v-if="person.gender === 'M'" class="text-blue-500">&#9794;</span>
                 <span v-else-if="person.gender === 'F'" class="text-pink-500">&#9792;</span>
                 {{ person.name }}
               </h3>
-              <p class="text-sm text-gray-500 mt-1">
+              <p class="text-sm text-surface-500 mt-1">
                 {{ person.media_count }} {{ person.media_count === 1 ? 'media' : 'medias' }}
               </p>
-              <p v-if="person.birth_date" class="text-xs text-gray-400 mt-1">
+              <p v-if="person.birth_date" class="text-xs text-surface-400 mt-1">
                 {{ formatDate(person.birth_date) }}
                 {{ person.death_date ? ' - ' + formatDate(person.death_date) : '' }}
               </p>
@@ -70,7 +70,7 @@
           class="text-center py-16 bg-white rounded-lg shadow-sm"
         >
           <svg
-            class="mx-auto h-16 w-16 text-gray-300"
+            class="mx-auto h-16 w-16 text-surface-300"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -82,11 +82,11 @@
               d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
             />
           </svg>
-          <h3 class="mt-4 text-lg font-medium text-gray-900">Aucune personne</h3>
-          <p class="mt-2 text-gray-500">Ajoutez des personnes pour les tagger sur vos photos.</p>
+          <h3 class="mt-4 text-lg font-medium text-surface-900">Aucune personne</h3>
+          <p class="mt-2 text-surface-500">Ajoutez des personnes pour les tagger sur vos photos.</p>
           <button
             @click="showCreateModal = true"
-            class="mt-6 inline-flex items-center px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100"
+            class="mt-6 inline-flex items-center px-4 py-2 text-sm font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100"
           >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />

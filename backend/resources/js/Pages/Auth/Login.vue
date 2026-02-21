@@ -1,7 +1,20 @@
 <template>
-  <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
-    <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg">
-      <h2 class="text-2xl font-bold text-center mb-6 text-gray-900">Connexion</h2>
+  <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gradient-to-br from-brand-50 via-white to-surface-50">
+    <div class="w-full sm:max-w-md mt-6 px-8 py-8 bg-white shadow-xl rounded-2xl border border-surface-200">
+      <!-- Logo / Branding -->
+      <div class="text-center mb-8">
+        <div class="flex items-center justify-center mb-3">
+          <div class="w-12 h-12 bg-brand-100 rounded-xl flex items-center justify-center">
+            <svg class="w-7 h-7 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+          </div>
+        </div>
+        <h1 class="font-display text-2xl font-bold text-surface-900 tracking-tight">MemoryLane</h1>
+        <p class="mt-1 text-sm text-surface-500">Connectez-vous à votre galerie de souvenirs</p>
+      </div>
 
       <!-- Success message -->
       <FormError
@@ -45,9 +58,9 @@
             <input
               v-model="form.remember"
               type="checkbox"
-              class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
+              class="rounded border-surface-300 text-brand-600 shadow-sm focus:ring-brand-500"
             />
-            <span class="ml-2 text-sm text-gray-600">Se souvenir de moi</span>
+            <span class="ml-2 text-sm text-surface-600">Se souvenir de moi</span>
           </label>
         </div>
 
@@ -81,13 +94,10 @@ const form = useForm({
 });
 
 const hasErrors = computed(() => {
-  const count = Object.keys(form.errors).length;
-  console.log('hasErrors computed:', count > 0, 'errors:', form.errors);
-  return count > 0;
+  return Object.keys(form.errors).length > 0;
 });
 
 const globalErrorMessage = computed(() => {
-  console.log('globalErrorMessage computed, errors:', form.errors);
   if (form.errors.email || form.errors.password) {
     return 'Les identifiants fournis sont incorrects. Veuillez vérifier votre email et mot de passe.';
   }
@@ -95,21 +105,8 @@ const globalErrorMessage = computed(() => {
 });
 
 const submit = () => {
-  console.log('=== LOGIN SUBMIT ===');
-  console.log('Email:', form.email);
-  console.log('Password length:', form.password.length);
-
   form.post('/login', {
-    onFinish: () => {
-      console.log('=== LOGIN FINISHED ===');
-      console.log('Errors:', form.errors);
-      console.log('Has errors:', Object.keys(form.errors).length);
-      form.reset('password');
-    },
-    onError: (errors) => {
-      console.log('=== LOGIN ERROR CALLBACK ===');
-      console.log('Errors:', errors);
-    },
+    onFinish: () => form.reset('password'),
   });
 };
 </script>

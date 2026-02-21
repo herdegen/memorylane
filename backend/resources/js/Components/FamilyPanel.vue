@@ -1,6 +1,6 @@
 <template>
-  <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">Famille</h3>
+  <div class="bg-white rounded-xl border border-surface-200 shadow-sm p-6 mb-6">
+    <h3 class="text-lg font-semibold text-surface-900 mb-4">Famille</h3>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <!-- Father -->
@@ -26,7 +26,7 @@
 
     <!-- Spouses -->
     <div class="mt-4">
-      <label class="block text-sm font-medium text-gray-700 mb-2">Conjoint(s)</label>
+      <label class="block text-sm font-medium text-surface-700 mb-2">Conjoint(s)</label>
 
       <div v-if="spouses.length > 0" class="space-y-2 mb-2">
         <div
@@ -34,10 +34,10 @@
           :key="spouse.id"
           class="flex items-center justify-between bg-amber-50 rounded-lg px-3 py-2"
         >
-          <Link :href="`/people/${spouse.id}`" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+          <Link :href="`/people/${spouse.id}`" class="text-sm text-brand-600 hover:text-brand-800 font-medium">
             {{ spouse.name }}
           </Link>
-          <button @click="removeSpouse(spouse)" class="text-gray-400 hover:text-red-500">
+          <button @click="removeSpouse(spouse)" class="text-surface-400 hover:text-red-500">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -48,7 +48,7 @@
       <div v-if="!addingSpouse">
         <button
           @click="addingSpouse = true"
-          class="text-sm text-indigo-600 hover:text-indigo-800"
+          class="text-sm text-brand-600 hover:text-brand-800"
         >
           + Ajouter un conjoint
         </button>
@@ -63,7 +63,7 @@
           @select="addSpouse"
           @remove=""
         />
-        <button @click="addingSpouse = false" class="text-xs text-gray-400 hover:text-gray-600 mt-1">
+        <button @click="addingSpouse = false" class="text-xs text-surface-400 hover:text-surface-600 mt-1">
           Annuler
         </button>
       </div>
@@ -71,7 +71,7 @@
 
     <!-- Children (read-only) -->
     <div v-if="children.length > 0" class="mt-4">
-      <label class="block text-sm font-medium text-gray-700 mb-2">Enfants</label>
+      <label class="block text-sm font-medium text-surface-700 mb-2">Enfants</label>
       <div class="flex flex-wrap gap-2">
         <Link
           v-for="child in children"

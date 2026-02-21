@@ -5,7 +5,7 @@
         <!-- Back Link -->
         <Link
           href="/people"
-          class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 mb-6"
+          class="inline-flex items-center text-sm text-surface-500 hover:text-surface-700 mb-6"
         >
           <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -18,7 +18,7 @@
           <div class="flex flex-col sm:flex-row sm:items-start gap-6">
             <!-- Avatar -->
             <div class="relative group">
-              <div class="w-32 h-32 flex-shrink-0 rounded-full overflow-hidden bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center">
+              <div class="w-32 h-32 flex-shrink-0 rounded-full overflow-hidden bg-gradient-to-br from-purple-100 to-brand-100 flex items-center justify-center">
                 <img
                   v-if="person.avatar_url"
                   :src="person.avatar_url"
@@ -49,16 +49,16 @@
             <div class="flex-1">
               <div class="flex items-start justify-between">
                 <div>
-                  <h1 class="text-2xl font-bold text-gray-900">
+                  <h1 class="text-2xl font-bold text-surface-900">
                     <span v-if="person.gender === 'M'" class="text-blue-500 mr-1" title="Masculin">&#9794;</span>
                     <span v-else-if="person.gender === 'F'" class="text-pink-500 mr-1" title="Feminin">&#9792;</span>
                     {{ person.name }}
                   </h1>
-                  <p v-if="person.birth_date" class="text-sm text-gray-500 mt-1">
+                  <p v-if="person.birth_date" class="text-sm text-surface-500 mt-1">
                     {{ formatDate(person.birth_date) }}
                     {{ person.death_date ? ' - ' + formatDate(person.death_date) : '' }}
                   </p>
-                  <p class="text-sm text-gray-500 mt-2">
+                  <p class="text-sm text-surface-500 mt-2">
                     {{ person.media_count || 0 }} {{ (person.media_count || 0) === 1 ? 'media' : 'medias' }}
                   </p>
                 </div>
@@ -66,7 +66,7 @@
                 <div class="flex gap-2">
                   <button
                     @click="showEditModal = true"
-                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50"
                   >
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -85,7 +85,7 @@
                 </div>
               </div>
 
-              <p v-if="person.notes" class="mt-4 text-gray-600 whitespace-pre-wrap">
+              <p v-if="person.notes" class="mt-4 text-surface-600 whitespace-pre-wrap">
                 {{ person.notes }}
               </p>
             </div>
@@ -103,7 +103,7 @@
 
         <!-- Media Grid -->
         <div v-if="media.data && media.data.length > 0">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4">Medias de {{ person.name }}</h2>
+          <h2 class="text-lg font-semibold text-surface-900 mb-4">Medias de {{ person.name }}</h2>
 
           <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             <MediaCard
@@ -121,7 +121,7 @@
           >
             <button
               @click="loadMore"
-              class="px-6 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100"
+              class="px-6 py-2 text-sm font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100"
             >
               Charger plus
             </button>
@@ -134,7 +134,7 @@
           class="text-center py-12 bg-white rounded-lg shadow-sm"
         >
           <svg
-            class="mx-auto h-12 w-12 text-gray-300"
+            class="mx-auto h-12 w-12 text-surface-300"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -146,8 +146,8 @@
               d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
             />
           </svg>
-          <h3 class="mt-4 text-lg font-medium text-gray-900">Aucun media</h3>
-          <p class="mt-2 text-gray-500">Cette personne n'apparait sur aucun media pour le moment.</p>
+          <h3 class="mt-4 text-lg font-medium text-surface-900">Aucun media</h3>
+          <p class="mt-2 text-surface-500">Cette personne n'apparait sur aucun media pour le moment.</p>
         </div>
 
         <!-- Edit Modal -->
@@ -166,21 +166,21 @@
           aria-modal="true"
         >
           <div
-            class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+            class="fixed inset-0 bg-surface-500 bg-opacity-75 transition-opacity"
             @click="showAvatarPicker = false"
           ></div>
           <div class="flex min-h-full items-center justify-center p-4">
             <div class="relative bg-white rounded-lg shadow-xl w-full max-w-2xl" @click.stop>
-              <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-900">Choisir un avatar</h3>
+              <div class="px-6 py-4 border-b border-surface-200">
+                <h3 class="text-lg font-semibold text-surface-900">Choisir un avatar</h3>
               </div>
               <div class="p-6 grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 max-h-96 overflow-y-auto">
                 <button
                   v-for="item in photoMedia"
                   :key="item.id"
                   @click="setAvatar(item.id)"
-                  class="aspect-square rounded-lg overflow-hidden border-2 hover:border-indigo-500 transition-colors"
-                  :class="person.avatar_media_id === item.id ? 'border-indigo-500 ring-2 ring-indigo-300' : 'border-gray-200'"
+                  class="aspect-square rounded-lg overflow-hidden border-2 hover:border-brand-500 transition-colors"
+                  :class="person.avatar_media_id === item.id ? 'border-brand-500 ring-2 ring-brand-300' : 'border-surface-200'"
                 >
                   <img
                     :src="item.conversions?.find(c => c.conversion_name === 'thumbnail')?.url || item.url"
@@ -188,7 +188,7 @@
                   />
                 </button>
               </div>
-              <div class="px-6 py-4 bg-gray-50 flex justify-between">
+              <div class="px-6 py-4 bg-surface-50 flex justify-between">
                 <button
                   v-if="person.avatar_media_id"
                   @click="removeAvatar"
@@ -199,7 +199,7 @@
                 <div v-else></div>
                 <button
                   @click="showAvatarPicker = false"
-                  class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                  class="px-4 py-2 text-sm font-medium text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50"
                 >
                   Fermer
                 </button>

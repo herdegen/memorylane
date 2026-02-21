@@ -14,19 +14,34 @@ export default {
         extend: {
             fontFamily: {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                display: ['"Playfair Display"', 'Georgia', 'serif'],
             },
             colors: {
-                primary: {
-                    50: '#f0f9ff',
-                    100: '#e0f2fe',
-                    200: '#bae6fd',
-                    300: '#7dd3fc',
-                    400: '#38bdf8',
-                    500: '#0ea5e9',
-                    600: '#0284c7',
-                    700: '#0369a1',
-                    800: '#075985',
-                    900: '#0c4a6e',
+                // Accent principal chaud (ambre)
+                brand: {
+                    50:  '#FFFBEB',
+                    100: '#FEF3C7',
+                    200: '#FDE68A',
+                    300: '#FCD34D',
+                    400: '#FBBF24',
+                    500: '#F59E0B',
+                    600: '#D97706', // CTA principal
+                    700: '#B45309',
+                    800: '#92400E',
+                    900: '#78350F',
+                },
+                // Neutres chauds (stone)
+                surface: {
+                    50:  '#FAFAF9',
+                    100: '#F5F5F4',
+                    200: '#E7E5E4',
+                    300: '#D6D3D1',
+                    400: '#A8A29E',
+                    500: '#78716C',
+                    600: '#57534E',
+                    700: '#44403C',
+                    800: '#292524',
+                    900: '#1C1917',
                 },
             },
         },

@@ -1,13 +1,13 @@
 <template>
   <div>
-    <label class="block text-sm font-medium text-gray-700 mb-1">{{ label }}</label>
+    <label class="block text-sm font-medium text-surface-700 mb-1">{{ label }}</label>
 
     <!-- Current selection -->
-    <div v-if="currentPerson" class="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
-      <Link :href="`/people/${currentPerson.id}`" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+    <div v-if="currentPerson" class="flex items-center justify-between bg-surface-50 rounded-lg px-3 py-2">
+      <Link :href="`/people/${currentPerson.id}`" class="text-sm text-brand-600 hover:text-brand-800 font-medium">
         {{ currentPerson.name }}
       </Link>
-      <button @click="$emit('remove')" class="text-gray-400 hover:text-red-500 ml-2">
+      <button @click="$emit('remove')" class="text-surface-400 hover:text-red-500 ml-2">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
@@ -22,7 +22,7 @@
         @focus="showResults = true"
         type="text"
         :placeholder="placeholder"
-        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+        class="w-full px-3 py-2 border border-surface-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
       />
 
       <!-- Results dropdown -->
@@ -34,16 +34,16 @@
           v-for="person in results"
           :key="person.id"
           @click="selectPerson(person)"
-          class="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm"
+          class="w-full text-left px-3 py-2 hover:bg-surface-50 text-sm"
         >
           {{ person.name }}
-          <span v-if="person.birth_date" class="text-gray-400 ml-1">
+          <span v-if="person.birth_date" class="text-surface-400 ml-1">
             ({{ person.birth_date.substring(0, 4) }})
           </span>
         </button>
       </div>
 
-      <p v-if="showResults && query.length >= 2 && results.length === 0" class="text-xs text-gray-400 mt-1">
+      <p v-if="showResults && query.length >= 2 && results.length === 0" class="text-xs text-surface-400 mt-1">
         Aucune personne trouvee
       </p>
     </div>

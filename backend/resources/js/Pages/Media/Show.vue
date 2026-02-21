@@ -6,7 +6,7 @@
         <div class="mb-6">
           <Link
             href="/media"
-            class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 transition"
+            class="inline-flex items-center text-sm text-surface-600 hover:text-surface-900 transition"
           >
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -41,15 +41,15 @@
               </div>
 
               <!-- Document -->
-              <div v-else class="flex flex-col items-center justify-center p-12 bg-gray-50">
-                <svg class="h-24 w-24 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div v-else class="flex flex-col items-center justify-center p-12 bg-surface-50">
+                <svg class="h-24 w-24 text-surface-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
-                <h3 class="text-lg font-medium text-gray-900 mb-2">{{ media.original_name }}</h3>
-                <p class="text-sm text-gray-500 mb-4">Document ({{ formatFileSize(media.size) }})</p>
+                <h3 class="text-lg font-medium text-surface-900 mb-2">{{ media.original_name }}</h3>
+                <p class="text-sm text-surface-500 mb-4">Document ({{ formatFileSize(media.size) }})</p>
                 <a
                   :href="`/media/${media.id}/download`"
-                  class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+                  class="inline-flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition"
                 >
                   <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -67,7 +67,7 @@
 
             <!-- Tags -->
             <div class="bg-white rounded-lg shadow-sm p-6">
-              <h2 class="text-lg font-semibold text-gray-900 mb-4">Tags</h2>
+              <h2 class="text-lg font-semibold text-surface-900 mb-4">Tags</h2>
               <TagInput :media-id="media.id" :initial-tags="media.tags || []" @tags-updated="handleTagsUpdated" />
             </div>
 
@@ -116,11 +116,11 @@
 
             <!-- Actions -->
             <div class="bg-white rounded-lg shadow-sm p-6">
-              <h2 class="text-lg font-semibold text-gray-900 mb-4">Actions</h2>
+              <h2 class="text-lg font-semibold text-surface-900 mb-4">Actions</h2>
               <div class="space-y-2">
                 <a
                   :href="`/media/${media.id}/download`"
-                  class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition"
+                  class="w-full inline-flex items-center justify-center px-4 py-2 border border-surface-300 rounded-lg text-sm font-medium text-surface-700 bg-white hover:bg-surface-50 transition"
                 >
                   <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />

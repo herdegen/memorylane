@@ -5,10 +5,10 @@
         <!-- Profile Information -->
         <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
           <div class="p-6">
-            <h2 class="text-lg font-medium text-gray-900 mb-4">
+            <h2 class="text-lg font-medium text-surface-900 mb-4">
               Informations du profil
             </h2>
-            <p class="mt-1 text-sm text-gray-600 mb-6">
+            <p class="mt-1 text-sm text-surface-600 mb-6">
               Mettez à jour les informations de votre compte.
             </p>
 
@@ -61,7 +61,7 @@
                 />
                 <Link
                   href="/profile"
-                  class="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                  class="text-sm text-surface-600 hover:text-surface-900 transition-colors"
                 >
                   Annuler
                 </Link>
@@ -73,10 +73,10 @@
         <!-- Password Update -->
         <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
           <div class="p-6">
-            <h2 class="text-lg font-medium text-gray-900 mb-4">
+            <h2 class="text-lg font-medium text-surface-900 mb-4">
               Modifier le mot de passe
             </h2>
-            <p class="mt-1 text-sm text-gray-600 mb-6">
+            <p class="mt-1 text-sm text-surface-600 mb-6">
               Assurez-vous d'utiliser un mot de passe long et sécurisé.
             </p>
 

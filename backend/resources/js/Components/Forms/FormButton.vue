@@ -90,11 +90,11 @@ const buttonClasses = computed(() => {
 
   // Variant classes
   const variantClasses = {
-    primary: 'bg-indigo-600 hover:bg-indigo-700 text-white border-transparent focus:ring-indigo-500 shadow-sm',
-    secondary: 'bg-gray-600 hover:bg-gray-700 text-white border-transparent focus:ring-gray-500 shadow-sm',
+    primary: 'bg-brand-600 hover:bg-brand-700 text-white border-transparent focus:ring-brand-500 shadow-sm active:bg-brand-800',
+    secondary: 'bg-white hover:bg-surface-50 text-surface-700 border-surface-300 focus:ring-brand-500',
     danger: 'bg-red-600 hover:bg-red-700 text-white border-transparent focus:ring-red-500 shadow-sm',
-    success: 'bg-green-600 hover:bg-green-700 text-white border-transparent focus:ring-green-500 shadow-sm',
-    outline: 'bg-white hover:bg-gray-50 text-gray-700 border-gray-300 focus:ring-indigo-500',
+    success: 'bg-teal-600 hover:bg-teal-700 text-white border-transparent focus:ring-teal-500 shadow-sm',
+    outline: 'bg-white hover:bg-surface-50 text-surface-700 border-surface-300 focus:ring-brand-500',
   };
 
   // Size classes

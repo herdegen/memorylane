@@ -5,14 +5,14 @@
         <!-- Page Header -->
         <div class="mb-6 flex items-center justify-between">
           <div>
-            <h1 class="text-3xl font-bold text-gray-900">Galerie</h1>
-            <p class="mt-2 text-gray-600">
+            <h1 class="text-3xl font-bold text-surface-900">Galerie</h1>
+            <p class="mt-2 text-surface-600">
               Parcourez vos photos, vidéos et documents
             </p>
           </div>
           <Link
             :href="route('media.create')"
-            class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:border-indigo-900 focus:ring ring-indigo-300 disabled:opacity-25 transition ease-in-out duration-150"
+            class="inline-flex items-center px-4 py-2 bg-brand-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-brand-700 active:bg-brand-900 focus:outline-none focus:border-brand-900 focus:ring ring-brand-300 disabled:opacity-25 transition ease-in-out duration-150"
           >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -26,7 +26,7 @@
           <!-- Search -->
           <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="h-5 w-5 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
@@ -34,14 +34,14 @@
               v-model="searchQuery"
               type="text"
               placeholder="Rechercher dans vos médias..."
-              class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              class="block w-full pl-10 pr-3 py-2 border border-surface-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
               @input="debouncedSearch"
             />
           </div>
 
           <!-- Tag filters -->
           <div v-if="availableTags.length > 0">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Filtrer par tags</label>
+            <label class="block text-sm font-medium text-surface-700 mb-2">Filtrer par tags</label>
             <div class="flex flex-wrap gap-2">
               <button
                 v-for="tag in availableTags"
@@ -51,7 +51,7 @@
                   'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium transition',
                   selectedTags.includes(tag.id)
                     ? 'text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
                 ]"
                 :style="selectedTags.includes(tag.id) ? { backgroundColor: tag.color || '#6366f1' } : {}"
               >

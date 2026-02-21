@@ -3,8 +3,8 @@
     <div class="py-12">
       <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
         <div class="mb-6">
-          <h1 class="text-3xl font-bold text-gray-900">Télécharger des médias</h1>
-          <p class="mt-2 text-gray-600">
+          <h1 class="text-3xl font-bold text-surface-900">Télécharger des médias</h1>
+          <p class="mt-2 text-surface-600">
             Ajoutez vos photos, vidéos et documents à votre bibliothèque familiale.
           </p>
         </div>
@@ -18,10 +18,10 @@
         <div v-if="recentUploads.length > 0" class="mt-6 bg-white overflow-hidden shadow-sm sm:rounded-lg">
           <div class="p-6">
             <div class="flex items-center justify-between mb-4">
-              <h2 class="text-xl font-semibold text-gray-900">Médias téléchargés</h2>
+              <h2 class="text-xl font-semibold text-surface-900">Médias téléchargés</h2>
               <Link
                 href="/media"
-                class="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+                class="text-brand-600 hover:text-brand-700 text-sm font-medium"
               >
                 Voir la galerie →
               </Link>
@@ -30,11 +30,11 @@
               <div
                 v-for="media in recentUploads"
                 :key="media.id"
-                class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                class="flex items-center justify-between p-3 bg-surface-50 rounded-lg"
               >
                 <div class="flex items-center space-x-3 flex-1 min-w-0">
                   <div class="flex-shrink-0">
-                    <div v-if="media.type === 'photo'" class="w-12 h-12 rounded overflow-hidden bg-gray-200">
+                    <div v-if="media.type === 'photo'" class="w-12 h-12 rounded overflow-hidden bg-surface-200">
                       <img
                         :src="media.url"
                         :alt="media.original_filename"
@@ -46,17 +46,17 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                       </svg>
                     </div>
-                    <div v-else class="w-12 h-12 rounded bg-gray-100 flex items-center justify-center">
-                      <svg class="h-6 w-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div v-else class="w-12 h-12 rounded bg-surface-100 flex items-center justify-center">
+                      <svg class="h-6 w-6 text-surface-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                       </svg>
                     </div>
                   </div>
                   <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-gray-900 truncate">
+                    <p class="text-sm font-medium text-surface-900 truncate">
                       {{ media.original_filename }}
                     </p>
-                    <p class="text-xs text-gray-500">
+                    <p class="text-xs text-surface-500">
                       {{ formatFileSize(media.size) }} · {{ formatMediaType(media.type) }}
                     </p>
                   </div>
@@ -64,7 +64,7 @@
                 <div class="flex items-center space-x-2">
                   <Link
                     :href="`/media/${media.id}`"
-                    class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 transition"
+                    class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium text-brand-600 hover:text-brand-800 hover:bg-brand-50 transition"
                   >
                     <svg class="mr-1 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />

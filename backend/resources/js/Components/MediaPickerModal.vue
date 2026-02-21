@@ -7,7 +7,7 @@
   >
     <!-- Backdrop -->
     <div
-      class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+      class="fixed inset-0 bg-surface-900 bg-opacity-50 transition-opacity"
       @click="$emit('close')"
     ></div>
 
@@ -18,11 +18,11 @@
         @click.stop
       >
         <!-- Header -->
-        <div class="bg-white px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h3 class="text-lg font-semibold text-gray-900">
+        <div class="bg-white px-6 py-4 border-b border-surface-200 flex items-center justify-between">
+          <h3 class="text-lg font-semibold text-surface-900">
             Ajouter des medias
           </h3>
-          <span class="text-sm text-gray-500">
+          <span class="text-sm text-surface-500">
             {{ selectedIds.length }} selectionne(s)
           </span>
         </div>
@@ -30,7 +30,7 @@
         <!-- Loading -->
         <div v-if="loading" class="flex-1 flex items-center justify-center py-12">
           <svg
-            class="animate-spin h-8 w-8 text-indigo-600"
+            class="animate-spin h-8 w-8 text-brand-600"
             fill="none"
             viewBox="0 0 24 24"
           >
@@ -54,7 +54,7 @@
         <div v-else class="flex-1 overflow-y-auto p-6">
           <div v-if="availableMedia.length === 0" class="text-center py-12">
             <svg
-              class="mx-auto h-12 w-12 text-gray-400"
+              class="mx-auto h-12 w-12 text-surface-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -66,7 +66,7 @@
                 d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
               />
             </svg>
-            <p class="mt-4 text-gray-500">Aucun media disponible</p>
+            <p class="mt-4 text-surface-500">Aucun media disponible</p>
           </div>
 
           <div
@@ -79,7 +79,7 @@
               class="relative aspect-square rounded-lg overflow-hidden cursor-pointer group"
               :class="[
                 isSelected(media.id)
-                  ? 'ring-2 ring-indigo-500 ring-offset-2'
+                  ? 'ring-2 ring-brand-500 ring-offset-2'
                   : 'hover:ring-2 hover:ring-gray-300'
               ]"
               @click="toggleSelection(media.id)"
@@ -94,10 +94,10 @@
               />
               <div
                 v-else
-                class="w-full h-full flex items-center justify-center bg-gray-100"
+                class="w-full h-full flex items-center justify-center bg-surface-100"
               >
                 <svg
-                  class="h-8 w-8 text-gray-400"
+                  class="h-8 w-8 text-surface-400"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -133,7 +133,7 @@
                   :class="[
                     'w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all',
                     isSelected(media.id)
-                      ? 'bg-indigo-600 border-indigo-600'
+                      ? 'bg-brand-600 border-brand-600'
                       : 'bg-white border-white shadow'
                   ]"
                 >
@@ -158,17 +158,17 @@
         </div>
 
         <!-- Footer -->
-        <div class="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-200">
+        <div class="bg-surface-50 px-6 py-4 flex justify-end gap-3 border-t border-surface-200">
           <button
             type="button"
-            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            class="px-4 py-2 text-sm font-medium text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
             @click="$emit('close')"
           >
             Annuler
           </button>
           <button
             type="button"
-            class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed"
             :disabled="selectedIds.length === 0 || submitting"
             @click="confirm"
           >

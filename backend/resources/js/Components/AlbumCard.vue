@@ -1,10 +1,10 @@
 <template>
   <div
-    class="relative group rounded-lg overflow-hidden bg-white shadow-md cursor-pointer transition-all duration-200 hover:shadow-xl hover:scale-[1.02]"
+    class="relative group rounded-xl overflow-hidden bg-white border border-surface-200 shadow-sm cursor-pointer transition-all duration-200 hover:shadow-md hover:border-brand-200 hover:scale-[1.01]"
     @click="$emit('click', album)"
   >
     <!-- Cover Image -->
-    <div class="aspect-video bg-gray-100">
+    <div class="aspect-video bg-surface-100">
       <img
         v-if="album.cover_url"
         :src="album.cover_url"
@@ -14,10 +14,10 @@
       />
       <div
         v-else
-        class="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-100 to-purple-100"
+        class="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-50 to-surface-100"
       >
         <svg
-          class="h-16 w-16 text-indigo-300"
+          class="h-16 w-16 text-brand-300"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -36,17 +36,17 @@
     <div class="p-4">
       <div class="flex items-start justify-between">
         <div class="flex-1 min-w-0">
-          <h3 class="text-lg font-semibold text-gray-900 truncate">
+          <h3 class="text-base font-semibold text-surface-900 truncate">
             {{ album.name }}
           </h3>
-          <p v-if="album.description" class="mt-1 text-sm text-gray-500 line-clamp-2">
+          <p v-if="album.description" class="mt-1 text-sm text-surface-500 line-clamp-2">
             {{ album.description }}
           </p>
         </div>
       </div>
 
       <div class="mt-3 flex items-center justify-between">
-        <span class="text-sm text-gray-500">
+        <span class="text-sm text-surface-500">
           {{ album.media_count || 0 }} {{ album.media_count === 1 ? 'media' : 'medias' }}
         </span>
 
@@ -55,8 +55,8 @@
           :class="[
             'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium',
             album.is_public
-              ? 'bg-green-100 text-green-800'
-              : 'bg-gray-100 text-gray-600'
+              ? 'bg-teal-100 text-teal-700'
+              : 'bg-surface-100 text-surface-600'
           ]"
         >
           <svg
@@ -97,7 +97,7 @@
       v-if="album.share_token"
       class="absolute top-2 right-2"
     >
-      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-brand-100 text-brand-700">
         <svg
           class="w-3 h-3 mr-1"
           fill="none"

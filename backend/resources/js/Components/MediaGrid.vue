@@ -1,7 +1,7 @@
 <template>
   <div class="media-grid">
     <!-- Filter Tabs -->
-    <div class="mb-6 border-b border-gray-200">
+    <div class="mb-6 border-b border-surface-200">
       <nav class="-mb-px flex space-x-8">
         <button
           v-for="tab in filterTabs"
@@ -10,8 +10,8 @@
           :class="[
             'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-150',
             currentFilter === tab.value
-              ? 'border-indigo-500 text-indigo-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ? 'border-brand-500 text-brand-600'
+              : 'border-transparent text-surface-500 hover:text-surface-700 hover:border-surface-300'
           ]"
         >
           {{ tab.label }}
@@ -20,8 +20,8 @@
             :class="[
               'ml-2 py-0.5 px-2 rounded-full text-xs',
               currentFilter === tab.value
-                ? 'bg-indigo-100 text-indigo-600'
-                : 'bg-gray-100 text-gray-900'
+                ? 'bg-brand-100 text-brand-600'
+                : 'bg-surface-100 text-surface-700'
             ]"
           >
             {{ tab.count }}
@@ -33,7 +33,7 @@
     <!-- Loading State -->
     <div v-if="loading" class="flex justify-center items-center py-12">
       <svg
-        class="animate-spin h-8 w-8 text-indigo-600"
+        class="animate-spin h-8 w-8 text-brand-600"
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
         viewBox="0 0 24 24"
@@ -52,7 +52,7 @@
           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
         ></path>
       </svg>
-      <span class="ml-3 text-gray-600">Chargement des médias...</span>
+      <span class="ml-3 text-surface-600">Chargement des médias...</span>
     </div>
 
     <!-- Empty State -->
@@ -61,7 +61,7 @@
       class="text-center py-12 px-4"
     >
       <svg
-        class="mx-auto h-12 w-12 text-gray-400"
+        class="mx-auto h-12 w-12 text-surface-400"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -73,8 +73,8 @@
           d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
         />
       </svg>
-      <h3 class="mt-2 text-sm font-medium text-gray-900">Aucun média</h3>
-      <p class="mt-1 text-sm text-gray-500">
+      <h3 class="mt-2 text-sm font-medium text-surface-900">Aucun média</h3>
+      <p class="mt-1 text-sm text-surface-500">
         {{ emptyStateMessage }}
       </p>
     </div>
@@ -87,7 +87,7 @@
       <div
         v-for="item in media"
         :key="item.id"
-        class="relative group aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer transition-transform duration-200 hover:scale-105 hover:shadow-lg"
+        class="relative group aspect-square rounded-lg overflow-hidden bg-surface-100 cursor-pointer transition-transform duration-200 hover:scale-105 hover:shadow-lg"
         @click="$emit('media-click', item)"
       >
         <!-- Image Thumbnail -->
@@ -113,10 +113,10 @@
           />
           <div
             v-else
-            class="w-full h-full flex items-center justify-center bg-gray-200"
+            class="w-full h-full flex items-center justify-center bg-surface-200"
           >
             <svg
-              class="h-12 w-12 text-gray-400"
+              class="h-12 w-12 text-surface-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -148,10 +148,10 @@
         <!-- Document Thumbnail -->
         <div
           v-else
-          class="w-full h-full flex flex-col items-center justify-center bg-gray-200"
+          class="w-full h-full flex flex-col items-center justify-center bg-surface-200"
         >
           <svg
-            class="h-12 w-12 text-gray-400"
+            class="h-12 w-12 text-surface-400"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -163,7 +163,7 @@
               d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
             />
           </svg>
-          <span class="mt-2 text-xs text-gray-500 truncate max-w-full px-2">
+          <span class="mt-2 text-xs text-surface-500 truncate max-w-full px-2">
             {{ getFileExtension(item.original_name) }}
           </span>
         </div>
@@ -176,7 +176,7 @@
             <p class="text-xs font-medium truncate">
               {{ item.original_name }}
             </p>
-            <p class="text-xs text-gray-300 mt-1">
+            <p class="text-xs text-surface-300 mt-1">
               {{ formatDate(item.taken_at || item.uploaded_at) }}
             </p>
           </div>
@@ -192,7 +192,7 @@
             :class="[
               'w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all',
               isSelected(item.id)
-                ? 'bg-indigo-600 border-indigo-600'
+                ? 'bg-brand-600 border-brand-600'
                 : 'bg-white bg-opacity-80 border-white hover:bg-opacity-100'
             ]"
           >
@@ -232,7 +232,7 @@
     >
       <button
         @click="$emit('load-more')"
-        class="px-6 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors duration-150"
+        class="px-6 py-2 bg-white border border-surface-300 rounded-lg text-sm font-medium text-surface-700 hover:bg-surface-50 transition-colors duration-150"
       >
         Charger plus
       </button>

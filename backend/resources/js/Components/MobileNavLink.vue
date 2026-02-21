@@ -3,8 +3,8 @@
     :href="href"
     :class="[
       active
-        ? 'bg-indigo-50 border-indigo-500 text-indigo-700'
-        : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700',
+        ? 'bg-brand-50 border-brand-500 text-brand-700'
+        : 'border-transparent text-surface-500 hover:bg-surface-50 hover:border-surface-300 hover:text-surface-800',
       'block pl-3 pr-4 py-2 border-l-4 text-base font-medium'
     ]"
   >

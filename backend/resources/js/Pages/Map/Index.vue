@@ -12,16 +12,16 @@
             @input="debounceSearch"
             type="text"
             placeholder="Rechercher un lieu..."
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
           />
 
           <!-- Search results -->
-          <div v-if="searchResults.length > 0" class="mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          <div v-if="searchResults.length > 0" class="mt-2 bg-white border border-surface-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
             <button
               v-for="result in searchResults"
               :key="result.place_id"
               @click="selectLocation(result)"
-              class="w-full text-left px-4 py-2 hover:bg-gray-100 border-b border-gray-100 last:border-b-0"
+              class="w-full text-left px-4 py-2 hover:bg-surface-100 border-b border-surface-100 last:border-b-0"
             >
               <div class="font-medium">{{ result.display_name }}</div>
             </button>
@@ -36,7 +36,7 @@
           <select
             v-model="filters.type"
             @change="applyFilters"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg mb-3"
+            class="w-full px-3 py-2 border border-surface-300 rounded-lg mb-3"
           >
             <option value="">Tous les types</option>
             <option value="photo">Photos</option>
@@ -50,12 +50,12 @@
             @input="applyFilters"
             type="text"
             placeholder="Rechercher par nom..."
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg mb-3"
+            class="w-full px-3 py-2 border border-surface-300 rounded-lg mb-3"
           />
 
           <!-- Tag filter -->
           <div v-if="availableTags.length > 0" class="mb-3">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Tags</label>
+            <label class="block text-sm font-medium text-surface-700 mb-2">Tags</label>
             <div class="flex flex-wrap gap-2">
               <button
                 v-for="tag in availableTags"
@@ -65,7 +65,7 @@
                   'px-3 py-1 rounded-full text-sm font-medium transition-colors',
                   selectedTags.includes(tag.id)
                     ? 'text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
                 ]"
                 :style="selectedTags.includes(tag.id) ? { backgroundColor: tag.color || '#6366f1' } : {}"
               >
@@ -76,8 +76,8 @@
         </div>
 
         <!-- Media count -->
-        <div class="mt-4 p-3 bg-indigo-50 rounded-lg">
-          <div class="text-sm text-gray-600">
+        <div class="mt-4 p-3 bg-brand-50 rounded-lg">
+          <div class="text-sm text-surface-600">
             {{ geolocatedMedia.length }} photo(s) géolocalisée(s)
           </div>
         </div>
@@ -95,7 +95,7 @@
           </button>
           <button
             @click="clearSelection"
-            class="w-full mt-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+            class="w-full mt-2 px-4 py-2 bg-surface-200 text-surface-700 rounded-lg hover:bg-surface-300"
           >
             Effacer la sélection
           </button>
@@ -233,9 +233,9 @@ function updateMarkers() {
       <div class="text-center">
         <img src="${media.thumbnail_url}" alt="${media.original_name}" class="w-32 h-32 object-cover rounded mb-2" />
         <div class="font-medium text-sm">${media.original_name}</div>
-        ${media.taken_at ? `<div class="text-xs text-gray-500">${new Date(media.taken_at).toLocaleDateString()}</div>` : ''}
+        ${media.taken_at ? `<div class="text-xs text-surface-500">${new Date(media.taken_at).toLocaleDateString()}</div>` : ''}
         <div class="mt-2">
-          <a href="/media/${media.id}" class="text-indigo-600 hover:text-indigo-800 text-sm">Voir le média</a>
+          <a href="/media/${media.id}" class="text-brand-600 hover:text-brand-800 text-sm">Voir le média</a>
         </div>
       </div>
     `;

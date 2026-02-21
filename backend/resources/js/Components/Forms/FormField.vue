@@ -3,7 +3,7 @@
     <label
       v-if="label"
       :for="id"
-      class="block text-sm font-medium text-gray-700 mb-2"
+      class="block text-sm font-medium text-surface-700 mb-1.5"
     >
       {{ label }}
       <span v-if="required" class="text-red-500">*</span>
@@ -20,7 +20,7 @@
         :disabled="disabled"
         :autocomplete="autocomplete"
         :class="inputClasses"
-        class="w-full px-4 py-2.5 border rounded-lg shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:bg-gray-100 disabled:cursor-not-allowed"
+        class="w-full px-4 py-2.5 border rounded-lg shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:bg-surface-100 disabled:cursor-not-allowed"
       />
 
       <!-- Icon d'erreur -->
@@ -70,7 +70,7 @@
     </transition>
 
     <!-- Message d'aide -->
-    <p v-if="help && !error" class="mt-2 text-sm text-gray-500">
+    <p v-if="help && !error" class="mt-1.5 text-xs text-surface-500">
       {{ help }}
     </p>
   </div>
@@ -128,6 +128,6 @@ const inputClasses = computed(() => {
   if (props.error) {
     return 'border-red-300 text-red-900 placeholder-red-300 focus:ring-red-500 focus:border-red-500';
   }
-  return 'border-gray-300 text-gray-900 placeholder-gray-400 focus:ring-indigo-500 focus:border-indigo-500';
+  return 'border-surface-300 text-surface-900 placeholder-surface-400 focus:ring-brand-500 focus:border-brand-500';
 });
 </script>

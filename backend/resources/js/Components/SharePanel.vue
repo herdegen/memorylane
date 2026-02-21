@@ -1,18 +1,18 @@
 <template>
-  <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">Partage</h3>
+  <div class="bg-white rounded-xl border border-surface-200 shadow-sm p-6 mb-6">
+    <h3 class="text-lg font-semibold text-surface-900 mb-4">Partage</h3>
 
     <!-- Public Toggle -->
-    <div class="flex items-center justify-between py-3 border-b border-gray-200">
+    <div class="flex items-center justify-between py-3 border-b border-surface-200">
       <div>
-        <p class="text-sm font-medium text-gray-700">Album public</p>
-        <p class="text-xs text-gray-500">Visible par tous les utilisateurs connectes</p>
+        <p class="text-sm font-medium text-surface-700">Album public</p>
+        <p class="text-xs text-surface-500">Visible par tous les utilisateurs connectes</p>
       </div>
       <button
         type="button"
         :class="[
-          'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2',
-          isPublic ? 'bg-indigo-600' : 'bg-gray-200'
+          'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2',
+          isPublic ? 'bg-brand-600' : 'bg-surface-200'
         ]"
         @click="togglePublic"
       >
@@ -27,8 +27,8 @@
 
     <!-- Share Link Section -->
     <div class="py-4">
-      <p class="text-sm font-medium text-gray-700 mb-2">Lien de partage</p>
-      <p class="text-xs text-gray-500 mb-3">
+      <p class="text-sm font-medium text-surface-700 mb-2">Lien de partage</p>
+      <p class="text-xs text-surface-500 mb-3">
         Partagez ce lien pour permettre a n'importe qui de voir l'album
       </p>
 
@@ -39,11 +39,11 @@
             type="text"
             :value="shareUrl"
             readonly
-            class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-gray-50"
+            class="flex-1 px-3 py-2 text-sm border border-surface-300 rounded-lg bg-surface-50"
           />
           <button
             type="button"
-            class="px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            class="px-4 py-2 text-sm font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
             @click="copyLink"
           >
             {{ copied ? 'Copie !' : 'Copier' }}
@@ -63,7 +63,7 @@
       <div v-else>
         <button
           type="button"
-          class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
           :disabled="generating"
           @click="generateLink"
         >

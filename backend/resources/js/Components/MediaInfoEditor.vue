@@ -1,11 +1,11 @@
 <template>
-  <div class="bg-white rounded-lg shadow-sm p-6">
+  <div class="bg-white rounded-xl border border-surface-200 shadow-sm p-6">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold text-gray-900">Informations</h2>
+      <h2 class="text-lg font-semibold text-surface-900">Informations</h2>
       <button
         v-if="!isEditing"
         @click="startEditing"
-        class="text-sm text-indigo-600 hover:text-indigo-800"
+        class="text-sm text-brand-600 hover:text-brand-800"
       >
         Modifier
       </button>
@@ -14,27 +14,27 @@
     <!-- Edit Mode -->
     <form v-if="isEditing" @submit.prevent="save" class="space-y-4">
       <div>
-        <label for="title" class="block text-sm font-medium text-gray-700 mb-1">
+        <label for="title" class="block text-sm font-medium text-surface-700 mb-1">
           Titre
         </label>
         <input
           id="title"
           v-model="form.title"
           type="text"
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          class="w-full px-3 py-2 border border-surface-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
           placeholder="Titre du media"
         />
       </div>
 
       <div>
-        <label for="description" class="block text-sm font-medium text-gray-700 mb-1">
+        <label for="description" class="block text-sm font-medium text-surface-700 mb-1">
           Description
         </label>
         <textarea
           id="description"
           v-model="form.description"
           rows="3"
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          class="w-full px-3 py-2 border border-surface-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
           placeholder="Decrivez ce media..."
         ></textarea>
       </div>
@@ -43,14 +43,14 @@
         <button
           type="button"
           @click="cancelEditing"
-          class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+          class="px-4 py-2 text-sm font-medium text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50"
         >
           Annuler
         </button>
         <button
           type="submit"
           :disabled="saving"
-          class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+          class="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50"
         >
           {{ saving ? 'Enregistrement...' : 'Enregistrer' }}
         </button>
@@ -60,57 +60,57 @@
     <!-- View Mode -->
     <dl v-else class="space-y-3">
       <div v-if="media.title || media.description">
-        <dt class="text-sm font-medium text-gray-500">Titre</dt>
-        <dd class="mt-1 text-sm text-gray-900">{{ media.title || '—' }}</dd>
+        <dt class="text-sm font-medium text-surface-500">Titre</dt>
+        <dd class="mt-1 text-sm text-surface-900">{{ media.title || '—' }}</dd>
       </div>
 
       <div v-if="media.description">
-        <dt class="text-sm font-medium text-gray-500">Description</dt>
-        <dd class="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{{ media.description }}</dd>
+        <dt class="text-sm font-medium text-surface-500">Description</dt>
+        <dd class="mt-1 text-sm text-surface-900 whitespace-pre-wrap">{{ media.description }}</dd>
       </div>
 
       <div>
-        <dt class="text-sm font-medium text-gray-500">Nom du fichier</dt>
-        <dd class="mt-1 text-sm text-gray-900">{{ media.original_name }}</dd>
+        <dt class="text-sm font-medium text-surface-500">Nom du fichier</dt>
+        <dd class="mt-1 text-sm text-surface-900">{{ media.original_name }}</dd>
       </div>
 
       <div>
-        <dt class="text-sm font-medium text-gray-500">Type</dt>
+        <dt class="text-sm font-medium text-surface-500">Type</dt>
         <dd class="mt-1">
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-800">
             {{ formatType(media.type) }}
           </span>
         </dd>
       </div>
 
       <div>
-        <dt class="text-sm font-medium text-gray-500">Taille</dt>
-        <dd class="mt-1 text-sm text-gray-900">{{ formatFileSize(media.size) }}</dd>
+        <dt class="text-sm font-medium text-surface-500">Taille</dt>
+        <dd class="mt-1 text-sm text-surface-900">{{ formatFileSize(media.size) }}</dd>
       </div>
 
       <div v-if="media.width && media.height">
-        <dt class="text-sm font-medium text-gray-500">Dimensions</dt>
-        <dd class="mt-1 text-sm text-gray-900">{{ media.width }} x {{ media.height }}px</dd>
+        <dt class="text-sm font-medium text-surface-500">Dimensions</dt>
+        <dd class="mt-1 text-sm text-surface-900">{{ media.width }} x {{ media.height }}px</dd>
       </div>
 
       <div v-if="media.duration">
-        <dt class="text-sm font-medium text-gray-500">Duree</dt>
-        <dd class="mt-1 text-sm text-gray-900">{{ formatDuration(media.duration) }}</dd>
+        <dt class="text-sm font-medium text-surface-500">Duree</dt>
+        <dd class="mt-1 text-sm text-surface-900">{{ formatDuration(media.duration) }}</dd>
       </div>
 
       <div>
-        <dt class="text-sm font-medium text-gray-500">Telecharge le</dt>
-        <dd class="mt-1 text-sm text-gray-900">{{ formatDate(media.uploaded_at) }}</dd>
+        <dt class="text-sm font-medium text-surface-500">Telecharge le</dt>
+        <dd class="mt-1 text-sm text-surface-900">{{ formatDate(media.uploaded_at) }}</dd>
       </div>
 
       <div v-if="media.taken_at">
-        <dt class="text-sm font-medium text-gray-500">Pris le</dt>
-        <dd class="mt-1 text-sm text-gray-900">{{ formatDate(media.taken_at) }}</dd>
+        <dt class="text-sm font-medium text-surface-500">Pris le</dt>
+        <dd class="mt-1 text-sm text-surface-900">{{ formatDate(media.taken_at) }}</dd>
       </div>
 
       <div v-if="media.user">
-        <dt class="text-sm font-medium text-gray-500">Uploade par</dt>
-        <dd class="mt-1 text-sm text-gray-900">{{ media.user.name }}</dd>
+        <dt class="text-sm font-medium text-surface-500">Uploade par</dt>
+        <dd class="mt-1 text-sm text-surface-900">{{ media.user.name }}</dd>
       </div>
     </dl>
   </div>
