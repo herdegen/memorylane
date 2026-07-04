@@ -34,10 +34,13 @@ class PersonResource extends Resource
                     ->searchable()
                     ->preload()
                     ->label('Propriétaire'),
-                Forms\Components\TextInput::make('name')
+                Forms\Components\TextInput::make('first_name')
                     ->required()
                     ->maxLength(255)
-                    ->label('Nom'),
+                    ->label('Prénom(s)'),
+                Forms\Components\TextInput::make('last_name')
+                    ->maxLength(255)
+                    ->label('Nom de famille'),
                 Forms\Components\TextInput::make('maiden_name')
                     ->maxLength(255)
                     ->label('Nom de naissance'),

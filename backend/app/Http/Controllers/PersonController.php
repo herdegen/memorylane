@@ -43,10 +43,33 @@ class PersonController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    /**
+     * Compat : les appels qui n'envoient qu'un `name` complet sont découpés
+     * en prénom(s) + nom (dernier mot). Les appels modernes envoient
+     * first_name / last_name directement.
+     */
+    protected function normalizeNameFields(array $validated): array
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
+        if (empty($validated['first_name']) && empty($validated['last_name']) && ! empty($validated['name'])) {
+            $parts = preg_split('/\s+/', trim($validated['name']));
+            if (count($parts) > 1) {
+                $validated['last_name'] = array_pop($parts);
+                $validated['first_name'] = implode(' ', $parts);
+            } else {
+                $validated['first_name'] = $parts[0];
+                $validated['last_name'] = null;
+            }
+        }
+
+        return $validated;
+    }
+
+    protected function personRules(): array
+    {
+        return [
+            'name' => 'required_without:first_name|nullable|string|max:255',
+            'first_name' => 'nullable|string|max:255',
+            'last_name' => 'nullable|string|max:255',
             'gender' => 'nullable|in:M,F,U',
             'maiden_name' => 'nullable|string|max:255',
             'birth_date' => 'nullable|date',
@@ -57,7 +80,12 @@ class PersonController extends Controller
             'notes' => 'nullable|string|max:2000',
             'father_id' => 'nullable|exists:people,id',
             'mother_id' => 'nullable|exists:people,id',
-        ]);
+        ];
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $this->normalizeNameFields($request->validate($this->personRules()));
 
         $person = Person::create([
             ...$validated,
@@ -163,19 +191,7 @@ class PersonController extends Controller
             abort(403);
         }
 
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'gender' => 'nullable|in:M,F,U',
-            'maiden_name' => 'nullable|string|max:255',
-            'birth_date' => 'nullable|date',
-            'birth_place' => 'nullable|string|max:255',
-            'death_date' => 'nullable|date|after_or_equal:birth_date',
-            'death_place' => 'nullable|string|max:255',
-            'avatar_media_id' => 'nullable|exists:media,id',
-            'notes' => 'nullable|string|max:2000',
-            'father_id' => 'nullable|exists:people,id',
-            'mother_id' => 'nullable|exists:people,id',
-        ]);
+        $validated = $this->normalizeNameFields($request->validate($this->personRules()));
 
         $person->update($validated);
 

@@ -145,6 +145,9 @@ class GedcomImportService
                     $person = Person::create([
                         'user_id' => $userId,
                         'name' => $individual['name'],
+                        // GEDCOM distingue GIVN (prénoms) et SURN (nom de famille)
+                        'first_name' => $individual['given_name'] ?: null,
+                        'last_name' => $individual['surname'] ?: null,
                         'gender' => $individual['sex'],
                         'birth_date' => $individual['birth_date'],
                         'death_date' => $individual['death_date'],

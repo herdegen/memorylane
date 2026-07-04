@@ -17,6 +17,8 @@ class Person extends Model
     {
         return [
             'name' => $this->name,
+            'first_name' => $this->first_name,
+            'last_name' => $this->last_name,
             'notes' => $this->notes ?? null,
         ];
     }
@@ -26,6 +28,8 @@ class Person extends Model
     protected $fillable = [
         'user_id',
         'name',
+        'first_name',
+        'last_name',
         'slug',
         'maiden_name',
         'birth_date',
@@ -51,6 +55,14 @@ class Person extends Model
     protected static function boot()
     {
         parent::boot();
+
+        // name reste le nom d'affichage : composé depuis prénom + nom
+        // quand ils sont renseignés (saving passe avant creating/updating)
+        static::saving(function ($person) {
+            if ($person->first_name || $person->last_name) {
+                $person->name = trim($person->first_name . ' ' . $person->last_name);
+            }
+        });
 
         static::creating(function ($person) {
             if (empty($person->slug)) {

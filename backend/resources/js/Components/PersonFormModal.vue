@@ -26,19 +26,34 @@
 
         <!-- Form -->
         <form @submit.prevent="submit" class="px-6 py-4 space-y-4">
-          <div>
-            <label for="name" class="block text-sm font-medium text-surface-700 mb-1">
-              Nom <span class="text-red-500">*</span>
-            </label>
-            <input
-              id="name"
-              v-model="form.name"
-              type="text"
-              required
-              class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-              placeholder="Prenom Nom"
-            />
-            <p v-if="errors.name" class="mt-1 text-sm text-red-600">{{ errors.name }}</p>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="first_name" class="block text-sm font-medium text-surface-700 mb-1">
+                Prénom(s) <span class="text-red-500">*</span>
+              </label>
+              <input
+                id="first_name"
+                v-model="form.first_name"
+                type="text"
+                required
+                class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                placeholder="Jean-Marie"
+              />
+              <p v-if="errors.first_name" class="mt-1 text-sm text-red-600">{{ errors.first_name }}</p>
+            </div>
+            <div>
+              <label for="last_name" class="block text-sm font-medium text-surface-700 mb-1">
+                Nom de famille
+              </label>
+              <input
+                id="last_name"
+                v-model="form.last_name"
+                type="text"
+                class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                placeholder="Dupont"
+              />
+              <p v-if="errors.last_name" class="mt-1 text-sm text-red-600">{{ errors.last_name }}</p>
+            </div>
           </div>
 
           <div>
@@ -139,8 +154,20 @@ const emit = defineEmits(['close', 'created', 'updated']);
 const submitting = ref(false);
 const errors = ref({});
 
+// initialName (nom complet tapé ailleurs) : dernier mot = nom de famille
+const splitInitialName = (full) => {
+  const parts = (full || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length > 1) {
+    return { first: parts.slice(0, -1).join(' '), last: parts[parts.length - 1] };
+  }
+  return { first: parts[0] || '', last: '' };
+};
+
+const initial = splitInitialName(props.initialName);
+
 const form = reactive({
-  name: props.person?.name || props.initialName || '',
+  first_name: props.person?.first_name || initial.first,
+  last_name: props.person?.last_name || initial.last,
   gender: props.person?.gender || 'U',
   birth_date: props.person?.birth_date || '',
   death_date: props.person?.death_date || '',
