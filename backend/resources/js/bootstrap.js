@@ -11,3 +11,10 @@ if (token) {
 } else {
     console.error('CSRF token not found');
 }
+
+// PWA : rend l'app installable et active le partage natif depuis le téléphone
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+    });
+}

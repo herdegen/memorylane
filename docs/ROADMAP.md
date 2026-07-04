@@ -50,6 +50,23 @@ zéro interaction nécessaire. Les vidéos se jouent puis on passe à la suite.
 
 ## Priorité 2 — Le confort qui fidélise
 
+### 2.0 Import Google Photos ciblé *(demandé)*
+**Pour qui :** ceux dont les photos vivent déjà dans Google Photos.
+Un bouton « Importer depuis Google Photos » : l'utilisateur choisit ses photos
+dans l'interface Google (le **Picker API** — on peut y chercher par personne,
+lieu, date comme dans Google Photos), puis avant l'import il choisit à quelle
+**personne** et/ou quel **album** MemoryLane les rattacher. Les photos arrivent
+pré-taguées.
+- *Pourquoi le Picker :* depuis 2025, l'API Library de Google ne permet plus de
+  lister la bibliothèque d'un utilisateur ; le Picker est la voie officielle,
+  et son UI de sélection sait filtrer par visage — exactement le besoin.
+- *Briques :* OAuth Google (le projet Cloud existe déjà pour Vision), session
+  Picker + polling, téléchargement des items choisis, création via
+  MediaService (jobs existants : conversions, EXIF, Vision), attach
+  personne/album. (~2-3 jours)
+- *Prérequis côté admin :* créer un OAuth Client ID (type Web) dans la console
+  Google Cloud et activer le Photos Picker API.
+
 ### 2.1 Albums intelligents automatiques
 Des albums qui se remplissent tout seuls : « Léa » (visages détectés),
 « Été 2025 » (période), « Bretagne » (géoloc). Zéro rangement manuel — le

@@ -14,6 +14,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
         ]);
+
+        // Le POST du Web Share Target vient du système Android/iOS,
+        // sans token CSRF possible (la route reste protégée par auth)
+        $middleware->validateCsrfTokens(except: [
+            'share-target',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

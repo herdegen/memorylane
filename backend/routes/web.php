@@ -9,6 +9,7 @@ use App\Http\Controllers\MediaController;
 use App\Http\Controllers\PersonController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\ShareTargetController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\MapController;
 use App\Http\Controllers\VisionController;
@@ -41,6 +42,9 @@ Route::middleware('auth')->group(function () {
 
     // Recherche unifiée
     Route::get('/search', [SearchController::class, 'index'])->name('search');
+
+    // Web Share Target (PWA) : « Partager → MemoryLane » depuis le téléphone
+    Route::post('/share-target', [ShareTargetController::class, 'store'])->name('share-target');
 
     // Profile routes
     Route::prefix('profile')->name('profile.')->group(function () {
