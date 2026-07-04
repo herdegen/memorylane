@@ -18,9 +18,9 @@
 
       <!-- Success message -->
       <FormError
-        v-if="status"
+        v-if="status || flashSuccess"
         type="success"
-        :message="status"
+        :message="status || flashSuccess"
       />
 
       <!-- Error message global -->
@@ -72,13 +72,43 @@
           full-width
         />
       </form>
+
+      <!-- Lien magique : pas de mot de passe à retenir -->
+      <div class="mt-6">
+        <div class="relative">
+          <div class="absolute inset-0 flex items-center">
+            <div class="w-full border-t border-surface-200"></div>
+          </div>
+          <div class="relative flex justify-center text-sm">
+            <span class="px-3 bg-white text-surface-400">ou</span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          @click="sendMagicLink"
+          :disabled="magicForm.processing || !form.email"
+          class="btn-secondary w-full mt-6"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          {{ magicForm.processing ? 'Envoi en cours…' : 'Recevoir un lien de connexion par e-mail' }}
+        </button>
+        <p v-if="!form.email" class="mt-2 text-xs text-surface-400 text-center">
+          Saisissez votre e-mail ci-dessus, puis cliquez ici — pas besoin de mot de passe.
+        </p>
+        <p v-if="magicForm.errors.email" class="mt-2 text-xs text-red-600 text-center">
+          {{ magicForm.errors.email }}
+        </p>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import { useForm, usePage } from '@inertiajs/vue3';
 import FormField from '@/Components/Forms/FormField.vue';
 import FormError from '@/Components/Forms/FormError.vue';
 import FormButton from '@/Components/Forms/FormButton.vue';
@@ -87,11 +117,23 @@ defineProps({
   status: String,
 });
 
+const page = usePage();
+const flashSuccess = computed(() => page.props.flash?.success);
+
 const form = useForm({
   email: '',
   password: '',
   remember: false,
 });
+
+const magicForm = useForm({
+  email: '',
+});
+
+const sendMagicLink = () => {
+  magicForm.email = form.email;
+  magicForm.post('/login/magic');
+};
 
 const hasErrors = computed(() => {
   return Object.keys(form.errors).length > 0;
