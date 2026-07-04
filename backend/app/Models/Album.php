@@ -28,6 +28,8 @@ class Album extends Model
         'description',
         'cover_media_id',
         'is_public',
+        'is_smart',
+        'smart_rules',
         'share_token',
     ];
 
@@ -35,6 +37,8 @@ class Album extends Model
     {
         return [
             'is_public' => 'boolean',
+            'is_smart' => 'boolean',
+            'smart_rules' => 'array',
         ];
     }
 

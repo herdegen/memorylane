@@ -50,6 +50,19 @@
           {{ album.media_count || 0 }} {{ album.media_count === 1 ? 'média' : 'médias' }}
         </span>
 
+        <span class="flex items-center gap-1.5">
+        <!-- Smart Badge -->
+        <span
+          v-if="album.is_smart"
+          class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-violet-100 text-violet-700"
+          title="Album intelligent : se remplit automatiquement"
+        >
+          <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+          </svg>
+          Auto
+        </span>
+
         <!-- Visibility Badge -->
         <span
           :class="[
@@ -88,6 +101,7 @@
             />
           </svg>
           {{ album.is_public ? 'Public' : 'Privé' }}
+        </span>
         </span>
       </div>
     </div>

@@ -5,16 +5,38 @@ namespace App\Http\Controllers;
 use App\Models\Album;
 use App\Models\Media;
 use App\Services\MediaService;
+use App\Services\SmartAlbumService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class AlbumController extends Controller
 {
     protected MediaService $mediaService;
+    protected SmartAlbumService $smartAlbumService;
 
-    public function __construct(MediaService $mediaService)
+    public function __construct(MediaService $mediaService, SmartAlbumService $smartAlbumService)
     {
         $this->mediaService = $mediaService;
+        $this->smartAlbumService = $smartAlbumService;
+    }
+
+    /**
+     * Règles de validation communes aux albums (dont les règles intelligentes).
+     */
+    protected function albumRules(): array
+    {
+        return [
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'cover_media_id' => 'nullable|exists:media,id',
+            'is_public' => 'boolean',
+            'is_smart' => 'boolean',
+            'smart_rules' => 'nullable|required_if:is_smart,true|array',
+            'smart_rules.person_id' => 'nullable|uuid|exists:people,id',
+            'smart_rules.tag_id' => 'nullable|integer|exists:tags,id',
+            'smart_rules.year' => 'nullable|integer|min:1800|max:2200',
+            'smart_rules.type' => 'nullable|in:photo,video,document',
+        ];
     }
 
     public function index(Request $request)
@@ -43,18 +65,16 @@ class AlbumController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string|max:1000',
-            'cover_media_id' => 'nullable|exists:media,id',
-            'is_public' => 'boolean',
-        ]);
+        $validated = $request->validate($this->albumRules());
 
         $album = Album::create([
             ...$validated,
             'user_id' => auth()->id(),
             'is_public' => $validated['is_public'] ?? false,
         ]);
+
+        // Un album intelligent se remplit dès sa création
+        $this->smartAlbumService->refresh($album);
 
         if ($request->wantsJson()) {
             return response()->json([
@@ -71,6 +91,12 @@ class AlbumController extends Controller
     {
         if ($album->user_id !== auth()->id()) {
             abort(403);
+        }
+
+        // Album intelligent : contenu recalculé à l'affichage (rapide à
+        // l'échelle familiale, garantit un contenu à jour)
+        if ($album->is_smart) {
+            $this->smartAlbumService->refresh($album);
         }
 
         $album->load(['coverMedia.conversions', 'media.conversions', 'media.tags']);
@@ -108,14 +134,12 @@ class AlbumController extends Controller
             abort(403);
         }
 
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string|max:1000',
-            'cover_media_id' => 'nullable|exists:media,id',
-            'is_public' => 'boolean',
-        ]);
+        $validated = $request->validate($this->albumRules());
 
         $album->update($validated);
+
+        // Les règles ont pu changer : on recalcule le contenu
+        $this->smartAlbumService->refresh($album->fresh());
 
         if ($request->wantsJson()) {
             return response()->json([
