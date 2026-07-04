@@ -130,8 +130,8 @@ class PersonController extends Controller
         $media->getCollection()->transform(function ($item) {
             $item->url = $this->mediaService->getSignedUrl($item);
             if ($item->conversions) {
-                $item->conversions->transform(function ($conv) {
-                    $conv->url = $this->mediaService->getSignedUrl($conv, $conv->file_path);
+                $item->conversions->transform(function ($conv) use ($item) {
+                    $conv->url = $this->mediaService->getSignedUrl($item, $conv->file_path);
                     return $conv;
                 });
             }

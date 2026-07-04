@@ -93,7 +93,7 @@
                 <div class="flex-shrink-0">
                   <svg
                     v-if="isImage(file.type)"
-                    class="h-6 w-6 text-blue-500"
+                    class="h-6 w-6 text-brand-500"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -107,7 +107,7 @@
                   </svg>
                   <svg
                     v-else-if="isVideo(file.type)"
-                    class="h-6 w-6 text-purple-500"
+                    class="h-6 w-6 text-violet-500"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -206,47 +206,48 @@
           <div
             v-for="media in uploadedMedia"
             :key="media.id"
-            class="relative group aspect-square rounded-lg overflow-hidden bg-surface-100"
+            class="relative aspect-square rounded-lg overflow-hidden bg-surface-100"
           >
+            <!-- Photo : aperçu réel -->
             <img
               v-if="media.type === 'photo'"
               :src="media.url"
               :alt="media.original_filename"
               class="w-full h-full object-cover"
             />
+            <!-- Vidéo : card violet avec icône play -->
+            <div
+              v-else-if="media.type === 'video'"
+              class="w-full h-full flex flex-col items-center justify-center bg-violet-50 p-3"
+            >
+              <div class="rounded-full bg-violet-100 p-3 mb-2">
+                <svg class="h-8 w-8 text-violet-500" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </div>
+              <p class="text-xs text-violet-700 text-center font-medium leading-tight line-clamp-2">
+                {{ media.original_filename }}
+              </p>
+            </div>
+            <!-- Document : card neutre avec icône fichier -->
             <div
               v-else
-              class="w-full h-full flex items-center justify-center bg-surface-200"
+              class="w-full h-full flex flex-col items-center justify-center bg-surface-50 p-3"
             >
-              <svg
-                class="h-12 w-12 text-surface-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                />
-              </svg>
+              <div class="rounded-full bg-surface-200 p-3 mb-2">
+                <svg class="h-8 w-8 text-surface-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <p class="text-xs text-surface-600 text-center font-medium leading-tight line-clamp-2">
+                {{ media.original_filename }}
+              </p>
             </div>
-            <div
-              class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center"
-            >
-              <svg
-                class="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M5 13l4 4L19 7"
-                />
+            <!-- Badge succès permanent -->
+            <div class="absolute top-2 right-2 bg-green-500 rounded-full p-1 shadow-sm">
+              <svg class="h-3 w-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
               </svg>
             </div>
           </div>
@@ -402,11 +403,7 @@ const uploadSingleFile = async (file) => {
   formData.append('file', file);
 
   try {
-    const response = await axios.post('/media', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await axios.post('/media', formData);
 
     if (response.data && response.data.media) {
       uploadedMedia.value.push(response.data.media);

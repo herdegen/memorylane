@@ -28,6 +28,10 @@ class Media extends Model
         'width',
         'height',
         'duration',
+        'video_codec',
+        'audio_codec',
+        'fps',
+        'bitrate',
         'uploaded_at',
         'taken_at',
     ];
@@ -42,6 +46,8 @@ class Media extends Model
         return [
             'uploaded_at' => 'datetime',
             'taken_at' => 'datetime',
+            // Le driver pgsql renvoie les colonnes float/numeric en string
+            'fps' => 'float',
         ];
     }
 
@@ -103,5 +109,22 @@ class Media extends Model
     public function detectedFaces()
     {
         return $this->hasMany(DetectedFace::class);
+    }
+
+    /**
+     * Get a human-readable resolution label based on video height.
+     */
+    public function getResolutionLabelAttribute(): ?string
+    {
+        if (! $this->height) {
+            return null;
+        }
+
+        return match (true) {
+            $this->height >= 2160 => '4K',
+            $this->height >= 1080 => '1080p',
+            $this->height >= 720  => '720p',
+            default               => "{$this->height}p",
+        };
     }
 }

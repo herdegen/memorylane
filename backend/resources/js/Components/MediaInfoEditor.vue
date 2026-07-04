@@ -112,12 +112,41 @@
         <dt class="text-sm font-medium text-surface-500">Uploade par</dt>
         <dd class="mt-1 text-sm text-surface-900">{{ media.user.name }}</dd>
       </div>
+
+      <!-- Bloc technique vidéo -->
+      <template v-if="media.type === 'video' && hasVideoMetadata">
+        <div class="pt-3 mt-1 border-t border-surface-100">
+          <dt class="text-xs font-semibold text-surface-400 uppercase tracking-wide mb-2">Technique</dt>
+          <div class="space-y-2">
+            <div v-if="media.resolution_label" class="flex justify-between items-center">
+              <span class="text-sm text-surface-500">Résolution</span>
+              <span class="text-sm font-medium text-surface-900">{{ media.resolution_label }}</span>
+            </div>
+            <div v-if="media.fps" class="flex justify-between items-center">
+              <span class="text-sm text-surface-500">Fréquence</span>
+              <span class="text-sm font-medium text-surface-900">{{ Number(media.fps).toFixed(2) }} fps</span>
+            </div>
+            <div v-if="media.video_codec" class="flex justify-between items-center">
+              <span class="text-sm text-surface-500">Codec vidéo</span>
+              <span class="text-sm font-medium text-surface-900 uppercase">{{ media.video_codec }}</span>
+            </div>
+            <div v-if="media.audio_codec" class="flex justify-between items-center">
+              <span class="text-sm text-surface-500">Codec audio</span>
+              <span class="text-sm font-medium text-surface-900 uppercase">{{ media.audio_codec }}</span>
+            </div>
+            <div v-if="media.bitrate" class="flex justify-between items-center">
+              <span class="text-sm text-surface-500">Débit</span>
+              <span class="text-sm font-medium text-surface-900">{{ media.bitrate }} kb/s</span>
+            </div>
+          </div>
+        </div>
+      </template>
     </dl>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import axios from 'axios';
 
 const props = defineProps({
@@ -125,6 +154,11 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+});
+
+const hasVideoMetadata = computed(() => {
+  const m = props.media;
+  return !!(m.resolution_label || m.fps || m.video_codec || m.audio_codec || m.bitrate);
 });
 
 const emit = defineEmits(['updated']);

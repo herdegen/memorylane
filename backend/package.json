@@ -13,6 +13,7 @@
         "leaflet": "^1.9.4",
         "photoswipe": "^5.4.0",
         "pinia": "^2.1.7",
+        "plyr": "^3.8.4",
         "vue": "^3.4.0",
         "vue-virtual-scroller": "^2.0.0-beta.8"
     },

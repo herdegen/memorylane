@@ -5,14 +5,14 @@
         <!-- Page Header -->
         <div class="mb-6 flex items-center justify-between">
           <div>
-            <h1 class="text-3xl font-bold text-surface-900">Galerie</h1>
+            <h1 class="text-display text-4xl text-surface-900">Galerie</h1>
             <p class="mt-2 text-surface-600">
               Parcourez vos photos, vidéos et documents
             </p>
           </div>
           <Link
             :href="route('media.create')"
-            class="inline-flex items-center px-4 py-2 bg-brand-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-brand-700 active:bg-brand-900 focus:outline-none focus:border-brand-900 focus:ring ring-brand-300 disabled:opacity-25 transition ease-in-out duration-150"
+            class="btn-primary"
           >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -39,6 +39,81 @@
             />
           </div>
 
+          <!-- Video Advanced Filters (visible uniquement sur l'onglet Vidéos) -->
+          <div v-if="currentFilter === 'video'" class="pt-4 border-t border-surface-100">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm font-medium text-surface-700">Filtres avancés</span>
+              <button
+                v-if="hasVideoFilters"
+                @click="clearVideoFilters"
+                class="text-xs text-red-600 hover:text-red-800 transition"
+              >
+                Réinitialiser
+              </button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <!-- Durée -->
+              <div>
+                <label class="block text-xs font-medium text-surface-500 mb-1">Durée (minutes)</label>
+                <div class="flex items-center gap-2">
+                  <input
+                    v-model.number="videoFilters.durationMin"
+                    type="number"
+                    min="0"
+                    placeholder="Min"
+                    class="w-full px-2 py-1.5 text-sm border border-surface-300 rounded-md focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
+                  />
+                  <span class="text-surface-400 text-xs flex-shrink-0">→</span>
+                  <input
+                    v-model.number="videoFilters.durationMax"
+                    type="number"
+                    min="0"
+                    placeholder="Max"
+                    class="w-full px-2 py-1.5 text-sm border border-surface-300 rounded-md focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
+                  />
+                </div>
+              </div>
+              <!-- Résolution -->
+              <div>
+                <label class="block text-xs font-medium text-surface-500 mb-1">Résolution minimale</label>
+                <div class="flex flex-wrap gap-1.5">
+                  <button
+                    v-for="res in resolutionOptions"
+                    :key="res.value"
+                    @click="videoFilters.resolution = videoFilters.resolution === res.value ? null : res.value"
+                    :class="[
+                      'px-2.5 py-1 text-xs rounded-md border transition',
+                      videoFilters.resolution === res.value
+                        ? 'bg-brand-600 border-brand-600 text-white'
+                        : 'bg-white border-surface-300 text-surface-600 hover:border-brand-400 hover:text-brand-600'
+                    ]"
+                  >
+                    {{ res.label }}
+                  </button>
+                </div>
+              </div>
+              <!-- Codec -->
+              <div v-if="availableCodecs && availableCodecs.length > 0">
+                <label class="block text-xs font-medium text-surface-500 mb-1">Codec vidéo</label>
+                <select
+                  v-model="videoFilters.codec"
+                  class="w-full px-2 py-1.5 text-sm border border-surface-300 rounded-md focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
+                >
+                  <option value="">Tous</option>
+                  <option v-for="codec in availableCodecs" :key="codec" :value="codec">
+                    {{ codec.toUpperCase() }}
+                  </option>
+                </select>
+              </div>
+            </div>
+            <button
+              @click="applyVideoFilters"
+              class="mt-3 px-4 py-1.5 text-sm font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition"
+            >
+              Appliquer
+            </button>
+          </div>
+
           <!-- Tag filters -->
           <div v-if="availableTags.length > 0">
             <label class="block text-sm font-medium text-surface-700 mb-2">Filtrer par tags</label>
@@ -53,7 +128,7 @@
                     ? 'text-white'
                     : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
                 ]"
-                :style="selectedTags.includes(tag.id) ? { backgroundColor: tag.color || '#6366f1' } : {}"
+                :style="selectedTags.includes(tag.id) ? { backgroundColor: tag.color || '#0D9488' } : {}"
               >
                 {{ tag.name }}
                 <span class="ml-1.5 text-xs opacity-75">({{ tag.media_count }})</span>
@@ -92,7 +167,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, reactive, onMounted } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import MediaGrid from '@/Components/MediaGrid.vue';
@@ -106,6 +181,10 @@ const props = defineProps({
     type: Object,
     default: () => ({}),
   },
+  availableCodecs: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 // Reactive state
@@ -115,6 +194,25 @@ const currentFilter = ref(props.filters.type || 'all');
 const selectedTags = ref(props.filters.tags ? (Array.isArray(props.filters.tags) ? props.filters.tags : [props.filters.tags]) : []);
 const availableTags = ref([]);
 let searchTimeout = null;
+
+// Video filters (durées affichées en minutes, envoyées en secondes — pas de
+// troncature pour préserver les valeurs sub-minute venues de l'URL)
+const videoFilters = reactive({
+  durationMin: props.filters.duration_min ? props.filters.duration_min / 60 : null,
+  durationMax: props.filters.duration_max ? props.filters.duration_max / 60 : null,
+  resolution: props.filters.resolution || null,
+  codec: props.filters.video_codec || '',
+});
+
+const resolutionOptions = [
+  { label: '720p+', value: '720p' },
+  { label: '1080p+', value: '1080p' },
+  { label: '4K+', value: '4k' },
+];
+
+const hasVideoFilters = computed(() => {
+  return !!(videoFilters.durationMin || videoFilters.durationMax || videoFilters.resolution || videoFilters.codec);
+});
 
 // Computed properties
 const mediaItems = computed(() => props.media.data || []);
@@ -140,22 +238,51 @@ const emptyStateMessage = computed(() => {
   return 'Commencez par télécharger vos premiers médias.';
 });
 
-// Event handlers
-const handleFilterChange = (newFilter) => {
-  currentFilter.value = newFilter;
-  loading.value = true;
-
-  router.get(route('media.index'), {
-    type: newFilter === 'all' ? undefined : newFilter,
+// Construit les paramètres de requête courants (type, recherche, tags et,
+// sur l'onglet Vidéos, les filtres vidéo) pour que chaque navigation les préserve.
+const buildQuery = (extra = {}) => {
+  const query = {
+    type: currentFilter.value === 'all' ? undefined : currentFilter.value,
     search: searchQuery.value || undefined,
     tags: selectedTags.value.length > 0 ? selectedTags.value : undefined,
-  }, {
+  };
+
+  if (currentFilter.value === 'video') {
+    query.duration_min = videoFilters.durationMin ? Math.round(videoFilters.durationMin * 60) : undefined;
+    query.duration_max = videoFilters.durationMax ? Math.round(videoFilters.durationMax * 60) : undefined;
+    query.resolution = videoFilters.resolution || undefined;
+    query.video_codec = videoFilters.codec || undefined;
+  }
+
+  return { ...query, ...extra };
+};
+
+const navigate = (extra = {}, options = {}) => {
+  loading.value = true;
+
+  router.get(route('media.index'), buildQuery(extra), {
     preserveState: true,
     preserveScroll: true,
+    ...options,
     onFinish: () => {
       loading.value = false;
     },
   });
+};
+
+// Event handlers
+const handleFilterChange = (newFilter) => {
+  currentFilter.value = newFilter;
+
+  // Les filtres vidéo n'ont pas de sens hors de l'onglet Vidéos
+  if (newFilter !== 'video') {
+    videoFilters.durationMin = null;
+    videoFilters.durationMax = null;
+    videoFilters.resolution = null;
+    videoFilters.codec = '';
+  }
+
+  navigate();
 };
 
 const toggleTagFilter = (tagId) => {
@@ -166,36 +293,12 @@ const toggleTagFilter = (tagId) => {
     selectedTags.value.push(tagId);
   }
 
-  loading.value = true;
-
-  router.get(route('media.index'), {
-    type: currentFilter.value === 'all' ? undefined : currentFilter.value,
-    search: searchQuery.value || undefined,
-    tags: selectedTags.value.length > 0 ? selectedTags.value : undefined,
-  }, {
-    preserveState: true,
-    preserveScroll: true,
-    onFinish: () => {
-      loading.value = false;
-    },
-  });
+  navigate();
 };
 
 const clearTagFilters = () => {
   selectedTags.value = [];
-
-  loading.value = true;
-
-  router.get(route('media.index'), {
-    type: currentFilter.value === 'all' ? undefined : currentFilter.value,
-    search: searchQuery.value || undefined,
-  }, {
-    preserveState: true,
-    preserveScroll: true,
-    onFinish: () => {
-      loading.value = false;
-    },
-  });
+  navigate();
 };
 
 const loadAvailableTags = async () => {
@@ -211,19 +314,7 @@ const loadAvailableTags = async () => {
 };
 
 const performSearch = () => {
-  loading.value = true;
-
-  router.get(route('media.index'), {
-    type: currentFilter.value === 'all' ? undefined : currentFilter.value,
-    search: searchQuery.value || undefined,
-    tags: selectedTags.value.length > 0 ? selectedTags.value : undefined,
-  }, {
-    preserveState: true,
-    preserveScroll: true,
-    onFinish: () => {
-      loading.value = false;
-    },
-  });
+  navigate();
 };
 
 const debouncedSearch = () => {
@@ -242,20 +333,20 @@ const handleMediaClick = (media) => {
 const handleLoadMore = () => {
   if (!hasMorePages.value || loading.value) return;
 
-  loading.value = true;
+  navigate({ page: props.media.current_page + 1 }, { only: ['media'] });
+};
 
-  router.get(route('media.index'), {
-    page: props.media.current_page + 1,
-    type: currentFilter.value === 'all' ? undefined : currentFilter.value,
-    search: searchQuery.value || undefined,
-  }, {
-    preserveState: true,
-    preserveScroll: true,
-    only: ['media'],
-    onFinish: () => {
-      loading.value = false;
-    },
-  });
+const applyVideoFilters = () => {
+  currentFilter.value = 'video';
+  navigate();
+};
+
+const clearVideoFilters = () => {
+  videoFilters.durationMin = null;
+  videoFilters.durationMax = null;
+  videoFilters.resolution = null;
+  videoFilters.codec = '';
+  applyVideoFilters();
 };
 
 // Initialize on mount

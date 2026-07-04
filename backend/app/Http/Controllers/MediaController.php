@@ -41,16 +41,24 @@ class MediaController extends Controller
      */
     public function index(Request $request)
     {
-        $filters = $request->only(['type', 'search', 'tags']);
+        $filters = $request->only(['type', 'search', 'tags', 'duration_min', 'duration_max', 'resolution', 'video_codec']);
         $media = $this->mediaService->getPaginatedMedia($filters);
 
         if ($request->wantsJson()) {
             return response()->json($media);
         }
 
+        // Available codecs for the video filter panel
+        $availableCodecs = Media::where('type', 'video')
+            ->whereNotNull('video_codec')
+            ->distinct()
+            ->orderBy('video_codec')
+            ->pluck('video_codec');
+
         return Inertia::render('Media/Index', [
-            'media' => $media,
-            'filters' => $filters,
+            'media'          => $media,
+            'filters'        => $filters,
+            'availableCodecs' => $availableCodecs,
         ]);
     }
 
@@ -104,10 +112,15 @@ class MediaController extends Controller
 
         // Generate signed URLs for conversions
         if ($media->conversions) {
-            $media->conversions->transform(function ($conversion) {
+            $media->conversions->transform(function ($conversion) use ($media) {
                 $conversion->url = $this->mediaService->getSignedUrl($media, $conversion->file_path);
                 return $conversion;
             });
+        }
+
+        // Append computed accessor for videos
+        if ($media->type === 'video') {
+            $media->append('resolution_label');
         }
 
         return Inertia::render('Media/Show', [

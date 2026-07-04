@@ -47,14 +47,14 @@ class GenerateMediaConversions implements ShouldQueue
     ];
 
     /**
-     * Conversion configurations for videos.
+     * Conversion configurations for video thumbnails (frame extraction sizes).
      *
      * @var array
      */
     protected array $videoConversions = [
-        'thumbnail' => ['width' => 150, 'height' => 150, 'second' => 1],
-        'small' => ['width' => 640, 'height' => 480],
-        'medium' => ['width' => 1280, 'height' => 720],
+        'thumbnail' => ['width' => 300, 'height' => 300, 'fit' => 'cover'],
+        'small'     => ['width' => 600, 'height' => 600, 'fit' => 'contain'],
+        'medium'    => ['width' => 1200, 'height' => 1200, 'fit' => 'contain'],
     ];
 
     /**
@@ -200,7 +200,7 @@ class GenerateMediaConversions implements ShouldQueue
     }
 
     /**
-     * Generate video conversions (thumbnails, optimized versions).
+     * Generate video conversions: extract a representative frame and resize to multiple sizes.
      *
      * @param S3Service $s3Service
      * @return void
@@ -222,63 +222,97 @@ class GenerateMediaConversions implements ShouldQueue
                 'ffmpeg.binaries'  => env('FFMPEG_BINARIES', '/usr/bin/ffmpeg'),
                 'ffprobe.binaries' => env('FFPROBE_BINARIES', '/usr/bin/ffprobe'),
                 'timeout'          => 3600,
-                'ffmpeg.threads'   => 12,
+                'ffmpeg.threads'   => 4,
             ]);
 
+            // Extract frame at 10% of duration (more representative than 1s).
+            // La durée est lue via ffprobe sur le fichier local : media.duration
+            // n'est pas encore renseigné à ce stade (ExtractVideoMetadata tourne après).
+            $durationSeconds = (float) $ffmpeg->getFFProbe()->format($tempOriginalPath)->get('duration', 0);
+            $targetSecond = $durationSeconds >= 1
+                ? max(1, (int) round($durationSeconds * 0.1))
+                : 0;
+
             $video = $ffmpeg->open($tempOriginalPath);
+            $manager = new ImageManager(new Driver());
 
-            // Generate thumbnail from first second
+            // Extract the source frame once, then resize into each conversion
+            $rawFramePath = sys_get_temp_dir() . '/video_frame_' . uniqid() . '.jpg';
+
             try {
-                $thumbnailPath = sys_get_temp_dir() . '/video_thumbnail_' . uniqid() . '.jpg';
-                $frame = $video->frame(TimeCode::fromSeconds(1));
-                $frame->save($thumbnailPath);
-
-                // Resize thumbnail using Intervention Image
-                $manager = new ImageManager(new Driver());
-                $image = $manager->read($thumbnailPath);
-                $image->cover(150, 150);
-                $image->toJpeg(quality: 85)->save($thumbnailPath);
-
-                // Upload thumbnail to S3
-                $thumbnailFilePath = $this->uploadConversionToS3(
-                    $s3Service,
-                    $thumbnailPath,
-                    'thumbnail'
-                );
-
-                // Save thumbnail conversion record
-                MediaConversion::updateOrCreate(
-                    [
-                        'media_id' => $this->media->id,
-                        'conversion_name' => 'thumbnail',
-                    ],
-                    [
-                        'file_path' => $thumbnailFilePath,
-                        'width' => 150,
-                        'height' => 150,
-                        'size' => filesize($thumbnailPath),
-                        'mime_type' => 'image/jpeg',
-                    ]
-                );
-
-                @unlink($thumbnailPath);
-
-                Log::info('GenerateMediaConversions: Video thumbnail generated', [
-                    'media_id' => $this->media->id,
-                ]);
+                $frame = $video->frame(TimeCode::fromSeconds($targetSecond));
+                $frame->save($rawFramePath);
             } catch (\Exception $e) {
-                Log::error('GenerateMediaConversions: Failed to generate video thumbnail', [
-                    'media_id' => $this->media->id,
-                    'error' => $e->getMessage(),
-                ]);
+                try {
+                    // Fallback to the first frame (very short or partially corrupt video)
+                    $frame = $video->frame(TimeCode::fromSeconds(0));
+                    $frame->save($rawFramePath);
+                } catch (\Exception $fallbackException) {
+                    // Pas de frame extractible : on continue sans conversions plutôt
+                    // que de faire échouer le job (comportement d'origine)
+                    Log::error('GenerateMediaConversions: Failed to extract video frame', [
+                        'media_id' => $this->media->id,
+                        'error'    => $fallbackException->getMessage(),
+                    ]);
+                    @unlink($tempOriginalPath);
+                    return;
+                }
             }
 
-            // Clean up temporary original file
+            foreach ($this->videoConversions as $conversionName => $config) {
+                try {
+                    $tempConversionPath = sys_get_temp_dir() . '/video_conv_' . uniqid() . '.jpg';
+                    $image = $manager->read($rawFramePath);
+
+                    if ($config['fit'] === 'cover') {
+                        $image->cover($config['width'], $config['height']);
+                    } else {
+                        $image->scale(width: $config['width'], height: $config['height']);
+                    }
+
+                    $image->toJpeg(quality: 85)->save($tempConversionPath);
+
+                    $conversionFilePath = $this->uploadConversionToS3(
+                        $s3Service,
+                        $tempConversionPath,
+                        $conversionName
+                    );
+
+                    MediaConversion::updateOrCreate(
+                        [
+                            'media_id'        => $this->media->id,
+                            'conversion_name' => $conversionName,
+                        ],
+                        [
+                            'file_path' => $conversionFilePath,
+                            'width'     => $image->width(),
+                            'height'    => $image->height(),
+                            'size'      => filesize($tempConversionPath),
+                            'mime_type' => 'image/jpeg',
+                        ]
+                    );
+
+                    @unlink($tempConversionPath);
+
+                    Log::info('GenerateMediaConversions: Video conversion generated', [
+                        'media_id'        => $this->media->id,
+                        'conversion_name' => $conversionName,
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('GenerateMediaConversions: Failed to generate video conversion', [
+                        'media_id'        => $this->media->id,
+                        'conversion_name' => $conversionName,
+                        'error'           => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            @unlink($rawFramePath);
             @unlink($tempOriginalPath);
         } catch (\Exception $e) {
             Log::error('GenerateMediaConversions: Video conversion process failed', [
                 'media_id' => $this->media->id,
-                'error' => $e->getMessage(),
+                'error'    => $e->getMessage(),
             ]);
             throw $e;
         }

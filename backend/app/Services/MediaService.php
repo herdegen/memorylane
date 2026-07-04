@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Jobs\AnalyzeMediaWithVision;
+use App\Jobs\ExtractVideoMetadata;
 use App\Jobs\GenerateMediaConversions;
 use App\Jobs\ProcessUploadedMedia;
 use App\Models\Media;
@@ -46,6 +47,28 @@ class MediaService
         // Search by name if provided
         if (isset($filters['search'])) {
             $query->where('original_name', 'like', '%' . $filters['search'] . '%');
+        }
+
+        // Video-specific filters
+        if (isset($filters['duration_min'])) {
+            $query->where('duration', '>=', (int) $filters['duration_min']);
+        }
+        if (isset($filters['duration_max'])) {
+            $query->where('duration', '<=', (int) $filters['duration_max']);
+        }
+        if (isset($filters['resolution'])) {
+            $minHeight = match ($filters['resolution']) {
+                '4k'    => 2160,
+                '1080p' => 1080,
+                '720p'  => 720,
+                default => 0,
+            };
+            if ($minHeight > 0) {
+                $query->where('height', '>=', $minHeight);
+            }
+        }
+        if (isset($filters['video_codec'])) {
+            $query->where('video_codec', $filters['video_codec']);
         }
 
         $media = $query->paginate($perPage);
@@ -114,6 +137,11 @@ class MediaService
         ProcessUploadedMedia::dispatch($media);
         GenerateMediaConversions::dispatch($media);
 
+        // Dispatch video metadata extraction for videos
+        if ($media->type === 'video') {
+            ExtractVideoMetadata::dispatch($media)->delay(now()->addSeconds(2));
+        }
+
         // Dispatch Vision AI analysis if enabled
         if (config('vision.enabled')) {
             AnalyzeMediaWithVision::dispatch($media)->delay(now()->addSeconds(5));
@@ -139,15 +167,16 @@ class MediaService
     }
 
     /**
-     * Get a signed URL for a media file.
+     * Get a signed URL for a media file, or one of its conversions.
      *
      * @param Media $media
+     * @param string|null $conversionPath Path of a conversion file; defaults to the original
      * @param int $expirationMinutes
      * @return string
      */
-    public function getSignedUrl(Media $media, int $expirationMinutes = 60): string
+    public function getSignedUrl(Media $media, ?string $conversionPath = null, int $expirationMinutes = 60): string
     {
-        return $this->s3Service->getTemporaryUrl($media->file_path, $expirationMinutes);
+        return $this->s3Service->getTemporaryUrl($conversionPath ?? $media->file_path, $expirationMinutes);
     }
 
     /**

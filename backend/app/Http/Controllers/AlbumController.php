@@ -79,8 +79,8 @@ class AlbumController extends Controller
         $album->media->transform(function ($media) {
             $media->url = $this->mediaService->getSignedUrl($media);
             if ($media->conversions) {
-                $media->conversions->transform(function ($conv) {
-                    $conv->url = $this->mediaService->getSignedUrl($conv, $conv->file_path);
+                $media->conversions->transform(function ($conv) use ($media) {
+                    $conv->url = $this->mediaService->getSignedUrl($media, $conv->file_path);
                     return $conv;
                 });
             }
@@ -255,8 +255,8 @@ class AlbumController extends Controller
         $album->media->transform(function ($media) {
             $media->url = $this->mediaService->getSignedUrl($media);
             if ($media->conversions) {
-                $media->conversions->transform(function ($conv) {
-                    $conv->url = $this->mediaService->getSignedUrl($conv, $conv->file_path);
+                $media->conversions->transform(function ($conv) use ($media) {
+                    $conv->url = $this->mediaService->getSignedUrl($media, $conv->file_path);
                     return $conv;
                 });
             }

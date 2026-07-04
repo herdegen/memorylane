@@ -30,14 +30,11 @@
               </div>
 
               <!-- Video -->
-              <div v-else-if="media.type === 'video'" class="relative bg-black">
-                <video
+              <div v-else-if="media.type === 'video'">
+                <VideoPlayer
                   :src="media.url"
-                  controls
-                  class="w-full h-auto max-h-[70vh] mx-auto"
-                >
-                  Votre navigateur ne supporte pas la lecture de vidéos.
-                </video>
+                  :poster="thumbnailUrl"
+                />
               </div>
 
               <!-- Document -->
@@ -147,7 +144,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import TagInput from '@/Components/TagInput.vue';
@@ -158,6 +155,7 @@ import FaceDetectionOverlay from '@/Components/FaceDetectionOverlay.vue';
 import FaceMatchPanel from '@/Components/FaceMatchPanel.vue';
 import VisionStatusBadge from '@/Components/VisionStatusBadge.vue';
 import VisionLabels from '@/Components/VisionLabels.vue';
+import VideoPlayer from '@/Components/VideoPlayer.vue';
 import axios from 'axios';
 
 const props = defineProps({
@@ -168,6 +166,17 @@ const props = defineProps({
 });
 
 const selectedFace = ref(null);
+
+// Poster URL for the video player (medium or small conversion thumbnail)
+const thumbnailUrl = computed(() => {
+  if (!props.media.conversions) return null;
+  const order = ['medium', 'small', 'thumbnail'];
+  for (const name of order) {
+    const conv = props.media.conversions.find(c => c.conversion_name === name);
+    if (conv?.url) return conv.url;
+  }
+  return null;
+});
 
 const handleMediaUpdated = (updatedMedia) => {
   router.reload();
