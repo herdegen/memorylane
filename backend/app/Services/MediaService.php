@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Jobs\AnalyzeMediaWithVision;
-use App\Jobs\ExtractVideoMetadata;
 use App\Jobs\GenerateMediaConversions;
 use App\Jobs\ProcessUploadedMedia;
 use App\Models\Media;
@@ -133,14 +132,11 @@ class MediaService
             'uploaded_at' => now(),
         ]);
 
-        // Dispatch background jobs for processing
+        // Dispatch background jobs for processing.
+        // Les métadonnées vidéo sont extraites par GenerateMediaConversions
+        // sur le fichier téléchargé (pas de job séparé, pas de double download S3).
         ProcessUploadedMedia::dispatch($media);
         GenerateMediaConversions::dispatch($media);
-
-        // Dispatch video metadata extraction for videos
-        if ($media->type === 'video') {
-            ExtractVideoMetadata::dispatch($media)->delay(now()->addSeconds(2));
-        }
 
         // Dispatch Vision AI analysis if enabled
         if (config('vision.enabled')) {

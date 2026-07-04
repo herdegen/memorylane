@@ -6,6 +6,7 @@ use App\Jobs\Concerns\DownloadsMediaToTemp;
 use App\Models\Media;
 use App\Models\MediaConversion;
 use App\Services\S3Service;
+use App\Services\VideoMetadataService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -225,10 +226,20 @@ class GenerateMediaConversions implements ShouldQueue
                 'ffmpeg.threads'   => 4,
             ]);
 
-            // Extract frame at 10% of duration (more representative than 1s).
-            // La durée est lue via ffprobe sur le fichier local : media.duration
-            // n'est pas encore renseigné à ce stade (ExtractVideoMetadata tourne après).
-            $durationSeconds = (float) $ffmpeg->getFFProbe()->format($tempOriginalPath)->get('duration', 0);
+            // Extraction des métadonnées techniques sur le fichier déjà téléchargé
+            // (évite un second téléchargement S3 par un job séparé). Non bloquant :
+            // les conversions restent générées même si ffprobe échoue.
+            try {
+                app(VideoMetadataService::class)->extractFromFile($this->media, $tempOriginalPath);
+            } catch (\Exception $e) {
+                Log::warning('GenerateMediaConversions: Video metadata extraction failed', [
+                    'media_id' => $this->media->id,
+                    'error'    => $e->getMessage(),
+                ]);
+            }
+
+            // Extract frame at 10% of duration (more representative than 1s)
+            $durationSeconds = (float) ($this->media->duration ?? 0);
             $targetSecond = $durationSeconds >= 1
                 ? max(1, (int) round($durationSeconds * 0.1))
                 : 0;

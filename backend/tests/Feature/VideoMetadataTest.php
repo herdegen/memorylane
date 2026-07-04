@@ -28,9 +28,11 @@ class VideoMetadataTest extends TestCase
     }
 
     /**
-     * Vérifie que ExtractVideoMetadata est dispatché lors de l'upload d'une vidéo.
+     * L'upload d'une vidéo dispatche les jobs de traitement. Les métadonnées
+     * vidéo sont extraites par GenerateMediaConversions (pas de job séparé,
+     * pas de double téléchargement S3).
      */
-    public function test_extract_video_metadata_job_is_dispatched_for_video_upload(): void
+    public function test_video_upload_dispatches_processing_jobs_without_separate_metadata_job(): void
     {
         Bus::fake();
 
@@ -38,9 +40,9 @@ class VideoMetadataTest extends TestCase
 
         $this->actingAs($this->user)->postJson('/media', ['file' => $file]);
 
-        Bus::assertDispatched(ExtractVideoMetadata::class);
         Bus::assertDispatched(GenerateMediaConversions::class);
         Bus::assertDispatched(ProcessUploadedMedia::class);
+        Bus::assertNotDispatched(ExtractVideoMetadata::class);
     }
 
     /**
@@ -57,6 +59,21 @@ class VideoMetadataTest extends TestCase
         Bus::assertNotDispatched(ExtractVideoMetadata::class);
         Bus::assertDispatched(ProcessUploadedMedia::class);
         Bus::assertDispatched(GenerateMediaConversions::class);
+    }
+
+    /**
+     * Vérifie le parsing des fréquences d'images ffprobe (fractions et entiers).
+     */
+    public function test_video_metadata_service_parses_fps(): void
+    {
+        $service = new \App\Services\VideoMetadataService();
+
+        $this->assertEquals(29.97, $service->parseFps('30000/1001'));
+        $this->assertEquals(25.0, $service->parseFps('25'));
+        $this->assertEquals(23.976, $service->parseFps('24000/1001'));
+        $this->assertNull($service->parseFps('0/0'));
+        $this->assertNull($service->parseFps(null));
+        $this->assertNull($service->parseFps('0'));
     }
 
     /**

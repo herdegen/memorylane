@@ -5,13 +5,21 @@ namespace App\Jobs;
 use App\Jobs\Concerns\DownloadsMediaToTemp;
 use App\Models\Media;
 use App\Services\S3Service;
-use FFMpeg\FFProbe;
+use App\Services\VideoMetadataService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Retraite les métadonnées techniques d'une vidéo existante.
+ *
+ * N'est plus dispatché à l'upload : l'extraction se fait dans
+ * GenerateMediaConversions sur le fichier déjà téléchargé (évite un
+ * second téléchargement S3). Ce job reste utile pour re-extraire les
+ * métadonnées d'une vidéo sans regénérer ses conversions (backfill, fix).
+ */
 class ExtractVideoMetadata implements ShouldQueue
 {
     use Queueable, InteractsWithQueue, SerializesModels, DownloadsMediaToTemp;
@@ -24,7 +32,7 @@ class ExtractVideoMetadata implements ShouldQueue
         public Media $media
     ) {}
 
-    public function handle(S3Service $s3Service): void
+    public function handle(S3Service $s3Service, VideoMetadataService $videoMetadataService): void
     {
         if ($this->media->type !== 'video') {
             return;
@@ -46,25 +54,7 @@ class ExtractVideoMetadata implements ShouldQueue
             }
 
             try {
-                $ffprobe = FFProbe::create([
-                    'ffprobe.binaries' => env('FFPROBE_BINARIES', '/usr/bin/ffprobe'),
-                ]);
-
-                $streams = $ffprobe->streams($tempPath);
-                $format  = $ffprobe->format($tempPath);
-
-                $videoStream = $streams->videos()->first();
-                $audioStream = $streams->audios()->first();
-
-                $this->media->update([
-                    'duration'    => $format->get('duration') ? (int) round((float) $format->get('duration')) : null,
-                    'width'       => $videoStream ? (int) $videoStream->get('width') : null,
-                    'height'      => $videoStream ? (int) $videoStream->get('height') : null,
-                    'video_codec' => $videoStream ? $videoStream->get('codec_name') : null,
-                    'audio_codec' => $audioStream ? $audioStream->get('codec_name') : null,
-                    'fps'         => $videoStream ? $this->parseFps($videoStream->get('r_frame_rate')) : null,
-                    'bitrate'     => $format->get('bit_rate') ? (int) round((float) $format->get('bit_rate') / 1000) : null,
-                ]);
+                $videoMetadataService->extractFromFile($this->media, $tempPath);
 
                 Log::info('ExtractVideoMetadata: Completed', [
                     'media_id'    => $this->media->id,
@@ -84,25 +74,6 @@ class ExtractVideoMetadata implements ShouldQueue
             ]);
             throw $e;
         }
-    }
-
-    /**
-     * Parse a frame rate string like "30000/1001" or "25" into a float.
-     */
-    protected function parseFps(?string $rFrameRate): ?float
-    {
-        if (! $rFrameRate) {
-            return null;
-        }
-
-        if (str_contains($rFrameRate, '/')) {
-            [$num, $den] = explode('/', $rFrameRate);
-            $den = (int) $den;
-            return $den > 0 ? round((int) $num / $den, 3) : null;
-        }
-
-        $fps = (float) $rFrameRate;
-        return $fps > 0 ? round($fps, 3) : null;
     }
 
     public function failed(\Throwable $exception): void
