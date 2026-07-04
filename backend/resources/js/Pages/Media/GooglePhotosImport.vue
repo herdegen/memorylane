@@ -140,10 +140,10 @@ const pollStatus = async () => {
       stopPolling();
     }
   } catch (error) {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 || error.response?.data?.error === 'google_error') {
       stopPolling();
       waitingForSelection.value = false;
-      errorMessage.value = 'La connexion Google a expiré. Reconnectez-vous (étape 1).';
+      errorMessage.value = googleErrorText(error);
     }
   }
 };
@@ -160,6 +160,20 @@ const stopPolling = () => {
   }
 };
 
+const googleErrorText = (error) => {
+  if (error.response?.status === 401) {
+    return 'La connexion Google a expiré. Reconnectez-vous (étape 1).';
+  }
+  const data = error.response?.data;
+  if (data?.error === 'google_error') {
+    return `Google répond (${data.google_status}) : ${data.message}` +
+      (data.google_status === 403
+        ? ' — vérifiez que le « Google Photos Picker API » est activé dans la console Google Cloud du projet.'
+        : '');
+  }
+  return 'Impossible d\'ouvrir la sélection Google Photos. Réessayez.';
+};
+
 const openPicker = async () => {
   errorMessage.value = null;
   try {
@@ -168,11 +182,7 @@ const openPicker = async () => {
     waitingForSelection.value = true;
     startPolling();
   } catch (error) {
-    if (error.response?.status === 401) {
-      errorMessage.value = 'La connexion Google a expiré. Reconnectez-vous (étape 1).';
-    } else {
-      errorMessage.value = 'Impossible d\'ouvrir la sélection Google Photos. Réessayez.';
-    }
+    errorMessage.value = googleErrorText(error);
   }
 };
 

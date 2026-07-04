@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Jobs\ImportGooglePhotosItems;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -100,9 +101,7 @@ class GooglePhotosController extends Controller
         $response = Http::withToken($token)->post(self::PICKER_BASE_URL . '/sessions');
 
         if (! $response->successful()) {
-            // Token expiré ou révoqué : on repart de la connexion
-            $request->session()->forget('google_photos.access_token');
-            return response()->json(['error' => 'session_expired'], 401);
+            return $this->googleErrorResponse($request, $response, 'createSession');
         }
 
         $request->session()->put('google_photos.picker_session', [
@@ -128,12 +127,37 @@ class GooglePhotosController extends Controller
         $response = Http::withToken($token)->get(self::PICKER_BASE_URL . '/sessions/' . $session['id']);
 
         if (! $response->successful()) {
-            return response()->json(['error' => 'session_expired'], 401);
+            return $this->googleErrorResponse($request, $response, 'sessionStatus');
         }
 
         return response()->json([
             'mediaItemsSet' => (bool) $response->json('mediaItemsSet', false),
         ]);
+    }
+
+    /**
+     * Traduit une erreur de l'API Google en réponse exploitable : token
+     * expiré (401) vs API désactivée / autre (avec le vrai message Google,
+     * loggé pour diagnostic).
+     */
+    protected function googleErrorResponse(Request $request, $response, string $context)
+    {
+        Log::warning("GooglePhotos: {$context} failed", [
+            'status' => $response->status(),
+            'body' => $response->json() ?? $response->body(),
+        ]);
+
+        if ($response->status() === 401) {
+            // Token réellement expiré ou révoqué : on repart de la connexion
+            $request->session()->forget('google_photos.access_token');
+            return response()->json(['error' => 'session_expired'], 401);
+        }
+
+        return response()->json([
+            'error' => 'google_error',
+            'google_status' => $response->status(),
+            'message' => $response->json('error.message') ?? 'Erreur Google inconnue.',
+        ], 502);
     }
 
     /**
