@@ -98,7 +98,10 @@ class GooglePhotosController extends Controller
         $token = $request->session()->get('google_photos.access_token');
         abort_unless($token, 409, 'Google Photos n\'est pas connecté.');
 
-        $response = Http::withToken($token)->post(self::PICKER_BASE_URL . '/sessions');
+        // Google exige un objet JSON explicite ({}), un corps vide est rejeté
+        $response = Http::withToken($token)
+            ->withBody('{}', 'application/json')
+            ->post(self::PICKER_BASE_URL . '/sessions');
 
         if (! $response->successful()) {
             return $this->googleErrorResponse($request, $response, 'createSession');
