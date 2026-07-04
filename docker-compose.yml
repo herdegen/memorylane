@@ -59,6 +59,21 @@ services:
       timeout: 3s
       retries: 5
 
+  # Mailpit - boîte mail de dev (attrape tous les mails sortants)
+  mailpit:
+    image: docker.io/axllent/mailpit:latest
+    container_name: memorylane_mailpit
+    ports:
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+    networks:
+      - memorylane
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+
   # PHP-FPM Application
   app:
     build:
