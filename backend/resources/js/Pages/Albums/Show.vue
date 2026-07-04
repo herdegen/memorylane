@@ -36,6 +36,16 @@
 
             <div class="flex items-center gap-2">
               <button
+                v-if="hasPlayableMedia"
+                @click="startSlideshow"
+                class="inline-flex items-center px-4 py-2 text-sm font-medium text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50"
+              >
+                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+                Diaporama
+              </button>
+              <button
                 @click="showSharePanel = !showSharePanel"
                 class="inline-flex items-center px-4 py-2 text-sm font-medium text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50"
               >
@@ -71,6 +81,12 @@
           v-if="showSharePanel"
           :album="album"
           @updated="handleAlbumUpdated"
+        />
+
+        <!-- Diaporama plein écran -->
+        <Slideshow
+          ref="slideshowEl"
+          :media="album.media || []"
         />
 
         <!-- Media Grid -->
@@ -191,6 +207,7 @@ import MediaCard from '@/Components/MediaCard.vue';
 import AlbumFormModal from '@/Components/AlbumFormModal.vue';
 import SharePanel from '@/Components/SharePanel.vue';
 import MediaPickerModal from '@/Components/MediaPickerModal.vue';
+import Slideshow from '@/Components/Slideshow.vue';
 import PhotoSwipeLightbox from 'photoswipe/lightbox';
 import 'photoswipe/style.css';
 
@@ -202,6 +219,13 @@ const props = defineProps({
 });
 
 const showSharePanel = ref(false);
+
+// Diaporama
+const slideshowEl = ref(null);
+const hasPlayableMedia = computed(() =>
+  (props.album.media || []).some((m) => m.type === 'photo' || m.type === 'video')
+);
+const startSlideshow = () => slideshowEl.value?.open(0);
 const showEditModal = ref(false);
 const showAddMediaModal = ref(false);
 const selectedMediaIds = ref([]);
