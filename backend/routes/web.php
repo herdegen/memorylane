@@ -11,6 +11,7 @@ use App\Http\Controllers\PersonController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ShareTargetController;
+use App\Http\Controllers\TakeoutImportController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\MapController;
 use App\Http\Controllers\VisionController;
@@ -56,6 +57,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/import', [GooglePhotosController::class, 'import'])->name('import');
     });
     Route::get('/auth/google/callback', [GooglePhotosController::class, 'callback'])->name('google-photos.callback');
+
+    // Import Google Takeout (ZIP avec géolocalisation)
+    Route::get('/takeout', [TakeoutImportController::class, 'index'])->name('takeout.index');
+    Route::post('/takeout', [TakeoutImportController::class, 'store'])->name('takeout.store');
 
     // Profile routes
     Route::prefix('profile')->name('profile.')->group(function () {

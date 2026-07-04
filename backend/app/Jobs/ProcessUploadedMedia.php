@@ -101,21 +101,27 @@ class ProcessUploadedMedia implements ShouldQueue
             // Extract EXIF data
             $exifData = $exifExtractor->extract($tempPath);
 
-            // Save metadata to database
+            // Save metadata to database. La géoloc n'écrase jamais une valeur
+            // existante avec du vide : certaines sources (import Takeout) la
+            // fournissent hors EXIF, avant ou après ce job.
+            $existing = MediaMetadata::where('media_id', $this->media->id)->first();
+
+            $values = [
+                'exif_data' => $exifData['exif_data'],
+                'camera_make' => $exifData['camera_make'],
+                'camera_model' => $exifData['camera_model'],
+                'iso' => $exifData['iso'],
+                'aperture' => $exifData['aperture'],
+                'shutter_speed' => $exifData['shutter_speed'],
+                'focal_length' => $exifData['focal_length'],
+                'latitude' => $exifData['latitude'] ?? $existing?->latitude,
+                'longitude' => $exifData['longitude'] ?? $existing?->longitude,
+                'altitude' => $exifData['altitude'] ?? $existing?->altitude,
+            ];
+
             MediaMetadata::updateOrCreate(
                 ['media_id' => $this->media->id],
-                [
-                    'exif_data' => $exifData['exif_data'],
-                    'camera_make' => $exifData['camera_make'],
-                    'camera_model' => $exifData['camera_model'],
-                    'iso' => $exifData['iso'],
-                    'aperture' => $exifData['aperture'],
-                    'shutter_speed' => $exifData['shutter_speed'],
-                    'focal_length' => $exifData['focal_length'],
-                    'latitude' => $exifData['latitude'],
-                    'longitude' => $exifData['longitude'],
-                    'altitude' => $exifData['altitude'],
-                ]
+                $values
             );
 
             // Clean up temporary file
