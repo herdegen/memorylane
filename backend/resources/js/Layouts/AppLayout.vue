@@ -35,6 +35,8 @@
 
           <!-- Right: admin + user -->
           <div class="hidden sm:flex sm:items-center gap-3">
+            <SearchBar v-if="user" />
+
             <a v-if="isAdmin" href="/admin" class="btn-admin">
               <IconSettings icon-class="icon-sm mr-1.5" />
               Admin
@@ -141,6 +143,7 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import NavLink from '@/Components/NavLink.vue';
 import MobileNavLink from '@/Components/MobileNavLink.vue';
+import SearchBar from '@/Components/SearchBar.vue';
 import { IconSettings, IconChevron, IconMenu } from '@/Components/Icons';
 import { useAuth } from '@/Composables/useAuth';
 

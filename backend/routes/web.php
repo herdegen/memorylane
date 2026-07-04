@@ -8,6 +8,7 @@ use App\Http\Controllers\GedcomImportController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\PersonController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\MapController;
 use App\Http\Controllers\VisionController;
@@ -37,6 +38,9 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middl
 Route::middleware('auth')->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Recherche unifiée
+    Route::get('/search', [SearchController::class, 'index'])->name('search');
 
     // Profile routes
     Route::prefix('profile')->name('profile.')->group(function () {

@@ -7,10 +7,19 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use Laravel\Scout\Searchable;
 
 class Album extends Model
 {
-    use HasFactory, HasUuids, SoftDeletes;
+    use HasFactory, HasUuids, Searchable, SoftDeletes;
+
+    public function toSearchableArray(): array
+    {
+        return [
+            'name' => $this->name,
+            'description' => $this->description,
+        ];
+    }
 
     protected $fillable = [
         'user_id',

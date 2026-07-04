@@ -6,10 +6,25 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Laravel\Scout\Searchable;
 
 class Media extends Model
 {
-    use HasFactory, HasUuids, SoftDeletes;
+    use HasFactory, HasUuids, Searchable, SoftDeletes;
+
+    /**
+     * Colonnes indexées pour la recherche unifiée.
+     * Uniquement de vraies colonnes : compatible avec les drivers
+     * meilisearch (prod) et database (tests).
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'original_name' => $this->original_name,
+            'title'         => $this->title,
+            'description'   => $this->description,
+        ];
+    }
 
     /**
      * The attributes that are mass assignable.
