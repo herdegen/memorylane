@@ -31,6 +31,8 @@
           <p class="text-sm text-surface-500 mb-4">
             Les photos déjà présentes dans MemoryLane ne seront pas dupliquées :
             elles seront enrichies de leur géolocalisation et de leur date.
+            <strong>Vos albums Google Photos sont recréés automatiquement</strong>
+            avec leurs photos.
           </p>
 
           <form @submit.prevent="submit" class="space-y-4">

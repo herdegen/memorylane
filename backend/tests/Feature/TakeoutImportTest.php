@@ -154,6 +154,54 @@ class TakeoutImportTest extends TestCase
     }
 
     /**
+     * Les albums Google Photos de l'archive sont recréés avec leurs photos,
+     * le titre venant du metadata.json du dossier.
+     */
+    public function test_google_albums_are_recreated_from_archive(): void
+    {
+        $zipPath = $this->makeTakeoutZip([
+            // photo1 : dans le flux chronologique ET dans un album
+            'Takeout/Google Photos/Photos from 2021/plage.jpg' => $this->jpegBytes(),
+            'Takeout/Google Photos/Vacances 2019/plage.jpg' => $this->jpegBytes(),
+            // photo2 : uniquement dans l'album
+            'Takeout/Google Photos/Vacances 2019/dune.jpg' => $this->jpegBytes(),
+            'Takeout/Google Photos/Vacances 2019/metadata.json' => json_encode(['title' => 'Vacances en Bretagne']),
+        ]);
+
+        (new ImportTakeoutArchive($this->user->id, $zipPath))->handle(app(MediaService::class));
+
+        // Pas d'album pour le dossier chronologique
+        $this->assertEquals(0, \App\Models\Album::where('name', 'like', 'Photos from%')->count());
+
+        $album = \App\Models\Album::where('name', 'Vacances en Bretagne')->first();
+        $this->assertNotNull($album);
+        $this->assertEquals(2, $album->media()->count());
+        $this->assertNotNull($album->cover_media_id);
+        // Les deux photos existent une seule fois chacune
+        $this->assertEquals(2, Media::count());
+    }
+
+    /**
+     * Un album MemoryLane du même nom est réutilisé, pas dupliqué.
+     */
+    public function test_existing_album_is_reused(): void
+    {
+        $album = \App\Models\Album::factory()->create([
+            'user_id' => $this->user->id,
+            'name' => 'Vacances 2019',
+        ]);
+
+        $zipPath = $this->makeTakeoutZip([
+            'Takeout/Google Photos/Vacances 2019/plage.jpg' => $this->jpegBytes(),
+        ]);
+
+        (new ImportTakeoutArchive($this->user->id, $zipPath))->handle(app(MediaService::class));
+
+        $this->assertEquals(1, \App\Models\Album::where('name', 'Vacances 2019')->count());
+        $this->assertEquals(1, $album->media()->count());
+    }
+
+    /**
      * L'upload d'archives dispatche un job par ZIP.
      */
     public function test_upload_dispatches_import_job(): void

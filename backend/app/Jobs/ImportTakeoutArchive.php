@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\Album;
 use App\Models\Media;
 use App\Models\MediaMetadata;
 use App\Services\MediaService;
@@ -20,6 +21,10 @@ use Illuminate\Support\Facades\Log;
  * description. Les médias déjà présents (même nom de fichier) ne sont pas
  * dupliqués : ils sont ENRICHIS de ces métadonnées — c'est le chemin pour
  * récupérer la géoloc des photos importées via le Picker.
+ *
+ * Les albums Google Photos sont recréés : chaque dossier de l'archive qui
+ * n'est pas chronologique (« Photos from 2021 ») devient un album MemoryLane
+ * avec ses photos, son titre venant du metadata.json du dossier.
  */
 class ImportTakeoutArchive implements ShouldQueue
 {
@@ -57,8 +62,9 @@ class ImportTakeoutArchive implements ShouldQueue
             'entries' => $zip->numFiles,
         ]);
 
-        $stats = ['imported' => 0, 'enriched' => 0, 'skipped' => 0, 'failed' => 0];
+        $stats = ['imported' => 0, 'enriched' => 0, 'skipped' => 0, 'failed' => 0, 'albums' => 0];
         $seenNames = [];
+        $albumMembers = [];
 
         try {
             for ($i = 0; $i < $zip->numFiles; $i++) {
@@ -68,6 +74,13 @@ class ImportTakeoutArchive implements ShouldQueue
 
                 if (! in_array($extension, self::MEDIA_EXTENSIONS, true)) {
                     continue;
+                }
+
+                // Un dossier non chronologique = un album Google : on note
+                // l'appartenance même pour les doublons inter-dossiers
+                $albumFolder = $this->albumFolderFor($entryName);
+                if ($albumFolder) {
+                    $albumMembers[$albumFolder][] = $basename;
                 }
 
                 // Takeout duplique les photos présentes dans plusieurs albums
@@ -107,12 +120,106 @@ class ImportTakeoutArchive implements ShouldQueue
                     Log::info('ImportTakeoutArchive: Progress', $stats);
                 }
             }
+
+            $this->recreateAlbums($zip, $albumMembers, $stats);
         } finally {
             $zip->close();
             @unlink($this->zipPath);
         }
 
         Log::info('ImportTakeoutArchive: Completed', $stats);
+    }
+
+    /**
+     * Retourne le chemin du dossier si l'entrée appartient à un album Google,
+     * null pour les dossiers chronologiques ou spéciaux.
+     */
+    protected function albumFolderFor(string $entryName): ?string
+    {
+        $dir = dirname($entryName);
+        $folder = basename($dir);
+
+        if ($folder === '.' || $folder === '') {
+            return null;
+        }
+
+        // Dossiers chronologiques (« Photos from 2021 ») et spéciaux
+        if (preg_match('/^photos (from|de|of|van|aus) \d{4}$/iu', $folder)) {
+            return null;
+        }
+        if (preg_match('/^\d{4}(-\d{2})?$/', $folder)) {
+            return null;
+        }
+        $special = ['google photos', 'takeout', 'trash', 'corbeille', 'bin', 'archive', 'failed videos'];
+        if (in_array(mb_strtolower($folder), $special, true)) {
+            return null;
+        }
+
+        return $dir;
+    }
+
+    /**
+     * Recrée les albums Google Photos : un album MemoryLane par dossier,
+     * titre lu dans le metadata.json du dossier quand il existe.
+     */
+    protected function recreateAlbums(\ZipArchive $zip, array $albumMembers, array &$stats): void
+    {
+        foreach ($albumMembers as $folder => $basenames) {
+            $title = $this->albumTitle($zip, $folder);
+            if (! $title) {
+                continue;
+            }
+
+            $album = Album::firstOrCreate(
+                ['user_id' => $this->userId, 'name' => $title],
+                ['is_public' => false]
+            );
+
+            $mediaIds = Media::where('user_id', $this->userId)
+                ->whereIn('original_name', array_unique($basenames))
+                ->pluck('id');
+
+            if ($mediaIds->isEmpty()) {
+                continue;
+            }
+
+            $order = $album->media()->max('album_media.order') ?? 0;
+            $attach = [];
+            foreach ($mediaIds as $id) {
+                $attach[$id] = ['order' => ++$order];
+            }
+            $album->media()->syncWithoutDetaching($attach);
+
+            if (! $album->cover_media_id) {
+                $album->update(['cover_media_id' => $mediaIds->first()]);
+            }
+
+            $stats['albums']++;
+
+            Log::info('ImportTakeoutArchive: Album recreated', [
+                'album' => $title,
+                'media_count' => $mediaIds->count(),
+            ]);
+        }
+    }
+
+    /**
+     * Titre de l'album : le metadata.json du dossier (titre réel, accents
+     * compris), sinon le nom du dossier.
+     */
+    protected function albumTitle(\ZipArchive $zip, string $folder): ?string
+    {
+        foreach (['metadata.json', 'métadonnées.json'] as $name) {
+            $content = $zip->getFromName($folder . '/' . $name);
+            if ($content !== false) {
+                $data = json_decode($content, true);
+                if (! empty($data['title'])) {
+                    return $data['title'];
+                }
+            }
+        }
+
+        return basename($folder) ?: null;
     }
 
     /**
