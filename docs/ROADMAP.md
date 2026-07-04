@@ -66,6 +66,11 @@ pré-taguées.
   personne/album. (~2-3 jours)
 - *Prérequis côté admin :* créer un OAuth Client ID (type Web) dans la console
   Google Cloud et activer le Photos Picker API.
+- *Limite connue (constatée le 4 juillet 2026) :* **Google supprime les données
+  GPS** des fichiers téléchargés via son API (politique de confidentialité,
+  pas de contournement). Les photos importées arrivent sans géolocalisation ;
+  la date de prise de vue (EXIF) est conservée. Pour un import AVEC géoloc :
+  Google Takeout (3.1), dont les sidecars JSON contiennent lat/lng.
 
 ### 2.1 Albums intelligents automatiques
 Des albums qui se remplissent tout seuls : « Léa » (visages détectés),

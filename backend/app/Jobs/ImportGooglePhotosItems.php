@@ -94,12 +94,26 @@ class ImportGooglePhotosItems implements ShouldQueue
 
     /**
      * Télécharge un élément (qualité originale) et le crée en Media.
+     * Idempotent : un fichier du même nom déjà importé pour cet utilisateur
+     * est sauté (protège contre les retries et les re-sélections).
      */
     protected function importItem(MediaService $mediaService, array $item): ?Media
     {
         $file = $item['mediaFile'] ?? null;
         if (! $file || empty($file['baseUrl'])) {
             return null;
+        }
+
+        if (! empty($file['filename'])) {
+            $existing = Media::where('user_id', $this->userId)
+                ->where('original_name', $file['filename'])
+                ->first();
+            if ($existing) {
+                Log::info('ImportGooglePhotosItems: Item already imported, skipping', [
+                    'filename' => $file['filename'],
+                ]);
+                return $existing;
+            }
         }
 
         $isVideo = str_starts_with($file['mimeType'] ?? '', 'video/');
