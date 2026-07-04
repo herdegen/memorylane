@@ -7,6 +7,28 @@ use FFMpeg\FFProbe;
 
 class VideoMetadataService
 {
+    /** Conteneurs que les navigateurs savent lire nativement. */
+    public const WEB_SAFE_MIME_TYPES = ['video/mp4', 'video/webm'];
+
+    /** Codecs vidéo lisibles nativement dans ces conteneurs. */
+    public const WEB_SAFE_VIDEO_CODECS = ['h264', 'vp8', 'vp9', 'av1'];
+
+    /**
+     * Détermine si une vidéo nécessite une version transcodée pour le web
+     * (.mkv, .avi, HEVC… ne se lisent pas dans la plupart des navigateurs).
+     * Retourne false si le codec est inconnu : impossible de juger, et le
+     * transcodage échouerait probablement aussi.
+     */
+    public function needsWebVersion(Media $media): bool
+    {
+        if ($media->type !== 'video' || ! $media->video_codec) {
+            return false;
+        }
+
+        return ! (in_array($media->mime_type, self::WEB_SAFE_MIME_TYPES, true)
+            && in_array($media->video_codec, self::WEB_SAFE_VIDEO_CODECS, true));
+    }
+
     /**
      * Extract technical metadata (duration, codecs, fps, bitrate, dimensions)
      * from a local video file and persist it on the media record.

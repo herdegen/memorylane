@@ -229,13 +229,20 @@ class GenerateMediaConversions implements ShouldQueue
             // Extraction des métadonnées techniques sur le fichier déjà téléchargé
             // (évite un second téléchargement S3 par un job séparé). Non bloquant :
             // les conversions restent générées même si ffprobe échoue.
+            $videoMetadataService = app(VideoMetadataService::class);
+
             try {
-                app(VideoMetadataService::class)->extractFromFile($this->media, $tempOriginalPath);
+                $videoMetadataService->extractFromFile($this->media, $tempOriginalPath);
             } catch (\Exception $e) {
                 Log::warning('GenerateMediaConversions: Video metadata extraction failed', [
                     'media_id' => $this->media->id,
                     'error'    => $e->getMessage(),
                 ]);
+            }
+
+            // Transcodage web si le format source n'est pas lisible nativement
+            if ($videoMetadataService->needsWebVersion($this->media)) {
+                TranscodeVideoForWeb::dispatch($this->media);
             }
 
             // Extract frame at 10% of duration (more representative than 1s)

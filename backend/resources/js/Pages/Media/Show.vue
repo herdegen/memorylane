@@ -32,7 +32,7 @@
               <!-- Video -->
               <div v-else-if="media.type === 'video'">
                 <VideoPlayer
-                  :src="media.url"
+                  :src="videoUrl"
                   :poster="thumbnailUrl"
                 />
               </div>
@@ -176,6 +176,13 @@ const thumbnailUrl = computed(() => {
     if (conv?.url) return conv.url;
   }
   return null;
+});
+
+// Source du lecteur : la version web transcodée (MP4 H.264) si elle existe,
+// sinon l'original (les .mkv/.avi/HEVC ne se lisent pas nativement)
+const videoUrl = computed(() => {
+  const web = props.media.conversions?.find(c => c.conversion_name === 'web');
+  return web?.url || props.media.url;
 });
 
 const handleMediaUpdated = (updatedMedia) => {
