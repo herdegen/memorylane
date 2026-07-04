@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FamilyTreeController;
 use App\Http\Controllers\GedcomImportController;
+use App\Http\Controllers\GooglePhotosController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\PersonController;
 use App\Http\Controllers\ProfileController;
@@ -45,6 +46,16 @@ Route::middleware('auth')->group(function () {
 
     // Web Share Target (PWA) : « Partager → MemoryLane » depuis le téléphone
     Route::post('/share-target', [ShareTargetController::class, 'store'])->name('share-target');
+
+    // Import Google Photos (Picker API)
+    Route::prefix('google-photos')->name('google-photos.')->group(function () {
+        Route::get('/', [GooglePhotosController::class, 'index'])->name('index');
+        Route::get('/connect', [GooglePhotosController::class, 'connect'])->name('connect');
+        Route::post('/session', [GooglePhotosController::class, 'createSession'])->name('session');
+        Route::get('/session/status', [GooglePhotosController::class, 'sessionStatus'])->name('status');
+        Route::post('/import', [GooglePhotosController::class, 'import'])->name('import');
+    });
+    Route::get('/auth/google/callback', [GooglePhotosController::class, 'callback'])->name('google-photos.callback');
 
     // Profile routes
     Route::prefix('profile')->name('profile.')->group(function () {

@@ -15,6 +15,25 @@
           </div>
         </div>
 
+        <!-- Import Google Photos -->
+        <Link
+          href="/google-photos"
+          class="mt-6 card card--padded flex items-center gap-4 group"
+        >
+          <span class="w-12 h-12 rounded-xl bg-brand-100 flex items-center justify-center flex-shrink-0 group-hover:bg-brand-200 transition-colors">
+            <svg class="w-6 h-6 text-brand-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+          </span>
+          <span class="flex-1">
+            <span class="font-semibold text-surface-900 block">Importer depuis Google Photos</span>
+            <span class="text-sm text-surface-500">Choisissez vos photos chez Google — par personne, lieu ou date — et rattachez-les directement.</span>
+          </span>
+          <svg class="w-5 h-5 text-surface-400 group-hover:text-brand-600 transition-colors flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </Link>
+
         <div v-if="recentUploads.length > 0" class="mt-6 bg-white overflow-hidden shadow-sm sm:rounded-lg">
           <div class="p-6">
             <div class="flex items-center justify-between mb-4">
