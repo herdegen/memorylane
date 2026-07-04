@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AlbumController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FamilyTreeController;
 use App\Http\Controllers\GedcomImportController;
 use App\Http\Controllers\MediaController;
@@ -29,9 +30,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middl
 // Protected routes
 Route::middleware('auth')->group(function () {
     // Dashboard
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Profile routes
     Route::prefix('profile')->name('profile.')->group(function () {

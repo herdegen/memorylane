@@ -36,6 +36,34 @@
           </div>
         </div>
 
+        <!-- Ce jour-là -->
+        <div v-if="onThisDay.length > 0" class="bg-white rounded-2xl border border-surface-200 shadow-warm-sm p-6 sm:p-8">
+          <div class="flex items-center gap-3 mb-1">
+            <span class="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center flex-shrink-0">
+              <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </span>
+            <h2 class="font-display text-2xl font-semibold text-surface-900">Ce jour-là</h2>
+          </div>
+          <p class="text-surface-500 mb-6">Vos souvenirs d'un {{ formattedToday }}</p>
+
+          <div v-for="group in onThisDay" :key="group.year" class="mb-8 last:mb-0">
+            <h3 class="text-sm font-semibold text-brand-700 mb-3">
+              {{ group.years_ago === 1 ? 'Il y a 1 an' : `Il y a ${group.years_ago} ans` }}
+              <span class="font-normal text-surface-400">— {{ group.year }}</span>
+            </h3>
+            <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
+              <MediaCard
+                v-for="media in group.media"
+                :key="media.id"
+                :media="media"
+                @click="openMedia"
+              />
+            </div>
+          </div>
+        </div>
+
         <!-- Quick Actions -->
         <div>
           <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400 mb-4">Accès rapide</h2>
@@ -125,11 +153,28 @@
 </template>
 
 <script setup>
-import { Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import MediaCard from '@/Components/MediaCard.vue';
 import { useAuth } from '@/Composables/useAuth';
 
 const { user } = useAuth();
+
+defineProps({
+  onThisDay: {
+    type: Array,
+    default: () => [],
+  },
+});
+
+const formattedToday = computed(() =>
+  new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
+);
+
+const openMedia = (media) => {
+  router.visit(`/media/${media.id}`);
+};
 
 const features = [
   { title: 'Galerie Photos & Vidéos', description: 'Upload, organisation et visualisation de vos médias', available: true },
