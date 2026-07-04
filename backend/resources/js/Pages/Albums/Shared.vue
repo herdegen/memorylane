@@ -23,11 +23,11 @@
       <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
         <!-- Album Header -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h1 class="text-2xl font-bold text-surface-900">{{ album.name }}</h1>
+          <h1 class="font-display text-2xl font-semibold text-surface-900">{{ album.name }}</h1>
           <p v-if="album.description" class="mt-2 text-surface-600">{{ album.description }}</p>
           <div class="mt-3 flex items-center gap-4 text-sm text-surface-500">
-            <span>{{ album.media_count || 0 }} medias</span>
-            <span v-if="album.user">Partage par {{ album.user.name }}</span>
+            <span>{{ album.media_count || 0 }} médias</span>
+            <span v-if="album.user">Partagé par {{ album.user.name }}</span>
           </div>
         </div>
 

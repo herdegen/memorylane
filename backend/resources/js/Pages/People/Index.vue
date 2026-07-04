@@ -5,8 +5,8 @@
         <!-- Header -->
         <div class="flex justify-between items-center mb-8">
           <div>
-            <h1 class="text-2xl font-bold text-surface-900">Personnes</h1>
-            <p class="mt-1 text-sm text-surface-500">Gerez les personnes presentes sur vos medias</p>
+            <h1 class="text-display text-4xl text-surface-900">Personnes</h1>
+            <p class="mt-1 text-sm text-surface-500">Gérez les personnes présentes sur vos médias</p>
           </div>
           <button
             @click="showCreateModal = true"
@@ -27,11 +27,11 @@
           <div
             v-for="person in people"
             :key="person.id"
-            class="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+            class="bg-white rounded-card border border-surface-200 shadow-warm-sm overflow-hidden cursor-pointer hover:shadow-warm-md hover:border-brand-200 hover:scale-[1.01] transition-all duration-200"
             @click="goToPerson(person)"
           >
             <!-- Avatar -->
-            <div class="aspect-square bg-gradient-to-br from-purple-100 to-brand-100 flex items-center justify-center">
+            <div class="aspect-square bg-brand-100 flex items-center justify-center">
               <img
                 v-if="person.avatar_url"
                 :src="person.avatar_url"
@@ -40,7 +40,7 @@
               />
               <span
                 v-else
-                class="text-6xl font-bold text-purple-300"
+                class="text-6xl font-bold text-brand-700"
               >
                 {{ person.name.charAt(0).toUpperCase() }}
               </span>
@@ -49,12 +49,12 @@
             <!-- Info -->
             <div class="p-4">
               <h3 class="text-lg font-semibold text-surface-900 truncate">
-                <span v-if="person.gender === 'M'" class="text-blue-500">&#9794;</span>
-                <span v-else-if="person.gender === 'F'" class="text-pink-500">&#9792;</span>
+                <span v-if="person.gender === 'M'" class="text-surface-400">&#9794;</span>
+                <span v-else-if="person.gender === 'F'" class="text-surface-400">&#9792;</span>
                 {{ person.name }}
               </h3>
               <p class="text-sm text-surface-500 mt-1">
-                {{ person.media_count }} {{ person.media_count === 1 ? 'media' : 'medias' }}
+                {{ person.media_count }} {{ person.media_count === 1 ? 'média' : 'médias' }}
               </p>
               <p v-if="person.birth_date" class="text-xs text-surface-400 mt-1">
                 {{ formatDate(person.birth_date) }}

@@ -6,7 +6,7 @@
         v-for="tag in mediaTags"
         :key="tag.id"
         class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium text-white cursor-pointer hover:opacity-90 transition"
-        :style="{ backgroundColor: tag.color || '#6366f1' }"
+        :style="{ backgroundColor: tag.color || '#0D9488' }"
       >
         {{ tag.name }}
         <button
@@ -55,7 +55,7 @@
         >
           <div
             class="w-3 h-3 rounded-full"
-            :style="{ backgroundColor: tag.color || '#6366f1' }"
+            :style="{ backgroundColor: tag.color || '#0D9488' }"
           ></div>
           <span class="text-sm text-surface-900">{{ tag.name }}</span>
           <span class="text-xs text-surface-500 ml-auto">{{ tag.media_count }} médias</span>

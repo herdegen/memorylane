@@ -18,7 +18,7 @@
           <div class="flex flex-col sm:flex-row sm:items-start gap-6">
             <!-- Avatar -->
             <div class="relative group">
-              <div class="w-32 h-32 flex-shrink-0 rounded-full overflow-hidden bg-gradient-to-br from-purple-100 to-brand-100 flex items-center justify-center">
+              <div class="w-32 h-32 flex-shrink-0 rounded-full overflow-hidden bg-brand-100 flex items-center justify-center">
                 <img
                   v-if="person.avatar_url"
                   :src="person.avatar_url"
@@ -27,7 +27,7 @@
                 />
                 <span
                   v-else
-                  class="text-5xl font-bold text-purple-300"
+                  class="text-5xl font-bold text-brand-700"
                 >
                   {{ person.name.charAt(0).toUpperCase() }}
                 </span>
@@ -49,9 +49,9 @@
             <div class="flex-1">
               <div class="flex items-start justify-between">
                 <div>
-                  <h1 class="text-2xl font-bold text-surface-900">
-                    <span v-if="person.gender === 'M'" class="text-blue-500 mr-1" title="Masculin">&#9794;</span>
-                    <span v-else-if="person.gender === 'F'" class="text-pink-500 mr-1" title="Feminin">&#9792;</span>
+                  <h1 class="font-display text-2xl font-semibold text-surface-900">
+                    <span v-if="person.gender === 'M'" class="text-surface-400 mr-1" title="Masculin">&#9794;</span>
+                    <span v-else-if="person.gender === 'F'" class="text-surface-400 mr-1" title="Féminin">&#9792;</span>
                     {{ person.name }}
                   </h1>
                   <p v-if="person.birth_date" class="text-sm text-surface-500 mt-1">
@@ -59,7 +59,7 @@
                     {{ person.death_date ? ' - ' + formatDate(person.death_date) : '' }}
                   </p>
                   <p class="text-sm text-surface-500 mt-2">
-                    {{ person.media_count || 0 }} {{ (person.media_count || 0) === 1 ? 'media' : 'medias' }}
+                    {{ person.media_count || 0 }} {{ (person.media_count || 0) === 1 ? 'média' : 'médias' }}
                   </p>
                 </div>
 

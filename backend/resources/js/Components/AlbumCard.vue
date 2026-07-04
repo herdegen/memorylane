@@ -1,6 +1,6 @@
 <template>
   <div
-    class="relative group rounded-xl overflow-hidden bg-white border border-surface-200 shadow-sm cursor-pointer transition-all duration-200 hover:shadow-md hover:border-brand-200 hover:scale-[1.01]"
+    class="relative group rounded-card overflow-hidden bg-white border border-surface-200 shadow-warm-sm cursor-pointer transition-all duration-200 hover:shadow-warm-md hover:border-brand-200 hover:scale-[1.01]"
     @click="$emit('click', album)"
   >
     <!-- Cover Image -->
@@ -36,7 +36,7 @@
     <div class="p-4">
       <div class="flex items-start justify-between">
         <div class="flex-1 min-w-0">
-          <h3 class="text-base font-semibold text-surface-900 truncate">
+          <h3 class="font-display text-lg font-semibold text-surface-900 truncate">
             {{ album.name }}
           </h3>
           <p v-if="album.description" class="mt-1 text-sm text-surface-500 line-clamp-2">
@@ -47,7 +47,7 @@
 
       <div class="mt-3 flex items-center justify-between">
         <span class="text-sm text-surface-500">
-          {{ album.media_count || 0 }} {{ album.media_count === 1 ? 'media' : 'medias' }}
+          {{ album.media_count || 0 }} {{ album.media_count === 1 ? 'média' : 'médias' }}
         </span>
 
         <!-- Visibility Badge -->
@@ -87,7 +87,7 @@
               d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
             />
           </svg>
-          {{ album.is_public ? 'Public' : 'Prive' }}
+          {{ album.is_public ? 'Public' : 'Privé' }}
         </span>
       </div>
     </div>
@@ -111,7 +111,7 @@
             d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
           />
         </svg>
-        Partage
+        Partagé
       </span>
     </div>
   </div>

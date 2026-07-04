@@ -9,8 +9,8 @@
         </div>
 
         <!-- Create new tag form -->
-        <div class="card">
-          <h2>Créer un nouveau tag</h2>
+        <div class="card card--padded mb-6">
+          <h2 class="card-title">Créer un nouveau tag</h2>
 
           <FormError
             v-if="errorMessage"
@@ -50,12 +50,15 @@
         </div>
 
         <!-- Tags list -->
-        <div class="card">
-          <h2>Tous les tags ({{ tags.length }})</h2>
+        <div class="card card--padded mb-6">
+          <h2 class="card-title">Tous les tags ({{ tags.length }})</h2>
 
           <!-- Empty state -->
           <div v-if="tags.length === 0" class="text-center py-12">
-            <div class="text-surface-400 text-5xl mb-4">🏷️</div>
+            <svg class="mx-auto h-12 w-12 text-brand-300 mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z" />
+            </svg>
             <h3 class="text-lg font-medium text-surface-900 mb-2">Aucun tag</h3>
             <p class="text-surface-600">Créez votre premier tag pour commencer à organiser vos médias</p>
           </div>
@@ -73,7 +76,7 @@
               >
                 <div
                   class="w-4 h-4 rounded-full flex-shrink-0"
-                  :style="{ backgroundColor: tag.color || '#6366f1' }"
+                  :style="{ backgroundColor: tag.color || '#0D9488' }"
                 ></div>
                 <div>
                   <h3 class="font-medium text-surface-900">{{ tag.name }}</h3>
@@ -115,7 +118,7 @@ const props = defineProps({
 
 const form = useForm({
   name: '',
-  color: '#6366f1',
+  color: '#0D9488',
 });
 
 const errorMessage = ref(null);
@@ -148,48 +151,8 @@ const deleteTag = (tag) => {
 </script>
 
 <style lang="scss" scoped>
-.page-header {
-  @apply mb-6;
-
-  h1 {
-    @apply text-3xl font-bold text-surface-900;
-  }
-
-  p {
-    @apply mt-2 text-surface-600;
-  }
-}
-
-.card {
-  @apply bg-white rounded-lg shadow-sm p-6 mb-6;
-
-  h2 {
-    @apply text-lg font-semibold text-surface-900 mb-4;
-  }
-}
-
-.form-label {
-  @apply block text-sm font-medium text-surface-700 mb-2;
-}
-
-.form-input {
-  @apply w-full px-4 py-2 border border-surface-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent;
-}
-
 .form-input-color {
   @apply h-10 w-20 border border-surface-300 rounded-lg cursor-pointer;
-}
-
-.form-error {
-  @apply text-red-500 text-xs mt-1;
-}
-
-.btn-primary {
-  @apply px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition;
-}
-
-.tag-item {
-  @apply flex items-center justify-between p-4 border border-surface-200 rounded-lg hover:border-brand-300 transition;
 }
 
 .btn-icon-danger {

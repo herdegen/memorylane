@@ -9,7 +9,7 @@
           &larr; Retour a l'arbre
         </Link>
 
-        <h1 class="text-2xl font-bold text-surface-900 mb-6">Importer un fichier GEDCOM</h1>
+        <h1 class="text-display text-4xl text-surface-900 mb-6">Importer un fichier GEDCOM</h1>
 
         <!-- Step 1: Upload -->
         <div v-if="step === 'upload'" class="bg-white rounded-lg shadow-md p-6">
@@ -101,8 +101,8 @@
               :key="suggestion.gedcom_id"
               class="border rounded-lg p-4"
               :class="{
-                'border-green-300 bg-green-50': decisions[suggestion.gedcom_id] === 'create',
-                'border-blue-300 bg-blue-50': decisions[suggestion.gedcom_id]?.startsWith('match_'),
+                'border-teal-300 bg-teal-50': decisions[suggestion.gedcom_id] === 'create',
+                'border-brand-300 bg-brand-50': decisions[suggestion.gedcom_id]?.startsWith('match_'),
                 'border-surface-200 bg-surface-50': decisions[suggestion.gedcom_id] === 'skip',
               }"
             >
@@ -123,15 +123,15 @@
                 <div class="flex gap-2">
                   <button
                     @click="decisions[suggestion.gedcom_id] = 'create'"
-                    :class="decisions[suggestion.gedcom_id] === 'create' ? 'bg-green-600 text-white' : 'bg-surface-100 text-surface-700'"
-                    class="px-3 py-1 text-sm rounded"
+                    :class="decisions[suggestion.gedcom_id] === 'create' ? 'bg-teal-600 text-white' : 'bg-surface-100 text-surface-700'"
+                    class="px-3 py-1 text-sm rounded-lg"
                   >
-                    Creer
+                    Créer
                   </button>
                   <button
                     @click="decisions[suggestion.gedcom_id] = 'skip'"
                     :class="decisions[suggestion.gedcom_id] === 'skip' ? 'bg-surface-600 text-white' : 'bg-surface-100 text-surface-700'"
-                    class="px-3 py-1 text-sm rounded"
+                    class="px-3 py-1 text-sm rounded-lg"
                   >
                     Ignorer
                   </button>
@@ -145,8 +145,8 @@
                     v-for="match in suggestion.matches"
                     :key="match.person_id"
                     @click="decisions[suggestion.gedcom_id] = 'match_' + match.person_id"
-                    :class="decisions[suggestion.gedcom_id] === 'match_' + match.person_id ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700'"
-                    class="px-3 py-1 text-sm rounded border border-blue-200"
+                    :class="decisions[suggestion.gedcom_id] === 'match_' + match.person_id ? 'bg-brand-600 text-white' : 'bg-brand-50 text-brand-700'"
+                    class="px-3 py-1 text-sm rounded-lg border border-brand-200"
                   >
                     {{ match.person_name }}
                     <span class="text-xs opacity-75">({{ match.score }}%)</span>

@@ -67,7 +67,7 @@
                     ? 'text-white'
                     : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
                 ]"
-                :style="selectedTags.includes(tag.id) ? { backgroundColor: tag.color || '#6366f1' } : {}"
+                :style="selectedTags.includes(tag.id) ? { backgroundColor: tag.color || '#0D9488' } : {}"
               >
                 {{ tag.name }}
               </button>

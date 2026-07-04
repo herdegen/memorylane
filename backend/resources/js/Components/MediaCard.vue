@@ -1,6 +1,6 @@
 <template>
   <div
-    class="relative group aspect-square rounded-lg overflow-hidden bg-surface-100 cursor-pointer transition-transform duration-200 hover:scale-105 hover:shadow-lg"
+    class="relative group aspect-square rounded-lg overflow-hidden bg-surface-100 cursor-pointer transition-transform duration-200 hover:scale-105 hover:shadow-warm-lg"
     @click="$emit('click', media)"
   >
     <!-- Image Thumbnail -->
@@ -92,7 +92,7 @@
             v-for="tag in media.tags.slice(0, 3)"
             :key="tag.id"
             class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
-            :style="{ backgroundColor: tag.color || '#6366f1' }"
+            :style="{ backgroundColor: tag.color || '#0D9488' }"
           >
             {{ tag.name }}
           </span>
@@ -148,7 +148,7 @@
     <div class="absolute top-2 left-2">
       <span
         v-if="media.type === 'video' && media.duration"
-        class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-800"
+        class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-violet-100 text-violet-700"
       >
         {{ formattedDuration }}
       </span>

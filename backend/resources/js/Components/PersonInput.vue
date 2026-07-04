@@ -15,7 +15,7 @@
       <span
         v-for="person in mediaPeople"
         :key="person.id"
-        class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-purple-100 text-purple-800"
+        class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-brand-100 text-brand-700"
       >
         <div
           v-if="person.avatar_url"
@@ -24,7 +24,7 @@
         ></div>
         <div
           v-else
-          class="w-5 h-5 rounded-full bg-purple-300 flex items-center justify-center text-xs text-white"
+          class="w-5 h-5 rounded-full bg-brand-200 flex items-center justify-center text-xs font-bold text-brand-800"
         >
           {{ person.name.charAt(0).toUpperCase() }}
         </div>
@@ -43,7 +43,7 @@
     </div>
 
     <div v-else class="text-sm text-surface-500 mb-3">
-      Aucune personne identifiee
+      Aucune personne identifiée
     </div>
 
     <!-- Add person input -->
@@ -84,12 +84,12 @@
           ></div>
           <div
             v-else
-            class="w-6 h-6 rounded-full bg-purple-300 flex items-center justify-center text-xs text-white"
+            class="w-6 h-6 rounded-full bg-brand-100 flex items-center justify-center text-xs font-bold text-brand-700"
           >
             {{ person.name.charAt(0).toUpperCase() }}
           </div>
           <span class="text-sm text-surface-900">{{ person.name }}</span>
-          <span class="text-xs text-surface-500 ml-auto">{{ person.media_count }} medias</span>
+          <span class="text-xs text-surface-500 ml-auto">{{ person.media_count }} médias</span>
         </button>
       </div>
 

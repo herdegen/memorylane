@@ -3,7 +3,7 @@
     <div class="py-12">
       <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
         <div class="mb-6">
-          <h1 class="text-3xl font-bold text-surface-900">Télécharger des médias</h1>
+          <h1 class="text-display text-4xl text-surface-900">Télécharger des médias</h1>
           <p class="mt-2 text-surface-600">
             Ajoutez vos photos, vidéos et documents à votre bibliothèque familiale.
           </p>
@@ -41,8 +41,8 @@
                         class="w-full h-full object-cover"
                       />
                     </div>
-                    <div v-else-if="media.type === 'video'" class="w-12 h-12 rounded bg-purple-100 flex items-center justify-center">
-                      <svg class="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div v-else-if="media.type === 'video'" class="w-12 h-12 rounded bg-violet-100 flex items-center justify-center">
+                      <svg class="h-6 w-6 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                       </svg>
                     </div>
@@ -83,16 +83,16 @@
           </div>
         </div>
 
-        <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="mt-6 bg-brand-50 border border-brand-200 rounded-lg p-4">
           <div class="flex">
             <div class="flex-shrink-0">
-              <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="h-5 w-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div class="ml-3">
-              <h3 class="text-sm font-medium text-blue-800">À propos du traitement des médias</h3>
-              <div class="mt-2 text-sm text-blue-700">
+              <h3 class="text-sm font-medium text-brand-800">À propos du traitement des médias</h3>
+              <div class="mt-2 text-sm text-brand-700">
                 <p>
                   Vos médias sont traités automatiquement en arrière-plan :
                 </p>

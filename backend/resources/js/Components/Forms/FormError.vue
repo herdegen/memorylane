@@ -143,8 +143,8 @@ const alertClasses = computed(() => {
   const classes = {
     error: 'bg-red-50 border border-red-200',
     success: 'bg-green-50 border border-green-200',
-    warning: 'bg-yellow-50 border border-yellow-200',
-    info: 'bg-blue-50 border border-blue-200',
+    warning: 'bg-brand-50 border border-brand-200',
+    info: 'bg-brand-50 border border-brand-200',
   };
   return classes[props.type] || classes.error;
 });
@@ -153,8 +153,8 @@ const textClasses = computed(() => {
   const classes = {
     error: 'text-red-800',
     success: 'text-green-800',
-    warning: 'text-yellow-800',
-    info: 'text-blue-800',
+    warning: 'text-brand-800',
+    info: 'text-brand-800',
   };
   return classes[props.type] || classes.error;
 });
@@ -163,8 +163,8 @@ const buttonClasses = computed(() => {
   const classes = {
     error: 'text-red-500 hover:bg-red-100 focus:ring-red-600 focus:ring-offset-red-50',
     success: 'text-green-500 hover:bg-green-100 focus:ring-green-600 focus:ring-offset-green-50',
-    warning: 'text-yellow-500 hover:bg-yellow-100 focus:ring-yellow-600 focus:ring-offset-yellow-50',
-    info: 'text-blue-500 hover:bg-blue-100 focus:ring-blue-600 focus:ring-offset-blue-50',
+    warning: 'text-brand-500 hover:bg-brand-100 focus:ring-brand-600 focus:ring-offset-brand-50',
+    info: 'text-brand-500 hover:bg-brand-100 focus:ring-brand-600 focus:ring-offset-brand-50',
   };
   return classes[props.type] || classes.error;
 });

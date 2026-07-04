@@ -17,6 +17,8 @@ export default {
                 display: ['"Playfair Display"', 'Georgia', 'serif'],
             },
             colors: {
+                // Fond crème chaude de toutes les pages
+                page: '#FAF7F1',
                 // Accent principal chaud (ambre)
                 brand: {
                     50:  '#FFFBEB',
@@ -43,6 +45,16 @@ export default {
                     800: '#292524',
                     900: '#1C1917',
                 },
+            },
+            borderRadius: {
+                card: '12px',
+                modal: '16px',
+            },
+            boxShadow: {
+                // Ombres teintées pierre chaude (#1C1917), jamais bleues
+                'warm-sm': '0 1px 2px rgba(28, 25, 23, 0.06)',
+                'warm-md': '0 4px 12px rgba(28, 25, 23, 0.08)',
+                'warm-lg': '0 12px 32px rgba(28, 25, 23, 0.14)',
             },
         },
     },

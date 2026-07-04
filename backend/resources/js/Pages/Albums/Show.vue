@@ -17,19 +17,19 @@
         <div class="bg-white rounded-lg shadow-md p-6 mb-6">
           <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div class="flex-1">
-              <h1 class="text-2xl font-bold text-surface-900">{{ album.name }}</h1>
+              <h1 class="font-display text-2xl font-semibold text-surface-900">{{ album.name }}</h1>
               <p v-if="album.description" class="mt-2 text-surface-600">{{ album.description }}</p>
               <div class="mt-3 flex items-center gap-4 text-sm text-surface-500">
-                <span>{{ album.media_count || 0 }} medias</span>
+                <span>{{ album.media_count || 0 }} médias</span>
                 <span
                   :class="[
                     'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
                     album.is_public
-                      ? 'bg-green-100 text-green-800'
+                      ? 'bg-teal-100 text-teal-700'
                       : 'bg-surface-100 text-surface-600'
                   ]"
                 >
-                  {{ album.is_public ? 'Public' : 'Prive' }}
+                  {{ album.is_public ? 'Public' : 'Privé' }}
                 </span>
               </div>
             </div>

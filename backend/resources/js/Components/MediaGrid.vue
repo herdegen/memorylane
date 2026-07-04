@@ -217,7 +217,7 @@
         <div class="absolute top-2 left-2">
           <span
             v-if="item.type === 'video'"
-            class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-800"
+            class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-violet-100 text-violet-700"
           >
             {{ formatDuration(item.duration) }}
           </span>
