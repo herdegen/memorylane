@@ -11,6 +11,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Derrière Traefik (terminaison TLS) : faire confiance au reverse proxy
+        // pour détecter HTTPS, l'IP client réelle et générer des URLs correctes.
+        $middleware->trustProxies(at: '*', headers:
+            \Illuminate\Http\Request::HEADER_X_FORWARDED_FOR |
+            \Illuminate\Http\Request::HEADER_X_FORWARDED_HOST |
+            \Illuminate\Http\Request::HEADER_X_FORWARDED_PORT |
+            \Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO
+        );
+
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
         ]);
