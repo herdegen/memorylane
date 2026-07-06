@@ -18,7 +18,7 @@
           <div class="flex flex-col sm:flex-row sm:items-start gap-6">
             <!-- Avatar -->
             <div class="relative group">
-              <div class="w-32 h-32 flex-shrink-0 rounded-full overflow-hidden bg-brand-100 flex items-center justify-center">
+              <div class="w-32 h-32 shrink-0 rounded-full overflow-hidden bg-brand-100 flex items-center justify-center">
                 <img
                   v-if="person.avatar_url"
                   :src="person.avatar_url"
@@ -35,7 +35,7 @@
               <button
                 v-if="media.data && media.data.length > 0"
                 @click="showAvatarPicker = true"
-                class="absolute inset-0 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-40 flex items-center justify-center transition-all"
+                class="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/40 flex items-center justify-center transition-all"
                 title="Changer l'avatar"
               >
                 <svg class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -131,7 +131,7 @@
         <!-- Empty State -->
         <div
           v-else
-          class="text-center py-12 bg-white rounded-lg shadow-sm"
+          class="text-center py-12 bg-white rounded-lg shadow-xs"
         >
           <svg
             class="mx-auto h-12 w-12 text-surface-300"
@@ -166,7 +166,7 @@
           aria-modal="true"
         >
           <div
-            class="fixed inset-0 bg-surface-500 bg-opacity-75 transition-opacity"
+            class="fixed inset-0 bg-surface-500/75 transition-opacity"
             @click="showAvatarPicker = false"
           ></div>
           <div class="flex min-h-full items-center justify-center p-4">

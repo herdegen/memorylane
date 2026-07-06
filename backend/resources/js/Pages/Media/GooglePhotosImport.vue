@@ -27,8 +27,8 @@
                 {{ isConnected ? 'Compte Google connecté.' : 'Autorisez MemoryLane à recevoir les photos que vous choisirez. Rien d\'autre n\'est partagé.' }}
               </p>
             </div>
-            <span v-if="isConnected" class="badge-teal flex-shrink-0">Connecté</span>
-            <a v-else href="/google-photos/connect" class="btn-primary flex-shrink-0">Se connecter</a>
+            <span v-if="isConnected" class="badge-teal shrink-0">Connecté</span>
+            <a v-else href="/google-photos/connect" class="btn-primary shrink-0">Se connecter</a>
           </div>
         </div>
 

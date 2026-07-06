@@ -7,7 +7,7 @@
   >
     <!-- Backdrop -->
     <div
-      class="fixed inset-0 bg-surface-900 bg-opacity-50 transition-opacity"
+      class="fixed inset-0 bg-surface-900/50 transition-opacity"
       @click="$emit('close')"
     ></div>
 
@@ -114,7 +114,7 @@
               <!-- Video indicator -->
               <div
                 v-if="media.type === 'video'"
-                class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20"
+                class="absolute inset-0 flex items-center justify-center bg-black/20"
               >
                 <svg
                   class="h-8 w-8 text-white opacity-80"
@@ -134,7 +134,7 @@
                     'w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all',
                     isSelected(media.id)
                       ? 'bg-brand-600 border-brand-600'
-                      : 'bg-white border-white shadow'
+                      : 'bg-white border-white shadow-sm'
                   ]"
                 >
                   <svg
@@ -161,14 +161,14 @@
         <div class="bg-surface-50 px-6 py-4 flex justify-end gap-3 border-t border-surface-200">
           <button
             type="button"
-            class="px-4 py-2 text-sm font-medium text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
+            class="px-4 py-2 text-sm font-medium text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
             @click="$emit('close')"
           >
             Annuler
           </button>
           <button
             type="button"
-            class="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed"
             :disabled="selectedIds.length === 0 || submitting"
             @click="confirm"
           >

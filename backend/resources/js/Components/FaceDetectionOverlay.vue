@@ -20,14 +20,14 @@
         <!-- Person name if matched -->
         <span
           v-if="face.person"
-          class="absolute -bottom-6 left-0 text-xs bg-green-600 text-white px-1.5 py-0.5 rounded whitespace-nowrap"
+          class="absolute -bottom-6 left-0 text-xs bg-green-600 text-white px-1.5 py-0.5 rounded-sm whitespace-nowrap"
         >
           {{ face.person.name }}
         </span>
         <!-- Unknown indicator if unmatched -->
         <span
           v-else
-          class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-amber-500 text-white px-1.5 py-0.5 rounded whitespace-nowrap"
+          class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-amber-500 text-white px-1.5 py-0.5 rounded-sm whitespace-nowrap"
         >
           ?
         </span>

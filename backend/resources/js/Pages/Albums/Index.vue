@@ -35,7 +35,7 @@
         <!-- Empty State -->
         <div
           v-else
-          class="text-center py-16 bg-white rounded-lg shadow-sm"
+          class="text-center py-16 bg-white rounded-lg shadow-xs"
         >
           <svg
             class="mx-auto h-16 w-16 text-surface-300"

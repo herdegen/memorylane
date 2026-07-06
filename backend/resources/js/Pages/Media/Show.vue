@@ -18,7 +18,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <!-- Media preview (left side - 2 columns) -->
           <div class="lg:col-span-2">
-            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div class="bg-white rounded-lg shadow-xs overflow-hidden">
               <!-- Image with face detection overlay -->
               <div v-if="media.type === 'photo'" class="relative bg-black">
                 <FaceDetectionOverlay
@@ -63,7 +63,7 @@
             <MediaInfoEditor :media="media" @updated="handleMediaUpdated" />
 
             <!-- Tags -->
-            <div class="bg-white rounded-lg shadow-sm p-6">
+            <div class="bg-white rounded-lg shadow-xs p-6">
               <h2 class="text-lg font-semibold text-surface-900 mb-4">Tags</h2>
               <TagInput :media-id="media.id" :initial-tags="media.tags || []" @tags-updated="handleTagsUpdated" />
             </div>
@@ -112,7 +112,7 @@
             />
 
             <!-- Actions -->
-            <div class="bg-white rounded-lg shadow-sm p-6">
+            <div class="bg-white rounded-lg shadow-xs p-6">
               <h2 class="text-lg font-semibold text-surface-900 mb-4">Actions</h2>
               <div class="space-y-2">
                 <a

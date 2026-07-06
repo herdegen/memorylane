@@ -7,7 +7,7 @@
   >
     <!-- Backdrop -->
     <div
-      class="fixed inset-0 bg-surface-900 bg-opacity-50 transition-opacity"
+      class="fixed inset-0 bg-surface-900/50 transition-opacity"
       @click="$emit('close')"
     ></div>
 
@@ -42,7 +42,7 @@
             <textarea
               v-model="form.description"
               rows="3"
-              class="w-full px-4 py-2.5 border border-surface-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              class="w-full px-4 py-2.5 border border-surface-300 rounded-lg shadow-xs focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               placeholder="Decrivez cet album..."
             ></textarea>
             <p v-if="form.errors.description" class="mt-1 text-sm text-red-600">
@@ -55,7 +55,7 @@
               id="is-public"
               v-model="form.is_public"
               type="checkbox"
-              class="h-4 w-4 text-brand-600 focus:ring-brand-500 border-surface-300 rounded"
+              class="h-4 w-4 text-brand-600 focus:ring-brand-500 border-surface-300 rounded-sm"
             />
             <label for="is-public" class="ml-2 block text-sm text-surface-700">
               Album public (visible par tous les utilisateurs)
@@ -69,7 +69,7 @@
                 id="is-smart"
                 v-model="form.is_smart"
                 type="checkbox"
-                class="h-4 w-4 text-brand-600 focus:ring-brand-500 border-surface-300 rounded"
+                class="h-4 w-4 text-brand-600 focus:ring-brand-500 border-surface-300 rounded-sm"
               />
               <label for="is-smart" class="ml-2 block text-sm text-surface-700">
                 Album intelligent (se remplit tout seul selon des critères)
@@ -135,7 +135,7 @@
         <div class="bg-surface-50 px-6 py-4 flex justify-end gap-3">
           <button
             type="button"
-            class="px-4 py-2 text-sm font-medium text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
+            class="px-4 py-2 text-sm font-medium text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
             @click="$emit('close')"
           >
             Annuler

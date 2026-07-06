@@ -10,11 +10,11 @@
     <div
       v-if="message || errors.length > 0"
       :class="alertClasses"
-      class="rounded-lg p-4 mb-6 shadow-sm"
+      class="rounded-lg p-4 mb-6 shadow-xs"
       role="alert"
     >
       <div class="flex items-start">
-        <div class="flex-shrink-0">
+        <div class="shrink-0">
           <!-- Icon -->
           <svg
             v-if="type === 'error'"
@@ -93,7 +93,7 @@
             @click="$emit('dismiss')"
             type="button"
             :class="buttonClasses"
-            class="inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2"
+            class="inline-flex rounded-md p-1.5 focus:outline-hidden focus:ring-2 focus:ring-offset-2"
           >
             <span class="sr-only">Fermer</span>
             <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">

@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-surface-100">
     <!-- Simple Header -->
-    <nav class="bg-white shadow-sm">
+    <nav class="bg-white shadow-xs">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
           <div class="flex items-center">
@@ -70,7 +70,7 @@
               <!-- Video indicator -->
               <div
                 v-if="media.type === 'video'"
-                class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20"
+                class="absolute inset-0 flex items-center justify-center bg-black/20"
               >
                 <svg
                   class="h-12 w-12 text-white opacity-80"
@@ -82,7 +82,7 @@
               </div>
 
               <!-- Hover overlay -->
-              <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center">
+              <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-200 flex items-center justify-center">
                 <svg
                   class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity"
                   fill="none"
@@ -104,7 +104,7 @@
         <!-- Empty State -->
         <div
           v-else
-          class="text-center py-16 bg-white rounded-lg shadow-sm"
+          class="text-center py-16 bg-white rounded-lg shadow-xs"
         >
           <svg
             class="mx-auto h-16 w-16 text-surface-300"
@@ -127,7 +127,7 @@
     <!-- Simple Lightbox -->
     <div
       v-if="lightboxMedia"
-      class="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center"
+      class="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
       @click="closeLightbox"
     >
       <button

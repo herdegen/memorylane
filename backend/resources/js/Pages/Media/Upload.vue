@@ -9,7 +9,7 @@
           </p>
         </div>
 
-        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+        <div class="bg-white overflow-hidden shadow-xs sm:rounded-lg">
           <div class="p-6">
             <MediaUploader @upload-complete="handleUploadComplete" />
           </div>
@@ -20,7 +20,7 @@
           href="/google-photos"
           class="mt-6 card card--padded flex items-center gap-4 group"
         >
-          <span class="w-12 h-12 rounded-xl bg-brand-100 flex items-center justify-center flex-shrink-0 group-hover:bg-brand-200 transition-colors">
+          <span class="w-12 h-12 rounded-xl bg-brand-100 flex items-center justify-center shrink-0 group-hover:bg-brand-200 transition-colors">
             <svg class="w-6 h-6 text-brand-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
             </svg>
@@ -29,7 +29,7 @@
             <span class="font-semibold text-surface-900 block">Importer depuis Google Photos</span>
             <span class="text-sm text-surface-500">Choisissez vos photos chez Google — par personne, lieu ou date — et rattachez-les directement.</span>
           </span>
-          <svg class="w-5 h-5 text-surface-400 group-hover:text-brand-600 transition-colors flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 text-surface-400 group-hover:text-brand-600 transition-colors shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
           </svg>
         </Link>
@@ -39,7 +39,7 @@
           href="/takeout"
           class="mt-4 card card--padded flex items-center gap-4 group"
         >
-          <span class="w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center flex-shrink-0 group-hover:bg-teal-200 transition-colors">
+          <span class="w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center shrink-0 group-hover:bg-teal-200 transition-colors">
             <svg class="w-6 h-6 text-teal-700" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
             </svg>
@@ -48,12 +48,12 @@
             <span class="font-semibold text-surface-900 block">Importer une archive Takeout</span>
             <span class="text-sm text-surface-500">Tout votre historique Google Photos, avec la géolocalisation — les photos déjà importées sont enrichies, pas dupliquées.</span>
           </span>
-          <svg class="w-5 h-5 text-surface-400 group-hover:text-brand-600 transition-colors flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 text-surface-400 group-hover:text-brand-600 transition-colors shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
           </svg>
         </Link>
 
-        <div v-if="recentUploads.length > 0" class="mt-6 bg-white overflow-hidden shadow-sm sm:rounded-lg">
+        <div v-if="recentUploads.length > 0" class="mt-6 bg-white overflow-hidden shadow-xs sm:rounded-lg">
           <div class="p-6">
             <div class="flex items-center justify-between mb-4">
               <h2 class="text-xl font-semibold text-surface-900">Médias téléchargés</h2>
@@ -71,20 +71,20 @@
                 class="flex items-center justify-between p-3 bg-surface-50 rounded-lg"
               >
                 <div class="flex items-center space-x-3 flex-1 min-w-0">
-                  <div class="flex-shrink-0">
-                    <div v-if="media.type === 'photo'" class="w-12 h-12 rounded overflow-hidden bg-surface-200">
+                  <div class="shrink-0">
+                    <div v-if="media.type === 'photo'" class="w-12 h-12 rounded-sm overflow-hidden bg-surface-200">
                       <img
                         :src="media.url"
                         :alt="media.original_filename"
                         class="w-full h-full object-cover"
                       />
                     </div>
-                    <div v-else-if="media.type === 'video'" class="w-12 h-12 rounded bg-violet-100 flex items-center justify-center">
+                    <div v-else-if="media.type === 'video'" class="w-12 h-12 rounded-sm bg-violet-100 flex items-center justify-center">
                       <svg class="h-6 w-6 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                       </svg>
                     </div>
-                    <div v-else class="w-12 h-12 rounded bg-surface-100 flex items-center justify-center">
+                    <div v-else class="w-12 h-12 rounded-sm bg-surface-100 flex items-center justify-center">
                       <svg class="h-6 w-6 text-surface-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                       </svg>
@@ -102,7 +102,7 @@
                 <div class="flex items-center space-x-2">
                   <Link
                     :href="`/media/${media.id}`"
-                    class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium text-brand-600 hover:text-brand-800 hover:bg-brand-50 transition"
+                    class="inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-medium text-brand-600 hover:text-brand-800 hover:bg-brand-50 transition"
                   >
                     <svg class="mr-1 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -123,7 +123,7 @@
 
         <div class="mt-6 bg-brand-50 border border-brand-200 rounded-lg p-4">
           <div class="flex">
-            <div class="flex-shrink-0">
+            <div class="shrink-0">
               <svg class="h-5 w-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>

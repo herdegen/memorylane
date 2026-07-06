@@ -2,7 +2,7 @@
   <AppLayout>
     <div class="py-12">
       <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+        <div class="bg-white overflow-hidden shadow-xs sm:rounded-lg">
           <div class="p-6">
             <div class="flex items-center justify-between mb-6">
               <h1 class="text-display text-2xl text-surface-900">Mon profil</h1>

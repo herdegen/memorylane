@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gradient-to-br from-brand-50 via-white to-surface-50">
+  <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-linear-to-br from-brand-50 via-white to-surface-50">
     <div class="w-full sm:max-w-md mt-6 px-8 py-8 bg-white shadow-xl rounded-2xl border border-surface-200">
       <!-- Logo / Branding -->
       <div class="text-center mb-8">
@@ -58,7 +58,7 @@
             <input
               v-model="form.remember"
               type="checkbox"
-              class="rounded border-surface-300 text-brand-600 shadow-sm focus:ring-brand-500"
+              class="rounded-sm border-surface-300 text-brand-600 shadow-xs focus:ring-brand-500"
             />
             <span class="ml-2 text-sm text-surface-600">Se souvenir de moi</span>
           </label>

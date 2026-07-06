@@ -3,7 +3,7 @@
     <div
       v-if="isOpen"
       ref="rootEl"
-      class="fixed inset-0 z-[100] bg-black flex items-center justify-center select-none"
+      class="fixed inset-0 z-100 bg-black flex items-center justify-center select-none"
       @mousemove="showControls"
       @click="showControls"
     >
@@ -51,7 +51,7 @@
           </button>
 
           <!-- Barre du bas -->
-          <div class="absolute bottom-0 left-0 right-0 pointer-events-auto bg-gradient-to-t from-black/70 to-transparent px-6 pb-6 pt-12">
+          <div class="absolute bottom-0 left-0 right-0 pointer-events-auto bg-linear-to-t from-black/70 to-transparent px-6 pb-6 pt-12">
             <div class="flex items-center justify-center gap-4">
               <button
                 @click.stop="previous"

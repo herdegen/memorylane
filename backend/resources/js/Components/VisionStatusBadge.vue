@@ -1,5 +1,5 @@
 <template>
-  <div v-if="currentStatus" class="bg-white rounded-lg shadow-sm p-4">
+  <div v-if="currentStatus" class="bg-white rounded-lg shadow-xs p-4">
     <!-- Processing -->
     <div v-if="currentStatus === 'pending' || currentStatus === 'processing'" class="flex items-center gap-3">
       <svg class="animate-spin h-5 w-5 text-brand-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -15,7 +15,7 @@
     <!-- Completed -->
     <div v-else-if="currentStatus === 'completed'" class="flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+        <div class="shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
           <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
           </svg>
@@ -39,7 +39,7 @@
     <!-- Failed -->
     <div v-else-if="currentStatus === 'failed'" class="flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="flex-shrink-0 w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+        <div class="shrink-0 w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
           <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>

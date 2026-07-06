@@ -7,7 +7,7 @@
   >
     <!-- Backdrop -->
     <div
-      class="fixed inset-0 bg-surface-900 bg-opacity-50 transition-opacity"
+      class="fixed inset-0 bg-surface-900/50 transition-opacity"
       @click="$emit('close')"
     ></div>
 
@@ -36,7 +36,7 @@
                 v-model="form.first_name"
                 type="text"
                 required
-                class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                 placeholder="Jean-Marie"
               />
               <p v-if="errors.first_name" class="mt-1 text-sm text-red-600">{{ errors.first_name }}</p>
@@ -49,7 +49,7 @@
                 id="last_name"
                 v-model="form.last_name"
                 type="text"
-                class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                 placeholder="Dupont"
               />
               <p v-if="errors.last_name" class="mt-1 text-sm text-red-600">{{ errors.last_name }}</p>
@@ -63,7 +63,7 @@
             <select
               id="gender"
               v-model="form.gender"
-              class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
             >
               <option value="U">Non specifie</option>
               <option value="M">Masculin</option>
@@ -80,7 +80,7 @@
                 id="birth_date"
                 v-model="form.birth_date"
                 type="date"
-                class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               />
             </div>
 
@@ -92,7 +92,7 @@
                 id="death_date"
                 v-model="form.death_date"
                 type="date"
-                class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               />
             </div>
           </div>
@@ -105,7 +105,7 @@
               id="notes"
               v-model="form.notes"
               rows="3"
-              class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               placeholder="Notes sur cette personne..."
             ></textarea>
           </div>

@@ -22,7 +22,7 @@
         </div>
 
         <!-- Search & Filters Bar -->
-        <div class="mb-6 bg-white rounded-lg shadow-sm p-4 space-y-4">
+        <div class="mb-6 bg-white rounded-lg shadow-xs p-4 space-y-4">
           <!-- Search -->
           <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -34,7 +34,7 @@
               v-model="searchQuery"
               type="text"
               placeholder="Rechercher dans vos médias..."
-              class="block w-full pl-10 pr-3 py-2 border border-surface-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
+              class="block w-full pl-10 pr-3 py-2 border border-surface-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-hidden focus:placeholder-gray-400 focus:ring-1 focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
               @input="debouncedSearch"
             />
           </div>
@@ -63,7 +63,7 @@
                     placeholder="Min"
                     class="w-full px-2 py-1.5 text-sm border border-surface-300 rounded-md focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
                   />
-                  <span class="text-surface-400 text-xs flex-shrink-0">→</span>
+                  <span class="text-surface-400 text-xs shrink-0">→</span>
                   <input
                     v-model.number="videoFilters.durationMax"
                     type="number"
@@ -148,7 +148,7 @@
         </div>
 
         <!-- Media Grid -->
-        <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="bg-white rounded-lg shadow-xs p-6">
           <MediaGrid
             :media="mediaItems"
             :loading="loading"

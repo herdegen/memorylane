@@ -231,7 +231,7 @@ function updateMarkers() {
 
     const popupContent = `
       <div class="text-center">
-        <img src="${media.thumbnail_url}" alt="${media.original_name}" class="w-32 h-32 object-cover rounded mb-2" />
+        <img src="${media.thumbnail_url}" alt="${media.original_name}" class="w-32 h-32 object-cover rounded-sm mb-2" />
         <div class="font-medium text-sm">${media.original_name}</div>
         ${media.taken_at ? `<div class="text-xs text-surface-500">${new Date(media.taken_at).toLocaleDateString()}</div>` : ''}
         <div class="mt-2">

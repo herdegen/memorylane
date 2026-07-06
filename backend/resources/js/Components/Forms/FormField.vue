@@ -20,7 +20,7 @@
         :disabled="disabled"
         :autocomplete="autocomplete"
         :class="inputClasses"
-        class="w-full px-4 py-2.5 border rounded-lg shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:bg-surface-100 disabled:cursor-not-allowed"
+        class="w-full px-4 py-2.5 border rounded-lg shadow-xs transition-all duration-200 focus:outline-hidden focus:ring-2 focus:ring-offset-1 disabled:bg-surface-100 disabled:cursor-not-allowed"
       />
 
       <!-- Icon d'erreur -->
@@ -54,7 +54,7 @@
     >
       <p v-if="error" class="mt-2 text-sm text-red-600 flex items-center gap-1">
         <svg
-          class="h-4 w-4 flex-shrink-0"
+          class="h-4 w-4 shrink-0"
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 20 20"
           fill="currentColor"

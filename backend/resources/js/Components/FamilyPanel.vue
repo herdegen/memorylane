@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-xl border border-surface-200 shadow-sm p-6 mb-6">
+  <div class="bg-white rounded-xl border border-surface-200 shadow-xs p-6 mb-6">
     <h3 class="text-lg font-semibold text-surface-900 mb-4">Famille</h3>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

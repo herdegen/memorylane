@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-xl border border-surface-200 shadow-sm p-6">
+  <div class="bg-white rounded-xl border border-surface-200 shadow-xs p-6">
     <h3 class="text-lg font-semibold mb-4">Géolocalisation</h3>
 
     <!-- Current location display -->

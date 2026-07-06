@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-xl border border-surface-200 shadow-sm p-6">
+  <div class="bg-white rounded-xl border border-surface-200 shadow-xs p-6">
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-lg font-semibold text-surface-900">Informations</h2>
       <button
@@ -21,7 +21,7 @@
           id="title"
           v-model="form.title"
           type="text"
-          class="w-full px-3 py-2 border border-surface-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+          class="w-full px-3 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
           placeholder="Titre du media"
         />
       </div>
@@ -34,7 +34,7 @@
           id="description"
           v-model="form.description"
           rows="3"
-          class="w-full px-3 py-2 border border-surface-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+          class="w-full px-3 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
           placeholder="Decrivez ce media..."
         ></textarea>
       </div>

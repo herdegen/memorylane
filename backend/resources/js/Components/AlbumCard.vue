@@ -14,7 +14,7 @@
       />
       <div
         v-else
-        class="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-50 to-surface-100"
+        class="w-full h-full flex items-center justify-center bg-linear-to-br from-brand-50 to-surface-100"
       >
         <svg
           class="h-16 w-16 text-brand-300"

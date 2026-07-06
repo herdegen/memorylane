@@ -90,7 +90,7 @@
               class="flex items-center justify-between p-3 bg-white rounded-lg border border-surface-200"
             >
               <div class="flex items-center space-x-3 flex-1 min-w-0">
-                <div class="flex-shrink-0">
+                <div class="shrink-0">
                   <svg
                     v-if="isImage(file.type)"
                     class="h-6 w-6 text-brand-500"
@@ -245,7 +245,7 @@
               </p>
             </div>
             <!-- Badge succès permanent -->
-            <div class="absolute top-2 right-2 bg-green-500 rounded-full p-1 shadow-sm">
+            <div class="absolute top-2 right-2 bg-green-500 rounded-full p-1 shadow-xs">
               <svg class="h-3 w-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
               </svg>

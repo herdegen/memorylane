@@ -75,7 +75,7 @@
                 class="flex items-center gap-3 flex-1 hover:opacity-75 transition"
               >
                 <div
-                  class="w-4 h-4 rounded-full flex-shrink-0"
+                  class="w-4 h-4 rounded-full shrink-0"
                   :style="{ backgroundColor: tag.color || '#0D9488' }"
                 ></div>
                 <div>
@@ -150,7 +150,10 @@ const deleteTag = (tag) => {
 };
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
+/* Tailwind v4 : un <style> scoped ne voit pas le thème, il faut le référencer pour @apply */
+@reference "../../../css/app.css";
+
 .form-input-color {
   @apply h-10 w-20 border border-surface-300 rounded-lg cursor-pointer;
 }

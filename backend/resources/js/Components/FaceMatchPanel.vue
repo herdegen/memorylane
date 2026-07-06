@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-xl border border-surface-200 shadow-sm p-6">
+  <div class="bg-white rounded-xl border border-surface-200 shadow-xs p-6">
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-lg font-semibold text-surface-900">Identifier le visage</h2>
       <button @click="$emit('close')" class="text-surface-400 hover:text-surface-600">

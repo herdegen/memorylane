@@ -13,7 +13,7 @@
         placeholder="Rechercher…"
         class="w-full pl-9 pr-3 py-1.5 text-sm border border-surface-200 rounded-full bg-surface-50
                placeholder-surface-400 text-surface-900
-               focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-none
+               focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden
                transition-colors"
         @focus="query.length >= 2 && (isOpen = true)"
         @keydown.escape="isOpen = false"
@@ -40,11 +40,11 @@
           >
             <span
               v-if="!person.avatar_url"
-              class="w-7 h-7 rounded-full bg-brand-100 text-brand-700 text-xs font-bold flex items-center justify-center flex-shrink-0"
+              class="w-7 h-7 rounded-full bg-brand-100 text-brand-700 text-xs font-bold flex items-center justify-center shrink-0"
             >
               {{ person.name.charAt(0).toUpperCase() }}
             </span>
-            <img v-else :src="person.avatar_url" class="w-7 h-7 rounded-full object-cover flex-shrink-0" alt="" />
+            <img v-else :src="person.avatar_url" class="w-7 h-7 rounded-full object-cover shrink-0" alt="" />
             <span class="text-sm text-surface-900 truncate">{{ person.name }}</span>
           </button>
         </div>
@@ -72,7 +72,7 @@
             @mousedown.prevent="go(`/media?tags[]=${tag.id}`)"
             class="w-full px-4 py-2 text-left hover:bg-surface-50 transition flex items-center gap-2"
           >
-            <span class="w-3 h-3 rounded-full flex-shrink-0" :style="{ backgroundColor: tag.color || '#0D9488' }"></span>
+            <span class="w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: tag.color || '#0D9488' }"></span>
             <span class="text-sm text-surface-900 truncate">{{ tag.name }}</span>
           </button>
         </div>
@@ -89,7 +89,7 @@
             <img
               v-if="media.thumbnail_url"
               :src="media.thumbnail_url"
-              class="w-9 h-9 rounded-md object-cover flex-shrink-0 bg-surface-100"
+              class="w-9 h-9 rounded-md object-cover shrink-0 bg-surface-100"
               alt=""
               loading="lazy"
             />

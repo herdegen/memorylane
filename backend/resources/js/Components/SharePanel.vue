@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-xl border border-surface-200 shadow-sm p-6 mb-6">
+  <div class="bg-white rounded-xl border border-surface-200 shadow-xs p-6 mb-6">
     <h3 class="text-lg font-semibold text-surface-900 mb-4">Partage</h3>
 
     <!-- Public Toggle -->
@@ -11,14 +11,14 @@
       <button
         type="button"
         :class="[
-          'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2',
+          'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:ring-offset-2',
           isPublic ? 'bg-brand-600' : 'bg-surface-200'
         ]"
         @click="togglePublic"
       >
         <span
           :class="[
-            'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+            'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out',
             isPublic ? 'translate-x-5' : 'translate-x-0'
           ]"
         />
@@ -43,7 +43,7 @@
           />
           <button
             type="button"
-            class="px-4 py-2 text-sm font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            class="px-4 py-2 text-sm font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100 focus:outline-hidden focus:ring-2 focus:ring-brand-500"
             @click="copyLink"
           >
             {{ copied ? 'Copie !' : 'Copier' }}
@@ -63,7 +63,7 @@
       <div v-else>
         <button
           type="button"
-          class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
+          class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 focus:outline-hidden focus:ring-2 focus:ring-brand-500"
           :disabled="generating"
           @click="generateLink"
         >

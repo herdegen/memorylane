@@ -131,7 +131,7 @@
           </div>
           <!-- Play Icon Overlay -->
           <div
-            class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20"
+            class="absolute inset-0 flex items-center justify-center bg-black/20"
           >
             <svg
               class="h-12 w-12 text-white opacity-80"
@@ -170,7 +170,7 @@
 
         <!-- Hover Overlay with Info -->
         <div
-          class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+          class="absolute inset-0 bg-linear-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200"
         >
           <div class="absolute bottom-0 left-0 right-0 p-3 text-white">
             <p class="text-xs font-medium truncate">
@@ -193,7 +193,7 @@
               'w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all',
               isSelected(item.id)
                 ? 'bg-brand-600 border-brand-600'
-                : 'bg-white bg-opacity-80 border-white hover:bg-opacity-100'
+                : 'bg-white/80 border-white hover:bg-white/100'
             ]"
           >
             <svg

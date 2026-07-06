@@ -5,7 +5,7 @@
         <div class="flex justify-between h-16">
           <!-- Logo + nav links -->
           <div class="flex">
-            <div class="flex-shrink-0 flex items-center">
+            <div class="shrink-0 flex items-center">
               <Link href="/dashboard" class="flex items-center gap-2 group">
                 <!-- Logo SVG polaroid -->
                 <span class="w-8 h-8 rounded-lg bg-brand-100 flex items-center justify-center group-hover:bg-brand-200 transition-colors">
@@ -47,7 +47,7 @@
                 <button
                   @click="showDropdown = !showDropdown"
                   class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-surface-700
-                         hover:bg-surface-100 hover:text-surface-900 focus:outline-none transition-colors"
+                         hover:bg-surface-100 hover:text-surface-900 focus:outline-hidden transition-colors"
                 >
                   <span class="w-7 h-7 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-xs font-bold">
                     {{ user.name?.charAt(0)?.toUpperCase() }}
@@ -79,7 +79,7 @@
           <div class="flex items-center sm:hidden">
             <button
               @click="showMobileMenu = !showMobileMenu"
-              class="p-2 rounded-lg text-surface-500 hover:text-surface-700 hover:bg-surface-100 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
+              class="p-2 rounded-lg text-surface-500 hover:text-surface-700 hover:bg-surface-100 focus:outline-hidden focus:ring-2 focus:ring-brand-500 transition-colors"
             >
               <IconMenu :open="showMobileMenu" />
             </button>

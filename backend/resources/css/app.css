@@ -1,3 +1,502 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../vendor/filament/**/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+@theme {
+  --font-sans:
+    Figtree, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  --font-display: 'Playfair Display', Georgia, serif;
+
+  --color-page: #faf7f1;
+
+  --color-brand-50: #fffbeb;
+  --color-brand-100: #fef3c7;
+  --color-brand-200: #fde68a;
+  --color-brand-300: #fcd34d;
+  --color-brand-400: #fbbf24;
+  --color-brand-500: #f59e0b;
+  --color-brand-600: #d97706;
+  --color-brand-700: #b45309;
+  --color-brand-800: #92400e;
+  --color-brand-900: #78350f;
+
+  --color-surface-50: #fafaf9;
+  --color-surface-100: #f5f5f4;
+  --color-surface-200: #e7e5e4;
+  --color-surface-300: #d6d3d1;
+  --color-surface-400: #a8a29e;
+  --color-surface-500: #78716c;
+  --color-surface-600: #57534e;
+  --color-surface-700: #44403c;
+  --color-surface-800: #292524;
+  --color-surface-900: #1c1917;
+
+  --radius-card: 12px;
+  --radius-modal: 16px;
+
+  --shadow-warm-sm: 0 1px 2px rgba(28, 25, 23, 0.06);
+  --shadow-warm-md: 0 4px 12px rgba(28, 25, 23, 0.08);
+  --shadow-warm-lg: 0 12px 32px rgba(28, 25, 23, 0.14);
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+/* =============================================================================
+   Base — fond crème chaude, Figtree, texte pierre
+   ============================================================================= */
+@layer base {
+  body {
+    @apply bg-page font-sans text-surface-700;
+  }
+}
+
+/* =============================================================================
+   Variables (les couleurs du thème sont exposées en vars CSS par @theme en v4)
+   ============================================================================= */
+:root {
+  --color-primary:       var(--color-brand-600);
+  --color-primary-hover: var(--color-brand-700);
+  --color-primary-light: var(--color-brand-100);
+  --surface-bg:          var(--color-surface-50);
+  --surface-card:        var(--color-white);
+  --surface-border:      var(--color-surface-200);
+  --color-success:       var(--color-green-500);
+  --color-warning:       var(--color-brand-500);
+  --color-danger:        var(--color-red-500);
+}
+
+/* =============================================================================
+   Classes de base réutilisées via @apply → définies en @utility (requis en v4,
+   @apply n'accepte pas une classe de @layer components)
+   ============================================================================= */
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2 border border-transparent
+         text-sm font-semibold rounded-lg transition ease-in-out duration-150
+         focus:outline-hidden focus:ring-2 focus:ring-offset-2
+         disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+@utility form-input {
+  @apply w-full px-4 py-2.5 border border-surface-300 rounded-lg bg-white
+         text-surface-900 placeholder-surface-400
+         focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:outline-hidden
+         transition sm:text-sm;
+}
+
+@utility alert {
+  @apply rounded-xl p-4 mb-4 border;
+}
+
+@utility badge {
+  @apply inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full;
+}
+
+/* =============================================================================
+   Layout
+   ============================================================================= */
+@layer components {
+  .page-container {
+    @apply py-10;
+  }
+
+  .page-content {
+    @apply max-w-7xl mx-auto sm:px-6 lg:px-8;
+  }
+
+  .page-header {
+    @apply mb-8;
+  }
+  .page-header h1 {
+    @apply font-display text-4xl font-semibold text-surface-900;
+  }
+  .page-header p {
+    @apply mt-2 text-surface-500;
+  }
+}
+
+/* =============================================================================
+   Cards
+   ============================================================================= */
+@layer components {
+  .card {
+    @apply bg-white overflow-hidden rounded-card border border-surface-200 shadow-warm-sm
+           hover:shadow-warm-md hover:border-brand-200 transition-all duration-200;
+  }
+  .card--padded {
+    @apply p-6;
+  }
+
+  .card-body {
+    @apply p-6;
+  }
+
+  .card-title {
+    @apply text-xl font-semibold text-surface-900 mb-4;
+  }
+
+  /* Action card (Dashboard quick actions) */
+  .action-card {
+    @apply bg-white p-6 rounded-card shadow-warm-sm hover:shadow-warm-md transition-all duration-200
+           border border-surface-200 hover:border-brand-200 hover:scale-[1.01]
+           cursor-pointer;
+  }
+
+  .action-card-content {
+    @apply flex items-center;
+  }
+
+  .action-card-icon {
+    @apply p-3 rounded-xl;
+  }
+  .action-card-icon--brand  { @apply bg-brand-100 text-brand-700; }
+  .action-card-icon--teal   { @apply bg-teal-100 text-teal-700; }
+  .action-card-icon--rose   { @apply bg-rose-100 text-rose-700; }
+  .action-card-icon--violet { @apply bg-violet-100 text-violet-700; }
+  /* Rétrocompatibilité */
+  .action-card-icon--indigo { @apply bg-brand-100 text-brand-700; }
+  .action-card-icon--green  { @apply bg-teal-100 text-teal-700; }
+  .action-card-icon--blue   { @apply bg-rose-100 text-rose-700; }
+  .action-card-icon--purple { @apply bg-violet-100 text-violet-700; }
+
+  .action-card-text {
+    @apply ml-4;
+  }
+  .action-card-text h3 {
+    @apply font-semibold text-surface-900;
+  }
+  .action-card-text p {
+    @apply text-sm text-surface-500;
+  }
+
+  /* Stat card */
+  .stat-card {
+    @apply bg-white rounded-xl border border-surface-200 p-6 flex flex-col gap-1;
+  }
+  .stat-card__value {
+    @apply text-2xl font-bold text-surface-900;
+  }
+  .stat-card__label {
+    @apply text-sm text-surface-500;
+  }
+}
+
+/* =============================================================================
+   Feature items
+   ============================================================================= */
+@layer components {
+  .feature-item {
+    @apply flex items-start p-4 bg-surface-50 rounded-xl border border-surface-100;
+  }
+
+  .feature-icon {
+    @apply shrink-0;
+  }
+  .feature-icon--available {
+    @apply text-teal-500;
+  }
+  .feature-icon--coming {
+    @apply text-brand-500;
+  }
+
+  .feature-content {
+    @apply ml-3;
+  }
+  .feature-content h3 {
+    @apply text-sm font-medium text-surface-900;
+  }
+  .feature-content p {
+    @apply text-sm text-surface-500;
+  }
+}
+
+/* =============================================================================
+   Buttons
+   ============================================================================= */
+@layer components {
+  .btn-primary {
+    @apply btn text-white bg-brand-600 hover:bg-brand-700
+           focus:ring-brand-500 active:bg-brand-800;
+  }
+
+  .btn-secondary {
+    @apply btn text-surface-700 bg-white border-surface-300
+           hover:bg-surface-100 hover:text-surface-900 focus:ring-brand-500;
+  }
+
+  .btn-danger {
+    @apply btn text-white bg-red-600 hover:bg-red-700
+           focus:ring-red-500 active:bg-red-900;
+  }
+
+  .btn-success {
+    @apply btn text-white bg-teal-600 hover:bg-teal-700
+           focus:ring-teal-500 active:bg-teal-900;
+  }
+
+  .btn-admin {
+    @apply inline-flex items-center px-3 py-2 text-sm font-medium
+           text-brand-700 bg-brand-100 rounded-lg hover:bg-brand-200 transition;
+  }
+
+  .btn-ghost {
+    @apply btn text-surface-600 bg-transparent border-transparent
+           hover:bg-surface-100 hover:text-surface-900 focus:ring-brand-500;
+  }
+
+  .btn-lg {
+    @apply px-6 py-3 text-base rounded-xl;
+  }
+
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+
+  .btn-full {
+    @apply w-full;
+  }
+}
+
+/* =============================================================================
+   Forms
+   ============================================================================= */
+@layer components {
+  .form-group {
+    @apply mb-4;
+  }
+
+  .form-label {
+    @apply block text-sm font-medium text-surface-700 mb-1.5;
+  }
+
+  .form-input--error {
+    @apply border-red-400 bg-red-50;
+  }
+
+  .form-select {
+    @apply form-input cursor-pointer;
+  }
+
+  .form-checkbox {
+    @apply h-4 w-4 text-brand-600 focus:ring-brand-500
+           border-surface-300 rounded-sm;
+  }
+
+  .form-error {
+    @apply mt-1 text-sm text-red-600;
+  }
+
+  .form-helper {
+    @apply mt-1 text-xs text-surface-500;
+  }
+}
+
+/* =============================================================================
+   Alerts
+   ============================================================================= */
+@layer components {
+  .alert-success {
+    @apply alert bg-teal-50 border-teal-200;
+  }
+  .alert-success p {
+    @apply text-sm text-teal-800;
+  }
+
+  .alert-error {
+    @apply alert bg-red-50 border-red-200;
+  }
+  .alert-error p {
+    @apply text-sm text-red-800;
+  }
+
+  .alert-warning {
+    @apply alert bg-brand-50 border-brand-200;
+  }
+  .alert-warning p {
+    @apply text-sm text-brand-800;
+  }
+}
+
+/* =============================================================================
+   Badges
+   ============================================================================= */
+@layer components {
+  .badge-brand   { @apply badge bg-brand-100 text-brand-700; }
+  .badge-surface { @apply badge bg-surface-100 text-surface-600; }
+  .badge-teal    { @apply badge bg-teal-100 text-teal-700; }
+  .badge-red     { @apply badge bg-red-100 text-red-700; }
+}
+
+/* =============================================================================
+   Tags
+   ============================================================================= */
+@layer components {
+  .tag-item {
+    @apply flex items-center justify-between p-4 border border-surface-200
+           rounded-xl hover:border-brand-300 hover:bg-brand-50/30 transition-all;
+  }
+
+  .tag-color {
+    @apply w-4 h-4 rounded-full ring-2 ring-white shadow-xs;
+  }
+
+  .tag-info {
+    @apply flex items-center gap-3;
+  }
+
+  .tag-name {
+    @apply font-medium text-surface-900;
+  }
+
+  .tag-count {
+    @apply text-sm text-surface-500;
+  }
+}
+
+/* =============================================================================
+   Grid layouts
+   ============================================================================= */
+@layer components {
+  .grid-2 {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-4;
+  }
+
+  .grid-3 {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4;
+  }
+
+  .grid-4 {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6;
+  }
+}
+
+/* =============================================================================
+   Icons
+   ============================================================================= */
+@layer components {
+  .icon {
+    @apply w-6 h-6;
+  }
+
+  .icon-sm {
+    @apply w-4 h-4;
+  }
+
+  .icon-lg {
+    @apply w-8 h-8;
+  }
+
+  .icon-xl {
+    @apply w-12 h-12;
+  }
+}
+
+/* =============================================================================
+   Navigation
+   ============================================================================= */
+@layer components {
+  .nav-link {
+    @apply inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-all;
+  }
+  .nav-link--active {
+    @apply border-brand-500 text-surface-900;
+  }
+  .nav-link--inactive {
+    @apply border-transparent text-surface-500 hover:text-surface-800 hover:border-surface-300;
+  }
+
+  .mobile-nav-link {
+    @apply block pl-3 pr-4 py-2.5 border-l-4 text-base font-medium transition-all rounded-r-lg;
+  }
+  .mobile-nav-link--active {
+    @apply bg-brand-50 border-brand-500 text-brand-700;
+  }
+  .mobile-nav-link--inactive {
+    @apply border-transparent text-surface-600 hover:text-surface-800
+           hover:bg-surface-50 hover:border-surface-300;
+  }
+}
+
+/* =============================================================================
+   Dropdown
+   ============================================================================= */
+@layer components {
+  .dropdown {
+    @apply absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-warm-lg
+           py-1 z-50 ring-1 ring-surface-200 border border-surface-100;
+  }
+
+  .dropdown-item {
+    @apply block px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50
+           hover:text-surface-900 transition-colors;
+  }
+
+  .dropdown-divider {
+    @apply my-1 border-t border-surface-100;
+  }
+}
+
+/* =============================================================================
+   Empty states
+   ============================================================================= */
+@layer components {
+  .empty-state {
+    @apply text-center py-16;
+  }
+
+  .empty-state-icon {
+    @apply text-surface-300 text-5xl mb-4;
+  }
+
+  .empty-state-title {
+    @apply text-lg font-semibold text-surface-900 mb-2;
+  }
+
+  .empty-state-text {
+    @apply text-surface-500;
+  }
+}
+
+/* =============================================================================
+   Dividers
+   ============================================================================= */
+@layer components {
+  .divider {
+    @apply border-t border-surface-200;
+  }
+}
+
+/* =============================================================================
+   Utilities
+   ============================================================================= */
+@layer utilities {
+  .text-muted {
+    @apply text-surface-500;
+  }
+
+  .text-title {
+    @apply text-surface-900 font-semibold;
+  }
+
+  .text-display {
+    @apply font-display font-semibold;
+  }
+}
