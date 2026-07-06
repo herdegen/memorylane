@@ -3,10 +3,14 @@
 namespace App\Services\Vision;
 
 use App\Contracts\VisionServiceInterface;
-use Google\Cloud\Vision\V1\ImageAnnotatorClient;
+use Google\Cloud\Vision\V1\AnnotateImageRequest;
+use Google\Cloud\Vision\V1\AnnotateImageResponse;
+use Google\Cloud\Vision\V1\BatchAnnotateImagesRequest;
+use Google\Cloud\Vision\V1\Client\ImageAnnotatorClient;
+use Google\Cloud\Vision\V1\Feature;
 use Google\Cloud\Vision\V1\Feature\Type;
+use Google\Cloud\Vision\V1\Image;
 use Google\Cloud\Vision\V1\Likelihood;
-use Illuminate\Support\Facades\Log;
 
 class GoogleVisionService implements VisionServiceInterface
 {
@@ -54,16 +58,29 @@ class GoogleVisionService implements VisionServiceInterface
     /**
      * Send image to Google Cloud Vision API for annotation.
      */
-    private function annotateImage(string $imagePath, array $features): \Google\Cloud\Vision\V1\AnnotateImageResponse
+    private function annotateImage(string $imagePath, array $featureTypes): AnnotateImageResponse
     {
         $client = $this->getClient();
         $imageContent = file_get_contents($imagePath);
 
-        $response = $client->annotateImage($imageContent, $features);
+        // v2 : plus de helper annotateImage() ; on construit une requête batch d'une seule image.
+        $image = (new Image)->setContent($imageContent);
+        $features = array_map(
+            fn (int $type): Feature => (new Feature)->setType($type),
+            $featureTypes
+        );
+        $request = (new AnnotateImageRequest)
+            ->setImage($image)
+            ->setFeatures($features);
+
+        $batchResponse = $client->batchAnnotateImages(
+            (new BatchAnnotateImagesRequest)->setRequests([$request])
+        );
+        $response = $batchResponse->getResponses()[0];
 
         if ($response->getError() && $response->getError()->getCode() !== 0) {
             throw new \RuntimeException(
-                'Google Vision API error: ' . $response->getError()->getMessage()
+                'Google Vision API error: '.$response->getError()->getMessage()
             );
         }
 
@@ -74,7 +91,7 @@ class GoogleVisionService implements VisionServiceInterface
      * Parse face annotations into normalized format.
      * Bounding boxes are converted to percentages of image dimensions.
      */
-    private function parseFaceAnnotations(\Google\Cloud\Vision\V1\AnnotateImageResponse $response, string $imagePath): array
+    private function parseFaceAnnotations(AnnotateImageResponse $response, string $imagePath): array
     {
         $faceAnnotations = $response->getFaceAnnotations();
         if (! $faceAnnotations || $faceAnnotations->count() === 0) {
@@ -121,7 +138,7 @@ class GoogleVisionService implements VisionServiceInterface
     /**
      * Parse label annotations with confidence filtering.
      */
-    private function parseLabelAnnotations(\Google\Cloud\Vision\V1\AnnotateImageResponse $response): array
+    private function parseLabelAnnotations(AnnotateImageResponse $response): array
     {
         $labelAnnotations = $response->getLabelAnnotations();
         if (! $labelAnnotations || $labelAnnotations->count() === 0) {
@@ -230,11 +247,6 @@ class GoogleVisionService implements VisionServiceInterface
             $credentials = config('vision.google.credentials');
             if ($credentials) {
                 $config['credentials'] = $credentials;
-            }
-
-            $projectId = config('vision.google.project_id');
-            if ($projectId) {
-                $config['projectId'] = $projectId;
             }
 
             $this->client = new ImageAnnotatorClient($config);

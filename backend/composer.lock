@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4be6fe77e5f90752d7d6b52a1f4e2782",
+    "content-hash": "0be50d12663fe9ba1d44f023d80bca06",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -2019,28 +2019,28 @@
         },
         {
             "name": "google/cloud-vision",
-            "version": "v1.10.3",
+            "version": "v2.2.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/googleapis/google-cloud-php-vision.git",
-                "reference": "8d01d61c04571e2cf85f6823af45f9fcbe693b9f"
+                "reference": "e1cab8e24fa72264f3ca69d73dfcad9c73a876aa"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/googleapis/google-cloud-php-vision/zipball/8d01d61c04571e2cf85f6823af45f9fcbe693b9f",
-                "reference": "8d01d61c04571e2cf85f6823af45f9fcbe693b9f",
+                "url": "https://api.github.com/repos/googleapis/google-cloud-php-vision/zipball/e1cab8e24fa72264f3ca69d73dfcad9c73a876aa",
+                "reference": "e1cab8e24fa72264f3ca69d73dfcad9c73a876aa",
                 "shasum": ""
             },
             "require": {
                 "google/cloud-core": "^1.57",
-                "google/gax": "^1.36.0",
-                "php": "^8.0"
+                "google/gax": "^1.38.0",
+                "php": "^8.1"
             },
             "require-dev": {
                 "erusev/parsedown": "^1.6",
-                "google/cloud-storage": "^1.12",
+                "google/cloud-storage": "^2.0",
                 "phpdocumentor/reflection": "^5.3.3||^6.0",
-                "phpdocumentor/reflection-docblock": "^5.3",
+                "phpdocumentor/reflection-docblock": "^5.3.3||^6.0",
                 "phpspec/prophecy-phpunit": "^2.0",
                 "phpunit/phpunit": "^9.0",
                 "squizlabs/php_codesniffer": "2.*"
@@ -2071,9 +2071,9 @@
             ],
             "description": "Cloud Vision Client for PHP",
             "support": {
-                "source": "https://github.com/googleapis/google-cloud-php-vision/tree/v1.10.3"
+                "source": "https://github.com/googleapis/google-cloud-php-vision/tree/v2.2.1"
             },
-            "time": "2025-01-24T21:24:06+00:00"
+            "time": "2026-05-12T19:06:48+00:00"
         },
         {
             "name": "google/common-protos",
@@ -2929,26 +2929,26 @@
         },
         {
             "name": "intervention/gif",
-            "version": "4.2.4",
+            "version": "5.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Intervention/gif.git",
-                "reference": "c3598a16ebe7690cd55640c44144a9df383ea73c"
+                "reference": "bb395af960deffe64d70c976b4df9283f68e762d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Intervention/gif/zipball/c3598a16ebe7690cd55640c44144a9df383ea73c",
-                "reference": "c3598a16ebe7690cd55640c44144a9df383ea73c",
+                "url": "https://api.github.com/repos/Intervention/gif/zipball/bb395af960deffe64d70c976b4df9283f68e762d",
+                "reference": "bb395af960deffe64d70c976b4df9283f68e762d",
                 "shasum": ""
             },
             "require": {
-                "php": "^8.1"
+                "php": "^8.3"
             },
             "require-dev": {
                 "phpstan/phpstan": "^2.1",
-                "phpunit/phpunit": "^10.0 || ^11.0  || ^12.0",
+                "phpunit/phpunit": "^12.0",
                 "slevomat/coding-standard": "~8.0",
-                "squizlabs/php_codesniffer": "^3.8"
+                "squizlabs/php_codesniffer": "^4"
             },
             "type": "library",
             "autoload": {
@@ -2967,7 +2967,7 @@
                     "homepage": "https://intervention.io/"
                 }
             ],
-            "description": "Native PHP GIF Encoder/Decoder",
+            "description": "PHP GIF Encoder/Decoder",
             "homepage": "https://github.com/intervention/gif",
             "keywords": [
                 "animation",
@@ -2977,7 +2977,7 @@
             ],
             "support": {
                 "issues": "https://github.com/Intervention/gif/issues",
-                "source": "https://github.com/Intervention/gif/tree/4.2.4"
+                "source": "https://github.com/Intervention/gif/tree/5.0.1"
             },
             "funding": [
                 {
@@ -2993,31 +2993,31 @@
                     "type": "ko_fi"
                 }
             ],
-            "time": "2026-01-04T09:27:23+00:00"
+            "time": "2026-05-03T06:04:47+00:00"
         },
         {
             "name": "intervention/image",
-            "version": "3.11.8",
+            "version": "4.1.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Intervention/image.git",
-                "reference": "cf04c8dd245697f701057c13d4bfe140d584e738"
+                "reference": "e5256d3e5884d97fd9c6eada513a8f7a1d1027fa"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Intervention/image/zipball/cf04c8dd245697f701057c13d4bfe140d584e738",
-                "reference": "cf04c8dd245697f701057c13d4bfe140d584e738",
+                "url": "https://api.github.com/repos/Intervention/image/zipball/e5256d3e5884d97fd9c6eada513a8f7a1d1027fa",
+                "reference": "e5256d3e5884d97fd9c6eada513a8f7a1d1027fa",
                 "shasum": ""
             },
             "require": {
                 "ext-mbstring": "*",
-                "intervention/gif": "^4.2",
-                "php": "^8.1"
+                "intervention/gif": "^5",
+                "php": "^8.3"
             },
             "require-dev": {
                 "mockery/mockery": "^1.6",
                 "phpstan/phpstan": "^2.1",
-                "phpunit/phpunit": "^10.0 || ^11.0 || ^12.0",
+                "phpunit/phpunit": "^12.0",
                 "slevomat/coding-standard": "~8.0",
                 "squizlabs/php_codesniffer": "^4"
             },
@@ -3053,7 +3053,7 @@
             ],
             "support": {
                 "issues": "https://github.com/Intervention/image/issues",
-                "source": "https://github.com/Intervention/image/tree/3.11.8"
+                "source": "https://github.com/Intervention/image/tree/4.1.5"
             },
             "funding": [
                 {
@@ -3069,7 +3069,7 @@
                     "type": "ko_fi"
                 }
             ],
-            "time": "2026-05-01T08:20:10+00:00"
+            "time": "2026-06-23T13:22:48+00:00"
         },
         {
             "name": "kirschbaum-development/eloquent-power-joins",
@@ -3499,16 +3499,16 @@
         },
         {
             "name": "laravel/scout",
-            "version": "v10.25.0",
+            "version": "v11.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/scout.git",
-                "reference": "f28630dca44a63d80c15e596bedc5af42c8985d5"
+                "reference": "7d0903e083dee7c3d295a27917c82496c5c41970"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/scout/zipball/f28630dca44a63d80c15e596bedc5af42c8985d5",
-                "reference": "f28630dca44a63d80c15e596bedc5af42c8985d5",
+                "url": "https://api.github.com/repos/laravel/scout/zipball/7d0903e083dee7c3d295a27917c82496c5c41970",
+                "reference": "7d0903e083dee7c3d295a27917c82496c5c41970",
                 "shasum": ""
             },
             "require": {
@@ -3547,7 +3547,7 @@
                     ]
                 },
                 "branch-alias": {
-                    "dev-master": "10.x-dev"
+                    "dev-master": "11.x-dev"
                 }
             },
             "autoload": {
@@ -3575,7 +3575,7 @@
                 "issues": "https://github.com/laravel/scout/issues",
                 "source": "https://github.com/laravel/scout"
             },
-            "time": "2026-03-10T16:16:46+00:00"
+            "time": "2026-06-16T15:48:22+00:00"
         },
         {
             "name": "laravel/sentinel",
@@ -7591,31 +7591,35 @@
         },
         {
             "name": "spatie/laravel-permission",
-            "version": "6.25.0",
+            "version": "8.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/spatie/laravel-permission.git",
-                "reference": "d7d4cb0d58616722f1afc90e0484e4825155b9b3"
+                "reference": "60e8ed5b2fbf043c2264433fc2680c76b8b66aa6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/spatie/laravel-permission/zipball/d7d4cb0d58616722f1afc90e0484e4825155b9b3",
-                "reference": "d7d4cb0d58616722f1afc90e0484e4825155b9b3",
+                "url": "https://api.github.com/repos/spatie/laravel-permission/zipball/60e8ed5b2fbf043c2264433fc2680c76b8b66aa6",
+                "reference": "60e8ed5b2fbf043c2264433fc2680c76b8b66aa6",
                 "shasum": ""
             },
             "require": {
-                "illuminate/auth": "^8.12|^9.0|^10.0|^11.0|^12.0|^13.0",
-                "illuminate/container": "^8.12|^9.0|^10.0|^11.0|^12.0|^13.0",
-                "illuminate/contracts": "^8.12|^9.0|^10.0|^11.0|^12.0|^13.0",
-                "illuminate/database": "^8.12|^9.0|^10.0|^11.0|^12.0|^13.0",
-                "php": "^8.0"
+                "illuminate/auth": "^12.0|^13.0",
+                "illuminate/container": "^12.0|^13.0",
+                "illuminate/contracts": "^12.0|^13.0",
+                "illuminate/database": "^12.0|^13.0",
+                "php": "^8.3",
+                "spatie/laravel-package-tools": "^1.0"
             },
             "require-dev": {
-                "laravel/passport": "^11.0|^12.0|^13.0",
+                "larastan/larastan": "^3.9",
+                "laravel/octane": "^2.0",
+                "laravel/passport": "^13.0",
                 "laravel/pint": "^1.0",
-                "orchestra/testbench": "^6.23|^7.0|^8.0|^9.0|^10.0|^11.0",
-                "pestphp/pest": "^2.0|^3.0|^4.0",
-                "pestphp/pest-plugin-laravel": "^2.0|^3.0|^4.0"
+                "orchestra/testbench": "^10.0|^11.0",
+                "pestphp/pest": "^3.0|^4.0",
+                "pestphp/pest-plugin-laravel": "^3.0|^4.1",
+                "phpstan/phpstan": "^2.1"
             },
             "type": "library",
             "extra": {
@@ -7625,8 +7629,8 @@
                     ]
                 },
                 "branch-alias": {
-                    "dev-main": "6.x-dev",
-                    "dev-master": "6.x-dev"
+                    "dev-main": "8.x-dev",
+                    "dev-master": "8.x-dev"
                 }
             },
             "autoload": {
@@ -7649,7 +7653,7 @@
                     "role": "Developer"
                 }
             ],
-            "description": "Permission handling for Laravel 8.0 and up",
+            "description": "Permission handling for Laravel 12 and up",
             "homepage": "https://github.com/spatie/laravel-permission",
             "keywords": [
                 "acl",
@@ -7663,7 +7667,7 @@
             ],
             "support": {
                 "issues": "https://github.com/spatie/laravel-permission/issues",
-                "source": "https://github.com/spatie/laravel-permission/tree/6.25.0"
+                "source": "https://github.com/spatie/laravel-permission/tree/8.3.0"
             },
             "funding": [
                 {
@@ -7671,36 +7675,36 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-03-17T22:46:46+00:00"
+            "time": "2026-07-03T15:36:01+00:00"
         },
         {
             "name": "spatie/laravel-query-builder",
-            "version": "6.4.4",
+            "version": "7.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/spatie/laravel-query-builder.git",
-                "reference": "ab9c4c369fc913d6c020a0f6776f3c82f3e523fb"
+                "reference": "3554c005f778d9da89d44b9895d2cca149110fea"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/spatie/laravel-query-builder/zipball/ab9c4c369fc913d6c020a0f6776f3c82f3e523fb",
-                "reference": "ab9c4c369fc913d6c020a0f6776f3c82f3e523fb",
+                "url": "https://api.github.com/repos/spatie/laravel-query-builder/zipball/3554c005f778d9da89d44b9895d2cca149110fea",
+                "reference": "3554c005f778d9da89d44b9895d2cca149110fea",
                 "shasum": ""
             },
             "require": {
-                "illuminate/database": "^10.0|^11.0|^12.0|^13.0",
-                "illuminate/http": "^10.0|^11.0|^12.0|^13.0",
-                "illuminate/support": "^10.0|^11.0|^12.0|^13.0",
-                "php": "^8.2",
+                "illuminate/database": "^12.0|^13.0",
+                "illuminate/http": "^12.0|^13.0",
+                "illuminate/support": "^12.0|^13.0",
+                "php": "^8.3",
                 "spatie/laravel-package-tools": "^1.11"
             },
             "require-dev": {
                 "ext-json": "*",
-                "larastan/larastan": "^2.7 || ^3.3",
+                "larastan/larastan": "^3.3",
                 "mockery/mockery": "^1.4",
-                "orchestra/testbench": "^7.0|^8.0|^10.0|^11.0",
-                "pestphp/pest": "^2.0|^3.7|^4.0",
-                "phpunit/phpunit": "^10.0|^11.5.3|^12.0",
+                "orchestra/testbench": "^10.0|^11.0",
+                "pestphp/pest": "^4.0",
+                "phpunit/phpunit": "^12.0",
                 "spatie/invade": "^2.0"
             },
             "type": "library",
@@ -7745,7 +7749,7 @@
                     "type": "custom"
                 }
             ],
-            "time": "2026-03-08T13:45:05+00:00"
+            "time": "2026-05-02T11:22:31+00:00"
         },
         {
             "name": "spatie/laravel-tags",

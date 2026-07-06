@@ -7,19 +7,19 @@ use App\Models\Media;
 use App\Models\MediaConversion;
 use App\Services\S3Service;
 use App\Services\VideoMetadataService;
+use FFMpeg\Coordinate\TimeCode;
+use FFMpeg\FFMpeg;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
-use FFMpeg\FFMpeg;
-use FFMpeg\Coordinate\TimeCode;
+use Intervention\Image\ImageManager;
 
 class GenerateMediaConversions implements ShouldQueue
 {
-    use Queueable, InteractsWithQueue, SerializesModels, DownloadsMediaToTemp;
+    use DownloadsMediaToTemp, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
      * The number of times the job may be attempted.
@@ -37,8 +37,6 @@ class GenerateMediaConversions implements ShouldQueue
 
     /**
      * Conversion configurations for images.
-     *
-     * @var array
      */
     protected array $imageConversions = [
         'thumbnail' => ['width' => 150, 'height' => 150, 'fit' => 'cover'],
@@ -49,13 +47,11 @@ class GenerateMediaConversions implements ShouldQueue
 
     /**
      * Conversion configurations for video thumbnails (frame extraction sizes).
-     *
-     * @var array
      */
     protected array $videoConversions = [
         'thumbnail' => ['width' => 300, 'height' => 300, 'fit' => 'cover'],
-        'small'     => ['width' => 600, 'height' => 600, 'fit' => 'contain'],
-        'medium'    => ['width' => 1200, 'height' => 1200, 'fit' => 'contain'],
+        'small' => ['width' => 600, 'height' => 600, 'fit' => 'contain'],
+        'medium' => ['width' => 1200, 'height' => 1200, 'fit' => 'contain'],
     ];
 
     /**
@@ -103,29 +99,27 @@ class GenerateMediaConversions implements ShouldQueue
 
     /**
      * Generate image conversions (thumbnails, optimized versions).
-     *
-     * @param S3Service $s3Service
-     * @return void
      */
     protected function generateImageConversions(S3Service $s3Service): void
     {
         try {
             // Download original file from S3
             $tempOriginalPath = $this->downloadFileToTemp($s3Service);
-            if (!$tempOriginalPath) {
+            if (! $tempOriginalPath) {
                 Log::warning('GenerateMediaConversions: Failed to download image from S3', [
                     'media_id' => $this->media->id,
                 ]);
+
                 return;
             }
 
             // Create image manager
-            $manager = new ImageManager(new Driver());
+            $manager = new ImageManager(new Driver);
 
             foreach ($this->imageConversions as $conversionName => $config) {
                 try {
-                    // Read the image
-                    $image = $manager->read($tempOriginalPath);
+                    // Read the image (v4 : read() → decode())
+                    $image = $manager->decode($tempOriginalPath);
 
                     // Apply conversion based on fit type
                     if ($config['fit'] === 'cover') {
@@ -140,8 +134,9 @@ class GenerateMediaConversions implements ShouldQueue
                     }
 
                     // Save to temporary file
-                    $tempConversionPath = sys_get_temp_dir() . '/conversion_' . uniqid() . '.jpg';
-                    $image->toJpeg(quality: 85)->save($tempConversionPath);
+                    $tempConversionPath = sys_get_temp_dir().'/conversion_'.uniqid().'.jpg';
+                    // v4 : toJpeg(quality:)->save() → save() encode selon l'extension (.jpg) avec les options
+                    $image->save($tempConversionPath, quality: 85);
 
                     // Upload to S3
                     $conversionFilePath = $this->uploadConversionToS3(
@@ -202,28 +197,26 @@ class GenerateMediaConversions implements ShouldQueue
 
     /**
      * Generate video conversions: extract a representative frame and resize to multiple sizes.
-     *
-     * @param S3Service $s3Service
-     * @return void
      */
     protected function generateVideoConversions(S3Service $s3Service): void
     {
         try {
             // Download original file from S3
             $tempOriginalPath = $this->downloadFileToTemp($s3Service);
-            if (!$tempOriginalPath) {
+            if (! $tempOriginalPath) {
                 Log::warning('GenerateMediaConversions: Failed to download video from S3', [
                     'media_id' => $this->media->id,
                 ]);
+
                 return;
             }
 
             // Create FFMpeg instance
             $ffmpeg = FFMpeg::create([
-                'ffmpeg.binaries'  => env('FFMPEG_BINARIES', '/usr/bin/ffmpeg'),
+                'ffmpeg.binaries' => env('FFMPEG_BINARIES', '/usr/bin/ffmpeg'),
                 'ffprobe.binaries' => env('FFPROBE_BINARIES', '/usr/bin/ffprobe'),
-                'timeout'          => 3600,
-                'ffmpeg.threads'   => 4,
+                'timeout' => 3600,
+                'ffmpeg.threads' => 4,
             ]);
 
             // Extraction des métadonnées techniques sur le fichier déjà téléchargé
@@ -236,7 +229,7 @@ class GenerateMediaConversions implements ShouldQueue
             } catch (\Exception $e) {
                 Log::warning('GenerateMediaConversions: Video metadata extraction failed', [
                     'media_id' => $this->media->id,
-                    'error'    => $e->getMessage(),
+                    'error' => $e->getMessage(),
                 ]);
             }
 
@@ -252,10 +245,10 @@ class GenerateMediaConversions implements ShouldQueue
                 : 0;
 
             $video = $ffmpeg->open($tempOriginalPath);
-            $manager = new ImageManager(new Driver());
+            $manager = new ImageManager(new Driver);
 
             // Extract the source frame once, then resize into each conversion
-            $rawFramePath = sys_get_temp_dir() . '/video_frame_' . uniqid() . '.jpg';
+            $rawFramePath = sys_get_temp_dir().'/video_frame_'.uniqid().'.jpg';
 
             try {
                 $frame = $video->frame(TimeCode::fromSeconds($targetSecond));
@@ -270,17 +263,18 @@ class GenerateMediaConversions implements ShouldQueue
                     // que de faire échouer le job (comportement d'origine)
                     Log::error('GenerateMediaConversions: Failed to extract video frame', [
                         'media_id' => $this->media->id,
-                        'error'    => $fallbackException->getMessage(),
+                        'error' => $fallbackException->getMessage(),
                     ]);
                     @unlink($tempOriginalPath);
+
                     return;
                 }
             }
 
             foreach ($this->videoConversions as $conversionName => $config) {
                 try {
-                    $tempConversionPath = sys_get_temp_dir() . '/video_conv_' . uniqid() . '.jpg';
-                    $image = $manager->read($rawFramePath);
+                    $tempConversionPath = sys_get_temp_dir().'/video_conv_'.uniqid().'.jpg';
+                    $image = $manager->decode($rawFramePath);
 
                     if ($config['fit'] === 'cover') {
                         $image->cover($config['width'], $config['height']);
@@ -288,7 +282,7 @@ class GenerateMediaConversions implements ShouldQueue
                         $image->scale(width: $config['width'], height: $config['height']);
                     }
 
-                    $image->toJpeg(quality: 85)->save($tempConversionPath);
+                    $image->save($tempConversionPath, quality: 85);
 
                     $conversionFilePath = $this->uploadConversionToS3(
                         $s3Service,
@@ -298,14 +292,14 @@ class GenerateMediaConversions implements ShouldQueue
 
                     MediaConversion::updateOrCreate(
                         [
-                            'media_id'        => $this->media->id,
+                            'media_id' => $this->media->id,
                             'conversion_name' => $conversionName,
                         ],
                         [
                             'file_path' => $conversionFilePath,
-                            'width'     => $image->width(),
-                            'height'    => $image->height(),
-                            'size'      => filesize($tempConversionPath),
+                            'width' => $image->width(),
+                            'height' => $image->height(),
+                            'size' => filesize($tempConversionPath),
                             'mime_type' => 'image/jpeg',
                         ]
                     );
@@ -313,14 +307,14 @@ class GenerateMediaConversions implements ShouldQueue
                     @unlink($tempConversionPath);
 
                     Log::info('GenerateMediaConversions: Video conversion generated', [
-                        'media_id'        => $this->media->id,
+                        'media_id' => $this->media->id,
                         'conversion_name' => $conversionName,
                     ]);
                 } catch (\Exception $e) {
                     Log::error('GenerateMediaConversions: Failed to generate video conversion', [
-                        'media_id'        => $this->media->id,
+                        'media_id' => $this->media->id,
                         'conversion_name' => $conversionName,
-                        'error'           => $e->getMessage(),
+                        'error' => $e->getMessage(),
                     ]);
                 }
             }
@@ -330,7 +324,7 @@ class GenerateMediaConversions implements ShouldQueue
         } catch (\Exception $e) {
             Log::error('GenerateMediaConversions: Video conversion process failed', [
                 'media_id' => $this->media->id,
-                'error'    => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
             throw $e;
         }
@@ -339,9 +333,6 @@ class GenerateMediaConversions implements ShouldQueue
     /**
      * Upload a conversion file to S3.
      *
-     * @param S3Service $s3Service
-     * @param string $localPath
-     * @param string $conversionName
      * @return string The S3 file path
      */
     protected function uploadConversionToS3(S3Service $s3Service, string $localPath, string $conversionName): string
