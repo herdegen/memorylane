@@ -2,12 +2,24 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\PersonResource\Pages;
+use App\Filament\Resources\PersonResource\Pages\CreatePerson;
+use App\Filament\Resources\PersonResource\Pages\EditPerson;
+use App\Filament\Resources\PersonResource\Pages\ListPeople;
 use App\Models\Person;
-use Filament\Forms;
-use Filament\Forms\Form;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ForceDeleteBulkAction;
+use Filament\Actions\RestoreBulkAction;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -16,7 +28,7 @@ class PersonResource extends Resource
 {
     protected static ?string $model = Person::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-user-group';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-user-group';
 
     protected static ?string $navigationLabel = 'Personnes';
 
@@ -24,27 +36,27 @@ class PersonResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Personnes';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Select::make('user_id')
+        return $schema
+            ->components([
+                Select::make('user_id')
                     ->relationship('user', 'name')
                     ->required()
                     ->searchable()
                     ->preload()
                     ->label('Propriétaire'),
-                Forms\Components\TextInput::make('first_name')
+                TextInput::make('first_name')
                     ->required()
                     ->maxLength(255)
                     ->label('Prénom(s)'),
-                Forms\Components\TextInput::make('last_name')
+                TextInput::make('last_name')
                     ->maxLength(255)
                     ->label('Nom de famille'),
-                Forms\Components\TextInput::make('maiden_name')
+                TextInput::make('maiden_name')
                     ->maxLength(255)
                     ->label('Nom de naissance'),
-                Forms\Components\Select::make('gender')
+                Select::make('gender')
                     ->options([
                         'M' => 'Masculin',
                         'F' => 'Féminin',
@@ -52,27 +64,27 @@ class PersonResource extends Resource
                     ])
                     ->default('U')
                     ->label('Genre'),
-                Forms\Components\DatePicker::make('birth_date')
+                DatePicker::make('birth_date')
                     ->label('Date de naissance'),
-                Forms\Components\TextInput::make('birth_place')
+                TextInput::make('birth_place')
                     ->maxLength(255)
                     ->label('Lieu de naissance'),
-                Forms\Components\DatePicker::make('death_date')
+                DatePicker::make('death_date')
                     ->label('Date de décès'),
-                Forms\Components\TextInput::make('death_place')
+                TextInput::make('death_place')
                     ->maxLength(255)
                     ->label('Lieu de décès'),
-                Forms\Components\Select::make('father_id')
+                Select::make('father_id')
                     ->relationship('father', 'name')
                     ->searchable()
                     ->preload()
                     ->label('Père'),
-                Forms\Components\Select::make('mother_id')
+                Select::make('mother_id')
                     ->relationship('mother', 'name')
                     ->searchable()
                     ->preload()
                     ->label('Mère'),
-                Forms\Components\Textarea::make('notes')
+                Textarea::make('notes')
                     ->maxLength(2000)
                     ->label('Notes'),
             ]);
@@ -82,11 +94,11 @@ class PersonResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')
+                TextColumn::make('name')
                     ->label('Nom')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('gender')
+                TextColumn::make('gender')
                     ->label('Genre')
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'M' => '♂ Masculin',
@@ -94,41 +106,41 @@ class PersonResource extends Resource
                         default => 'Non spécifié',
                     })
                     ->sortable(),
-                Tables\Columns\TextColumn::make('user.name')
+                TextColumn::make('user.name')
                     ->label('Propriétaire')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('birth_date')
+                TextColumn::make('birth_date')
                     ->label('Naissance')
                     ->date('d/m/Y')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('death_date')
+                TextColumn::make('death_date')
                     ->label('Décès')
                     ->date('d/m/Y')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('father.name')
+                TextColumn::make('father.name')
                     ->label('Père')
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('mother.name')
+                TextColumn::make('mother.name')
                     ->label('Mère')
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('media_count')
+                TextColumn::make('media_count')
                     ->label('Médias')
                     ->counts('media')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Créé le')
                     ->dateTime('d/m/Y')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\TrashedFilter::make(),
-                Tables\Filters\SelectFilter::make('user')
+                TrashedFilter::make(),
+                SelectFilter::make('user')
                     ->relationship('user', 'name')
                     ->label('Propriétaire'),
-                Tables\Filters\SelectFilter::make('gender')
+                SelectFilter::make('gender')
                     ->options([
                         'M' => 'Masculin',
                         'F' => 'Féminin',
@@ -136,14 +148,14 @@ class PersonResource extends Resource
                     ])
                     ->label('Genre'),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\ForceDeleteBulkAction::make(),
-                    Tables\Actions\RestoreBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                    ForceDeleteBulkAction::make(),
+                    RestoreBulkAction::make(),
                 ]),
             ]);
     }
@@ -156,9 +168,9 @@ class PersonResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListPeople::route('/'),
-            'create' => Pages\CreatePerson::route('/create'),
-            'edit' => Pages\EditPerson::route('/{record}/edit'),
+            'index' => ListPeople::route('/'),
+            'create' => CreatePerson::route('/create'),
+            'edit' => EditPerson::route('/{record}/edit'),
         ];
     }
 

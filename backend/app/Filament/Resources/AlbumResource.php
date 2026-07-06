@@ -2,13 +2,25 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\AlbumResource\Pages;
+use App\Filament\Resources\AlbumResource\Pages\CreateAlbum;
+use App\Filament\Resources\AlbumResource\Pages\EditAlbum;
+use App\Filament\Resources\AlbumResource\Pages\ListAlbums;
 use App\Models\Album;
-use App\Models\User;
-use Filament\Forms;
-use Filament\Forms\Form;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ForceDeleteBulkAction;
+use Filament\Actions\RestoreBulkAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -17,7 +29,7 @@ class AlbumResource extends Resource
 {
     protected static ?string $model = Album::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-photo';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-photo';
 
     protected static ?string $navigationLabel = 'Albums';
 
@@ -25,28 +37,28 @@ class AlbumResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Albums';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Select::make('user_id')
+        return $schema
+            ->components([
+                Select::make('user_id')
                     ->relationship('user', 'name')
                     ->required()
                     ->searchable()
                     ->preload()
                     ->label('Propriétaire'),
-                Forms\Components\TextInput::make('name')
+                TextInput::make('name')
                     ->required()
                     ->maxLength(255)
                     ->label('Nom'),
-                Forms\Components\TextInput::make('slug')
+                TextInput::make('slug')
                     ->maxLength(255)
                     ->label('Slug')
                     ->helperText('Laissez vide pour générer automatiquement'),
-                Forms\Components\Textarea::make('description')
+                Textarea::make('description')
                     ->maxLength(1000)
                     ->label('Description'),
-                Forms\Components\Toggle::make('is_public')
+                Toggle::make('is_public')
                     ->label('Public')
                     ->helperText('Rendre cet album accessible à tous'),
             ]);
@@ -56,42 +68,42 @@ class AlbumResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')
+                TextColumn::make('name')
                     ->label('Nom')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('user.name')
+                TextColumn::make('user.name')
                     ->label('Propriétaire')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('media_count')
+                TextColumn::make('media_count')
                     ->label('Médias')
                     ->counts('media')
                     ->sortable(),
-                Tables\Columns\IconColumn::make('is_public')
+                IconColumn::make('is_public')
                     ->label('Public')
                     ->boolean()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Créé le')
                     ->dateTime('d/m/Y')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\TrashedFilter::make(),
-                Tables\Filters\SelectFilter::make('user')
+                TrashedFilter::make(),
+                SelectFilter::make('user')
                     ->relationship('user', 'name')
                     ->label('Propriétaire'),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\ForceDeleteBulkAction::make(),
-                    Tables\Actions\RestoreBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                    ForceDeleteBulkAction::make(),
+                    RestoreBulkAction::make(),
                 ]),
             ]);
     }
@@ -104,9 +116,9 @@ class AlbumResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListAlbums::route('/'),
-            'create' => Pages\CreateAlbum::route('/create'),
-            'edit' => Pages\EditAlbum::route('/{record}/edit'),
+            'index' => ListAlbums::route('/'),
+            'create' => CreateAlbum::route('/create'),
+            'edit' => EditAlbum::route('/{record}/edit'),
         ];
     }
 

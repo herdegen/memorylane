@@ -2,13 +2,21 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\MediaResource\Pages;
-use App\Filament\Resources\MediaResource\RelationManagers;
+use App\Filament\Resources\MediaResource\Pages\CreateMedia;
+use App\Filament\Resources\MediaResource\Pages\EditMedia;
+use App\Filament\Resources\MediaResource\Pages\ListMedia;
 use App\Models\Media;
-use Filament\Forms;
-use Filament\Forms\Form;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ForceDeleteBulkAction;
+use Filament\Actions\RestoreBulkAction;
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -17,38 +25,38 @@ class MediaResource extends Resource
 {
     protected static ?string $model = Media::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\TextInput::make('user_id')
+        return $schema
+            ->components([
+                TextInput::make('user_id')
                     ->required(),
-                Forms\Components\TextInput::make('type')
+                TextInput::make('type')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('original_name')
+                TextInput::make('original_name')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('file_path')
+                TextInput::make('file_path')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('mime_type')
+                TextInput::make('mime_type')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('size')
+                TextInput::make('size')
                     ->required()
                     ->numeric(),
-                Forms\Components\TextInput::make('width')
+                TextInput::make('width')
                     ->numeric(),
-                Forms\Components\TextInput::make('height')
+                TextInput::make('height')
                     ->numeric(),
-                Forms\Components\TextInput::make('duration')
+                TextInput::make('duration')
                     ->numeric(),
-                Forms\Components\DateTimePicker::make('uploaded_at')
+                DateTimePicker::make('uploaded_at')
                     ->required(),
-                Forms\Components\DateTimePicker::make('taken_at'),
+                DateTimePicker::make('taken_at'),
             ]);
     }
 
@@ -56,59 +64,59 @@ class MediaResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                TextColumn::make('id')
                     ->label('ID'),
-                Tables\Columns\TextColumn::make('user_id'),
-                Tables\Columns\TextColumn::make('type')
+                TextColumn::make('user_id'),
+                TextColumn::make('type')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('original_name')
+                TextColumn::make('original_name')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('file_path')
+                TextColumn::make('file_path')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('mime_type')
+                TextColumn::make('mime_type')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('size')
+                TextColumn::make('size')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('width')
+                TextColumn::make('width')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('height')
+                TextColumn::make('height')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('duration')
+                TextColumn::make('duration')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('uploaded_at')
+                TextColumn::make('uploaded_at')
                     ->dateTime()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('taken_at')
+                TextColumn::make('taken_at')
                     ->dateTime()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('deleted_at')
+                TextColumn::make('updated_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('deleted_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\TrashedFilter::make(),
+                TrashedFilter::make(),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\ForceDeleteBulkAction::make(),
-                    Tables\Actions\RestoreBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                    ForceDeleteBulkAction::make(),
+                    RestoreBulkAction::make(),
                 ]),
             ]);
     }
@@ -123,9 +131,9 @@ class MediaResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListMedia::route('/'),
-            'create' => Pages\CreateMedia::route('/create'),
-            'edit' => Pages\EditMedia::route('/{record}/edit'),
+            'index' => ListMedia::route('/'),
+            'create' => CreateMedia::route('/create'),
+            'edit' => EditMedia::route('/{record}/edit'),
         ];
     }
 

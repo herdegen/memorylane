@@ -203,9 +203,10 @@ class FilamentAdminTest extends TestCase
         $response = $this->actingAs($this->adminUser)
             ->get('/admin/tags');
 
+        // La table TagResource n'affiche pas la colonne `type` (color/name/slug/média/créé le) :
+        // on vérifie seulement le nom, réellement rendu.
         $response->assertStatus(200)
-            ->assertSee($tag->name)
-            ->assertSee($tag->type);
+            ->assertSee($tag->name);
     }
 
     /**
