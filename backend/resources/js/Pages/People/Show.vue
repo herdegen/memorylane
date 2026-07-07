@@ -52,7 +52,7 @@
                   <h1 class="font-display text-2xl font-semibold text-surface-900">
                     <span v-if="person.gender === 'M'" class="text-surface-400 mr-1" title="Masculin">&#9794;</span>
                     <span v-else-if="person.gender === 'F'" class="text-surface-400 mr-1" title="Féminin">&#9792;</span>
-                    {{ person.name }}
+                    {{ personLabel(person) }}
                   </h1>
                   <p v-if="person.birth_date" class="text-sm text-surface-500 mt-1">
                     {{ formatDate(person.birth_date) }}
@@ -233,6 +233,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import MediaCard from '@/Components/MediaCard.vue';
 import PersonFormModal from '@/Components/PersonFormModal.vue';
 import FamilyPanel from '@/Components/FamilyPanel.vue';
+import { personLabel } from '@/utils/personName';
 
 const props = defineProps({
   person: {

@@ -5,7 +5,7 @@
     <!-- Current selection -->
     <div v-if="currentPerson" class="flex items-center justify-between bg-surface-50 rounded-lg px-3 py-2">
       <Link :href="`/people/${currentPerson.id}`" class="text-sm text-brand-600 hover:text-brand-800 font-medium">
-        {{ currentPerson.name }}
+        {{ personLabel(currentPerson) }}
       </Link>
       <button @click="$emit('remove')" class="text-surface-400 hover:text-red-500 ml-2">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -36,7 +36,7 @@
           @click="selectPerson(person)"
           class="w-full text-left px-3 py-2 hover:bg-surface-50 text-sm"
         >
-          {{ person.name }}
+          {{ personLabel(person) }}
           <span v-if="person.birth_date" class="text-surface-400 ml-1">
             ({{ person.birth_date.substring(0, 4) }})
           </span>
@@ -54,6 +54,7 @@
 import { ref } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import axios from 'axios';
+import { personLabel } from '@/utils/personName';
 
 const props = defineProps({
   label: { type: String, required: true },

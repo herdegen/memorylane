@@ -58,6 +58,8 @@ class FamilyTreeController extends Controller
             'id' => $person->id,
             'data' => [
                 'name' => $person->name,
+                'last_name' => $person->last_name,
+                'maiden_name' => $person->maiden_name,
                 'gender' => $person->gender,
                 'birth_date' => $person->birth_date?->format('Y-m-d'),
                 'death_date' => $person->death_date?->format('Y-m-d'),

@@ -28,7 +28,7 @@
         >
           {{ person.name.charAt(0).toUpperCase() }}
         </div>
-        {{ person.name }}
+        {{ personLabel(person) }}
         <button
           @click="removePerson(person)"
           class="ml-1 hover:text-red-600 transition"
@@ -88,7 +88,7 @@
           >
             {{ person.name.charAt(0).toUpperCase() }}
           </div>
-          <span class="text-sm text-surface-900">{{ person.name }}</span>
+          <span class="text-sm text-surface-900">{{ personLabel(person) }}</span>
           <span class="text-xs text-surface-500 ml-auto">{{ person.media_count }} médias</span>
         </button>
       </div>
@@ -122,6 +122,7 @@
 import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
 import PersonFormModal from '@/Components/PersonFormModal.vue';
+import { personLabel } from '@/utils/personName';
 
 const props = defineProps({
   mediaId: {

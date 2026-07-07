@@ -27,7 +27,7 @@
                 @click="centerOnPerson(person)"
                 class="w-full text-left px-4 py-2 hover:bg-surface-50 text-sm text-surface-700"
               >
-                {{ person.data.name }}
+                {{ personLabel(person.data) }}
                 <span v-if="person.data.birth_date" class="text-surface-400 ml-1">
                   ({{ person.data.birth_date.substring(0, 4) }})
                 </span>
@@ -45,7 +45,7 @@
 
         <!-- Selected person detail -->
         <div v-if="selectedPerson" class="mt-4 p-4 bg-surface-50 rounded-lg border border-surface-100">
-          <h3 class="font-semibold text-surface-900">{{ selectedPerson.data.name }}</h3>
+          <h3 class="font-semibold text-surface-900">{{ personLabel(selectedPerson.data) }}</h3>
           <p v-if="selectedPerson.data.birth_date" class="text-sm text-surface-500 mt-1">
             Naissance : {{ formatDate(selectedPerson.data.birth_date) }}
             <span v-if="selectedPerson.data.birth_place"> — {{ selectedPerson.data.birth_place }}</span>
@@ -116,6 +116,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import axios from 'axios';
 import * as f3 from 'family-chart';
 import 'family-chart/styles/family-chart.css';
+import { personLabel } from '@/utils/personName';
 
 const chartRef = ref(null);
 const treeNodes = ref([]);      // données brutes (format backend) pour la sidebar

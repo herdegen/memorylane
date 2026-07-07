@@ -86,7 +86,7 @@
               <h3 class="text-lg font-semibold text-surface-900 truncate">
                 <span v-if="person.gender === 'M'" class="text-surface-400">&#9794;</span>
                 <span v-else-if="person.gender === 'F'" class="text-surface-400">&#9792;</span>
-                {{ person.name }}
+                {{ personLabel(person) }}
               </h3>
               <p class="text-sm text-surface-500 mt-1">
                 {{ person.media_count }} {{ person.media_count === 1 ? 'média' : 'médias' }}
@@ -146,6 +146,7 @@ import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PersonFormModal from '@/Components/PersonFormModal.vue';
+import { personLabel } from '@/utils/personName';
 
 const props = defineProps({
   people: {

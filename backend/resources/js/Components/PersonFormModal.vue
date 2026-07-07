@@ -57,6 +57,20 @@
           </div>
 
           <div>
+            <label for="maiden_name" class="block text-sm font-medium text-surface-700 mb-1">
+              Nom de naissance
+            </label>
+            <input
+              id="maiden_name"
+              v-model="form.maiden_name"
+              type="text"
+              class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              placeholder="Nom de jeune fille (si différent)"
+            />
+            <p v-if="errors.maiden_name" class="mt-1 text-sm text-red-600">{{ errors.maiden_name }}</p>
+          </div>
+
+          <div>
             <label for="gender" class="block text-sm font-medium text-surface-700 mb-1">
               Genre
             </label>
@@ -168,6 +182,7 @@ const initial = splitInitialName(props.initialName);
 const form = reactive({
   first_name: props.person?.first_name || initial.first,
   last_name: props.person?.last_name || initial.last,
+  maiden_name: props.person?.maiden_name || '',
   gender: props.person?.gender || 'U',
   birth_date: props.person?.birth_date || '',
   death_date: props.person?.death_date || '',
