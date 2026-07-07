@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\ImportGooglePhotosItems;
+use App\Models\Media;
+use App\Services\MediaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -219,9 +221,50 @@ class GooglePhotosController extends Controller
         // La session Picker ne sert plus côté navigateur
         $request->session()->forget('google_photos.picker_session');
 
+        if ($request->wantsJson()) {
+            return response()->json([
+                'started_at' => now()->toIso8601String(),
+                'message' => 'Import lancé.',
+            ]);
+        }
+
         return redirect()->route('media.index')->with(
             'success',
             'Import lancé : vos photos Google arrivent dans la galerie d\'ici quelques minutes.'
         );
+    }
+
+    /**
+     * Suivi de l'import en cours : nombre de médias arrivés depuis `after`
+     * (horodatage de lancement) + un aperçu des derniers, pour un affichage
+     * progressif côté page d'import.
+     */
+    public function importedStatus(Request $request, MediaService $mediaService)
+    {
+        $after = $request->query('after');
+
+        $query = Media::where('user_id', auth()->id());
+        if ($after) {
+            $query->where('created_at', '>=', $after);
+        }
+
+        $count = (clone $query)->count();
+
+        $items = (clone $query)
+            ->latest('created_at')
+            ->with('conversions')
+            ->limit(12)
+            ->get()
+            ->map(function (Media $m) use ($mediaService) {
+                $conv = $m->conversions->firstWhere('conversion_name', 'small')
+                    ?? $m->conversions->first();
+                $url = $conv
+                    ? $mediaService->getSignedUrl($m, $conv->file_path)
+                    : $mediaService->getSignedUrl($m);
+
+                return ['id' => $m->id, 'url' => $url, 'name' => $m->original_name];
+            });
+
+        return response()->json(['count' => $count, 'items' => $items]);
     }
 }

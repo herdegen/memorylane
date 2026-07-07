@@ -94,7 +94,7 @@
             et/ou un album.
           </p>
 
-          <form @submit.prevent="startImport" class="space-y-4">
+          <form v-if="!importing" @submit.prevent="startImport" class="space-y-4">
             <div class="grid sm:grid-cols-2 gap-4">
               <div>
                 <label class="form-label" for="person">Personne</label>
@@ -127,12 +127,39 @@
 
             <button
               type="submit"
-              :disabled="!selectionDone || importForm.processing"
+              :disabled="!selectionDone || launching"
               class="btn-primary"
             >
-              {{ importForm.processing ? 'Lancement…' : 'Importer ma sélection' }}
+              {{ launching ? 'Lancement…' : 'Importer ma sélection' }}
             </button>
           </form>
+
+          <!-- Progression : les photos arrivent au fur et à mesure -->
+          <div v-else>
+            <div class="flex items-center gap-2 mb-4">
+              <svg class="w-5 h-5 animate-spin text-brand-600" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              <span class="text-sm text-surface-700">
+                <span class="font-semibold text-surface-900">{{ importedCount }}</span>
+                photo(s) importée(s)… <span class="text-surface-400">l'import continue en arrière-plan.</span>
+              </span>
+            </div>
+
+            <div v-if="importedItems.length" class="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-4">
+              <img
+                v-for="it in importedItems"
+                :key="it.id"
+                :src="it.url"
+                :alt="it.name"
+                loading="lazy"
+                class="aspect-square object-cover rounded-lg border border-surface-200"
+              />
+            </div>
+
+            <Link href="/media" class="btn-secondary btn-sm">Voir la galerie</Link>
+          </div>
         </div>
       </div>
     </div>
@@ -141,7 +168,7 @@
 
 <script setup>
 import { ref, onBeforeUnmount } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import { useForm, Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FormError from '@/Components/Forms/FormError.vue';
@@ -246,15 +273,60 @@ const openPicker = async () => {
   }
 };
 
-const startImport = () => {
+const launching = ref(false);
+const importing = ref(false);
+const importStartedAt = ref(null);
+const importedCount = ref(0);
+const importedItems = ref([]);
+let importPollTimer = null;
+let importPollCount = 0;
+const IMPORT_MAX_POLLS = 150; // ~10 min à 4s
+
+const stopImportPolling = () => {
+  if (importPollTimer) {
+    clearInterval(importPollTimer);
+    importPollTimer = null;
+  }
+};
+
+const pollImported = async () => {
+  try {
+    const { data } = await axios.get('/google-photos/imported', { params: { after: importStartedAt.value } });
+    importedCount.value = data.count;
+    importedItems.value = data.items;
+  } catch (e) {
+    // transient : on réessaiera au prochain tick
+  }
+};
+
+const startImport = async () => {
+  errorMessage.value = null;
+  launching.value = true;
   const isNew = importForm.album_id === '__new__';
-  importForm
-    .transform((data) => ({
-      person_id: data.person_id,
-      album_id: isNew ? null : data.album_id,
-      new_album_name: isNew ? data.new_album_name : null,
-    }))
-    .post('/google-photos/import');
+  try {
+    const { data } = await axios.post('/google-photos/import', {
+      person_id: importForm.person_id,
+      album_id: isNew ? null : importForm.album_id,
+      new_album_name: isNew ? importForm.new_album_name : null,
+    });
+    importStartedAt.value = data.started_at;
+    importing.value = true;
+    importedCount.value = 0;
+    importedItems.value = [];
+    importPollCount = 0;
+    pollImported();
+    importPollTimer = setInterval(() => {
+      if (++importPollCount > IMPORT_MAX_POLLS) {
+        stopImportPolling();
+        return;
+      }
+      pollImported();
+    }, 4000);
+  } catch (error) {
+    errorMessage.value = 'Le lancement de l\'import a échoué. Réessayez.';
+  } finally {
+    launching.value = false;
+  }
 };
 
 // Une session de sélection déjà terminée peut exister (retour sur la page)
@@ -264,5 +336,8 @@ if (props.pickerSession) {
   pollStatus();
 }
 
-onBeforeUnmount(stopPolling);
+onBeforeUnmount(() => {
+  stopPolling();
+  stopImportPolling();
+});
 </script>
