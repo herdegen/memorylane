@@ -310,7 +310,43 @@ class ExifExtractor
             }
         }
 
-        return $sanitized;
+        // Les champs EXIF ne sont pas garantis en UTF-8 (Latin-1, octets binaires…) :
+        // sans nettoyage, json_encode échoue (« Malformed UTF-8 ») au moment de
+        // sauvegarder MediaMetadata et toute la métadonnée est perdue.
+        return $this->toValidUtf8($sanitized);
+    }
+
+    /**
+     * Nettoie récursivement une valeur pour qu'elle soit encodable en JSON :
+     * chaque chaîne (clés comprises) est ramenée à de l'UTF-8 valide.
+     */
+    protected function toValidUtf8(mixed $value): mixed
+    {
+        if (is_array($value)) {
+            $out = [];
+            foreach ($value as $k => $v) {
+                $key = is_string($k) ? $this->scrubString($k) : $k;
+                $out[$key] = $this->toValidUtf8($v);
+            }
+
+            return $out;
+        }
+
+        if (is_string($value)) {
+            return $this->scrubString($value);
+        }
+
+        return $value;
+    }
+
+    /**
+     * Retire les octets non valides UTF-8 d'une chaîne.
+     */
+    protected function scrubString(string $s): string
+    {
+        $clean = @iconv('UTF-8', 'UTF-8//IGNORE', $s);
+
+        return $clean !== false ? $clean : mb_convert_encoding($s, 'UTF-8', 'UTF-8');
     }
 
     /**
