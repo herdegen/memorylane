@@ -8,6 +8,36 @@
           Pratique quand la localisation d'origine a été perdue à l'import.
         </p>
 
+        <!-- Recherche d'adresse -->
+        <div class="relative mb-3">
+          <div class="flex gap-2">
+            <input
+              v-model="searchQuery"
+              @keyup.enter="searchAddress"
+              type="text"
+              class="form-input"
+              placeholder="Rechercher une adresse, une ville…"
+            />
+            <button @click="searchAddress" type="button" :disabled="searching" class="btn-secondary shrink-0">
+              {{ searching ? '…' : 'Chercher' }}
+            </button>
+          </div>
+          <ul
+            v-if="results.length"
+            class="absolute z-10 mt-1 w-full bg-white border border-surface-200 rounded-lg shadow-warm-lg max-h-48 overflow-auto"
+          >
+            <li v-for="r in results" :key="r.label">
+              <button
+                type="button"
+                @click="pickResult(r)"
+                class="w-full text-left px-3 py-2 hover:bg-surface-50 text-sm text-surface-700"
+              >
+                {{ r.label }}
+              </button>
+            </li>
+          </ul>
+        </div>
+
         <div ref="mapEl" class="h-80 rounded-lg overflow-hidden border border-surface-200 z-0"></div>
 
         <p class="mt-3 text-sm" :class="coords ? 'text-surface-700' : 'text-surface-400'">
@@ -40,8 +70,46 @@ const emit = defineEmits(['close', 'done']);
 const mapEl = ref(null);
 const coords = ref(null);
 const saving = ref(false);
+const searchQuery = ref('');
+const results = ref([]);
+const searching = ref(false);
 let map = null;
 let marker = null;
+
+const placeMarker = (lat, lng) => {
+  coords.value = { lat, lng };
+  const latlng = [lat, lng];
+  if (marker) {
+    marker.setLatLng(latlng);
+  } else {
+    marker = L.marker(latlng, { icon: pinIcon }).addTo(map);
+  }
+};
+
+const searchAddress = async () => {
+  const q = searchQuery.value.trim();
+  if (q.length < 3) return;
+  searching.value = true;
+  try {
+    const { data } = await axios.get('/map/search', { params: { query: q } });
+    results.value = (Array.isArray(data) ? data : []).map((r) => ({
+      label: r.display_name,
+      lat: parseFloat(r.lat),
+      lng: parseFloat(r.lon),
+    }));
+  } catch (e) {
+    results.value = [];
+  } finally {
+    searching.value = false;
+  }
+};
+
+const pickResult = (r) => {
+  results.value = [];
+  searchQuery.value = r.label;
+  if (map) map.setView([r.lat, r.lng], 13);
+  placeMarker(r.lat, r.lng);
+};
 
 const pinIcon = L.divIcon({
   html: '<div style="font-size:24px;line-height:1">📍</div>',
@@ -58,12 +126,7 @@ onMounted(async () => {
   }).addTo(map);
 
   map.on('click', (e) => {
-    coords.value = { lat: e.latlng.lat, lng: e.latlng.lng };
-    if (marker) {
-      marker.setLatLng(e.latlng);
-    } else {
-      marker = L.marker(e.latlng, { icon: pinIcon }).addTo(map);
-    }
+    placeMarker(e.latlng.lat, e.latlng.lng);
   });
 
   // La carte est montée dans un conteneur qui vient d'apparaître : recalcul.
