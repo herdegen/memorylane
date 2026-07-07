@@ -54,6 +54,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/connect', [GooglePhotosController::class, 'connect'])->name('connect');
         Route::post('/session', [GooglePhotosController::class, 'createSession'])->name('session');
         Route::get('/session/status', [GooglePhotosController::class, 'sessionStatus'])->name('status');
+        Route::post('/session/cancel', [GooglePhotosController::class, 'cancelSession'])->name('session.cancel');
         Route::post('/import', [GooglePhotosController::class, 'import'])->name('import');
     });
     Route::get('/auth/google/callback', [GooglePhotosController::class, 'callback'])->name('google-photos.callback');

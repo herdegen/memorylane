@@ -41,18 +41,42 @@
           </p>
 
           <button
-            v-if="!selectionDone"
+            v-if="!selectionDone && !waitingForSelection"
             @click="openPicker"
-            :disabled="!isConnected || waitingForSelection"
+            :disabled="!isConnected"
             class="btn-primary"
           >
-            {{ waitingForSelection ? 'En attente de votre sélection…' : 'Ouvrir Google Photos' }}
+            Ouvrir Google Photos
           </button>
 
-          <p v-if="waitingForSelection" class="mt-3 text-sm text-surface-500">
-            Choisissez vos photos dans l'onglet Google Photos, validez, puis revenez ici —
-            la page détectera votre sélection automatiquement.
-          </p>
+          <div v-if="waitingForSelection">
+            <div class="flex flex-wrap items-center gap-3">
+              <span class="inline-flex items-center gap-2 text-sm text-surface-600">
+                <svg class="w-4 h-4 animate-spin text-brand-600" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                En attente de votre sélection…
+              </span>
+              <a
+                v-if="pickerUri"
+                :href="pickerUri"
+                target="_blank"
+                rel="noopener"
+                class="btn-secondary btn-sm"
+              >
+                Rouvrir Google Photos
+              </a>
+              <button @click="cancelSelection" type="button" class="btn-ghost btn-sm">
+                Annuler
+              </button>
+            </div>
+            <p class="mt-3 text-sm text-surface-500">
+              Choisissez vos photos dans l'onglet Google Photos, validez, puis revenez ici —
+              la page détectera votre sélection automatiquement. Vous pouvez annuler si vous
+              avez fermé l'onglet ou changé d'avis.
+            </p>
+          </div>
 
           <div v-if="selectionDone" class="flex items-center gap-2 text-teal-700">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -123,8 +147,11 @@ const props = defineProps({
 const errorMessage = ref(null);
 const waitingForSelection = ref(false);
 const selectionDone = ref(false);
+const pickerUri = ref(props.pickerSession?.pickerUri || null);
 
 let pollTimer = null;
+let pollCount = 0;
+const MAX_POLLS = 200; // ~10 min à 3s : évite de poller indéfiniment
 
 const importForm = useForm({
   person_id: null,
@@ -150,7 +177,29 @@ const pollStatus = async () => {
 
 const startPolling = () => {
   stopPolling();
-  pollTimer = setInterval(pollStatus, 3000);
+  pollCount = 0;
+  pollTimer = setInterval(() => {
+    if (++pollCount > MAX_POLLS) {
+      stopPolling();
+      waitingForSelection.value = false;
+      errorMessage.value = 'Aucune sélection détectée. Rouvrez Google Photos et validez votre choix, ou recommencez.';
+      return;
+    }
+    pollStatus();
+  }, 3000);
+};
+
+const cancelSelection = async () => {
+  stopPolling();
+  waitingForSelection.value = false;
+  selectionDone.value = false;
+  pickerUri.value = null;
+  errorMessage.value = null;
+  try {
+    await axios.post('/google-photos/session/cancel');
+  } catch (e) {
+    // best effort
+  }
 };
 
 const stopPolling = () => {
@@ -178,6 +227,7 @@ const openPicker = async () => {
   errorMessage.value = null;
   try {
     const { data } = await axios.post('/google-photos/session');
+    pickerUri.value = data.pickerUri;
     window.open(data.pickerUri, '_blank', 'noopener');
     waitingForSelection.value = true;
     startPolling();

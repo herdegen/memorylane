@@ -139,6 +139,27 @@ class GooglePhotosController extends Controller
     }
 
     /**
+     * Abandonne la session de sélection en cours (l'utilisateur a fermé
+     * l'onglet Picker ou renonce) : on l'oublie côté serveur et, best effort,
+     * côté Google. Débloque l'état « En attente de votre sélection ».
+     */
+    public function cancelSession(Request $request)
+    {
+        $token = $request->session()->get('google_photos.access_token');
+        $session = $request->session()->pull('google_photos.picker_session');
+
+        if ($token && $session) {
+            try {
+                Http::withToken($token)->delete(self::PICKER_BASE_URL . '/sessions/' . $session['id']);
+            } catch (\Throwable $e) {
+                // best effort : la session Google expirera d'elle-même
+            }
+        }
+
+        return response()->json(['cancelled' => true]);
+    }
+
+    /**
      * Traduit une erreur de l'API Google en réponse exploitable : token
      * expiré (401) vs API désactivée / autre (avec le vrai message Google,
      * loggé pour diagnostic).
