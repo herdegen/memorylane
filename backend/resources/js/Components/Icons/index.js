@@ -7,6 +7,7 @@ export { default as IconClock } from './IconClock.vue';
 export { default as IconSettings } from './IconSettings.vue';
 export { default as IconChevron } from './IconChevron.vue';
 export { default as IconMenu } from './IconMenu.vue';
+export { default as IconTheme } from './IconTheme.vue';
 export { default as IconTrash } from './IconTrash.vue';
 export { default as IconError } from './IconError.vue';
 export { default as IconSpinner } from './IconSpinner.vue';

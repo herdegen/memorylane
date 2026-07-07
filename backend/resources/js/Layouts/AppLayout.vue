@@ -37,6 +37,16 @@
           <div class="hidden sm:flex sm:items-center gap-3">
             <SearchBar v-if="user" />
 
+            <button
+              @click="toggleTheme"
+              class="p-2 rounded-lg text-surface-500 hover:text-surface-700 hover:bg-surface-100
+                     focus:outline-hidden focus:ring-2 focus:ring-brand-500 transition-colors"
+              :aria-label="isDark ? 'Passer en mode clair' : 'Passer en mode sombre'"
+              :title="isDark ? 'Mode clair' : 'Mode sombre'"
+            >
+              <IconTheme :dark="isDark" icon-class="icon-sm" />
+            </button>
+
             <a v-if="isAdmin" href="/admin" class="btn-admin">
               <IconSettings icon-class="icon-sm mr-1.5" />
               Admin
@@ -76,7 +86,14 @@
           </div>
 
           <!-- Mobile menu button -->
-          <div class="flex items-center sm:hidden">
+          <div class="flex items-center gap-1 sm:hidden">
+            <button
+              @click="toggleTheme"
+              class="p-2 rounded-lg text-surface-500 hover:text-surface-700 hover:bg-surface-100 focus:outline-hidden focus:ring-2 focus:ring-brand-500 transition-colors"
+              :aria-label="isDark ? 'Passer en mode clair' : 'Passer en mode sombre'"
+            >
+              <IconTheme :dark="isDark" icon-class="w-6 h-6" />
+            </button>
             <button
               @click="showMobileMenu = !showMobileMenu"
               class="p-2 rounded-lg text-surface-500 hover:text-surface-700 hover:bg-surface-100 focus:outline-hidden focus:ring-2 focus:ring-brand-500 transition-colors"
@@ -144,10 +161,12 @@ import { Link } from '@inertiajs/vue3';
 import NavLink from '@/Components/NavLink.vue';
 import MobileNavLink from '@/Components/MobileNavLink.vue';
 import SearchBar from '@/Components/SearchBar.vue';
-import { IconSettings, IconChevron, IconMenu } from '@/Components/Icons';
+import { IconSettings, IconChevron, IconMenu, IconTheme } from '@/Components/Icons';
 import { useAuth } from '@/Composables/useAuth';
+import { useTheme } from '@/Composables/useTheme';
 
 const { user, isAdmin } = useAuth();
+const { isDark, toggle: toggleTheme } = useTheme();
 
 const showDropdown = ref(false);
 const showMobileMenu = ref(false);

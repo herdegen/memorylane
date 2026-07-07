@@ -4,6 +4,10 @@
 @source '../../vendor/filament/**/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
+/* Dark mode piloté par l'attribut [data-theme=dark] sur <html> (bascule
+   manuelle via useTheme + script anti-FOUC), plutôt que prefers-color-scheme. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
 @theme {
   --font-sans:
     Figtree, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
@@ -82,6 +86,41 @@
   --color-success:       var(--color-green-500);
   --color-warning:       var(--color-brand-500);
   --color-danger:        var(--color-red-500);
+}
+
+/* =============================================================================
+   Dark mode — « flip » des tokens sémantiques
+   L'app utilise l'échelle `surface` de façon sémantique (900 = texte fort,
+   50/100 = fonds subtils, 200 = bordures) + `bg-page`/`bg-white`. En v4 ces
+   utilitaires compilent vers var(--color-…), donc redéfinir ces variables sous
+   :root[data-theme=dark] recolore toute l'appli (pages actuelles ET futures)
+   depuis ce seul bloc. La palette `brand` (doré) est conservée comme accent.
+   Spécificité (0,2,0) > le :root généré par @theme, donc l'override gagne.
+   ============================================================================= */
+:root[data-theme='dark'] {
+  /* Fond appli + « papier » des cartes (bg-page / bg-white) */
+  --color-page:  #17140f;
+  --color-white: #211d17;
+
+  /* Inversion de l'échelle surface */
+  --color-surface-50:  #211d17;
+  --color-surface-100: #2a251e;
+  --color-surface-200: #3a332a;   /* bordures */
+  --color-surface-300: #4d453a;
+  --color-surface-400: #8a8175;
+  --color-surface-500: #a89f92;
+  --color-surface-600: #c6bdb0;
+  --color-surface-700: #ded7cb;   /* texte courant */
+  --color-surface-800: #ece7de;
+  --color-surface-900: #f7f3ec;   /* titres */
+
+  /* Bordure par défaut (compat v4 : *,::before… → var(--color-gray-200)) */
+  --color-gray-200: #3a332a;
+
+  /* Ombres chaudes → plus profondes sur fond sombre */
+  --shadow-warm-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-warm-md: 0 4px 12px rgba(0, 0, 0, 0.45);
+  --shadow-warm-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
 }
 
 /* =============================================================================
@@ -288,7 +327,7 @@
   }
 
   .form-input--error {
-    @apply border-red-400 bg-red-50;
+    @apply border-red-400 bg-red-50 dark:bg-red-950/40 dark:border-red-700;
   }
 
   .form-select {
@@ -314,24 +353,24 @@
    ============================================================================= */
 @layer components {
   .alert-success {
-    @apply alert bg-teal-50 border-teal-200;
+    @apply alert bg-teal-50 border-teal-200 dark:bg-teal-950 dark:border-teal-800;
   }
   .alert-success p {
-    @apply text-sm text-teal-800;
+    @apply text-sm text-teal-800 dark:text-teal-200;
   }
 
   .alert-error {
-    @apply alert bg-red-50 border-red-200;
+    @apply alert bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800;
   }
   .alert-error p {
-    @apply text-sm text-red-800;
+    @apply text-sm text-red-800 dark:text-red-200;
   }
 
   .alert-warning {
-    @apply alert bg-brand-50 border-brand-200;
+    @apply alert bg-brand-50 border-brand-200 dark:bg-brand-500/10 dark:border-brand-500/30;
   }
   .alert-warning p {
-    @apply text-sm text-brand-800;
+    @apply text-sm text-brand-800 dark:text-brand-200;
   }
 }
 
@@ -339,10 +378,10 @@
    Badges
    ============================================================================= */
 @layer components {
-  .badge-brand   { @apply badge bg-brand-100 text-brand-700; }
+  .badge-brand   { @apply badge bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300; }
   .badge-surface { @apply badge bg-surface-100 text-surface-600; }
-  .badge-teal    { @apply badge bg-teal-100 text-teal-700; }
-  .badge-red     { @apply badge bg-red-100 text-red-700; }
+  .badge-teal    { @apply badge bg-teal-100 text-teal-700 dark:bg-teal-500/15 dark:text-teal-300; }
+  .badge-red     { @apply badge bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300; }
 }
 
 /* =============================================================================

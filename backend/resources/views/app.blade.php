@@ -13,6 +13,23 @@
         <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
         <link rel="apple-touch-icon" href="/icons/icon-192.png">
 
+        <!-- Thème clair/sombre : appliqué avant le rendu pour éviter tout flash (FOUC) -->
+        <script>
+            (function () {
+                try {
+                    var stored = localStorage.getItem('theme');
+                    var dark = stored
+                        ? stored === 'dark'
+                        : window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+                    if (dark) {
+                        var meta = document.querySelector('meta[name="theme-color"]');
+                        if (meta) meta.setAttribute('content', '#17140f');
+                    }
+                } catch (e) {}
+            })();
+        </script>
+
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
