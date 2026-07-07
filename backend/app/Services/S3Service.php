@@ -27,16 +27,22 @@ class S3Service
     public function upload(UploadedFile $file, string $path, string $visibility = 'private'): string
     {
         try {
-            Storage::disk($this->disk)->putFileAs(
+            $stored = Storage::disk($this->disk)->putFileAs(
                 dirname($path),
                 $file,
                 basename($path),
                 $visibility
             );
 
+            // putFileAs renvoie false (sans exception) si l'écriture échoue :
+            // ne pas l'ignorer, sinon on crée un Media pointant vers un fichier absent.
+            if ($stored === false) {
+                throw new \RuntimeException("putFileAs a échoué (retour false) pour {$path}");
+            }
+
             return $path;
-        } catch (\Exception $e) {
-            throw new \Exception('Failed to upload file to storage: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            throw new \RuntimeException('Failed to upload file to storage: ' . $e->getMessage(), 0, $e);
         }
     }
 
