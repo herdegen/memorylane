@@ -35,6 +35,17 @@
               {{ opt.label }}
             </button>
           </div>
+          <button
+            @click="toggleDir"
+            class="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border border-surface-200 bg-white text-surface-600 hover:bg-surface-100 transition-colors"
+            :title="sortDir === 'asc' ? 'Ordre croissant' : 'Ordre décroissant'"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path v-if="sortDir === 'asc'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9M3 12h5m4 4l4 4m0 0l4-4m-4 4V4" />
+              <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9M3 12h5m4 8l4-4m0 0l-4-4m4 4V4" />
+            </svg>
+            {{ sortDir === 'asc' ? 'Croissant' : 'Décroissant' }}
+          </button>
           <p
             v-if="sortBy === 'proximity' && !selfPersonId"
             class="text-xs text-surface-500"
@@ -156,6 +167,7 @@ const sortOptions = [
   { value: 'birth_year', label: 'Année de naissance' },
 ];
 const sortBy = ref('proximity');
+const sortDir = ref('asc'); // 'asc' | 'desc'
 
 const collator = new Intl.Collator('fr', { sensitivity: 'base', numeric: true });
 const byName = (a, b) => collator.compare(a.name || '', b.name || '');
@@ -170,29 +182,36 @@ const nullsLast = (av, bv, cmp) => {
   return cmp(av, bv);
 };
 
+const toggleDir = () => {
+  sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
+};
+
 const sortedPeople = computed(() => {
   const list = [...props.people];
-  switch (sortBy.value) {
-    case 'last_name':
-      return list.sort((a, b) =>
-        collator.compare(a.last_name || '', b.last_name || '') || byName(a, b));
-    case 'first_name':
-      return list.sort((a, b) =>
-        collator.compare(a.first_name || '', b.first_name || '') || byName(a, b));
-    case 'birth_year':
-      return list.sort((a, b) =>
-        nullsLast(a.birth_date, b.birth_date, (x, y) => String(x).localeCompare(String(y))) || byName(a, b));
-    case 'proximity':
-    default:
-      // Avec une fiche « moi » : distance de parenté croissante (proches d'abord).
-      // Sans : à défaut, les plus reliés (nb de proches directs) d'abord.
-      if (props.selfPersonId) {
-        return list.sort((a, b) =>
-          nullsLast(a.proximity, b.proximity, (x, y) => x - y) || byName(a, b));
-      }
-      return list.sort((a, b) =>
-        (b.relatives_count || 0) - (a.relatives_count || 0) || byName(a, b));
-  }
+  const dir = sortDir.value === 'desc' ? -1 : 1;
+
+  // Comparaison primaire selon le critère (le sens `dir` ne s'applique qu'aux
+  // valeurs présentes ; les valeurs manquantes restent toujours en fin).
+  const primary = (a, b) => {
+    switch (sortBy.value) {
+      case 'last_name':
+        return dir * collator.compare(a.last_name || '', b.last_name || '');
+      case 'first_name':
+        return dir * collator.compare(a.first_name || '', b.first_name || '');
+      case 'birth_year':
+        return nullsLast(a.birth_date, b.birth_date, (x, y) => dir * String(x).localeCompare(String(y)));
+      case 'proximity':
+      default:
+        // Avec une fiche « moi » : distance de parenté (proches d'abord en asc).
+        // Sans : les plus reliés (nb de proches directs) d'abord en asc.
+        if (props.selfPersonId) {
+          return nullsLast(a.proximity, b.proximity, (x, y) => dir * (x - y));
+        }
+        return dir * ((b.relatives_count || 0) - (a.relatives_count || 0));
+    }
+  };
+
+  return list.sort((a, b) => primary(a, b) || byName(a, b));
 });
 
 const goToPerson = (person) => {
