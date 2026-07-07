@@ -147,6 +147,7 @@ Route::middleware('auth')->group(function () {
         // Family relationships
         Route::post('/{person}/parent', [PersonController::class, 'setParent'])->name('setParent');
         Route::delete('/{person}/parent', [PersonController::class, 'removeParent'])->name('removeParent');
+        Route::post('/{person}/set-self', [PersonController::class, 'setSelf'])->name('setSelf');
         Route::post('/{person}/spouse', [PersonController::class, 'addSpouse'])->name('addSpouse');
         Route::delete('/{person}/spouse', [PersonController::class, 'removeSpouse'])->name('removeSpouse');
     });

@@ -19,13 +19,37 @@
           </button>
         </div>
 
+        <!-- Sort bar -->
+        <div v-if="people.length > 0" class="flex flex-wrap items-center gap-3 mb-6">
+          <label class="text-sm font-medium text-surface-600">Trier par</label>
+          <div class="inline-flex rounded-lg border border-surface-200 bg-white p-0.5">
+            <button
+              v-for="opt in sortOptions"
+              :key="opt.value"
+              @click="sortBy = opt.value"
+              class="px-3 py-1.5 text-sm rounded-md transition-colors"
+              :class="sortBy === opt.value
+                ? 'bg-brand-600 text-white'
+                : 'text-surface-600 hover:bg-surface-100'"
+            >
+              {{ opt.label }}
+            </button>
+          </div>
+          <p
+            v-if="sortBy === 'proximity' && !selfPersonId"
+            class="text-xs text-surface-500"
+          >
+            Astuce : ouvrez une fiche et cliquez « C'est moi » pour trier par proximité familiale.
+          </p>
+        </div>
+
         <!-- People Grid -->
         <div
           v-if="people.length > 0"
           class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
         >
           <div
-            v-for="person in people"
+            v-for="person in sortedPeople"
             :key="person.id"
             class="bg-white rounded-card border border-surface-200 shadow-warm-sm overflow-hidden cursor-pointer hover:shadow-warm-md hover:border-brand-200 hover:scale-[1.01] transition-all duration-200"
             @click="goToPerson(person)"
@@ -107,19 +131,69 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PersonFormModal from '@/Components/PersonFormModal.vue';
 
-defineProps({
+const props = defineProps({
   people: {
     type: Array,
     default: () => [],
   },
+  selfPersonId: {
+    type: [String, Number, null],
+    default: null,
+  },
 });
 
 const showCreateModal = ref(false);
+
+const sortOptions = [
+  { value: 'proximity', label: 'Proximité' },
+  { value: 'last_name', label: 'Nom' },
+  { value: 'first_name', label: 'Prénom' },
+  { value: 'birth_year', label: 'Année de naissance' },
+];
+const sortBy = ref('proximity');
+
+const collator = new Intl.Collator('fr', { sensitivity: 'base', numeric: true });
+const byName = (a, b) => collator.compare(a.name || '', b.name || '');
+
+// nulls toujours en fin, quel que soit le sens
+const nullsLast = (av, bv, cmp) => {
+  const an = av === null || av === undefined || av === '';
+  const bn = bv === null || bv === undefined || bv === '';
+  if (an && bn) return 0;
+  if (an) return 1;
+  if (bn) return -1;
+  return cmp(av, bv);
+};
+
+const sortedPeople = computed(() => {
+  const list = [...props.people];
+  switch (sortBy.value) {
+    case 'last_name':
+      return list.sort((a, b) =>
+        collator.compare(a.last_name || '', b.last_name || '') || byName(a, b));
+    case 'first_name':
+      return list.sort((a, b) =>
+        collator.compare(a.first_name || '', b.first_name || '') || byName(a, b));
+    case 'birth_year':
+      return list.sort((a, b) =>
+        nullsLast(a.birth_date, b.birth_date, (x, y) => String(x).localeCompare(String(y))) || byName(a, b));
+    case 'proximity':
+    default:
+      // Avec une fiche « moi » : distance de parenté croissante (proches d'abord).
+      // Sans : à défaut, les plus reliés (nb de proches directs) d'abord.
+      if (props.selfPersonId) {
+        return list.sort((a, b) =>
+          nullsLast(a.proximity, b.proximity, (x, y) => x - y) || byName(a, b));
+      }
+      return list.sort((a, b) =>
+        (b.relatives_count || 0) - (a.relatives_count || 0) || byName(a, b));
+  }
+});
 
 const goToPerson = (person) => {
   router.visit(`/people/${person.id}`);

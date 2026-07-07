@@ -27,10 +27,17 @@ class PersonController extends Controller
             ->orderBy('name')
             ->get();
 
-        $people->transform(function ($person) {
+        // Proximité généalogique : distance (BFS) depuis la fiche « moi » de
+        // l'utilisateur, sur le graphe parents/enfants/conjoints. Sert au tri.
+        $selfPersonId = auth()->user()->person_id;
+        $proximity = $this->computeProximity($people, $selfPersonId);
+
+        $people->transform(function ($person) use ($proximity) {
             if ($person->avatar) {
                 $person->avatar_url = $this->getAvatarUrl($person->avatar);
             }
+            $person->proximity = $proximity['distance'][$person->id] ?? null;
+            $person->relatives_count = $proximity['degree'][$person->id] ?? 0;
             return $person;
         });
 
@@ -40,7 +47,85 @@ class PersonController extends Controller
 
         return Inertia::render('People/Index', [
             'people' => $people,
+            'selfPersonId' => $selfPersonId,
         ]);
+    }
+
+    /**
+     * Calcule, pour chaque personne : sa distance de parenté à la fiche « moi »
+     * (BFS sur parents/enfants/conjoints) et son nombre de proches directs.
+     *
+     * @return array{distance: array<string,int>, degree: array<string,int>}
+     */
+    private function computeProximity($people, ?string $selfPersonId): array
+    {
+        $ids = $people->pluck('id')->all();
+        $known = array_flip($ids);
+
+        // Graphe d'adjacence non orienté
+        $adj = array_fill_keys($ids, []);
+        foreach ($people as $p) {
+            foreach ([$p->father_id, $p->mother_id] as $parentId) {
+                if ($parentId && isset($known[$parentId])) {
+                    $adj[$p->id][] = $parentId;
+                    $adj[$parentId][] = $p->id;
+                }
+            }
+        }
+
+        foreach (DB::table('person_relationships')
+            ->whereIn('person1_id', $ids)
+            ->orWhereIn('person2_id', $ids)
+            ->get(['person1_id', 'person2_id']) as $rel) {
+            if (isset($known[$rel->person1_id], $known[$rel->person2_id])) {
+                $adj[$rel->person1_id][] = $rel->person2_id;
+                $adj[$rel->person2_id][] = $rel->person1_id;
+            }
+        }
+
+        $degree = [];
+        foreach ($adj as $id => $neighbours) {
+            $degree[$id] = count(array_unique($neighbours));
+        }
+
+        // BFS depuis « moi »
+        $distance = [];
+        if ($selfPersonId && isset($known[$selfPersonId])) {
+            $distance[$selfPersonId] = 0;
+            $queue = [$selfPersonId];
+            while ($queue) {
+                $current = array_shift($queue);
+                foreach ($adj[$current] as $neighbour) {
+                    if (! isset($distance[$neighbour])) {
+                        $distance[$neighbour] = $distance[$current] + 1;
+                        $queue[] = $neighbour;
+                    }
+                }
+            }
+        }
+
+        return ['distance' => $distance, 'degree' => $degree];
+    }
+
+    /**
+     * Désigne la personne comme étant l'utilisateur connecté (« c'est moi »),
+     * point de référence du tri par proximité.
+     */
+    public function setSelf(Request $request, Person $person)
+    {
+        if ($person->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        $user = auth()->user();
+        $user->person_id = $user->person_id === $person->id ? null : $person->id;
+        $user->save();
+
+        if ($request->wantsJson()) {
+            return response()->json(['person_id' => $user->person_id]);
+        }
+
+        return redirect()->back()->with('success', $user->person_id ? 'Vous êtes défini sur cette personne' : 'Référence retirée');
     }
 
     /**
@@ -182,6 +267,7 @@ class PersonController extends Controller
             'mother' => $person->mother,
             'children' => $children,
             'spouses' => $spouses,
+            'isSelf' => auth()->user()->person_id === $person->id,
         ]);
     }
 
