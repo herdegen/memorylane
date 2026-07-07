@@ -192,18 +192,28 @@ class GooglePhotosController extends Controller
         $validated = $request->validate([
             'person_id' => ['nullable', 'uuid', 'exists:people,id'],
             'album_id' => ['nullable', 'uuid', 'exists:albums,id'],
+            'new_album_name' => ['nullable', 'string', 'max:255'],
         ]);
 
         $token = $request->session()->get('google_photos.access_token');
         $session = $request->session()->get('google_photos.picker_session');
         abort_unless($token && $session, 409, 'Aucune sélection à importer.');
 
+        // Album cible : soit un existant, soit un nouveau créé à la volée.
+        $albumId = $validated['album_id'] ?? null;
+        if (! $albumId && ! empty($validated['new_album_name'])) {
+            $albumId = \App\Models\Album::create([
+                'user_id' => auth()->id(),
+                'name' => $validated['new_album_name'],
+            ])->id;
+        }
+
         ImportGooglePhotosItems::dispatch(
             userId: auth()->id(),
             accessToken: $token,
             pickerSessionId: $session['id'],
             personId: $validated['person_id'] ?? null,
-            albumId: $validated['album_id'] ?? null,
+            albumId: $albumId,
         );
 
         // La session Picker ne sert plus côté navigateur

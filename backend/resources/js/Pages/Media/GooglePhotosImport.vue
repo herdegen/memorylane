@@ -112,7 +112,16 @@
                   <option v-for="album in albums" :key="album.id" :value="album.id">
                     {{ album.name }}
                   </option>
+                  <option value="__new__">➕ Créer un nouvel album…</option>
                 </select>
+                <input
+                  v-if="importForm.album_id === '__new__'"
+                  v-model="importForm.new_album_name"
+                  type="text"
+                  class="form-input mt-2"
+                  placeholder="Nom du nouvel album"
+                  :disabled="!selectionDone"
+                />
               </div>
             </div>
 
@@ -156,6 +165,7 @@ const MAX_POLLS = 200; // ~10 min à 3s : évite de poller indéfiniment
 const importForm = useForm({
   person_id: null,
   album_id: null,
+  new_album_name: '',
 });
 
 const pollStatus = async () => {
@@ -237,7 +247,14 @@ const openPicker = async () => {
 };
 
 const startImport = () => {
-  importForm.post('/google-photos/import');
+  const isNew = importForm.album_id === '__new__';
+  importForm
+    .transform((data) => ({
+      person_id: data.person_id,
+      album_id: isNew ? null : data.album_id,
+      new_album_name: isNew ? data.new_album_name : null,
+    }))
+    .post('/google-photos/import');
 };
 
 // Une session de sélection déjà terminée peut exister (retour sur la page)
