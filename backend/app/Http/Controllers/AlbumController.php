@@ -309,6 +309,34 @@ class AlbumController extends Controller
     }
 
     /**
+     * Définit la photo de couverture de l'album (média devant appartenir à l'album).
+     */
+    public function setCover(Request $request, Album $album)
+    {
+        if ($album->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'media_id' => ['required', 'uuid', 'exists:media,id'],
+        ]);
+
+        abort_unless(
+            $album->media()->where('media.id', $validated['media_id'])->exists(),
+            422,
+            'Ce média ne fait pas partie de l\'album.'
+        );
+
+        $album->update(['cover_media_id' => $validated['media_id']]);
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Photo de couverture définie.']);
+        }
+
+        return redirect()->back()->with('success', 'Photo de couverture définie.');
+    }
+
+    /**
      * Applique une localisation (lat/lng) à TOUS les médias de l'album.
      * Utile car l'API Google Photos Picker retire souvent le GPS des originaux.
      */

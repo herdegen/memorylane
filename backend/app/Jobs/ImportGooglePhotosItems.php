@@ -162,6 +162,11 @@ class ImportGooglePhotosItems implements ShouldQueue
             if ($album) {
                 $nextOrder = ($album->media()->max('album_media.order') ?? 0) + 1;
                 $album->media()->syncWithoutDetaching([$media->id => ['order' => $nextOrder]]);
+
+                // Première photo de l'album → devient la couverture par défaut.
+                if (! $album->cover_media_id) {
+                    $album->update(['cover_media_id' => $media->id]);
+                }
             }
         }
     }

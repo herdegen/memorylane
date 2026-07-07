@@ -121,6 +121,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{album}/media', [AlbumController::class, 'removeMedia'])->name('removeMedia');
         Route::put('/{album}/media/reorder', [AlbumController::class, 'reorderMedia'])->name('reorderMedia');
         Route::post('/{album}/geolocate', [AlbumController::class, 'geolocate'])->name('geolocate');
+        Route::post('/{album}/cover', [AlbumController::class, 'setCover'])->name('setCover');
 
         // Sharing
         Route::post('/{album}/share', [AlbumController::class, 'generateShareToken'])->name('generateShare');
