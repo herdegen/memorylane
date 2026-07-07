@@ -55,6 +55,16 @@
                 Partager
               </button>
               <button
+                @click="showGeolocateModal = true"
+                class="inline-flex items-center px-4 py-2 text-sm font-medium text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50"
+              >
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Géolocaliser
+              </button>
+              <button
                 @click="showEditModal = true"
                 class="inline-flex items-center px-4 py-2 text-sm font-medium text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50"
               >
@@ -177,6 +187,13 @@
           @close="showAddMediaModal = false"
           @added="handleMediaAdded"
         />
+
+        <AlbumGeolocateModal
+          v-if="showGeolocateModal"
+          :album="album"
+          @close="showGeolocateModal = false"
+          @done="handleGeolocated"
+        />
       </div>
     </div>
   </AppLayout>
@@ -207,6 +224,7 @@ import MediaCard from '@/Components/MediaCard.vue';
 import AlbumFormModal from '@/Components/AlbumFormModal.vue';
 import SharePanel from '@/Components/SharePanel.vue';
 import MediaPickerModal from '@/Components/MediaPickerModal.vue';
+import AlbumGeolocateModal from '@/Components/AlbumGeolocateModal.vue';
 import Slideshow from '@/Components/Slideshow.vue';
 import PhotoSwipeLightbox from 'photoswipe/lightbox';
 import 'photoswipe/style.css';
@@ -228,6 +246,12 @@ const hasPlayableMedia = computed(() =>
 const startSlideshow = () => slideshowEl.value?.open(0);
 const showEditModal = ref(false);
 const showAddMediaModal = ref(false);
+const showGeolocateModal = ref(false);
+
+const handleGeolocated = () => {
+  showGeolocateModal.value = false;
+  router.reload();
+};
 const selectedMediaIds = ref([]);
 let lightbox = null;
 

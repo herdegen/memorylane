@@ -307,4 +307,37 @@ class AlbumController extends Controller
         }
         return $this->mediaService->getSignedUrl($media);
     }
+
+    /**
+     * Applique une localisation (lat/lng) à TOUS les médias de l'album.
+     * Utile car l'API Google Photos Picker retire souvent le GPS des originaux.
+     */
+    public function geolocate(Request $request, Album $album)
+    {
+        if ($album->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
+        ]);
+
+        $mediaIds = $album->media()->pluck('media.id');
+
+        foreach ($mediaIds as $mediaId) {
+            \App\Models\MediaMetadata::updateOrCreate(
+                ['media_id' => $mediaId],
+                ['latitude' => $validated['latitude'], 'longitude' => $validated['longitude']],
+            );
+        }
+
+        $count = $mediaIds->count();
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => "Localisation appliquée à {$count} média(s).", 'count' => $count]);
+        }
+
+        return redirect()->back()->with('success', "Localisation appliquée à {$count} média(s).");
+    }
 }

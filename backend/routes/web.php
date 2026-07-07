@@ -120,6 +120,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/{album}/media', [AlbumController::class, 'addMedia'])->name('addMedia');
         Route::delete('/{album}/media', [AlbumController::class, 'removeMedia'])->name('removeMedia');
         Route::put('/{album}/media/reorder', [AlbumController::class, 'reorderMedia'])->name('reorderMedia');
+        Route::post('/{album}/geolocate', [AlbumController::class, 'geolocate'])->name('geolocate');
 
         // Sharing
         Route::post('/{album}/share', [AlbumController::class, 'generateShareToken'])->name('generateShare');
