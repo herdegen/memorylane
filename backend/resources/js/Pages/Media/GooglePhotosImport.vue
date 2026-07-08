@@ -136,7 +136,8 @@
 
           <!-- Progression : les photos arrivent au fur et à mesure -->
           <div v-else>
-            <div class="flex items-center gap-2 mb-4">
+            <!-- En cours -->
+            <div v-if="!importDone" class="flex items-center gap-2 mb-4">
               <svg class="w-5 h-5 animate-spin text-brand-600" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
@@ -144,6 +145,17 @@
               <span class="text-sm text-surface-700">
                 <span class="font-semibold text-surface-900">{{ importedCount }}</span>
                 photo(s) importée(s)… <span class="text-surface-400">l'import continue en arrière-plan.</span>
+              </span>
+            </div>
+
+            <!-- Terminé (ou en pause) : le compteur n'évolue plus -->
+            <div v-else class="flex items-center gap-2 mb-4">
+              <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span class="text-sm text-surface-700">
+                <span class="font-semibold text-surface-900">{{ importedCount }}</span>
+                photo(s) importée(s). Import terminé — <span class="text-surface-400">si des photos manquent, relancez l'import.</span>
               </span>
             </div>
 
@@ -275,12 +287,18 @@ const openPicker = async () => {
 
 const launching = ref(false);
 const importing = ref(false);
+const importDone = ref(false);
 const importStartedAt = ref(null);
 const importedCount = ref(0);
 const importedItems = ref([]);
 let importPollTimer = null;
 let importPollCount = 0;
+let importIdlePolls = 0;
+let importLastCount = -1;
 const IMPORT_MAX_POLLS = 150; // ~10 min à 4s
+// Sans nouvelle photo pendant ~1 min, on considère l'import terminé (ou en
+// pause/échec) et on arrête le spinner — évite qu'il tourne indéfiniment.
+const IMPORT_IDLE_LIMIT = 15;
 
 const stopImportPolling = () => {
   if (importPollTimer) {
@@ -289,11 +307,27 @@ const stopImportPolling = () => {
   }
 };
 
+// L'import n'expose pas d'état terminal côté serveur (cf. GitHub #11) : on le
+// déduit de l'arrêt de la progression.
+const finishImport = () => {
+  stopImportPolling();
+  importDone.value = true;
+};
+
 const pollImported = async () => {
   try {
     const { data } = await axios.get('/google-photos/imported', { params: { after: importStartedAt.value } });
     importedCount.value = data.count;
     importedItems.value = data.items;
+
+    if (data.count === importLastCount) {
+      if (++importIdlePolls >= IMPORT_IDLE_LIMIT) {
+        finishImport();
+      }
+    } else {
+      importIdlePolls = 0;
+      importLastCount = data.count;
+    }
   } catch (e) {
     // transient : on réessaiera au prochain tick
   }
@@ -311,13 +345,16 @@ const startImport = async () => {
     });
     importStartedAt.value = data.started_at;
     importing.value = true;
+    importDone.value = false;
     importedCount.value = 0;
     importedItems.value = [];
     importPollCount = 0;
+    importIdlePolls = 0;
+    importLastCount = -1;
     pollImported();
     importPollTimer = setInterval(() => {
       if (++importPollCount > IMPORT_MAX_POLLS) {
-        stopImportPolling();
+        finishImport();
         return;
       }
       pollImported();
