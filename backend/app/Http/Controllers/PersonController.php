@@ -229,7 +229,11 @@ class PersonController extends Controller
             return $spouse;
         });
 
+        // Médias de la personne visibles PAR LE VISITEUR uniquement (la galerie
+        // reste privée : ne pas fuiter les photos privées via la fiche, surtout
+        // quand l'arbre sera public).
         $media = $person->media()
+            ->accessibleBy(auth()->user())
             ->with(['conversions', 'tags'])
             ->orderBy('taken_at', 'desc')
             ->orderBy('uploaded_at', 'desc')

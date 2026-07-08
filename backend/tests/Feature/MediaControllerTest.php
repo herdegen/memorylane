@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Album;
 use App\Models\Media;
 use App\Models\User;
 use App\Models\Tag;
@@ -61,6 +62,29 @@ class MediaControllerTest extends TestCase
         foreach ($data as $item) {
             $this->assertSame($this->user->id, $item['user_id']);
         }
+    }
+
+    /**
+     * Fuite corrigée : on ne peut PAS voir ni télécharger le média d'un autre
+     * compte en accès direct par URL (show/download n'avaient aucun contrôle).
+     */
+    public function test_cannot_view_other_users_media_directly(): void
+    {
+        $viewer = User::factory()->create();
+        $media = Media::factory()->create(['user_id' => $this->user->id, 'type' => 'photo']);
+
+        $this->actingAs($viewer)->get("/media/{$media->id}")->assertForbidden();
+        $this->actingAs($viewer)->get("/media/{$media->id}/download")->assertForbidden();
+    }
+
+    public function test_can_view_media_shared_via_public_album(): void
+    {
+        $viewer = User::factory()->create();
+        $media = Media::factory()->create(['user_id' => $this->user->id, 'type' => 'photo']);
+        $album = Album::factory()->create(['user_id' => $this->user->id, 'is_public' => true]);
+        $album->media()->attach($media->id, ['order' => 0]);
+
+        $this->actingAs($viewer)->get("/media/{$media->id}")->assertOk();
     }
 
     /**

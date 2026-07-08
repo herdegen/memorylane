@@ -77,6 +77,14 @@ class Album extends Model
             ->orderBy('album_media.order');
     }
 
+    /**
+     * Accès accordés (partage à des comptes choisis).
+     */
+    public function accesses()
+    {
+        return $this->hasMany(AlbumAccess::class);
+    }
+
     public function generateShareToken(): string
     {
         $this->share_token = Str::random(64);
@@ -98,9 +106,27 @@ class Album extends Model
         return url("/albums/shared/{$this->share_token}");
     }
 
+    /**
+     * Un album est accessible en lecture par :
+     *  - un lien anonyme valide (token) ;
+     *  - son propriétaire ;
+     *  - tout utilisateur connecté si l'album est public ;
+     *  - un compte à qui l'accès a été accordé (album_access) ;
+     *  - une personne taguée (avec compte lié) dans un média de l'album,
+     *    quelle que soit la visibilité.
+     */
     public function isAccessibleBy(?User $user, ?string $token = null): bool
     {
-        if ($user && $this->user_id === $user->id) {
+        // Lien de partage anonyme (chemin séparé, non authentifié)
+        if ($token && $this->share_token === $token) {
+            return true;
+        }
+
+        if (! $user) {
+            return false;
+        }
+
+        if ($this->user_id === $user->id) {
             return true;
         }
 
@@ -108,10 +134,36 @@ class Album extends Model
             return true;
         }
 
-        if ($token && $this->share_token === $token) {
+        if ($this->accesses()->where('user_id', $user->id)->exists()) {
+            return true;
+        }
+
+        if ($user->person_id
+            && $this->media()->whereHas('people', fn ($q) => $q->where('people.id', $user->person_id))->exists()) {
             return true;
         }
 
         return false;
+    }
+
+    /**
+     * Albums accessibles par $user (owner | public | accès accordé | tagué).
+     * Sert à « Partagés avec moi » et aux agrégations (carte, médias accessibles).
+     */
+    public function scopeAccessibleBy($query, ?User $user)
+    {
+        if (! $user) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where(function ($q) use ($user) {
+            $q->where('user_id', $user->id)
+                ->orWhere('is_public', true)
+                ->orWhereHas('accesses', fn ($a) => $a->where('user_id', $user->id));
+
+            if ($user->person_id) {
+                $q->orWhereHas('media.people', fn ($p) => $p->where('people.id', $user->person_id));
+            }
+        });
     }
 }

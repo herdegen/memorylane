@@ -127,6 +127,23 @@ class Media extends Model
     }
 
     /**
+     * Médias accessibles par $user : ceux qu'il possède, ou présents dans un
+     * album accessible (public / accès accordé / tagué). La galerie reste
+     * privée : un média hors album partagé n'est visible que du propriétaire.
+     */
+    public function scopeAccessibleBy($query, ?User $user)
+    {
+        if (! $user) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where(function ($q) use ($user) {
+            $q->where('user_id', $user->id)
+                ->orWhereHas('albums', fn ($a) => $a->accessibleBy($user));
+        });
+    }
+
+    /**
      * Get a human-readable resolution label based on video height.
      */
     public function getResolutionLabelAttribute(): ?string

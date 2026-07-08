@@ -7,6 +7,7 @@ use App\Models\Media;
 use App\Services\MediaService;
 use App\Services\SmartAlbumService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
 class AlbumController extends Controller
@@ -90,9 +91,8 @@ class AlbumController extends Controller
 
     public function show(Request $request, Album $album)
     {
-        if ($album->user_id !== auth()->id()) {
-            abort(403);
-        }
+        // Lecture élargie : propriétaire, album public, accès accordé, ou tagué.
+        Gate::authorize('view', $album);
 
         // Album intelligent : contenu recalculé à l'affichage (rapide à
         // l'échelle familiale, garantit un contenu à jour)

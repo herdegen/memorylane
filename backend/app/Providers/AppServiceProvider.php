@@ -3,8 +3,13 @@
 namespace App\Providers;
 
 use App\Contracts\VisionServiceInterface;
+use App\Models\Album;
+use App\Models\Media;
+use App\Policies\AlbumPolicy;
+use App\Policies\MediaPolicy;
 use App\Services\Vision\GoogleVisionService;
 use App\Services\Vision\NullVisionService;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -31,6 +36,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Gate::policy(Album::class, AlbumPolicy::class);
+        Gate::policy(Media::class, MediaPolicy::class);
     }
 }

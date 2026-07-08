@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Media;
-use App\Models\User;
 use App\Services\MediaService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
 class MediaController extends Controller
@@ -18,23 +18,12 @@ class MediaController extends Controller
     }
 
     /**
-     * Get the current user ID (authenticated or default).
-     * Temporary solution until authentication is implemented.
+     * ID de l'utilisateur authentifié (les routes média sont derrière le
+     * middleware auth, donc toujours défini).
      */
-    private function getCurrentUserId(): string
+    private function getCurrentUserId(): ?string
     {
-        // If authenticated, use auth user
-        if (auth()->check()) {
-            return auth()->id();
-        }
-
-        // Otherwise, use first user as default
-        $user = User::first();
-        if (!$user) {
-            throw new \Exception('No users found. Please create a user first.');
-        }
-
-        return $user->id;
+        return auth()->id();
     }
     /**
      * Display a listing of media.
@@ -106,6 +95,8 @@ class MediaController extends Controller
      */
     public function show(Media $media)
     {
+        Gate::authorize('view', $media);
+
         $media->load(['user', 'tags', 'conversions', 'metadata', 'people', 'detectedFaces.person']);
 
         // Generate signed URL
@@ -186,6 +177,8 @@ class MediaController extends Controller
      */
     public function download(Media $media)
     {
+        Gate::authorize('view', $media);
+
         try {
             $downloadUrl = $this->mediaService->getDownloadUrl($media);
             return redirect($downloadUrl);
