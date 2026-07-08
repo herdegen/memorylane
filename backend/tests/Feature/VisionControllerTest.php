@@ -432,6 +432,60 @@ class VisionControllerTest extends TestCase
         $this->assertLessThan(0.6, $data[0]['distance']);
     }
 
+    public function test_auto_match_matches_when_very_close(): void
+    {
+        $person = Person::create(['user_id' => $this->user->id, 'name' => 'Alice']);
+        $other = Media::factory()->create(['user_id' => $this->user->id, 'type' => 'photo']);
+        DetectedFace::create([
+            'media_id' => $other->id,
+            'bounding_box' => ['x' => 1, 'y' => 1, 'width' => 1, 'height' => 1],
+            'provider' => 'faceapi', 'status' => 'matched', 'person_id' => $person->id,
+            'embedding' => $this->embedding(0.10),
+        ]);
+        $target = DetectedFace::create([
+            'media_id' => $this->media->id,
+            'bounding_box' => ['x' => 2, 'y' => 2, 'width' => 2, 'height' => 2],
+            'provider' => 'faceapi', 'status' => 'unmatched',
+            'embedding' => $this->embedding(0.11), // distance ~0.01 < 0.45
+        ]);
+
+        $this->actingAs($this->user)
+            ->postJson("/vision/faces/{$target->id}/auto-match")
+            ->assertOk()
+            ->assertJsonFragment(['matched' => true, 'name' => 'Alice']);
+
+        $target->refresh();
+        $this->assertEquals('matched', $target->status);
+        $this->assertEquals($person->id, $target->person_id);
+        $this->assertTrue($this->media->people()->where('person_id', $person->id)->exists());
+    }
+
+    public function test_auto_match_declines_when_above_strict_threshold(): void
+    {
+        $person = Person::create(['user_id' => $this->user->id, 'name' => 'Bob']);
+        $other = Media::factory()->create(['user_id' => $this->user->id, 'type' => 'photo']);
+        DetectedFace::create([
+            'media_id' => $other->id,
+            'bounding_box' => ['x' => 1, 'y' => 1, 'width' => 1, 'height' => 1],
+            'provider' => 'faceapi', 'status' => 'matched', 'person_id' => $person->id,
+            'embedding' => $this->embedding(0.10),
+        ]);
+        // distance 0.5 : sous le seuil de suggestion (0.6) mais au-dessus de l'auto (0.45).
+        $target = DetectedFace::create([
+            'media_id' => $this->media->id,
+            'bounding_box' => ['x' => 2, 'y' => 2, 'width' => 2, 'height' => 2],
+            'provider' => 'faceapi', 'status' => 'unmatched',
+            'embedding' => $this->embedding(0.60),
+        ]);
+
+        $this->actingAs($this->user)
+            ->postJson("/vision/faces/{$target->id}/auto-match")
+            ->assertOk()
+            ->assertJsonFragment(['matched' => false]);
+
+        $this->assertNull($target->fresh()->person_id);
+    }
+
     public function test_suggest_returns_empty_for_distant_face(): void
     {
         $person = Person::create(['user_id' => $this->user->id, 'name' => 'Bob']);

@@ -144,6 +144,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/faces/{detectedFace}/dismiss', [VisionController::class, 'dismissFace'])->name('dismissFace');
         Route::post('/faces/{detectedFace}/reset', [VisionController::class, 'resetFace'])->name('resetFace');
         Route::get('/faces/{detectedFace}/suggest', [VisionController::class, 'suggest'])->name('suggest');
+        Route::post('/faces/{detectedFace}/auto-match', [VisionController::class, 'autoMatch'])->name('autoMatch');
         Route::get('/pending', [VisionController::class, 'pending'])->name('pending');
         Route::get('/batch', fn () => Inertia::render('Vision/Batch'))->name('batch');
         Route::get('/media/{media}/labels', [VisionController::class, 'labels'])->name('labels');

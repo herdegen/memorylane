@@ -19,6 +19,12 @@ class VisionController extends Controller
     private const MATCH_THRESHOLD = 0.6;
 
     /**
+     * Seuil (plus strict) au-dessous duquel on associe AUTOMATIQUEMENT la
+     * personne, sans confirmation (auto-association en tâche de fond).
+     */
+    private const AUTO_MATCH_THRESHOLD = 0.45;
+
+    /**
      * Proxy image même-origine pour la détection de visages côté navigateur.
      *
      * Les images s'affichent normalement via des URLs signées Scaleway (origine
@@ -179,10 +185,23 @@ class VisionController extends Controller
     {
         $this->authorizeMedia($detectedFace->media);
 
+        $candidates = $this->rankedCandidates($detectedFace, self::MATCH_THRESHOLD);
+
+        return response()->json([
+            'suggestions' => array_slice($candidates, 0, 3),
+        ]);
+    }
+
+    /**
+     * Personnes candidates (plus proche voisin par personne) sous $maxDistance,
+     * triées par distance croissante. Chaque entrée : {person{id,name}, distance, score}.
+     */
+    private function rankedCandidates(DetectedFace $detectedFace, float $maxDistance): array
+    {
         $target = $detectedFace->embedding;
 
         if (! is_array($target) || count($target) !== 128) {
-            return response()->json(['suggestions' => []]);
+            return [];
         }
 
         // Visages labellisés de l'utilisateur (autres que celui-ci), avec embedding.
@@ -194,7 +213,6 @@ class VisionController extends Controller
             ->with('person:id,name')
             ->get();
 
-        // Plus proche voisin par personne.
         $bestByPerson = [];
 
         foreach ($labelled as $face) {
@@ -204,7 +222,7 @@ class VisionController extends Controller
 
             $distance = $this->euclideanDistance($target, $face->embedding);
 
-            if ($distance > self::MATCH_THRESHOLD) {
+            if ($distance > $maxDistance) {
                 continue;
             }
 
@@ -217,18 +235,16 @@ class VisionController extends Controller
                         'name' => $face->person->name,
                     ],
                     'distance' => round($distance, 4),
-                    // Score de similarité (0..1) : 1 = identique, 0 = au seuil.
+                    // Score de similarité (0..1) : 1 = identique, 0 = au seuil de suggestion.
                     'score' => round(max(0, 1 - $distance / self::MATCH_THRESHOLD), 4),
                 ];
             }
         }
 
-        $suggestions = array_values($bestByPerson);
-        usort($suggestions, fn ($a, $b) => $a['distance'] <=> $b['distance']);
+        $candidates = array_values($bestByPerson);
+        usort($candidates, fn ($a, $b) => $a['distance'] <=> $b['distance']);
 
-        return response()->json([
-            'suggestions' => array_slice($suggestions, 0, 3),
-        ]);
+        return $candidates;
     }
 
     /**
@@ -284,22 +300,57 @@ class VisionController extends Controller
             'person_id' => 'required|uuid|exists:people,id',
         ]);
 
-        // Update the detected face
-        $detectedFace->update([
-            'person_id' => $validated['person_id'],
-            'status' => 'matched',
-        ]);
-
-        // Also create/update the media_person pivot with face_coordinates
-        $detectedFace->media->people()->syncWithoutDetaching([
-            $validated['person_id'] => [
-                'face_coordinates' => json_encode($detectedFace->bounding_box),
-            ],
-        ]);
-
+        $this->applyMatch($detectedFace, $validated['person_id']);
         $detectedFace->load('person');
 
         return response()->json($detectedFace);
+    }
+
+    /**
+     * Auto-association en tâche de fond : associe le plus proche voisin
+     * labellisé UNIQUEMENT si la distance est sous le seuil strict. Renvoie
+     * {matched, person?}. L'utilisateur peut toujours corriger via resetFace.
+     */
+    public function autoMatch(DetectedFace $detectedFace): JsonResponse
+    {
+        $this->authorizeMedia($detectedFace->media);
+
+        // Ne jamais écraser une association existante.
+        if ($detectedFace->person_id || $detectedFace->status !== 'unmatched') {
+            return response()->json(['matched' => false]);
+        }
+
+        $candidates = $this->rankedCandidates($detectedFace, self::AUTO_MATCH_THRESHOLD);
+        $best = $candidates[0] ?? null;
+
+        if (! $best) {
+            return response()->json(['matched' => false]);
+        }
+
+        $this->applyMatch($detectedFace, $best['person']['id']);
+
+        return response()->json([
+            'matched' => true,
+            'person' => $best['person'],
+            'distance' => $best['distance'],
+        ]);
+    }
+
+    /**
+     * Associe un visage à une personne (statut matched + pivot media_person).
+     */
+    private function applyMatch(DetectedFace $detectedFace, string $personId): void
+    {
+        $detectedFace->update([
+            'person_id' => $personId,
+            'status' => 'matched',
+        ]);
+
+        $detectedFace->media->people()->syncWithoutDetaching([
+            $personId => [
+                'face_coordinates' => json_encode($detectedFace->bounding_box),
+            ],
+        ]);
     }
 
     /**

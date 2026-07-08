@@ -164,6 +164,7 @@ import SearchBar from '@/Components/SearchBar.vue';
 import { IconSettings, IconChevron, IconMenu, IconTheme } from '@/Components/Icons';
 import { useAuth } from '@/Composables/useAuth';
 import { useTheme } from '@/Composables/useTheme';
+import { startBackgroundFaceScan } from '@/composables/useBackgroundFaceScan';
 
 const { user, isAdmin } = useAuth();
 const { isDark, toggle: toggleTheme } = useTheme();
@@ -180,6 +181,9 @@ const handleClickOutside = (event) => {
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
+  // Analyse des visages en tâche de fond pendant la navigation (silencieux,
+  // singleton, sans coût s'il n'y a rien à traiter).
+  startBackgroundFaceScan();
 });
 
 onUnmounted(() => {
