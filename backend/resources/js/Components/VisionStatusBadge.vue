@@ -28,8 +28,7 @@
         </div>
       </div>
       <button
-        @click="reanalyze"
-        :disabled="reanalyzing"
+        @click="$emit('rerun')"
         class="text-xs text-brand-600 hover:text-brand-800 font-medium"
       >
         Relancer
@@ -50,8 +49,7 @@
         </div>
       </div>
       <button
-        @click="reanalyze"
-        :disabled="reanalyzing"
+        @click="$emit('rerun')"
         class="text-xs text-brand-600 hover:text-brand-800 font-medium"
       >
         Reessayer
@@ -61,8 +59,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
-import axios from 'axios';
+import { ref } from 'vue';
 
 const props = defineProps({
   mediaId: {
@@ -83,66 +80,11 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['analysis-complete']);
+// La détection tourne côté navigateur (cf. Media/Show.vue) : ce badge se
+// contente d'afficher l'état et de déléguer la relance au parent via 'rerun'.
+defineEmits(['rerun']);
 
 const currentStatus = ref(props.initialStatus);
 const facesCount = ref(props.initialFacesCount);
 const currentError = ref(props.initialError);
-const reanalyzing = ref(false);
-let pollInterval = null;
-
-const pollStatus = async () => {
-  try {
-    const response = await axios.get(`/vision/media/${props.mediaId}/status`);
-    currentStatus.value = response.data.status;
-    facesCount.value = response.data.faces_count || 0;
-    currentError.value = response.data.error;
-
-    if (response.data.status === 'completed') {
-      stopPolling();
-      emit('analysis-complete');
-    } else if (response.data.status === 'failed') {
-      stopPolling();
-    }
-  } catch (error) {
-    console.error('Failed to poll vision status:', error);
-  }
-};
-
-const startPolling = () => {
-  if (pollInterval) return;
-  pollInterval = setInterval(pollStatus, 3000);
-};
-
-const stopPolling = () => {
-  if (pollInterval) {
-    clearInterval(pollInterval);
-    pollInterval = null;
-  }
-};
-
-const reanalyze = async () => {
-  reanalyzing.value = true;
-  try {
-    await axios.post(`/vision/media/${props.mediaId}/analyze`);
-    currentStatus.value = 'pending';
-    currentError.value = null;
-    facesCount.value = 0;
-    startPolling();
-  } catch (error) {
-    console.error('Failed to re-analyze:', error);
-  } finally {
-    reanalyzing.value = false;
-  }
-};
-
-onMounted(() => {
-  if (currentStatus.value === 'pending' || currentStatus.value === 'processing') {
-    startPolling();
-  }
-});
-
-onUnmounted(() => {
-  stopPolling();
-});
 </script>

@@ -9,14 +9,44 @@
       </button>
     </div>
 
-    <!-- Confidence -->
-    <div class="mb-4 text-sm text-surface-500">
-      Confiance : {{ Math.round((face.confidence || 0) * 100) }}%
+    <!-- Aperçu recadré du visage -->
+    <div class="mb-4 flex items-center gap-3">
+      <canvas
+        ref="cropCanvas"
+        class="w-20 h-20 rounded-lg bg-surface-100 object-cover shrink-0 border border-surface-200"
+      ></canvas>
+      <div class="text-sm text-surface-500">
+        <span v-if="face.person" class="block font-medium text-surface-900">
+          Actuellement : {{ face.person.name }}
+        </span>
+        Confiance : {{ Math.round((face.confidence || 0) * 100) }}%
+      </div>
+    </div>
+
+    <!-- Suggestion de reconnaissance -->
+    <div
+      v-if="topSuggestion"
+      class="mb-4 p-3 bg-brand-50 border border-brand-100 rounded-lg"
+    >
+      <p class="text-sm text-surface-700 mb-2">
+        Suggestion :
+        <span class="font-semibold text-surface-900">{{ topSuggestion.person.name }}</span>
+        <span class="text-surface-500">({{ Math.round(topSuggestion.score * 100) }}%)</span>
+      </p>
+      <button
+        @click="matchToPerson(topSuggestion.person)"
+        :disabled="matching"
+        class="w-full px-3 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50"
+      >
+        Confirmer {{ topSuggestion.person.name }}
+      </button>
     </div>
 
     <!-- Search existing people -->
     <div class="mb-4">
-      <label class="block text-sm font-medium text-surface-700 mb-1">Selectionner une personne</label>
+      <label class="block text-sm font-medium text-surface-700 mb-1">
+        {{ face.person ? 'Changer de personne' : 'Selectionner une personne' }}
+      </label>
       <div class="relative">
         <input
           v-model="searchQuery"
@@ -56,7 +86,17 @@
       >
         Nouvelle personne
       </button>
+      <!-- Retirer l'association si le visage est déjà matché, sinon Ignorer -->
       <button
+        v-if="face.person"
+        @click="resetFace"
+        :disabled="matching"
+        class="flex-1 px-3 py-2 text-sm font-medium text-surface-600 bg-surface-100 rounded-lg hover:bg-surface-200"
+      >
+        Retirer
+      </button>
+      <button
+        v-else
         @click="dismissFace"
         :disabled="matching"
         class="flex-1 px-3 py-2 text-sm font-medium text-surface-600 bg-surface-100 rounded-lg hover:bg-surface-200"
@@ -95,7 +135,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import axios from 'axios';
 
 const props = defineProps({
@@ -109,7 +149,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['matched', 'dismissed', 'close']);
+const emit = defineEmits(['matched', 'dismissed', 'reset', 'close']);
 
 const searchQuery = ref('');
 const people = ref([]);
@@ -118,6 +158,8 @@ const loadingPeople = ref(false);
 const matching = ref(false);
 const showCreatePerson = ref(false);
 const newPersonName = ref('');
+const topSuggestion = ref(null);
+const cropCanvas = ref(null);
 
 const loadPeople = async () => {
   loadingPeople.value = true;
@@ -171,6 +213,18 @@ const dismissFace = async () => {
   }
 };
 
+const resetFace = async () => {
+  matching.value = true;
+  try {
+    await axios.post(`/vision/faces/${props.face.id}/reset`);
+    emit('reset', props.face);
+  } catch (error) {
+    console.error('Failed to reset face:', error);
+  } finally {
+    matching.value = false;
+  }
+};
+
 const createAndMatch = async () => {
   if (!newPersonName.value.trim()) return;
 
@@ -195,7 +249,60 @@ const createAndMatch = async () => {
   }
 };
 
+// Suggestion de reconnaissance (plus proche voisin sur les visages labellisés).
+const loadSuggestion = async () => {
+  topSuggestion.value = null;
+  // Inutile de suggérer un nom si le visage est déjà nommé.
+  if (props.face.person) return;
+  try {
+    const { data } = await axios.get(`/vision/faces/${props.face.id}/suggest`);
+    topSuggestion.value = data.suggestions?.[0] || null;
+  } catch (error) {
+    console.error('Failed to load suggestion:', error);
+  }
+};
+
+// Aperçu recadré : on dessine la région bounding_box (en %) de l'image proxy
+// même-origine sur le canvas.
+const drawCrop = () => {
+  const canvas = cropCanvas.value;
+  const box = props.face.bounding_box;
+  if (!canvas || !box) return;
+
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    const sx = (box.x / 100) * img.naturalWidth;
+    const sy = (box.y / 100) * img.naturalHeight;
+    const sw = (box.width / 100) * img.naturalWidth;
+    const sh = (box.height / 100) * img.naturalHeight;
+
+    const size = 160; // canvas carré haute-def
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, size, size);
+    // Recadrage centré façon "cover" pour rester carré.
+    const side = Math.max(sw, sh);
+    const cx = sx + sw / 2;
+    const cy = sy + sh / 2;
+    ctx.drawImage(
+      img,
+      Math.max(0, cx - side / 2), Math.max(0, cy - side / 2), side, side,
+      0, 0, size, size
+    );
+  };
+  img.src = `/vision/media/${props.mediaId}/image?conversion=medium`;
+};
+
+watch(() => props.face?.id, () => {
+  loadSuggestion();
+  drawCrop();
+});
+
 onMounted(() => {
   loadPeople();
+  loadSuggestion();
+  drawCrop();
 });
 </script>

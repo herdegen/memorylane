@@ -131,8 +131,14 @@ Route::middleware('auth')->group(function () {
     // Vision AI routes
     Route::prefix('vision')->name('vision.')->group(function () {
         Route::get('/media/{media}/faces', [VisionController::class, 'faces'])->name('faces');
+        Route::get('/media/{media}/image', [VisionController::class, 'image'])->name('image');
+        Route::post('/media/{media}/faces', [VisionController::class, 'storeFaces'])->name('storeFaces');
         Route::post('/faces/{detectedFace}/match', [VisionController::class, 'matchFace'])->name('matchFace');
         Route::post('/faces/{detectedFace}/dismiss', [VisionController::class, 'dismissFace'])->name('dismissFace');
+        Route::post('/faces/{detectedFace}/reset', [VisionController::class, 'resetFace'])->name('resetFace');
+        Route::get('/faces/{detectedFace}/suggest', [VisionController::class, 'suggest'])->name('suggest');
+        Route::get('/pending', [VisionController::class, 'pending'])->name('pending');
+        Route::get('/batch', fn () => Inertia::render('Vision/Batch'))->name('batch');
         Route::get('/media/{media}/labels', [VisionController::class, 'labels'])->name('labels');
         Route::post('/media/{media}/analyze', [VisionController::class, 'reanalyze'])->name('reanalyze');
         Route::get('/media/{media}/status', [VisionController::class, 'status'])->name('status');

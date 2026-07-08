@@ -10,12 +10,21 @@ class DetectedFace extends Model
 {
     use HasFactory, HasUuids;
 
+    /**
+     * Le descripteur facial (128 floats) est volumineux et inutile côté client :
+     * on ne l'expose jamais dans le JSON des visages.
+     */
+    protected $hidden = [
+        'embedding',
+    ];
+
     protected $fillable = [
         'media_id',
         'person_id',
         'bounding_box',
         'confidence',
         'landmarks',
+        'embedding',
         'joy_likelihood',
         'sorrow_likelihood',
         'anger_likelihood',
@@ -32,6 +41,7 @@ class DetectedFace extends Model
         return [
             'bounding_box' => 'array',
             'landmarks' => 'array',
+            'embedding' => 'array',
             'confidence' => 'float',
             'joy_likelihood' => 'float',
             'sorrow_likelihood' => 'float',

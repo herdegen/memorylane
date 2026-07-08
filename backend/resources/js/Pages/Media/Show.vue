@@ -68,23 +68,61 @@
               <TagInput :media-id="media.id" :initial-tags="media.tags || []" @tags-updated="handleTagsUpdated" />
             </div>
 
+            <!-- Détection de visages (100% navigateur, face-api.js) -->
+            <div
+              v-if="media.type === 'photo' && (detecting || detectError || notScanned)"
+              class="bg-white rounded-lg shadow-xs p-4"
+            >
+              <div v-if="detecting" class="flex items-center gap-3">
+                <svg class="animate-spin h-5 w-5 text-brand-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <div>
+                  <p class="text-sm font-medium text-surface-900">Détection en cours…</p>
+                  <p class="text-xs text-surface-500">{{ detectProgress || 'Analyse de la photo' }}</p>
+                </div>
+              </div>
+
+              <div v-else>
+                <div v-if="detectError" class="mb-3 text-sm text-red-600">
+                  {{ detectError }}
+                </div>
+                <button
+                  @click="runDetection"
+                  class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  {{ detectError ? 'Réessayer' : 'Détecter les visages' }}
+                </button>
+                <p class="mt-2 text-xs text-surface-400">
+                  Analyse locale dans votre navigateur (~12 Mo de modèles au premier lancement).
+                </p>
+              </div>
+            </div>
+
             <!-- Vision AI Status -->
             <VisionStatusBadge
-              v-if="media.type === 'photo'"
+              v-if="media.type === 'photo' && !detecting && !detectError && !notScanned"
               :media-id="media.id"
               :initial-status="media.metadata?.vision_status"
               :initial-faces-count="media.metadata?.vision_faces_count || 0"
               :initial-error="media.metadata?.vision_error"
-              @analysis-complete="handleAnalysisComplete"
+              @rerun="runDetection"
             />
 
             <!-- Face Match Panel -->
             <FaceMatchPanel
               v-if="selectedFace"
+              :key="selectedFace.id"
               :face="selectedFace"
               :media-id="media.id"
               @matched="handleFaceMatched"
               @dismissed="handleFaceDismissed"
+              @reset="handleFaceReset"
               @close="selectedFace = null"
             />
 
@@ -156,6 +194,7 @@ import FaceMatchPanel from '@/Components/FaceMatchPanel.vue';
 import VisionStatusBadge from '@/Components/VisionStatusBadge.vue';
 import VisionLabels from '@/Components/VisionLabels.vue';
 import VideoPlayer from '@/Components/VideoPlayer.vue';
+import { useFaceDetection } from '@/composables/useFaceDetection';
 import axios from 'axios';
 
 const props = defineProps({
@@ -166,6 +205,26 @@ const props = defineProps({
 });
 
 const selectedFace = ref(null);
+
+// Détection de visages côté navigateur.
+const { detectFaces, loading: detecting, progress: detectProgress, error: detectError } = useFaceDetection();
+
+const notScanned = computed(
+  () => props.media.type === 'photo' && props.media.metadata?.vision_status !== 'completed'
+);
+
+const runDetection = async () => {
+  try {
+    // On détecte sur la conversion medium (même origine → pas de canvas tainted).
+    const proxyUrl = `/vision/media/${props.media.id}/image?conversion=medium`;
+    const faces = await detectFaces(proxyUrl);
+    await axios.post(`/vision/media/${props.media.id}/faces`, { faces });
+    router.reload();
+  } catch (e) {
+    // L'erreur est déjà exposée via detectError (composable).
+    console.error('Détection des visages échouée :', e);
+  }
+};
 
 // Poster URL for the video player (medium or small conversion thumbnail)
 const thumbnailUrl = computed(() => {
@@ -206,7 +265,8 @@ const handlePeopleUpdated = (people) => {
 };
 
 const handleFaceClick = (face) => {
-  if (face.status === 'unmatched') {
+  // Matché comme non-matché : on ouvre le panneau (permet de corriger/retirer).
+  if (face.status === 'unmatched' || face.status === 'matched') {
     selectedFace.value = face;
   }
 };
@@ -217,6 +277,11 @@ const handleFaceMatched = () => {
 };
 
 const handleFaceDismissed = () => {
+  selectedFace.value = null;
+  router.reload();
+};
+
+const handleFaceReset = () => {
   selectedFace.value = null;
   router.reload();
 };
