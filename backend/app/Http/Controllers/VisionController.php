@@ -108,6 +108,49 @@ class VisionController extends Controller
     }
 
     /**
+     * Ajoute UN visage dessiné manuellement (sans wiper les visages existants).
+     * Utile quand la détection auto rate un visage (de profil, partiel…).
+     */
+    public function addFace(Request $request, Media $media): JsonResponse
+    {
+        $this->authorizeMedia($media);
+
+        if ($media->type !== 'photo') {
+            return response()->json(['message' => 'Only photos can be analyzed'], 422);
+        }
+
+        $validated = $request->validate([
+            'bounding_box' => 'required|array',
+            'bounding_box.x' => 'required|numeric',
+            'bounding_box.y' => 'required|numeric',
+            'bounding_box.width' => 'required|numeric',
+            'bounding_box.height' => 'required|numeric',
+            'confidence' => 'nullable|numeric',
+            'embedding' => 'nullable|array|size:128',
+            'embedding.*' => 'numeric',
+        ]);
+
+        $face = $media->detectedFaces()->create([
+            'bounding_box' => $validated['bounding_box'],
+            'confidence' => $validated['confidence'] ?? null,
+            'embedding' => $validated['embedding'] ?? null,
+            'provider' => 'manual',
+            'status' => 'unmatched',
+        ]);
+
+        // Le média est désormais « analysé » ; on met le compteur à jour.
+        $media->metadata()->updateOrCreate([], [
+            'vision_status' => 'completed',
+            'vision_faces_count' => $media->detectedFaces()->whereIn('status', ['unmatched', 'matched'])->count(),
+            'vision_processed_at' => now(),
+        ]);
+
+        $face->load('person');
+
+        return response()->json($face, 201);
+    }
+
+    /**
      * Détacher une personne d'un visage matché (le repasse à unmatched).
      * Utilisé pour corriger une association erronée.
      */

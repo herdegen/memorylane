@@ -141,6 +141,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/media/{media}/faces', [VisionController::class, 'faces'])->name('faces');
         Route::get('/media/{media}/image', [VisionController::class, 'image'])->name('image');
         Route::post('/media/{media}/faces', [VisionController::class, 'storeFaces'])->name('storeFaces');
+        Route::post('/media/{media}/faces/add', [VisionController::class, 'addFace'])->name('addFace');
         Route::post('/faces/{detectedFace}/match', [VisionController::class, 'matchFace'])->name('matchFace');
         Route::post('/faces/{detectedFace}/dismiss', [VisionController::class, 'dismissFace'])->name('dismissFace');
         Route::post('/faces/{detectedFace}/reset', [VisionController::class, 'resetFace'])->name('resetFace');

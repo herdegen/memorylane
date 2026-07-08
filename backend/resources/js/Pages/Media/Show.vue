@@ -25,8 +25,26 @@
                   :image-url="media.url"
                   :alt="media.original_name"
                   :faces="media.detected_faces || []"
+                  :draw-mode="addingFace"
                   @face-click="handleFaceClick"
+                  @region-drawn="handleRegionDrawn"
                 />
+              </div>
+
+              <!-- Ajout manuel d'un visage (quand la détection en a raté un) -->
+              <div v-if="media.type === 'photo'" class="flex items-center gap-3 px-4 py-2 border-t border-surface-100">
+                <button
+                  type="button"
+                  :disabled="savingFace"
+                  class="text-sm font-medium text-brand-600 hover:text-brand-800 disabled:opacity-50"
+                  @click="addingFace = !addingFace"
+                >
+                  {{ addingFace ? 'Annuler' : '＋ Ajouter un visage' }}
+                </button>
+                <span v-if="addingFace && !savingFace" class="text-xs text-surface-500">
+                  Cliquez-glissez sur la photo pour entourer le visage.
+                </span>
+                <span v-if="savingFace" class="text-xs text-brand-600">Ajout du visage…</span>
               </div>
 
               <!-- Video -->
@@ -207,7 +225,30 @@ const props = defineProps({
 const selectedFace = ref(null);
 
 // Détection de visages côté navigateur.
-const { detectFaces, loading: detecting, progress: detectProgress, error: detectError } = useFaceDetection();
+const { detectFaces, computeDescriptorForRegion, loading: detecting, progress: detectProgress, error: detectError } = useFaceDetection();
+
+// Ajout manuel d'un visage (dessin d'une zone).
+const addingFace = ref(false);
+const savingFace = ref(false);
+
+const handleRegionDrawn = async (box) => {
+  savingFace.value = true;
+  try {
+    // Empreinte calculée sur l'image proxy même-origine (canvas non tainté).
+    const proxyUrl = `/vision/media/${props.media.id}/image?conversion=medium`;
+    const embedding = await computeDescriptorForRegion(proxyUrl, box);
+    await axios.post(`/vision/media/${props.media.id}/faces/add`, {
+      bounding_box: box,
+      embedding,
+    });
+    addingFace.value = false;
+    router.reload();
+  } catch (e) {
+    console.error('Ajout de visage échoué :', e);
+  } finally {
+    savingFace.value = false;
+  }
+};
 
 const notScanned = computed(
   () => props.media.type === 'photo' && props.media.metadata?.vision_status !== 'completed'

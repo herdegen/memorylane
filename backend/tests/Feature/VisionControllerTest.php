@@ -324,6 +324,34 @@ class VisionControllerTest extends TestCase
         $response->assertUnprocessable();
     }
 
+    public function test_add_face_appends_without_wiping(): void
+    {
+        // Un visage détecté existant ne doit pas être supprimé par un ajout manuel.
+        DetectedFace::create([
+            'media_id' => $this->media->id,
+            'bounding_box' => ['x' => 10, 'y' => 10, 'width' => 10, 'height' => 10],
+            'provider' => 'faceapi',
+            'status' => 'unmatched',
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->postJson("/vision/media/{$this->media->id}/faces/add", [
+                'bounding_box' => ['x' => 40, 'y' => 40, 'width' => 12, 'height' => 12],
+                'embedding' => $this->embedding(0.3),
+            ]);
+
+        $response->assertCreated();
+
+        $faces = DetectedFace::where('media_id', $this->media->id)->get();
+        $this->assertCount(2, $faces);
+        $this->assertTrue($faces->where('provider', 'manual')->isNotEmpty());
+        $this->assertTrue($faces->where('provider', 'faceapi')->isNotEmpty());
+
+        $this->media->refresh();
+        $this->assertEquals('completed', $this->media->metadata->vision_status);
+        $this->assertEquals(2, $this->media->metadata->vision_faces_count);
+    }
+
     public function test_store_faces_rejects_non_photo(): void
     {
         $video = Media::factory()->create(['user_id' => $this->user->id, 'type' => 'video']);

@@ -115,5 +115,46 @@ export function useFaceDetection() {
     }
   }
 
-  return { detectFaces, ensureModelsLoaded, loading, progress, error };
+  /**
+   * Calcule l'embedding d'une région dessinée à la main (bounding_box en %),
+   * pour ajouter un visage que la détection auto a raté. Renvoie un tableau de
+   * 128 floats, ou null si le réseau ne peut rien produire.
+   */
+  async function computeDescriptorForRegion(imageUrl, box) {
+    loading.value = true;
+    error.value = null;
+    try {
+      progress.value = 'Chargement des modèles…';
+      const api = await ensureModelsLoaded();
+
+      const img = await loadImage(imageUrl);
+      const nw = img.naturalWidth || img.width;
+      const nh = img.naturalHeight || img.height;
+
+      const sx = Math.max(0, (box.x / 100) * nw);
+      const sy = Math.max(0, (box.y / 100) * nh);
+      const sw = Math.min(nw - sx, (box.width / 100) * nw);
+      const sh = Math.min(nh - sy, (box.height / 100) * nh);
+      if (sw < 8 || sh < 8) return null;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(sw);
+      canvas.height = Math.round(sh);
+      canvas.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+
+      progress.value = 'Calcul de l’empreinte…';
+      const descriptor = await api.computeFaceDescriptor(canvas);
+      const arr = Array.isArray(descriptor) ? descriptor[0] : descriptor;
+      return arr ? Array.from(arr) : null;
+    } catch (err) {
+      // Pas de visage exploitable dans la zone : on stockera sans embedding.
+      return null;
+    } finally {
+      if (faceapi?.tf) faceapi.tf.disposeVariables?.();
+      progress.value = '';
+      loading.value = false;
+    }
+  }
+
+  return { detectFaces, computeDescriptorForRegion, ensureModelsLoaded, loading, progress, error };
 }
