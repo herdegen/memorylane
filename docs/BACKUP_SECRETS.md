@@ -6,32 +6,49 @@ part ailleurs** : clés OAuth Google Photos, clés Scaleway S3, credentials
 Vision, `APP_KEY`… Si le fichier est écrasé, ces valeurs sont **définitivement
 perdues**. C'est déjà arrivé (client_id Google Photos disparu le 2026-07-07).
 
-## Solution retenue : note sécurisée Bitwarden
-On garde une copie du `.env` dans **Bitwarden** (coffre chiffré, hors machine,
-restaurable par copier-coller).
+## Solution retenue : Bitwarden Secrets Manager (`bws`)
+Le [Secrets Manager](https://bitwarden.com/products/secrets-manager/) de
+Bitwarden est fait pour les secrets machine : stockage clé/valeur, accès
+programmatique via la CLI `bws` et un **access token** de compte machine,
+rotation possible. On y stocke le `.env` complet comme **un seul secret**
+(`memorylane-prod-env`), simple à sauvegarder et à restaurer.
 
-### Sauvegarde (à refaire après toute modif du .env)
-1. Ouvrir `backend/.env` sur le serveur.
-2. Copier tout son contenu.
-3. Bitwarden → nouvelle **note sécurisée** nommée **`MemoryLane prod .env`**
-   (ou mettre à jour l'existante) → coller le contenu.
+### Mise en place (une fois, côté Bitwarden web)
+1. Activer Secrets Manager, créer une **organisation/projet** (ex. `memorylane`).
+2. Créer un **compte machine** + générer un **access token**.
+3. Sur le serveur : installer la CLI (`bws`) et exposer le token :
+   ```
+   export BWS_ACCESS_TOKEN="<access-token>"        # ⚠️ à garder secret
+   ```
+   Bootstrapping : ce token est le seul secret à conserver côté serveur (bien
+   moins critique que tout le `.env`, et rotable). Le ranger p.ex. dans un
+   fichier root-only `~/.config/memorylane/bws.token` sourcé au besoin.
 
-### Restauration
-1. Récupérer la note `MemoryLane prod .env` dans Bitwarden.
-2. Recréer `backend/.env` avec ce contenu.
-3. `docker compose exec app php artisan optimize` (la config est cachée).
+### Sauvegarder (après toute modif du .env)
+```
+export BWS_ACCESS_TOKEN=...           # cf. ci-dessus
+backend/scripts/backup-env.sh         # crée/màj le secret memorylane-prod-env
+```
 
-### Option automatisée (si un jour la CLI `bw` est installée)
-`backend/scripts/backup-env.sh` pousse le `.env` dans la note Bitwarden.
-Prérequis : `npm i -g @bitwarden/cli`, `bw login`, `export BW_SESSION=$(bw unlock --raw)`, `jq`.
+### Restaurer
+```
+export BWS_ACCESS_TOKEN=...
+bws secret list | jq -r '.[] | select(.key=="memorylane-prod-env") | .id'   # → <id>
+bws secret get <id> | jq -r '.value' > backend/.env
+docker compose exec app php artisan optimize
+```
+
+## Fallback simple : note sécurisée Bitwarden
+Sans Secrets Manager, copier le contenu de `backend/.env` dans une **note
+sécurisée** du coffre Bitwarden nommée `MemoryLane prod .env` (manuel,
+restauration par copier-coller). Moins pratique mais suffisant.
 
 ## Pourquoi pas les secrets GitHub Actions
 - Pas de pipeline CI/CD (déploiement = `git pull` manuel) → un secret GitHub
   n'alimente pas le `.env` du serveur.
 - Les secrets GitHub sont non-relisibles (write-only) → inutilisables comme
   sauvegarde restaurable.
-À reconsidérer seulement si on met en place un workflow de déploiement.
 
 ## Ne jamais committer
-`backend/.env`, `.env.encrypted` en clair de clé, ou toute valeur de secret —
-le dépôt est **public**.
+`backend/.env`, l'`BWS_ACCESS_TOKEN`, ou toute valeur de secret — le dépôt est
+**public**.
