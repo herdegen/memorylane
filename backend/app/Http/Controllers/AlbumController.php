@@ -45,13 +45,15 @@ class AlbumController extends Controller
 
     public function index(Request $request)
     {
-        $albums = Album::where('user_id', auth()->id())
+        // Mes albums + ceux partagés avec moi (public / accès accordé / tagué).
+        $albums = Album::accessibleBy(auth()->user())
             ->withCount(['media', 'accesses'])
-            ->with(['coverMedia.conversions'])
+            ->with(['coverMedia.conversions', 'user:id,name'])
             ->orderBy('updated_at', 'desc')
             ->get();
 
         $albums->transform(function ($album) {
+            $album->is_owner = $album->user_id === auth()->id();
             $cover = $this->coverMediaFor($album);
             if ($cover) {
                 $album->cover_url = $this->getCoverUrl($cover);
@@ -389,33 +391,6 @@ class AlbumController extends Controller
         }
 
         return redirect()->back()->with('success', "Localisation appliquée à {$count} média(s).");
-    }
-
-    /**
-     * Albums partagés avec l'utilisateur (accessibles mais non possédés).
-     */
-    public function sharedWithMe(Request $request)
-    {
-        $albums = Album::accessibleBy(auth()->user())
-            ->where('user_id', '!=', auth()->id())
-            ->withCount('media')
-            ->with(['coverMedia.conversions', 'user:id,name'])
-            ->orderBy('updated_at', 'desc')
-            ->get();
-
-        $albums->transform(function ($album) {
-            $cover = $this->coverMediaFor($album);
-            if ($cover) {
-                $album->cover_url = $this->getCoverUrl($cover);
-            }
-            return $album;
-        });
-
-        if ($request->wantsJson()) {
-            return response()->json($albums);
-        }
-
-        return Inertia::render('Albums/SharedWithMe', ['albums' => $albums]);
     }
 
     /**

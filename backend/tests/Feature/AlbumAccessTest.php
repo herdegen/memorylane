@@ -175,17 +175,17 @@ class AlbumAccessTest extends TestCase
         $this->assertSame('tagged', $byUser[$tagged->id]['origin']);
     }
 
-    public function test_shared_with_me_lists_accessible_not_owned(): void
+    public function test_albums_index_includes_owned_and_shared(): void
     {
-        [$publicAlbum] = $this->albumWithMedia(['is_public' => true]);
-        [$privateAlbum] = $this->albumWithMedia(); // non accessible au viewer
-        $ownAlbum = Album::factory()->create(['user_id' => $this->viewer->id]); // possédé → exclu
+        [$publicAlbum] = $this->albumWithMedia(['is_public' => true]); // partagé (public)
+        [$privateAlbum] = $this->albumWithMedia();                     // non accessible au viewer
+        $ownAlbum = Album::factory()->create(['user_id' => $this->viewer->id]); // le sien
 
-        $ids = collect($this->actingAs($this->viewer)->getJson('/albums/shared-with-me')->assertOk()->json())
+        $ids = collect($this->actingAs($this->viewer)->getJson('/albums')->assertOk()->json())
             ->pluck('id');
 
-        $this->assertContains($publicAlbum->id, $ids);
-        $this->assertNotContains($privateAlbum->id, $ids);
-        $this->assertNotContains($ownAlbum->id, $ids);
+        $this->assertContains($ownAlbum->id, $ids);      // ses albums
+        $this->assertContains($publicAlbum->id, $ids);   // + partagés
+        $this->assertNotContains($privateAlbum->id, $ids); // pas les inaccessibles
     }
 }

@@ -5,8 +5,8 @@
         <!-- Header -->
         <div class="flex justify-between items-center mb-8">
           <div>
-            <h1 class="text-display text-4xl text-surface-900">Mes albums</h1>
-            <p class="mt-1 text-sm text-surface-500">Organisez vos photos et vidéos en albums</p>
+            <h1 class="text-display text-4xl text-surface-900">Albums</h1>
+            <p class="mt-1 text-sm text-surface-500">Vos albums et ceux partagés avec vous</p>
           </div>
           <button
             @click="showCreateModal = true"
@@ -28,6 +28,7 @@
             v-for="album in albums"
             :key="album.id"
             :album="album"
+            :owner-name="album.is_owner === false ? album.user?.name : null"
             @click="goToAlbum(album)"
           />
         </div>

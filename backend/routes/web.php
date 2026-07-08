@@ -112,8 +112,6 @@ Route::middleware('auth')->group(function () {
     Route::prefix('albums')->name('albums.')->group(function () {
         Route::get('/', [AlbumController::class, 'index'])->name('index');
         Route::post('/', [AlbumController::class, 'store'])->name('store');
-        // ⚠️ avant /{album} sinon capturé comme un id d'album
-        Route::get('/shared-with-me', [AlbumController::class, 'sharedWithMe'])->name('sharedWithMe');
         Route::get('/{album}', [AlbumController::class, 'show'])->name('show');
         Route::put('/{album}', [AlbumController::class, 'update'])->name('update');
         Route::delete('/{album}', [AlbumController::class, 'destroy'])->name('destroy');
