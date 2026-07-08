@@ -25,15 +25,16 @@ class PersonControllerTest extends TestCase
         $this->otherUser = User::factory()->create();
     }
 
-    public function test_can_list_people(): void
+    public function test_lists_all_people_tree_is_public(): void
     {
+        // Arbre public : les fiches sont visibles par tous les connectés.
         Person::factory()->count(3)->create(['user_id' => $this->user->id]);
         Person::factory()->count(2)->create(['user_id' => $this->otherUser->id]);
 
         $response = $this->actingAs($this->user)->getJson('/people');
 
         $response->assertStatus(200)
-            ->assertJsonCount(3);
+            ->assertJsonCount(5);
     }
 
     // --- Avatar depuis le visage tagué (#10) ---
@@ -164,13 +165,24 @@ class PersonControllerTest extends TestCase
             ->assertJsonPath('person.name', $person->name);
     }
 
-    public function test_cannot_show_other_users_person(): void
+    public function test_can_view_other_users_person_tree_is_public(): void
     {
+        // Lecture publique de l'arbre : voir la fiche d'autrui est autorisé
+        // (l'édition reste interdite, cf. test_cannot_update_other_users_person).
         $person = Person::factory()->create(['user_id' => $this->otherUser->id]);
 
-        $response = $this->actingAs($this->user)->getJson("/people/{$person->id}");
+        $this->actingAs($this->user)->getJson("/people/{$person->id}")->assertOk();
+    }
 
-        $response->assertStatus(403);
+    public function test_public_person_does_not_leak_private_media(): void
+    {
+        // La fiche est publique mais ses photos privées ne doivent PAS fuiter.
+        $person = Person::factory()->create(['user_id' => $this->otherUser->id]);
+        $private = Media::factory()->create(['user_id' => $this->otherUser->id, 'type' => 'photo']);
+        $private->people()->attach($person->id);
+
+        $data = $this->actingAs($this->user)->getJson("/people/{$person->id}")->assertOk()->json();
+        $this->assertCount(0, $data['media']['data']);
     }
 
     public function test_can_update_person(): void

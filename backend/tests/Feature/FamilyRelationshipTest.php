@@ -149,8 +149,9 @@ class FamilyRelationshipTest extends TestCase
         $response->assertStatus(403);
     }
 
-    public function test_tree_data_returns_only_own_people(): void
+    public function test_tree_data_is_public_to_connected_users(): void
     {
+        // Arbre public : la lecture inclut les fiches de tous les comptes.
         Person::factory()->count(3)->create(['user_id' => $this->user->id]);
         $otherUser = User::factory()->create();
         Person::factory()->count(2)->create(['user_id' => $otherUser->id]);
@@ -158,7 +159,7 @@ class FamilyRelationshipTest extends TestCase
         $response = $this->actingAs($this->user)->getJson('/family-tree/data');
 
         $response->assertStatus(200)
-            ->assertJsonCount(3);
+            ->assertJsonCount(5);
     }
 
     public function test_tree_data_includes_relationships(): void

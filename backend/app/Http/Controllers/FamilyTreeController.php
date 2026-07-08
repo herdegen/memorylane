@@ -22,8 +22,8 @@ class FamilyTreeController extends Controller
      */
     public function treeData(Request $request)
     {
-        $people = Person::where('user_id', auth()->id())
-            ->with(['avatar.conversions'])
+        // Arbre public : lecture ouverte à tous les comptes connectés.
+        $people = Person::with(['avatar.conversions'])
             ->withCount($this->matchedFacesCount())
             ->get();
 
@@ -37,14 +37,10 @@ class FamilyTreeController extends Controller
      */
     public function subtree(Request $request, Person $person)
     {
-        if ($person->user_id !== auth()->id()) {
-            abort(403);
-        }
-
+        // Arbre public : lecture ouverte à tous les comptes connectés.
         $relatedIds = $this->gatherRelatedIds($person, 3, 3);
 
         $people = Person::whereIn('id', $relatedIds)
-            ->where('user_id', auth()->id())
             ->with(['avatar.conversions'])
             ->withCount($this->matchedFacesCount())
             ->get();

@@ -22,8 +22,9 @@ class PersonController extends Controller
 
     public function index(Request $request)
     {
-        $people = Person::where('user_id', auth()->id())
-            ->withCount(array_merge(['media'], self::matchedFacesCount()))
+        // Arbre/personnes publics : tous les comptes connectés voient les fiches
+        // (lecture). L'écriture reste réservée au propriétaire.
+        $people = Person::withCount(array_merge(['media'], self::matchedFacesCount()))
             ->with(['avatar.conversions'])
             ->orderBy('name')
             ->get();
@@ -189,10 +190,8 @@ class PersonController extends Controller
 
     public function show(Request $request, Person $person)
     {
-        if ($person->user_id !== auth()->id()) {
-            abort(403);
-        }
-
+        // Fiche publique en lecture (arbre public) ; la liste des médias reste
+        // scopée aux médias accessibles au visiteur (cf. plus bas).
         $person->load(['avatar.conversions', 'father', 'mother']);
         $person->loadCount(array_merge(['media'], self::matchedFacesCount()));
 
