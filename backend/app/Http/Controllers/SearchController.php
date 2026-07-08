@@ -54,11 +54,16 @@ class SearchController extends Controller
                 'type'          => $m->type,
                 'thumbnail_url' => $m->thumbnail_url,
             ])->values(),
-            'people' => Person::search($query)->take(5)->get()
+            'people' => Person::search($query)
+                ->query(fn ($b) => $b->with('avatar.conversions')->withCount([
+                    'detectedFaces as matched_faces_count' => fn ($q) => $q
+                        ->where('status', 'matched')->whereNotNull('bounding_box'),
+                ]))
+                ->take(5)->get()
                 ->map(fn ($p) => [
                     'id'         => $p->id,
                     'name'       => $p->name,
-                    'avatar_url' => $p->avatar_url ?? null,
+                    'avatar_url' => $this->personAvatarUrl($p),
                 ])->values(),
             'albums' => Album::search($query)
                 ->query(fn ($builder) => $builder->where('user_id', $userId))
@@ -75,5 +80,28 @@ class SearchController extends Controller
                     'color' => $t->color,
                 ])->values(),
         ]);
+    }
+
+    /**
+     * URL d'avatar d'une personne : photo de profil signée sinon (fallback)
+     * le recadrage du visage tagué (endpoint people.faceAvatar). Nécessite
+     * `avatar.conversions` et `matched_faces_count` chargés.
+     */
+    private function personAvatarUrl(Person $person): ?string
+    {
+        if ($person->avatar) {
+            $thumb = $person->avatar->conversions->firstWhere('conversion_name', 'small')
+                ?? $person->avatar->conversions->first();
+
+            return $thumb
+                ? $this->mediaService->getSignedUrl($person->avatar, $thumb->file_path)
+                : $this->mediaService->getSignedUrl($person->avatar);
+        }
+
+        if (($person->matched_faces_count ?? 0) > 0) {
+            return url("/people/{$person->id}/face-avatar");
+        }
+
+        return null;
     }
 }

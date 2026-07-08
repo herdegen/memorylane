@@ -195,7 +195,11 @@ function renderChart() {
 
   chart.setCardHtml()
     .setCardDisplay([['name'], ['years']])
-    .setStyle('rect')
+    .setCardImageField('avatar_url')
+    // imageCircleRect : carte photo si avatar_url, sinon carte rect (pas de
+    // silhouette vide pour la majorité sans photo). L'avatar_url inclut le
+    // fallback « recadrage du visage tagué » (cf. #10).
+    .setStyle('imageCircleRect')
     .setOnCardClick((e, d) => {
       const id = d?.data?.id;
       if (id && rawById[id]) selectedPerson.value = rawById[id];

@@ -24,6 +24,7 @@ class FamilyTreeController extends Controller
     {
         $people = Person::where('user_id', auth()->id())
             ->with(['avatar.conversions'])
+            ->withCount($this->matchedFacesCount())
             ->get();
 
         $nodes = $people->map(fn (Person $person) => $this->buildNode($person));
@@ -45,6 +46,7 @@ class FamilyTreeController extends Controller
         $people = Person::whereIn('id', $relatedIds)
             ->where('user_id', auth()->id())
             ->with(['avatar.conversions'])
+            ->withCount($this->matchedFacesCount())
             ->get();
 
         $nodes = $people->map(fn (Person $p) => $this->buildNode($p));
@@ -64,7 +66,7 @@ class FamilyTreeController extends Controller
                 'birth_date' => $person->birth_date?->format('Y-m-d'),
                 'death_date' => $person->death_date?->format('Y-m-d'),
                 'birth_place' => $person->birth_place,
-                'avatar_url' => $person->avatar ? $this->getAvatarUrl($person) : null,
+                'avatar_url' => $this->avatarUrl($person),
                 'slug' => $person->slug,
             ],
             'rels' => [
@@ -156,6 +158,30 @@ class FamilyTreeController extends Controller
                 $this->gatherDescendants($child, $depth - 1, $ids);
             }
         }
+    }
+
+    /**
+     * URL d'avatar pour l'arbre : photo de profil sinon (fallback) recadrage
+     * du visage tagué (endpoint people.faceAvatar). Nécessite matched_faces_count.
+     */
+    private function avatarUrl(Person $person): ?string
+    {
+        if ($person->avatar) {
+            return $this->getAvatarUrl($person);
+        }
+
+        if (($person->matched_faces_count ?? 0) > 0) {
+            return url("/people/{$person->id}/face-avatar");
+        }
+
+        return null;
+    }
+
+    private function matchedFacesCount(): array
+    {
+        return ['detectedFaces as matched_faces_count' => function ($q) {
+            $q->where('status', 'matched')->whereNotNull('bounding_box');
+        }];
     }
 
     private function getAvatarUrl(Person $person): ?string
