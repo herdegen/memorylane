@@ -135,6 +135,9 @@ services:
     command: php artisan horizon
     volumes:
       - ./backend:/var/www/html
+      # Même config PHP que `app` (512M) — sinon les workers tournent au
+      # défaut 128M et les gros téléchargements/conversions font OOM.
+      - ./docker/app/php.ini:/usr/local/etc/php/conf.d/custom.ini
     networks:
       - memorylane
     depends_on:
@@ -155,6 +158,8 @@ services:
     command: /bin/sh -c "while true; do php artisan schedule:run --verbose --no-interaction & sleep 60; done"
     volumes:
       - ./backend:/var/www/html
+      # Même config PHP que `app` (512M) — cohérence avec le worker horizon.
+      - ./docker/app/php.ini:/usr/local/etc/php/conf.d/custom.ini
     networks:
       - memorylane
     depends_on:
