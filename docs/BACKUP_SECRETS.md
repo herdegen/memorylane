@@ -38,10 +38,22 @@ bws secret get <id> | jq -r '.value' > backend/.env
 docker compose exec app php artisan optimize
 ```
 
-## Fallback simple : note sécurisée Bitwarden
-Sans Secrets Manager, copier le contenu de `backend/.env` dans une **note
-sécurisée** du coffre Bitwarden nommée `MemoryLane prod .env` (manuel,
-restauration par copier-coller). Moins pratique mais suffisant.
+## ⚠️ Deux CLI Bitwarden distinctes
+- **`bws`** = CLI **Secrets Manager** (binaire Rust, pas npm) — approche
+  ci-dessus.
+- **`bw`** = CLI du **coffre** (password manager), **installable via npm** :
+  `npm i -g @bitwarden/cli`. Elle stocke le `.env` dans une **note sécurisée**.
+
+`backend/scripts/backup-env.sh` gère les deux automatiquement : Secrets Manager
+si `bws` est présent, sinon note sécurisée si `bw` est présent.
+
+## Fallback simple : note sécurisée du coffre (`bw`, npm)
+1. `npm i -g @bitwarden/cli`
+2. `bw login && export BW_SESSION="$(bw unlock --raw)"`
+3. `backend/scripts/backup-env.sh` → crée/met à jour la note « MemoryLane prod .env ».
+
+Ou 100 % manuel : copier le contenu de `backend/.env` dans une note sécurisée
+Bitwarden nommée `MemoryLane prod .env` (restauration par copier-coller).
 
 ## Pourquoi pas les secrets GitHub Actions
 - Pas de pipeline CI/CD (déploiement = `git pull` manuel) → un secret GitHub
