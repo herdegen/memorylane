@@ -264,6 +264,25 @@ resources/js/
 - Grafana dashboards
 - Alert manager
 
+## Contrôle d'accès & partage
+
+Introduit via des **Policies Laravel** (`AlbumPolicy`, `MediaPolicy`, enregistrées dans `AppServiceProvider`) — auparavant les contrôles étaient des `if user_id !== auth()->id()` en ligne.
+
+- **Galerie / médias** : privés au propriétaire par défaut. Un média est visible d'un autre compte uniquement s'il appartient à un album accessible (scopes `Media::accessibleBy` / `Album::accessibleBy`).
+- **Album accessible par U** (`Album::isAccessibleBy`) : propriétaire | album public (tout compte connecté, `is_public`) | accès accordé (table `album_access`, avec `granted_by` pour la délégation/révocation) | personne taguée dans un média de l'album **ayant un compte lié** (`users.person_id`). Lien anonyme (`share_token`) conservé comme chemin séparé non authentifié.
+- **Écriture** (album, média) et bascule `is_public` : propriétaire uniquement. **Accorder un accès** : toute personne ayant déjà accès (délégation récursive), jamais rendre public.
+- **Arbre & tags** : lecture publique (tous les comptes connectés) ; écriture réservée au propriétaire.
+- **Carte** : agrège les médias de la galerie du visiteur + ceux des albums auxquels il a accès.
+
+## Reconnaissance de visages
+
+100 % **côté navigateur** avec `@vladmandic/face-api` (aucun envoi cloud, aucune infra). Modèles (~12 Mo) dans `public/models/`, importés en lazy (chunk Vite séparé).
+
+- **Proxy image même-origine** (`GET /vision/media/{media}/image`) : évite le canvas « tainted » sur les URLs signées Scaleway.
+- `detected_faces` : bounding_box (%), `embedding` (128 floats, `$hidden`), `provider` (faceapi/manual), `status` (unmatched/matched/dismissed).
+- **Reconnaissance** : plus proche voisin (distance euclidienne), seuil 0,6 (suggestion) / 0,45 (auto-association).
+- **Tâche de fond** : `useBackgroundFaceScan` (singleton, monté par `AppLayout`) traite les photos non scannées pendant la navigation, puis auto-associe (endpoint `autoMatch`, serveur-autoritaire).
+
 ## Annexes
 
 ### Conventions de Code

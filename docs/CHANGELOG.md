@@ -5,6 +5,24 @@ Toutes les modifications notables du projet sont documentées dans ce fichier.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [Unreleased] - 2026-07-08
+
+### Sécurité
+- 🔒 **Galerie privée par défaut** : les listings média (galerie, carte, dashboard « ce jour-là », recherche, albums intelligents) sont scopés au propriétaire — ils exposaient auparavant les médias de tous les comptes.
+- 🔒 **Fuite média corrigée** : `MediaController::show`/`download` n'avaient aucun contrôle d'accès ; désormais gardés par `MediaPolicy`.
+
+### Ajouté
+- ✨ **Partage & permissions d'albums** : album public (tous les comptes connectés) ou restreint (comptes choisis via `album_access`) ; accès automatique des personnes taguées ayant un compte lié ; **partage délégué récursif** (jamais public) ; lien de partage anonyme conservé. `AlbumPolicy`/`MediaPolicy`, scopes `accessibleBy`. Albums (mes albums + partagés) fusionnés dans une seule page ; badge Public/Partagé/Privé.
+- ✨ **Arbre & tags publics** : lecture ouverte à tous les comptes connectés (écriture réservée au propriétaire) ; les médias d'une fiche restent filtrés selon l'accès du visiteur.
+- ✨ **Reconnaissance de visages** (face-api.js, 100 % navigateur, aucun cloud) : détection, suggestions par plus proche voisin, **détection en tâche de fond pendant la navigation + auto-association** au-delà d'un seuil strict, **ajout manuel d'un visage** (dessin d'une zone), correction/retrait d'une association, avatar de profil auto depuis le visage tagué, avatars sur les cartes de l'arbre.
+- ✨ **Import HEIC/HEIF** : conversion automatique en JPEG à l'upload (Imagick + libheif).
+- ✨ **Sauvegarde des secrets `.env`** via Bitwarden Secrets Manager (`bws`) — cf. `docs/BACKUP_SECRETS.md`.
+
+### Modifié / Corrigé
+- 🐛 **Import Google Photos** : déduplication fiable par empreinte de contenu (sha256) au lieu du seul nom ; état terminal serveur (terminé/échoué) + arrêt du spinner ; **fix OOM** (memory_limit des workers 128M → 512M) ; création d'album à la volée pendant l'import ; affichage progressif.
+- 🐛 **Couverture d'album** : repli sur la première photo si aucune couverture définie.
+- 🐛 **Noms de famille** : dérivation du nom d'usage des femmes mariées depuis le conjoint (`people:derive-usage-names`), le GEDCOM ne contenant que le nom de naissance ; affichage « Prénom Nom (Nom de naissance) ».
+
 ## [1.0.0-alpha] - 2025-01-31
 
 ### Added
