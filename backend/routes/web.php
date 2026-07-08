@@ -149,6 +149,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [PersonController::class, 'index'])->name('index');
         Route::post('/', [PersonController::class, 'store'])->name('store');
         Route::get('/{person}', [PersonController::class, 'show'])->name('show');
+        Route::get('/{person}/face-avatar', [PersonController::class, 'faceAvatar'])->name('faceAvatar');
         Route::put('/{person}', [PersonController::class, 'update'])->name('update');
         Route::delete('/{person}', [PersonController::class, 'destroy'])->name('destroy');
         Route::post('/attach', [PersonController::class, 'attachToMedia'])->name('attach');

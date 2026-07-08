@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\DetectedFace;
 use App\Models\Media;
 use App\Models\Person;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class PersonControllerTest extends TestCase
@@ -32,6 +34,74 @@ class PersonControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonCount(3);
+    }
+
+    // --- Avatar depuis le visage tagué (#10) ---
+
+    private function matchedFace(Person $person, Media $media): DetectedFace
+    {
+        return DetectedFace::create([
+            'media_id' => $media->id,
+            'person_id' => $person->id,
+            'bounding_box' => ['x' => 25, 'y' => 25, 'width' => 20, 'height' => 20],
+            'confidence' => 0.9,
+            'provider' => 'faceapi',
+            'status' => 'matched',
+        ]);
+    }
+
+    public function test_index_avatar_falls_back_to_face_crop_when_no_avatar(): void
+    {
+        $withFace = Person::factory()->create(['user_id' => $this->user->id, 'avatar_media_id' => null]);
+        $withNothing = Person::factory()->create(['user_id' => $this->user->id, 'avatar_media_id' => null]);
+        $media = Media::factory()->create(['user_id' => $this->user->id]);
+        $this->matchedFace($withFace, $media);
+
+        $response = $this->actingAs($this->user)->getJson('/people');
+        $response->assertOk();
+
+        $byId = collect($response->json())->keyBy('id');
+        $this->assertStringContainsString("/people/{$withFace->id}/face-avatar", $byId[$withFace->id]['avatar_url']);
+        $this->assertNull($byId[$withNothing->id]['avatar_url']);
+    }
+
+    public function test_face_avatar_endpoint_streams_a_jpeg_crop(): void
+    {
+        Storage::fake(config('filesystems.default'));
+
+        // Vraie image sur le disque simulé.
+        $im = new \Imagick();
+        $im->newImage(400, 300, 'red');
+        $im->setImageFormat('jpeg');
+        Storage::disk(config('filesystems.default'))->put('photos/x.jpg', $im->getImageBlob());
+
+        $media = Media::factory()->create(['user_id' => $this->user->id, 'file_path' => 'photos/x.jpg']);
+        $person = Person::factory()->create(['user_id' => $this->user->id, 'avatar_media_id' => null]);
+        $this->matchedFace($person, $media);
+
+        $response = $this->actingAs($this->user)->get("/people/{$person->id}/face-avatar");
+
+        $response->assertOk();
+        $this->assertEquals('image/jpeg', $response->headers->get('Content-Type'));
+        $this->assertNotEmpty($response->getContent());
+    }
+
+    public function test_face_avatar_404_without_matched_face(): void
+    {
+        $person = Person::factory()->create(['user_id' => $this->user->id, 'avatar_media_id' => null]);
+
+        $this->actingAs($this->user)
+            ->get("/people/{$person->id}/face-avatar")
+            ->assertNotFound();
+    }
+
+    public function test_face_avatar_forbidden_for_other_user(): void
+    {
+        $person = Person::factory()->create(['user_id' => $this->user->id]);
+
+        $this->actingAs($this->otherUser)
+            ->get("/people/{$person->id}/face-avatar")
+            ->assertForbidden();
     }
 
     public function test_can_create_person(): void

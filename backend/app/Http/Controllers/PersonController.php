@@ -8,6 +8,7 @@ use App\Models\Media;
 use App\Services\MediaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class PersonController extends Controller
@@ -22,7 +23,7 @@ class PersonController extends Controller
     public function index(Request $request)
     {
         $people = Person::where('user_id', auth()->id())
-            ->withCount('media')
+            ->withCount(array_merge(['media'], self::matchedFacesCount()))
             ->with(['avatar.conversions'])
             ->orderBy('name')
             ->get();
@@ -33,9 +34,7 @@ class PersonController extends Controller
         $proximity = $this->computeProximity($people, $selfPersonId);
 
         $people->transform(function ($person) use ($proximity) {
-            if ($person->avatar) {
-                $person->avatar_url = $this->getAvatarUrl($person->avatar);
-            }
+            $person->avatar_url = $this->resolveAvatarUrl($person);
             $person->proximity = $proximity['distance'][$person->id] ?? null;
             $person->relatives_count = $proximity['degree'][$person->id] ?? 0;
             return $person;
@@ -195,22 +194,19 @@ class PersonController extends Controller
         }
 
         $person->load(['avatar.conversions', 'father', 'mother']);
-        $person->loadCount('media');
+        $person->loadCount(array_merge(['media'], self::matchedFacesCount()));
 
-        if ($person->avatar) {
-            $person->avatar_url = $this->getAvatarUrl($person->avatar);
-        }
+        $person->avatar_url = $this->resolveAvatarUrl($person);
 
         // Load children
         $children = Person::where('father_id', $person->id)
             ->orWhere('mother_id', $person->id)
             ->with('avatar.conversions')
+            ->withCount(self::matchedFacesCount())
             ->get();
 
         $children->transform(function ($child) {
-            if ($child->avatar) {
-                $child->avatar_url = $this->getAvatarUrl($child->avatar);
-            }
+            $child->avatar_url = $this->resolveAvatarUrl($child);
             return $child;
         });
 
@@ -225,12 +221,11 @@ class PersonController extends Controller
 
         $spouses = Person::whereIn('id', $spouseIds)
             ->with('avatar.conversions')
+            ->withCount(self::matchedFacesCount())
             ->get();
 
         $spouses->transform(function ($spouse) {
-            if ($spouse->avatar) {
-                $spouse->avatar_url = $this->getAvatarUrl($spouse->avatar);
-            }
+            $spouse->avatar_url = $this->resolveAvatarUrl($spouse);
             return $spouse;
         });
 
@@ -454,6 +449,96 @@ class PersonController extends Controller
             ->delete();
 
         return response()->json(['message' => 'Relation supprimee']);
+    }
+
+    /**
+     * URL d'avatar : la photo de profil explicite si définie, sinon (fallback)
+     * le recadrage du visage tagué via l'endpoint faceAvatar. Nécessite que
+     * `matched_faces_count` soit chargé (withCount) pour éviter un lien mort.
+     */
+    private function resolveAvatarUrl(Person $person): ?string
+    {
+        if ($person->avatar) {
+            return $this->getAvatarUrl($person->avatar);
+        }
+
+        if (($person->matched_faces_count ?? 0) > 0) {
+            return url("/people/{$person->id}/face-avatar");
+        }
+
+        return null;
+    }
+
+    /**
+     * Contrainte de comptage des visages matchés (réutilisée en withCount).
+     */
+    private static function matchedFacesCount(): array
+    {
+        return ['detectedFaces as matched_faces_count' => function ($q) {
+            $q->where('status', 'matched')->whereNotNull('bounding_box');
+        }];
+    }
+
+    /**
+     * Streame un recadrage carré du visage tagué d'une personne, pour servir
+     * d'avatar quand aucune photo de profil n'est définie. Même origine +
+     * cache HTTP. 404 si la personne n'a aucun visage matché.
+     */
+    public function faceAvatar(Person $person)
+    {
+        if ($person->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        $face = $person->detectedFaces()
+            ->whereNotNull('bounding_box')
+            ->where('status', 'matched')
+            ->with('media.conversions')
+            ->orderByDesc('confidence')
+            ->first();
+
+        abort_unless($face && $face->media, 404);
+
+        $media = $face->media;
+        $conversion = $media->conversions->firstWhere('conversion_name', 'medium')
+            ?? $media->conversions->firstWhere('conversion_name', 'large');
+        $path = $conversion->file_path ?? $media->file_path;
+
+        $disk = config('filesystems.default');
+        abort_unless(Storage::disk($disk)->exists($path), 404);
+
+        $box = $face->bounding_box;
+
+        try {
+            $img = new \Imagick();
+            $img->readImageBlob(Storage::disk($disk)->get($path));
+
+            $w = $img->getImageWidth();
+            $h = $img->getImageHeight();
+
+            // Carré centré sur le visage, avec une marge autour (× 1.6).
+            $bw = ($box['width'] / 100) * $w;
+            $bh = ($box['height'] / 100) * $h;
+            $cx = ($box['x'] / 100) * $w + $bw / 2;
+            $cy = ($box['y'] / 100) * $h + $bh / 2;
+            $side = (int) min(max($bw, $bh) * 1.6, $w, $h);
+            $left = (int) max(0, min($cx - $side / 2, $w - $side));
+            $top = (int) max(0, min($cy - $side / 2, $h - $side));
+
+            $img->cropImage($side, $side, $left, $top);
+            $img->resizeImage(256, 256, \Imagick::FILTER_LANCZOS, 1);
+            $img->setImageFormat('jpeg');
+            $img->setImageCompressionQuality(85);
+            $blob = $img->getImageBlob();
+            $img->clear();
+        } catch (\Throwable $e) {
+            abort(404);
+        }
+
+        return response($blob, 200, [
+            'Content-Type' => 'image/jpeg',
+            'Cache-Control' => 'private, max-age=86400',
+        ]);
     }
 
     private function getAvatarUrl(Media $media): string
