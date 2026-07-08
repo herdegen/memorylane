@@ -120,18 +120,6 @@ class ImportGooglePhotosItems implements ShouldQueue
             return null;
         }
 
-        if (! empty($file['filename'])) {
-            $existing = Media::where('user_id', $this->userId)
-                ->where('original_name', $file['filename'])
-                ->first();
-            if ($existing) {
-                Log::info('ImportGooglePhotosItems: Item already imported, skipping', [
-                    'filename' => $file['filename'],
-                ]);
-                return $existing;
-            }
-        }
-
         $isVideo = str_starts_with($file['mimeType'] ?? '', 'video/');
         // '=d' télécharge l'original ; '=dv' pour la vidéo
         $downloadUrl = $file['baseUrl'] . ($isVideo ? '=dv' : '=d');
@@ -147,6 +135,23 @@ class ImportGooglePhotosItems implements ShouldQueue
         if (! $response->successful() || ! filesize($tempPath)) {
             @unlink($tempPath);
             throw new \RuntimeException("Téléchargement échoué pour {$filename}");
+        }
+
+        // Déduplication fiable par empreinte de contenu (indépendante du nom).
+        // Fallback sur le nom pour les médias existants sans hash (legacy) afin
+        // de préserver l'idempotence des ré-imports avant le backfill.
+        $hash = hash_file('sha256', $tempPath);
+        $existing = Media::where('user_id', $this->userId)
+            ->where(function ($q) use ($hash, $filename) {
+                $q->where('content_hash', $hash)
+                    ->orWhere(fn ($legacy) => $legacy->whereNull('content_hash')->where('original_name', $filename));
+            })
+            ->first();
+
+        if ($existing) {
+            @unlink($tempPath);
+            Log::info('ImportGooglePhotosItems: doublon ignoré', ['filename' => $filename, 'hash' => $hash]);
+            return $existing;
         }
 
         try {

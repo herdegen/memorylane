@@ -38,6 +38,7 @@ class Media extends Model
         'title',
         'description',
         'file_path',
+        'content_hash',
         'mime_type',
         'size',
         'width',

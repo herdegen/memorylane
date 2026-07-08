@@ -123,12 +123,16 @@ class MediaService
         // Get image dimensions if it's an image
         $dimensions = $this->getImageDimensions($file, $mimeType);
 
+        // Empreinte de contenu (dédup fiable, indépendante du nom)
+        $contentHash = @hash_file('sha256', $file->getRealPath()) ?: null;
+
         // Create media record
         $media = Media::create([
             'user_id' => $userId,
             'type' => $type,
             'original_name' => $originalName,
             'file_path' => $filePath,
+            'content_hash' => $contentHash,
             'mime_type' => $mimeType,
             'size' => $size,
             'width' => $dimensions['width'] ?? null,

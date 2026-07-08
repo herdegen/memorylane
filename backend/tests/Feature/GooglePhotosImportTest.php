@@ -141,6 +141,50 @@ class GooglePhotosImportTest extends TestCase
     /**
      * Le job télécharge les éléments, crée les médias et les rattache.
      */
+    public function test_job_deduplicates_by_content_hash(): void
+    {
+        Bus::fake();
+
+        $jpeg = base64_decode('/9j/4AAQSkZJRgABAQEAAAAAAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==');
+        $hash = hash('sha256', $jpeg);
+
+        // Média déjà présent avec ce contenu (nom différent) → l'import doit le
+        // détecter par empreinte et ne PAS créer de doublon.
+        Media::factory()->create([
+            'user_id' => $this->user->id,
+            'type' => 'photo',
+            'original_name' => 'ancien-nom.jpg',
+            'content_hash' => $hash,
+        ]);
+
+        Http::fake([
+            'photospicker.googleapis.com/v1/mediaItems*' => Http::response([
+                'mediaItems' => [[
+                    'id' => 'item-1',
+                    'mediaFile' => [
+                        'baseUrl' => 'https://lh3.googleusercontent.com/fake',
+                        'filename' => 'nouveau-nom.jpg',
+                        'mimeType' => 'image/jpeg',
+                    ],
+                ]],
+            ]),
+            'lh3.googleusercontent.com/*' => Http::response($jpeg, 200, ['Content-Type' => 'image/jpeg']),
+            'photospicker.googleapis.com/v1/sessions/*' => Http::response([]),
+        ]);
+
+        (new ImportGooglePhotosItems(
+            userId: $this->user->id,
+            accessToken: 'fake-token',
+            pickerSessionId: 'sessions/abc123',
+            personId: null,
+            albumId: null,
+        ))->handle(app(\App\Services\MediaService::class));
+
+        // Aucun nouveau média : le doublon de contenu a été ignoré.
+        $this->assertFalse(Media::where('original_name', 'nouveau-nom.jpg')->exists());
+        $this->assertEquals(1, Media::where('user_id', $this->user->id)->count());
+    }
+
     public function test_job_imports_items_and_attaches_targets(): void
     {
         Bus::fake(); // les jobs secondaires (conversions, EXIF) ne tournent pas
