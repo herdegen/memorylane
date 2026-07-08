@@ -10,6 +10,7 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -90,6 +91,21 @@ class ImportGooglePhotosItems implements ShouldQueue
             'user_id' => $this->userId,
             'imported' => $imported,
         ]);
+
+        // Marqueur d'état terminal lu par le polling UI (cf. GitHub #11).
+        Cache::put(self::statusKey($this->userId), [
+            'finished' => true,
+            'failed' => false,
+            'imported' => $imported,
+        ], now()->addHours(2));
+    }
+
+    /**
+     * Clé de cache de l'état terminal de l'import (un import à la fois par user).
+     */
+    public static function statusKey(string $userId): string
+    {
+        return "gphotos_import:{$userId}";
     }
 
     /**
@@ -177,5 +193,12 @@ class ImportGooglePhotosItems implements ShouldQueue
             'user_id' => $this->userId,
             'error' => $exception->getMessage(),
         ]);
+
+        // État terminal en échec pour le polling UI (cf. GitHub #11).
+        Cache::put(self::statusKey($this->userId), [
+            'finished' => true,
+            'failed' => true,
+            'imported' => null,
+        ], now()->addHours(2));
     }
 }

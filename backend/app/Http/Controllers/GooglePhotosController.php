@@ -6,6 +6,7 @@ use App\Jobs\ImportGooglePhotosItems;
 use App\Models\Media;
 use App\Services\MediaService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -210,6 +211,9 @@ class GooglePhotosController extends Controller
             ])->id;
         }
 
+        // Réinitialise l'état terminal (un nouvel import n'est pas « terminé »).
+        Cache::forget(ImportGooglePhotosItems::statusKey(auth()->id()));
+
         ImportGooglePhotosItems::dispatch(
             userId: auth()->id(),
             accessToken: $token,
@@ -265,6 +269,13 @@ class GooglePhotosController extends Controller
                 return ['id' => $m->id, 'url' => $url, 'name' => $m->original_name];
             });
 
-        return response()->json(['count' => $count, 'items' => $items]);
+        $status = Cache::get(ImportGooglePhotosItems::statusKey(auth()->id()));
+
+        return response()->json([
+            'count' => $count,
+            'items' => $items,
+            'finished' => (bool) ($status['finished'] ?? false),
+            'failed' => (bool) ($status['failed'] ?? false),
+        ]);
     }
 }

@@ -9,6 +9,7 @@ use App\Models\Person;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -33,6 +34,23 @@ class GooglePhotosImportTest extends TestCase
             'google_photos.access_token' => 'fake-token',
             'google_photos.picker_session' => ['id' => 'sessions/abc123', 'pickerUri' => 'https://photos.google.com/picker/abc'],
         ], $extra);
+    }
+
+    public function test_imported_status_reflects_terminal_marker(): void
+    {
+        // Aucun marqueur → import non terminé.
+        $this->actingAs($this->user)->getJson('/google-photos/imported')
+            ->assertOk()
+            ->assertJson(['finished' => false, 'failed' => false]);
+
+        // Marqueur de succès posé par le job.
+        Cache::put(ImportGooglePhotosItems::statusKey($this->user->id), [
+            'finished' => true, 'failed' => false,
+        ], now()->addHour());
+
+        $this->actingAs($this->user)->getJson('/google-photos/imported')
+            ->assertOk()
+            ->assertJson(['finished' => true, 'failed' => false]);
     }
 
     /**

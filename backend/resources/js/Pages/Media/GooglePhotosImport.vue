@@ -148,7 +148,18 @@
               </span>
             </div>
 
-            <!-- Terminé (ou en pause) : le compteur n'évolue plus -->
+            <!-- Échec : le job d'import s'est arrêté en erreur -->
+            <div v-else-if="importFailed" class="flex items-center gap-2 mb-4">
+              <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+              <span class="text-sm text-surface-700">
+                Import interrompu — <span class="font-semibold text-surface-900">{{ importedCount }}</span>
+                photo(s) importée(s). <span class="text-surface-400">Relancez pour récupérer les manquantes.</span>
+              </span>
+            </div>
+
+            <!-- Terminé -->
             <div v-else class="flex items-center gap-2 mb-4">
               <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -288,6 +299,7 @@ const openPicker = async () => {
 const launching = ref(false);
 const importing = ref(false);
 const importDone = ref(false);
+const importFailed = ref(false);
 const importStartedAt = ref(null);
 const importedCount = ref(0);
 const importedItems = ref([]);
@@ -309,8 +321,9 @@ const stopImportPolling = () => {
 
 // L'import n'expose pas d'état terminal côté serveur (cf. GitHub #11) : on le
 // déduit de l'arrêt de la progression.
-const finishImport = () => {
+const finishImport = (failed = false) => {
   stopImportPolling();
+  importFailed.value = failed;
   importDone.value = true;
 };
 
@@ -320,6 +333,13 @@ const pollImported = async () => {
     importedCount.value = data.count;
     importedItems.value = data.items;
 
+    // Signal terminal côté serveur (fiable) : le job a fini ou échoué.
+    if (data.finished) {
+      finishImport(!!data.failed);
+      return;
+    }
+
+    // Secours : si la progression n'évolue plus, on arrête quand même.
     if (data.count === importLastCount) {
       if (++importIdlePolls >= IMPORT_IDLE_LIMIT) {
         finishImport();
@@ -346,6 +366,7 @@ const startImport = async () => {
     importStartedAt.value = data.started_at;
     importing.value = true;
     importDone.value = false;
+    importFailed.value = false;
     importedCount.value = 0;
     importedItems.value = [];
     importPollCount = 0;
