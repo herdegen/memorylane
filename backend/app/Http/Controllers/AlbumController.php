@@ -48,8 +48,9 @@ class AlbumController extends Controller
             ->get();
 
         $albums->transform(function ($album) {
-            if ($album->coverMedia) {
-                $album->cover_url = $this->getCoverUrl($album->coverMedia);
+            $cover = $this->coverMediaFor($album);
+            if ($cover) {
+                $album->cover_url = $this->getCoverUrl($cover);
             }
             return $album;
         });
@@ -113,8 +114,9 @@ class AlbumController extends Controller
             return $media;
         });
 
-        if ($album->coverMedia) {
-            $album->cover_url = $this->getCoverUrl($album->coverMedia);
+        $cover = $this->coverMediaFor($album);
+        if ($cover) {
+            $album->cover_url = $this->getCoverUrl($cover);
         }
 
         $album->share_url = $album->getShareUrl();
@@ -287,13 +289,29 @@ class AlbumController extends Controller
             return $media;
         });
 
-        if ($album->coverMedia) {
-            $album->cover_url = $this->getCoverUrl($album->coverMedia);
+        $cover = $this->coverMediaFor($album);
+        if ($cover) {
+            $album->cover_url = $this->getCoverUrl($cover);
         }
 
         return Inertia::render('Albums/Shared', [
             'album' => $album,
         ]);
+    }
+
+    /**
+     * Média à utiliser comme couverture : la couverture explicite si définie,
+     * sinon (fallback) la première photo de l'album. Garantit qu'un album non
+     * vide a toujours une vignette, même s'il a été rempli avant l'ajout de la
+     * logique de couverture automatique.
+     */
+    private function coverMediaFor(Album $album): ?Media
+    {
+        if ($album->coverMedia) {
+            return $album->coverMedia;
+        }
+
+        return $album->media()->with('conversions')->first();
     }
 
     private function getCoverUrl(Media $media): string

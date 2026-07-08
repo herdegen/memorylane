@@ -174,6 +174,26 @@ class AlbumControllerTest extends TestCase
         $this->assertEquals($media->id, $album->cover_media_id);
     }
 
+    public function test_album_without_cover_falls_back_to_first_media(): void
+    {
+        // Album rempli mais sans couverture explicite (cas des albums créés
+        // avant la logique de couverture auto).
+        $album = Album::factory()->create([
+            'user_id' => $this->user->id,
+            'cover_media_id' => null,
+        ]);
+        $media = Media::factory()->count(2)->create(['user_id' => $this->user->id]);
+        foreach ($media as $i => $m) {
+            $album->media()->attach($m->id, ['order' => $i]);
+        }
+
+        $response = $this->actingAs($this->user)->getJson('/albums');
+
+        $response->assertStatus(200);
+        $target = collect($response->json())->firstWhere('id', $album->id);
+        $this->assertNotNull($target['cover_url'] ?? null, 'Un album non vide sans couverture doit tomber sur sa première photo');
+    }
+
     public function test_can_remove_media_from_album(): void
     {
         $album = Album::factory()->create(['user_id' => $this->user->id]);
