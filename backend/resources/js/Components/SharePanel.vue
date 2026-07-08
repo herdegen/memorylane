@@ -2,8 +2,8 @@
   <div class="bg-white rounded-xl border border-surface-200 shadow-xs p-6 mb-6">
     <h3 class="text-lg font-semibold text-surface-900 mb-4">Partage</h3>
 
-    <!-- Public Toggle -->
-    <div class="flex items-center justify-between py-3 border-b border-surface-200">
+    <!-- Public Toggle (propriétaire uniquement) -->
+    <div v-if="isOwner" class="flex items-center justify-between py-3 border-b border-surface-200">
       <div>
         <p class="text-sm font-medium text-surface-700">Album public</p>
         <p class="text-xs text-surface-500">Visible par tous les utilisateurs connectes</p>
@@ -25,8 +25,8 @@
       </button>
     </div>
 
-    <!-- Share Link Section -->
-    <div class="py-4">
+    <!-- Share Link Section (lien anonyme — propriétaire uniquement) -->
+    <div v-if="isOwner" class="py-4">
       <p class="text-sm font-medium text-surface-700 mb-2">Lien de partage</p>
       <p class="text-xs text-surface-500 mb-3">
         Partagez ce lien pour permettre a n'importe qui de voir l'album
@@ -105,17 +105,82 @@
         </button>
       </div>
     </div>
+
+    <!-- Accès par compte (partage restreint + délégation) -->
+    <div class="py-4 border-t border-surface-200">
+      <p class="text-sm font-medium text-surface-700 mb-2">Personnes ayant accès</p>
+      <p class="text-xs text-surface-500 mb-3">
+        Donnez accès à des membres précis (ils pourront le repartager, mais pas le rendre public).
+      </p>
+
+      <!-- Recherche / ajout -->
+      <div class="relative mb-3">
+        <input
+          v-model="search"
+          type="text"
+          placeholder="Ajouter un membre (nom ou email)…"
+          class="w-full px-3 py-2 text-sm border border-surface-300 rounded-lg focus:ring-brand-500 focus:border-brand-500"
+          @input="searchCandidates"
+        />
+        <div
+          v-if="candidates.length"
+          class="absolute z-10 mt-1 w-full bg-white border border-surface-200 rounded-lg shadow-sm max-h-48 overflow-y-auto"
+        >
+          <button
+            v-for="c in candidates"
+            :key="c.id"
+            type="button"
+            class="w-full px-3 py-2 text-left text-sm hover:bg-brand-50 flex flex-col"
+            @click="grant(c)"
+          >
+            <span class="text-surface-900">{{ c.name }}</span>
+            <span class="text-xs text-surface-500">{{ c.email }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Liste des accès -->
+      <ul class="space-y-1">
+        <li
+          v-for="a in accesses"
+          :key="a.user_id"
+          class="flex items-center justify-between text-sm py-1"
+        >
+          <span class="flex flex-col">
+            <span class="text-surface-900">{{ a.name }}</span>
+            <span class="text-xs text-surface-500">{{ originLabel(a) }}</span>
+          </span>
+          <button
+            v-if="a.origin === 'granted'"
+            type="button"
+            class="text-xs text-red-600 hover:text-red-800"
+            @click="revoke(a)"
+          >
+            Retirer
+          </button>
+          <span v-else class="text-xs text-surface-400">
+            {{ a.origin === 'owner' ? 'Propriétaire' : 'Tagué' }}
+          </span>
+        </li>
+      </ul>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import axios from 'axios';
 
 const props = defineProps({
   album: {
     type: Object,
     required: true,
+  },
+  // Le toggle public et le lien anonyme sont réservés au propriétaire ;
+  // les délégués ne voient que la gestion des accès.
+  isOwner: {
+    type: Boolean,
+    default: true,
   },
 });
 
@@ -125,6 +190,68 @@ const isPublic = ref(props.album.is_public);
 const shareUrl = ref(props.album.share_url);
 const copied = ref(false);
 const generating = ref(false);
+
+// Accès par compte (partage restreint)
+const accesses = ref([]);
+const search = ref('');
+const candidates = ref([]);
+let searchTimer = null;
+
+const loadAccesses = async () => {
+  try {
+    const { data } = await axios.get(`/albums/${props.album.id}/access`);
+    accesses.value = data;
+  } catch (e) {
+    console.error('Failed to load access list:', e);
+  }
+};
+
+const searchCandidates = () => {
+  clearTimeout(searchTimer);
+  const q = search.value.trim();
+  if (q.length < 2) {
+    candidates.value = [];
+    return;
+  }
+  searchTimer = setTimeout(async () => {
+    try {
+      const { data } = await axios.get(`/albums/${props.album.id}/access/candidates`, { params: { q } });
+      candidates.value = data;
+    } catch (e) {
+      console.error('Candidate search failed:', e);
+    }
+  }, 250);
+};
+
+const grant = async (candidate) => {
+  try {
+    await axios.post(`/albums/${props.album.id}/access`, { user_id: candidate.id });
+    search.value = '';
+    candidates.value = [];
+    await loadAccesses();
+    emit('updated');
+  } catch (e) {
+    console.error('Failed to grant access:', e);
+  }
+};
+
+const revoke = async (access) => {
+  try {
+    await axios.delete(`/albums/${props.album.id}/access`, { data: { user_id: access.user_id } });
+    await loadAccesses();
+    emit('updated');
+  } catch (e) {
+    console.error('Failed to revoke access:', e);
+  }
+};
+
+const originLabel = (a) => {
+  if (a.origin === 'owner') return 'Propriétaire';
+  if (a.origin === 'tagged') return 'Tagué sur une photo';
+  return 'Ajouté' + (a.granted_by ? ` par ${a.granted_by}` : '');
+};
+
+onMounted(loadAccesses);
 
 const togglePublic = async () => {
   try {

@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Album;
+use App\Models\AlbumAccess;
 use App\Models\Media;
+use App\Models\Person;
+use App\Models\User;
 use App\Services\MediaService;
 use App\Services\SmartAlbumService;
 use Illuminate\Http\Request;
@@ -43,7 +46,7 @@ class AlbumController extends Controller
     public function index(Request $request)
     {
         $albums = Album::where('user_id', auth()->id())
-            ->withCount('media')
+            ->withCount(['media', 'accesses'])
             ->with(['coverMedia.conversions'])
             ->orderBy('updated_at', 'desc')
             ->get();
@@ -120,6 +123,7 @@ class AlbumController extends Controller
         }
 
         $album->share_url = $album->getShareUrl();
+        $album->is_owner = $album->user_id === auth()->id();
 
         if ($request->wantsJson()) {
             return response()->json($album);
@@ -385,5 +389,140 @@ class AlbumController extends Controller
         }
 
         return redirect()->back()->with('success', "Localisation appliquée à {$count} média(s).");
+    }
+
+    /**
+     * Albums partagés avec l'utilisateur (accessibles mais non possédés).
+     */
+    public function sharedWithMe(Request $request)
+    {
+        $albums = Album::accessibleBy(auth()->user())
+            ->where('user_id', '!=', auth()->id())
+            ->withCount('media')
+            ->with(['coverMedia.conversions', 'user:id,name'])
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        $albums->transform(function ($album) {
+            $cover = $this->coverMediaFor($album);
+            if ($cover) {
+                $album->cover_url = $this->getCoverUrl($cover);
+            }
+            return $album;
+        });
+
+        if ($request->wantsJson()) {
+            return response()->json($albums);
+        }
+
+        return Inertia::render('Albums/SharedWithMe', ['albums' => $albums]);
+    }
+
+    /**
+     * Liste des comptes ayant accès à l'album, avec l'origine de l'accès.
+     */
+    public function accessList(Album $album)
+    {
+        Gate::authorize('view', $album);
+
+        $entries = [];
+        $owner = $album->user()->first();
+        if ($owner) {
+            $entries[] = $this->accessEntry($owner, 'owner');
+        }
+
+        foreach ($album->accesses()->with(['user', 'granter'])->get() as $access) {
+            if ($access->user) {
+                $entries[] = $this->accessEntry($access->user, 'granted', $access->granter?->name);
+            }
+        }
+
+        // Personnes taguées AVEC un compte lié.
+        $listedIds = array_column($entries, 'user_id');
+        $taggedPersonIds = Person::whereHas('media', fn ($m) => $m->whereHas('albums', fn ($a) => $a->whereKey($album->id)))->pluck('id');
+        $taggedUsers = User::whereIn('person_id', $taggedPersonIds)
+            ->whereNotIn('id', $listedIds)
+            ->get();
+        foreach ($taggedUsers as $u) {
+            $entries[] = $this->accessEntry($u, 'tagged');
+        }
+
+        return response()->json($entries);
+    }
+
+    private function accessEntry(User $user, string $origin, ?string $grantedBy = null): array
+    {
+        return [
+            'user_id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'origin' => $origin, // owner | granted | tagged
+            'granted_by' => $grantedBy,
+        ];
+    }
+
+    /**
+     * Comptes candidats pour accorder un accès (recherche nom/email).
+     */
+    public function grantCandidates(Request $request, Album $album)
+    {
+        Gate::authorize('grantAccess', $album);
+
+        $q = trim((string) $request->query('q', ''));
+        if (strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $excluded = $album->accesses()->pluck('user_id')->push($album->user_id)->all();
+
+        $users = User::whereNotIn('id', $excluded)
+            ->where(fn ($w) => $w->where('name', 'like', "%{$q}%")->orWhere('email', 'like', "%{$q}%"))
+            ->orderBy('name')
+            ->limit(8)
+            ->get(['id', 'name', 'email']);
+
+        return response()->json($users);
+    }
+
+    /**
+     * Accorder un accès à un compte (délégation possible, cf. AlbumPolicy).
+     */
+    public function grantAccess(Request $request, Album $album)
+    {
+        Gate::authorize('grantAccess', $album);
+
+        $validated = $request->validate([
+            'user_id' => ['required', 'uuid', 'exists:users,id'],
+        ]);
+
+        if ($validated['user_id'] === $album->user_id) {
+            return response()->json(['message' => 'Le propriétaire a déjà accès.'], 422);
+        }
+
+        AlbumAccess::firstOrCreate(
+            ['album_id' => $album->id, 'user_id' => $validated['user_id']],
+            ['granted_by' => auth()->id()],
+        );
+
+        return response()->json(['message' => 'Accès accordé.'], 201);
+    }
+
+    /**
+     * Révoquer un accès accordé (owner : n'importe qui ; sinon ses propres octrois).
+     */
+    public function revokeAccess(Request $request, Album $album)
+    {
+        $validated = $request->validate([
+            'user_id' => ['required', 'uuid'],
+        ]);
+
+        $access = $album->accesses()->where('user_id', $validated['user_id'])->first();
+        abort_unless($access, 404, 'Aucun accès accordé à révoquer pour ce compte.');
+
+        Gate::authorize('revokeAccess', [$album, $access]);
+
+        $access->delete();
+
+        return response()->json(['message' => 'Accès révoqué.']);
     }
 }

@@ -26,7 +26,8 @@
               <NavLink href="/media" :active="$page.component.startsWith('Media/')">Galerie</NavLink>
               <NavLink href="/media/upload" :active="$page.component === 'Media/Upload'">Télécharger</NavLink>
               <NavLink href="/tags" :active="$page.component.startsWith('Tags/')">Tags</NavLink>
-              <NavLink href="/albums" :active="$page.component.startsWith('Albums/')">Albums</NavLink>
+              <NavLink href="/albums" :active="$page.component === 'Albums/Index' || $page.component === 'Albums/Show'">Albums</NavLink>
+              <NavLink href="/albums/shared-with-me" :active="$page.component === 'Albums/SharedWithMe'">Partagés</NavLink>
               <NavLink href="/people" :active="$page.component.startsWith('People/')">Personnes</NavLink>
               <NavLink href="/family-tree" :active="$page.component.startsWith('FamilyTree/')">Arbre</NavLink>
               <NavLink href="/map" :active="$page.component.startsWith('Map/')">Carte</NavLink>
@@ -112,7 +113,8 @@
           <MobileNavLink href="/media" :active="$page.component.startsWith('Media/')">Galerie</MobileNavLink>
           <MobileNavLink href="/media/upload" :active="$page.component === 'Media/Upload'">Télécharger</MobileNavLink>
           <MobileNavLink href="/tags" :active="$page.component.startsWith('Tags/')">Tags</MobileNavLink>
-          <MobileNavLink href="/albums" :active="$page.component.startsWith('Albums/')">Albums</MobileNavLink>
+          <MobileNavLink href="/albums" :active="$page.component === 'Albums/Index' || $page.component === 'Albums/Show'">Albums</MobileNavLink>
+          <MobileNavLink href="/albums/shared-with-me" :active="$page.component === 'Albums/SharedWithMe'">Partagés</MobileNavLink>
           <MobileNavLink href="/people" :active="$page.component.startsWith('People/')">Personnes</MobileNavLink>
           <MobileNavLink href="/family-tree" :active="$page.component.startsWith('FamilyTree/')">Arbre</MobileNavLink>
           <MobileNavLink href="/map" :active="$page.component.startsWith('Map/')">Carte</MobileNavLink>

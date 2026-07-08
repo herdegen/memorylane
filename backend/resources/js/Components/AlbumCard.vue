@@ -39,6 +39,7 @@
           <h3 class="font-display text-lg font-semibold text-surface-900 truncate">
             {{ album.name }}
           </h3>
+          <p v-if="ownerName" class="mt-0.5 text-xs text-surface-500">Partagé par {{ ownerName }}</p>
           <p v-if="album.description" class="mt-1 text-sm text-surface-500 line-clamp-2">
             {{ album.description }}
           </p>
@@ -63,44 +64,11 @@
           Auto
         </span>
 
-        <!-- Visibility Badge -->
+        <!-- Visibility Badge : Public / Partagé / Privé -->
         <span
-          :class="[
-            'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium',
-            album.is_public
-              ? 'bg-teal-100 text-teal-700'
-              : 'bg-surface-100 text-surface-600'
-          ]"
+          :class="['inline-flex items-center px-2 py-1 rounded-full text-xs font-medium', visibility.class]"
         >
-          <svg
-            v-if="album.is_public"
-            class="w-3 h-3 mr-1"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <svg
-            v-else
-            class="w-3 h-3 mr-1"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-            />
-          </svg>
-          {{ album.is_public ? 'Public' : 'Privé' }}
+          {{ visibility.label }}
         </span>
         </span>
       </div>
@@ -132,12 +100,29 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue';
+
+const props = defineProps({
   album: {
     type: Object,
     required: true,
   },
+  // Affiché sur la page « Partagés avec moi ».
+  ownerName: {
+    type: String,
+    default: null,
+  },
 });
 
 defineEmits(['click']);
+
+const visibility = computed(() => {
+  if (props.album.is_public) {
+    return { label: 'Public', class: 'bg-teal-100 text-teal-700' };
+  }
+  if ((props.album.accesses_count || 0) > 0) {
+    return { label: 'Partagé', class: 'bg-amber-100 text-amber-700' };
+  }
+  return { label: 'Privé', class: 'bg-surface-100 text-surface-600' };
+});
 </script>

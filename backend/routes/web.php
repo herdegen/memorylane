@@ -112,6 +112,8 @@ Route::middleware('auth')->group(function () {
     Route::prefix('albums')->name('albums.')->group(function () {
         Route::get('/', [AlbumController::class, 'index'])->name('index');
         Route::post('/', [AlbumController::class, 'store'])->name('store');
+        // ⚠️ avant /{album} sinon capturé comme un id d'album
+        Route::get('/shared-with-me', [AlbumController::class, 'sharedWithMe'])->name('sharedWithMe');
         Route::get('/{album}', [AlbumController::class, 'show'])->name('show');
         Route::put('/{album}', [AlbumController::class, 'update'])->name('update');
         Route::delete('/{album}', [AlbumController::class, 'destroy'])->name('destroy');
@@ -123,9 +125,15 @@ Route::middleware('auth')->group(function () {
         Route::post('/{album}/geolocate', [AlbumController::class, 'geolocate'])->name('geolocate');
         Route::post('/{album}/cover', [AlbumController::class, 'setCover'])->name('setCover');
 
-        // Sharing
+        // Sharing (lien anonyme)
         Route::post('/{album}/share', [AlbumController::class, 'generateShareToken'])->name('generateShare');
         Route::delete('/{album}/share', [AlbumController::class, 'revokeShareToken'])->name('revokeShare');
+
+        // Partage à des comptes choisis (accès restreint + délégation)
+        Route::get('/{album}/access', [AlbumController::class, 'accessList'])->name('access.list');
+        Route::get('/{album}/access/candidates', [AlbumController::class, 'grantCandidates'])->name('access.candidates');
+        Route::post('/{album}/access', [AlbumController::class, 'grantAccess'])->name('access.grant');
+        Route::delete('/{album}/access', [AlbumController::class, 'revokeAccess'])->name('access.revoke');
     });
 
     // Vision AI routes

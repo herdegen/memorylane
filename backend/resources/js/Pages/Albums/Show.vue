@@ -90,6 +90,7 @@
         <SharePanel
           v-if="showSharePanel"
           :album="album"
+          :is-owner="album.is_owner !== false"
           @updated="handleAlbumUpdated"
         />
 
