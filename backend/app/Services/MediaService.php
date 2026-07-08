@@ -24,9 +24,13 @@ class MediaService
      * @param int $perPage
      * @return LengthAwarePaginator
      */
-    public function getPaginatedMedia(array $filters = [], int $perPage = 24): LengthAwarePaginator
+    public function getPaginatedMedia(array $filters = [], int $perPage = 24, ?string $userId = null): LengthAwarePaginator
     {
+        // Galerie privée : ne renvoyer que les médias du propriétaire.
+        $userId = $userId ?? auth()->id();
+
         $query = Media::with(['user', 'conversions', 'metadata', 'tags'])
+            ->where('user_id', $userId)
             ->orderBy('taken_at', 'desc')
             ->orderBy('uploaded_at', 'desc');
 

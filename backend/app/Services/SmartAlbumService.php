@@ -23,7 +23,7 @@ class SmartAlbumService
             return;
         }
 
-        $mediaIds = $this->buildQuery($album->smart_rules)
+        $mediaIds = $this->buildQuery($album->smart_rules, $album->user_id)
             ->orderBy('taken_at')
             ->orderBy('uploaded_at')
             ->pluck('id');
@@ -62,9 +62,10 @@ class SmartAlbumService
     /**
      * Construit la requête média correspondant aux règles (combinées en ET).
      */
-    protected function buildQuery(array $rules)
+    protected function buildQuery(array $rules, ?string $userId = null)
     {
-        $query = Media::query();
+        // Un album intelligent ne pioche que dans les médias de son propriétaire.
+        $query = Media::query()->where('user_id', $userId);
 
         if (! empty($rules['person_id'])) {
             $query->whereHas('people', fn ($q) => $q->where('people.id', $rules['person_id']));

@@ -44,6 +44,26 @@ class MediaControllerTest extends TestCase
     }
 
     /**
+     * La galerie est privée : un utilisateur ne voit QUE ses propres médias,
+     * jamais ceux d'un autre compte (régression de confidentialité 2026-07-08).
+     */
+    public function test_gallery_is_scoped_to_current_user(): void
+    {
+        $other = User::factory()->create();
+        Media::factory()->count(3)->create(['user_id' => $this->user->id]);
+        Media::factory()->count(4)->create(['user_id' => $other->id]);
+
+        $response = $this->actingAs($this->user)->getJson('/media');
+
+        $response->assertStatus(200);
+        $data = $response->json('data');
+        $this->assertCount(3, $data);
+        foreach ($data as $item) {
+            $this->assertSame($this->user->id, $item['user_id']);
+        }
+    }
+
+    /**
      * Test filtering media by type.
      */
     public function test_can_filter_media_by_type(): void

@@ -37,6 +37,7 @@ class MapController extends Controller
         $filters = $request->only(['type', 'search', 'tags']);
 
         $query = Media::with(['user', 'tags', 'metadata'])
+            ->where('user_id', auth()->id())
             ->whereHas('metadata', function ($q) {
                 $q->whereNotNull('latitude')
                   ->whereNotNull('longitude');
@@ -177,6 +178,7 @@ class MapController extends Controller
 
         // Haversine formula to calculate distance
         $media = Media::with(['user', 'tags', 'metadata'])
+            ->where('user_id', auth()->id())
             ->whereHas('metadata', function ($q) use ($lat, $lon, $radius) {
                 $q->whereNotNull('latitude')
                   ->whereNotNull('longitude')

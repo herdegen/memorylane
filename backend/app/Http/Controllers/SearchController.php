@@ -26,10 +26,16 @@ class SearchController extends Controller
 
         $query = $validated['q'];
 
+        $userId = auth()->id();
+
+        // Médias privés : on contraint l'hydratation aux médias du propriétaire.
+        // On élargit le take() car le filtre user_id s'applique après le scoring
+        // Scout (sinon on risque de perdre des résultats pertinents).
         $media = Media::search($query)
-            ->query(fn ($builder) => $builder->with('conversions'))
-            ->take(8)
-            ->get();
+            ->query(fn ($builder) => $builder->with('conversions')->where('user_id', $userId))
+            ->take(30)
+            ->get()
+            ->take(8);
 
         $media->each(function ($item) {
             $item->url = $this->mediaService->getSignedUrl($item);
@@ -54,7 +60,9 @@ class SearchController extends Controller
                     'name'       => $p->name,
                     'avatar_url' => $p->avatar_url ?? null,
                 ])->values(),
-            'albums' => Album::search($query)->take(5)->get()
+            'albums' => Album::search($query)
+                ->query(fn ($builder) => $builder->where('user_id', $userId))
+                ->take(30)->get()->take(5)
                 ->map(fn ($a) => [
                     'id'          => $a->id,
                     'name'        => $a->name,

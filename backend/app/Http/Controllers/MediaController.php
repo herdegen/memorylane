@@ -48,8 +48,9 @@ class MediaController extends Controller
             return response()->json($media);
         }
 
-        // Available codecs for the video filter panel
+        // Available codecs for the video filter panel (scoped à l'utilisateur)
         $availableCodecs = Media::where('type', 'video')
+            ->where('user_id', $this->getCurrentUserId())
             ->whereNotNull('video_codec')
             ->distinct()
             ->orderBy('video_codec')

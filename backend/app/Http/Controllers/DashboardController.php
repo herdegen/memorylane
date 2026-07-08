@@ -28,6 +28,7 @@ class DashboardController extends Controller
         $today = now();
 
         $memories = Media::with('conversions')
+            ->where('user_id', auth()->id())
             ->whereNotNull('taken_at')
             ->whereRaw('EXTRACT(MONTH FROM taken_at) = ?', [$today->month])
             ->whereRaw('EXTRACT(DAY FROM taken_at) = ?', [$today->day])
