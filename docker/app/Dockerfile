@@ -19,6 +19,8 @@ RUN apk add --no-cache \
     postgresql-dev \
     imagemagick-dev \
     imagemagick \
+    libheif \
+    libheif-tools \
     ffmpeg \
     redis \
     icu-dev \

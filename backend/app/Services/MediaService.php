@@ -107,24 +107,37 @@ class MediaService
         $originalName = $file->getClientOriginalName();
         $mimeType = $file->getMimeType();
         $size = $file->getSize();
-
-        // Determine media type
-        $type = $this->determineMediaType($mimeType);
-
-        // Generate unique file path
-        $filePath = $this->s3Service->generateFilePath($type, $file->getClientOriginalExtension());
+        $extension = strtolower($file->getClientOriginalExtension());
 
         // Determine visibility (public for local/public disks, private for S3)
         $visibility = in_array($this->s3Service->getDisk(), ['local', 'public']) ? 'public' : 'private';
 
-        // Upload to storage
-        $this->s3Service->upload($file, $filePath, $visibility);
+        $isHeic = in_array($extension, ['heic', 'heif'])
+            || in_array($mimeType, ['image/heic', 'image/heif']);
 
-        // Get image dimensions if it's an image
-        $dimensions = $this->getImageDimensions($file, $mimeType);
-
-        // Empreinte de contenu (dédup fiable, indépendante du nom)
-        $contentHash = @hash_file('sha256', $file->getRealPath()) ?: null;
+        if ($isHeic) {
+            // Photos iPhone : on convertit en JPEG (affichable partout) avant
+            // stockage. L'original HEIC n'est pas conservé.
+            [$jpegPath, $width, $height] = $this->convertHeicToJpeg($file);
+            try {
+                $type = 'photo';
+                $mimeType = 'image/jpeg';
+                $size = filesize($jpegPath) ?: $size;
+                $contentHash = @hash_file('sha256', $jpegPath) ?: null;
+                $filePath = $this->s3Service->generateFilePath('photo', 'jpg');
+                $this->s3Service->putFile($jpegPath, $filePath, $visibility);
+                $dimensions = ['width' => $width, 'height' => $height];
+            } finally {
+                @unlink($jpegPath);
+            }
+        } else {
+            $type = $this->determineMediaType($mimeType);
+            $filePath = $this->s3Service->generateFilePath($type, $extension);
+            $this->s3Service->upload($file, $filePath, $visibility);
+            $dimensions = $this->getImageDimensions($file, $mimeType);
+            // Empreinte de contenu (dédup fiable, indépendante du nom)
+            $contentHash = @hash_file('sha256', $file->getRealPath()) ?: null;
+        }
 
         // Create media record
         $media = Media::create([
@@ -218,6 +231,30 @@ class MediaService
      * @param string $mimeType
      * @return array
      */
+    /**
+     * Convertit un fichier HEIC/HEIF en JPEG (via Imagick + libheif) dans un
+     * fichier temporaire. Renvoie [chemin_jpeg, largeur, hauteur].
+     *
+     * @throws \Exception si la décode HEIC échoue (libheif absent, fichier corrompu)
+     */
+    protected function convertHeicToJpeg(UploadedFile $file): array
+    {
+        $tmp = tempnam(sys_get_temp_dir(), 'heic_') . '.jpg';
+
+        $image = new \Imagick();
+        $image->readImage($file->getRealPath());
+        $image->setIteratorIndex(0); // première image (ignore les frames Live Photo)
+        $image->setImageFormat('jpeg');
+        $image->setImageCompressionQuality(90);
+        $image->autoOrient();
+        $width = $image->getImageWidth();
+        $height = $image->getImageHeight();
+        $image->writeImage($tmp);
+        $image->clear();
+
+        return [$tmp, $width, $height];
+    }
+
     protected function getImageDimensions(UploadedFile $file, string $mimeType): array
     {
         $dimensions = [
