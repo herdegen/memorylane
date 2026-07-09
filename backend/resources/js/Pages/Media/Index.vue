@@ -152,6 +152,7 @@
           <MediaGrid
             :media="mediaItems"
             :loading="loading"
+            :loading-more="loadingMore"
             :current-filter="currentFilter"
             :filter-tabs="filterTabs"
             :has-more-pages="hasMorePages"
@@ -167,7 +168,8 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted } from 'vue';
+import { ref, computed, reactive, onMounted, watch } from 'vue';
+import axios from 'axios';
 import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import MediaGrid from '@/Components/MediaGrid.vue';
@@ -188,7 +190,8 @@ const props = defineProps({
 });
 
 // Reactive state
-const loading = ref(false);
+const loading = ref(false);      // rechargement complet (changement de filtre)
+const loadingMore = ref(false);  // chargement de la page suivante (scroll infini)
 const searchQuery = ref(props.filters.search || '');
 const currentFilter = ref(props.filters.type || 'all');
 const selectedTags = ref(props.filters.tags ? (Array.isArray(props.filters.tags) ? props.filters.tags : [props.filters.tags]) : []);
@@ -214,12 +217,28 @@ const hasVideoFilters = computed(() => {
   return !!(videoFilters.durationMin || videoFilters.durationMax || videoFilters.resolution || videoFilters.codec);
 });
 
-// Computed properties
-const mediaItems = computed(() => props.media.data || []);
+// Scroll infini : accumulateur local des médias. Les navigations de filtres
+// passent toujours par Inertia (URL partageable) et remplacent `props.media`
+// par la page 1 ; ce watch réamorce alors l'accumulateur. Les pages suivantes
+// sont ajoutées via axios (sans toucher à l'URL) dans handleLoadMore.
+const items = ref([]);
+const page = ref(1);
+const lastPage = ref(1);
 
-const hasMorePages = computed(() => {
-  return props.media.current_page < props.media.last_page;
-});
+watch(
+  () => props.media,
+  (media) => {
+    items.value = media?.data ? [...media.data] : [];
+    page.value = media?.current_page ?? 1;
+    lastPage.value = media?.last_page ?? 1;
+  },
+  { immediate: true, deep: false }
+);
+
+// Computed properties
+const mediaItems = computed(() => items.value);
+
+const hasMorePages = computed(() => page.value < lastPage.value);
 
 const filterTabs = computed(() => [
   { value: 'all', label: 'Tous', count: props.media.total },
@@ -260,9 +279,11 @@ const buildQuery = (extra = {}) => {
 const navigate = (extra = {}, options = {}) => {
   loading.value = true;
 
+  // preserveState garde l'état local (recherche, tags) ; on NE préserve PAS
+  // le scroll : un changement de filtre réamorce la liste, on revient en haut.
   router.get(route('media.index'), buildQuery(extra), {
     preserveState: true,
-    preserveScroll: true,
+    preserveScroll: false,
     ...options,
     onFinish: () => {
       loading.value = false;
@@ -330,10 +351,26 @@ const handleMediaClick = (media) => {
   router.visit(route('media.show', media.id));
 };
 
-const handleLoadMore = () => {
-  if (!hasMorePages.value || loading.value) return;
+// Charge la page suivante et l'AJOUTE à l'accumulateur (scroll infini).
+// Ne touche pas à l'URL : les filtres courants sont repris via buildQuery.
+const handleLoadMore = async () => {
+  if (loadingMore.value || loading.value || !hasMorePages.value) return;
 
-  navigate({ page: props.media.current_page + 1 }, { only: ['media'] });
+  loadingMore.value = true;
+  try {
+    const { data } = await axios.get(route('media.index'), {
+      params: buildQuery({ page: page.value + 1 }),
+      headers: { Accept: 'application/json' },
+    });
+
+    items.value.push(...(data.data || []));
+    page.value = data.current_page ?? page.value + 1;
+    lastPage.value = data.last_page ?? lastPage.value;
+  } catch (error) {
+    console.error('Erreur lors du chargement de la page suivante :', error);
+  } finally {
+    loadingMore.value = false;
+  }
 };
 
 const applyVideoFilters = () => {

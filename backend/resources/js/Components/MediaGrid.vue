@@ -225,23 +225,47 @@
       </div>
     </div>
 
-    <!-- Load More / Pagination -->
+    <!-- Scroll infini : sentinelle observée + spinner + repli accessible -->
     <div
       v-if="hasMorePages && !loading"
+      ref="sentinel"
       class="mt-8 flex justify-center"
     >
+      <div
+        v-if="loadingMore"
+        class="flex items-center text-surface-500 text-sm"
+        role="status"
+        aria-live="polite"
+      >
+        <svg class="animate-spin h-5 w-5 mr-2 text-brand-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Chargement…
+      </div>
+      <!-- Repli : accessible et utile si l'IntersectionObserver ne déclenche pas -->
       <button
+        v-else
         @click="$emit('load-more')"
         class="px-6 py-2 bg-white border border-surface-300 rounded-lg text-sm font-medium text-surface-700 hover:bg-surface-50 transition-colors duration-150"
       >
         Charger plus
       </button>
     </div>
+
+    <!-- Fin de liste -->
+    <div
+      v-else-if="!loading && media && media.length > 0"
+      class="mt-8 text-center text-sm text-surface-400"
+    >
+      Fin de la galerie
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, watch } from 'vue';
+import { useIntersectionObserver } from '@vueuse/core';
 
 const props = defineProps({
   media: {
@@ -249,6 +273,10 @@ const props = defineProps({
     default: () => [],
   },
   loading: {
+    type: Boolean,
+    default: false,
+  },
+  loadingMore: {
     type: Boolean,
     default: false,
   },
@@ -289,6 +317,37 @@ const emit = defineEmits([
   'load-more',
   'selection-change',
 ]);
+
+// Scroll infini : on observe une sentinelle en bas de grille. `rootMargin`
+// déclenche le chargement ~600px AVANT d'atteindre le bas (transition fluide).
+const sentinel = ref(null);
+const sentinelVisible = ref(false);
+
+const maybeLoadMore = () => {
+  if (sentinelVisible.value && props.hasMorePages && !props.loading && !props.loadingMore) {
+    emit('load-more');
+  }
+};
+
+useIntersectionObserver(
+  sentinel,
+  ([entry]) => {
+    sentinelVisible.value = entry.isIntersecting;
+    maybeLoadMore();
+  },
+  { rootMargin: '600px 0px' }
+);
+
+// Enchaîne les chargements tant que la sentinelle reste visible (viewport haut
+// ou pages courtes) : dès qu'un chargement finit, on re-vérifie.
+watch(
+  () => props.loadingMore,
+  (isLoading, wasLoading) => {
+    if (wasLoading && !isLoading) {
+      maybeLoadMore();
+    }
+  }
+);
 
 const getThumbnailUrl = (item) => {
   // Try to get the small or thumbnail conversion

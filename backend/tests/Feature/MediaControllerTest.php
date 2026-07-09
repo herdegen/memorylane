@@ -65,6 +65,32 @@ class MediaControllerTest extends TestCase
     }
 
     /**
+     * Contrat de pagination JSON dont dépend le scroll infini de la galerie :
+     * 24 éléments par page, paramètre `page` + filtre honorés, pages disjointes
+     * (l'accumulateur front concatène sans doublon).
+     */
+    public function test_media_json_pagination_supports_infinite_scroll(): void
+    {
+        Media::factory()->count(30)->photo()->create(['user_id' => $this->user->id]);
+
+        $page1 = $this->actingAs($this->user)->getJson('/media?type=photo');
+        $page1->assertOk()->assertJsonStructure(['data', 'current_page', 'last_page', 'total']);
+        $this->assertCount(24, $page1->json('data'));
+        $this->assertSame(1, $page1->json('current_page'));
+        $this->assertSame(2, $page1->json('last_page'));
+        $this->assertSame(30, $page1->json('total'));
+
+        $page2 = $this->actingAs($this->user)->getJson('/media?type=photo&page=2');
+        $page2->assertOk();
+        $this->assertCount(6, $page2->json('data'));
+        $this->assertSame(2, $page2->json('current_page'));
+
+        $ids1 = collect($page1->json('data'))->pluck('id');
+        $ids2 = collect($page2->json('data'))->pluck('id');
+        $this->assertCount(0, $ids1->intersect($ids2), 'Les pages ne doivent pas se chevaucher');
+    }
+
+    /**
      * Fuite corrigée : on ne peut PAS voir ni télécharger le média d'un autre
      * compte en accès direct par URL (show/download n'avaient aucun contrôle).
      */
