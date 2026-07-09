@@ -197,18 +197,18 @@ function renderChart() {
 
   chart = f3.createChart('#ml-family-chart', data)
     .setTransitionTime(700)
-    .setCardXSpacing(250)
-    .setCardYSpacing(160)
+    .setCardXSpacing(300)
+    .setCardYSpacing(190)
     .setOrientationVertical()
     .updateMainId(pickMainId(raw));
 
   chart.setCardHtml()
     .setCardDisplay([['name'], ['years']])
     .setCardImageField('avatar_url')
-    // imageCircleRect : carte photo si avatar_url, sinon carte rect (pas de
-    // silhouette vide pour la majorité sans photo). L'avatar_url inclut le
-    // fallback « recadrage du visage tagué » (cf. #10).
-    .setStyle('imageCircleRect')
+    // imageRect : carte rectangulaire avec photo À GAUCHE et texte à droite
+    // (nom + années), pour TOUS — silhouette si pas de photo. Cartes agrandies.
+    .setStyle('imageRect')
+    .setCardDim({ w: 280, h: 96, img_w: 80, img_h: 80, img_x: 0, img_y: 0 })
     .setOnCardClick((e, d) => {
       const id = d?.data?.id || d?.id;
       if (id && rawById[id]) selectedPerson.value = rawById[id];
@@ -286,9 +286,25 @@ onBeforeUnmount(() => {
 .ml-tree .card-inner .card-label,
 .ml-tree svg.main_svg text { fill: #292524; }
 
-/* Lisibilité des cartes : coins arrondis, ombre douce, nom en gras */
+/* Lisibilité des cartes : coins arrondis, ombre douce, photo + texte alignés */
 .ml-tree .card-inner { border-radius: 10px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14); }
-.ml-tree .card-inner .card-label:first-child { font-weight: 600; }
+.ml-tree .card-image-rect {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+}
+/* Photo carrée arrondie, jamais déformée */
+.ml-tree .card-image-rect img,
+.ml-tree .card-image-rect .person-icon {
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+/* Bloc texte : nom en gras + années plus discrètes */
+.ml-tree .card-image-rect .card-label { line-height: 1.25; }
+.ml-tree .card-image-rect .card-label > div:first-child { font-weight: 600; font-size: 14px; }
+.ml-tree .card-image-rect .card-label > div:last-child { font-size: 12px; opacity: 0.8; }
 
 /* --- Dark mode --- */
 :root[data-theme='dark'] .ml-tree.f3,
