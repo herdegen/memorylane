@@ -79,6 +79,36 @@ class UploadController extends Controller
     }
 
     /**
+     * État d'un upload en cours : parts déjà montées sur S3 (reprise).
+     * Renvoie 404 si la session n'existe plus (upload à relancer de zéro).
+     */
+    public function status(Request $request)
+    {
+        $validated = $request->validate([
+            'upload_session_id' => 'required|uuid',
+        ]);
+
+        $session = $this->ownedSession($validated['upload_session_id']);
+
+        try {
+            $uploaded = $this->s3->listUploadedParts($session->s3_key, $session->upload_id);
+        } catch (\Throwable $e) {
+            // Upload S3 disparu/expiré : la session locale est caduque.
+            $session->delete();
+            return response()->json(['error' => 'Upload introuvable, à relancer.'], 410);
+        }
+
+        return response()->json([
+            'upload_session_id' => $session->id,
+            'part_size'         => self::PART_SIZE,
+            'part_count'        => (int) ceil($session->size / self::PART_SIZE),
+            'original_name'     => $session->original_name,
+            'size'              => $session->size,
+            'uploaded_parts'    => $uploaded,
+        ]);
+    }
+
+    /**
      * URL présignée pour téléverser une part donnée.
      */
     public function partUrl(Request $request)

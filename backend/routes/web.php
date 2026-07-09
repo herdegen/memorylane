@@ -80,6 +80,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [MediaController::class, 'store'])->name('store');
         // Upload multipart direct S3 (gros fichiers / vidéos)
         Route::post('/uploads/initiate', [UploadController::class, 'initiate'])->name('uploads.initiate');
+        Route::post('/uploads/status', [UploadController::class, 'status'])->name('uploads.status');
         Route::post('/uploads/part-url', [UploadController::class, 'partUrl'])->name('uploads.partUrl');
         Route::post('/uploads/complete', [UploadController::class, 'complete'])->name('uploads.complete');
         Route::post('/uploads/abort', [UploadController::class, 'abort'])->name('uploads.abort');

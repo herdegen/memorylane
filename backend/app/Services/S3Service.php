@@ -290,6 +290,39 @@ class S3Service
     }
 
     /**
+     * Liste les parts déjà téléversées pour un upload multipart en cours.
+     * Sert à la reprise : S3 est la source de vérité des parts reçues.
+     *
+     * @return array<int, array{part_number: int, etag: string}>
+     */
+    public function listUploadedParts(string $key, string $uploadId): array
+    {
+        $parts = [];
+        $marker = 0;
+
+        // Pagination S3 (1000 parts/page) — largement suffisant en pratique.
+        do {
+            $result = $this->getClient()->listParts([
+                'Bucket'           => $this->getBucket(),
+                'Key'              => $key,
+                'UploadId'         => $uploadId,
+                'PartNumberMarker' => $marker,
+            ]);
+
+            foreach ($result['Parts'] ?? [] as $p) {
+                $parts[] = [
+                    'part_number' => (int) $p['PartNumber'],
+                    'etag'        => $p['ETag'],
+                ];
+            }
+
+            $marker = $result['NextPartNumberMarker'] ?? 0;
+        } while (! empty($result['IsTruncated']));
+
+        return $parts;
+    }
+
+    /**
      * Annule un upload multipart (les parts déjà envoyées sont libérées).
      */
     public function abortMultipartUpload(string $key, string $uploadId): void

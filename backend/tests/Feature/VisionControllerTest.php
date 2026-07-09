@@ -352,12 +352,22 @@ class VisionControllerTest extends TestCase
         $this->assertEquals(2, $this->media->metadata->vision_faces_count);
     }
 
-    public function test_store_faces_rejects_non_photo(): void
+    public function test_store_faces_accepts_video(): void
     {
+        // Les vidéos sont analysables via leur image extraite (frame-poster).
         $video = Media::factory()->create(['user_id' => $this->user->id, 'type' => 'video']);
 
         $this->actingAs($this->user)
             ->postJson("/vision/media/{$video->id}/faces", ['faces' => []])
+            ->assertOk();
+    }
+
+    public function test_store_faces_rejects_document(): void
+    {
+        $doc = Media::factory()->create(['user_id' => $this->user->id, 'type' => 'document']);
+
+        $this->actingAs($this->user)
+            ->postJson("/vision/media/{$doc->id}/faces", ['faces' => []])
             ->assertUnprocessable();
     }
 

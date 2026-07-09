@@ -75,6 +75,35 @@
               </div>
             </div>
 
+            <!-- Détection de visages sur l'image extraite (vidéos) -->
+            <div v-if="media.type === 'video'" class="mt-4 bg-white rounded-lg shadow-xs overflow-hidden">
+              <div class="px-4 py-3 border-b border-surface-100 flex items-center justify-between">
+                <h2 class="text-sm font-semibold text-surface-900">Visages sur l'image du clip</h2>
+                <button
+                  type="button"
+                  :disabled="savingFace"
+                  class="text-sm font-medium text-brand-600 hover:text-brand-800 disabled:opacity-50"
+                  @click="addingFace = !addingFace"
+                >
+                  {{ addingFace ? 'Annuler' : '＋ Ajouter un visage' }}
+                </button>
+              </div>
+              <div class="relative bg-black">
+                <FaceDetectionOverlay
+                  :image-url="faceImageUrl"
+                  :alt="media.original_name"
+                  :faces="media.detected_faces || []"
+                  :draw-mode="addingFace"
+                  @face-click="handleFaceClick"
+                  @region-drawn="handleRegionDrawn"
+                />
+              </div>
+              <p v-if="addingFace && !savingFace" class="px-4 py-2 text-xs text-surface-500">
+                Cliquez-glissez sur l'image pour entourer le visage.
+              </p>
+              <p v-if="savingFace" class="px-4 py-2 text-xs text-brand-600">Ajout du visage…</p>
+            </div>
+
             <!-- Provenance : ce média est un clip d'une vidéo source -->
             <div
               v-if="media.source_media"
@@ -146,7 +175,7 @@
 
             <!-- Détection de visages (100% navigateur, face-api.js) -->
             <div
-              v-if="media.type === 'photo' && (detecting || detectError || notScanned)"
+              v-if="supportsFaces && (detecting || detectError || notScanned)"
               class="bg-white rounded-lg shadow-xs p-4"
             >
               <div v-if="detecting" class="flex items-center gap-3">
@@ -182,7 +211,7 @@
 
             <!-- Vision AI Status -->
             <VisionStatusBadge
-              v-if="media.type === 'photo' && !detecting && !detectError && !notScanned"
+              v-if="supportsFaces && !detecting && !detectError && !notScanned"
               :media-id="media.id"
               :initial-status="media.metadata?.vision_status"
               :initial-faces-count="media.metadata?.vision_faces_count || 0"
@@ -324,8 +353,17 @@ const handleRegionDrawn = async (box) => {
   }
 };
 
+// La détection de visages marche sur photos ET vidéos (via l'image extraite).
+const supportsFaces = computed(() => ['photo', 'video'].includes(props.media.type));
+
+// Image support de la détection : l'original pour une photo, la frame extraite
+// (conversion medium) pour une vidéo.
+const faceImageUrl = computed(() =>
+  props.media.type === 'video' ? thumbnailUrl.value : props.media.url
+);
+
 const notScanned = computed(
-  () => props.media.type === 'photo' && props.media.metadata?.vision_status !== 'completed'
+  () => supportsFaces.value && props.media.metadata?.vision_status !== 'completed'
 );
 
 const runDetection = async () => {

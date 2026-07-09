@@ -31,6 +31,9 @@ class DirectUploadTest extends TestCase
         $mock->shouldReceive('presignUploadPart')->andReturn('https://s3.example/part?sig=x');
         $mock->shouldReceive('completeMultipartUpload')->andReturnNull();
         $mock->shouldReceive('abortMultipartUpload')->andReturnNull();
+        $mock->shouldReceive('listUploadedParts')->andReturn([
+            ['part_number' => 1, 'etag' => '"aaa"'],
+        ]);
         $mock->shouldReceive('getTemporaryUrl')->andReturn('https://s3.example/signed');
     }
 
@@ -128,6 +131,38 @@ class DirectUploadTest extends TestCase
             'type'      => 'video',
             'original_name' => 'famille.mp4',
         ]);
+    }
+
+    public function test_status_returns_uploaded_parts_for_resume(): void
+    {
+        $session = UploadSession::create([
+            'user_id' => $this->user->id,
+            'upload_id' => 'u1', 's3_key' => 'media/videos/x.mp4',
+            'original_name' => 'x.mp4', 'mime_type' => 'video/mp4',
+            'size' => 300 * 1024 * 1024, 'type' => 'video',
+        ]);
+
+        $response = $this->actingAs($this->user)->postJson('/media/uploads/status', [
+            'upload_session_id' => $session->id,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('uploaded_parts.0.part_number', 1)
+            ->assertJsonStructure(['part_size', 'part_count', 'uploaded_parts']);
+    }
+
+    public function test_status_requires_ownership(): void
+    {
+        $session = UploadSession::create([
+            'user_id' => $this->otherUser->id,
+            'upload_id' => 'u1', 's3_key' => 'media/videos/x.mp4',
+            'original_name' => 'x.mp4', 'mime_type' => 'video/mp4',
+            'size' => 1000, 'type' => 'video',
+        ]);
+
+        $this->actingAs($this->user)->postJson('/media/uploads/status', [
+            'upload_session_id' => $session->id,
+        ])->assertStatus(404);
     }
 
     public function test_abort_deletes_session(): void

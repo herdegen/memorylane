@@ -470,41 +470,71 @@ const uploadViaPost = async (file, onFraction) => {
   return response.data?.media || null;
 };
 
+// Clé de reprise en localStorage, propre à un fichier donné.
+const LS_PREFIX = 'ml_upload_';
+const fileKey = (file) => `${LS_PREFIX}${file.name}|${file.size}|${file.lastModified}`;
+
 // Upload multipart direct vers S3 : chaque part est PUT directement sur le
-// bucket via une URL présignée, sans passer par PHP/nginx.
+// bucket via une URL présignée, sans passer par PHP/nginx. Reprend un upload
+// interrompu du même fichier (les parts déjà sur S3 ne sont pas renvoyées).
 const uploadViaMultipart = async (file, onFraction) => {
-  const { data: init } = await axios.post('/media/uploads/initiate', {
-    original_name: file.name,
-    mime_type: resolveMime(file),
-    size: file.size,
-  });
+  const lsKey = fileKey(file);
+  let sessionId = null;
+  let partSize = null;
+  let partCount = null;
+  const uploadedMap = new Map(); // part_number -> etag déjà présents sur S3
 
-  const sessionId = init.upload_session_id;
-  const partSize = init.part_size;
-  const partCount = init.part_count;
-  const parts = [];
-
-  try {
-    for (let n = 1; n <= partCount; n++) {
-      const start = (n - 1) * partSize;
-      const blob = file.slice(start, Math.min(start + partSize, file.size));
-      const etag = await uploadPartWithRetry(sessionId, n, blob);
-      parts.push({ part_number: n, etag });
-      onFraction(n / partCount);
-    }
-
-    const { data: done } = await axios.post('/media/uploads/complete', {
-      upload_session_id: sessionId,
-      parts,
-    });
-    return done.media;
-  } catch (err) {
-    // Meilleur effort : libère les parts déjà envoyées sur S3.
+  // Tentative de reprise d'un upload précédent de ce fichier.
+  const savedId = localStorage.getItem(lsKey);
+  if (savedId) {
     try {
-      await axios.post('/media/uploads/abort', { upload_session_id: sessionId });
-    } catch (_) { /* ignore */ }
-    throw err;
+      const { data } = await axios.post('/media/uploads/status', { upload_session_id: savedId });
+      sessionId = data.upload_session_id;
+      partSize = data.part_size;
+      partCount = data.part_count;
+      (data.uploaded_parts || []).forEach((p) => uploadedMap.set(p.part_number, p.etag));
+    } catch (_) {
+      localStorage.removeItem(lsKey); // session caduque -> on repart de zéro
+    }
   }
+
+  // Nouvel upload si pas de reprise possible.
+  if (!sessionId) {
+    const { data: init } = await axios.post('/media/uploads/initiate', {
+      original_name: file.name,
+      mime_type: resolveMime(file),
+      size: file.size,
+    });
+    sessionId = init.upload_session_id;
+    partSize = init.part_size;
+    partCount = init.part_count;
+    // Persiste AVANT d'envoyer les parts : une coupure reste reprenable.
+    localStorage.setItem(lsKey, sessionId);
+  }
+
+  const parts = [];
+  for (let n = 1; n <= partCount; n++) {
+    if (uploadedMap.has(n)) {
+      // Part déjà montée lors d'une tentative précédente : on la réutilise.
+      parts.push({ part_number: n, etag: uploadedMap.get(n) });
+      onFraction(n / partCount);
+      continue;
+    }
+    const start = (n - 1) * partSize;
+    const blob = file.slice(start, Math.min(start + partSize, file.size));
+    const etag = await uploadPartWithRetry(sessionId, n, blob);
+    parts.push({ part_number: n, etag });
+    onFraction(n / partCount);
+  }
+
+  // On n'abandonne PAS l'upload en cas d'erreur : la session est conservée
+  // (localStorage + multipart S3) pour permettre la reprise au prochain essai.
+  const { data: done } = await axios.post('/media/uploads/complete', {
+    upload_session_id: sessionId,
+    parts,
+  });
+  localStorage.removeItem(lsKey); // terminé : plus rien à reprendre
+  return done.media;
 };
 
 // PUT d'une part vers S3, avec quelques tentatives. On utilise fetch (et non

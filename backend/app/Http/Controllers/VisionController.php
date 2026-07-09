@@ -62,8 +62,10 @@ class VisionController extends Controller
     {
         $this->authorizeMedia($media);
 
-        if ($media->type !== 'photo') {
-            return response()->json(['message' => 'Only photos can be analyzed'], 422);
+        // Photos ET vidéos : pour une vidéo, la détection tourne sur l'image
+        // extraite (frame-poster) servie via la conversion medium.
+        if (! in_array($media->type, ['photo', 'video'], true)) {
+            return response()->json(['message' => 'Only photos and videos can be analyzed'], 422);
         }
 
         $validated = $request->validate([
@@ -114,8 +116,8 @@ class VisionController extends Controller
     {
         $this->authorizeMedia($media);
 
-        if ($media->type !== 'photo') {
-            return response()->json(['message' => 'Only photos can be analyzed'], 422);
+        if (! in_array($media->type, ['photo', 'video'], true)) {
+            return response()->json(['message' => 'Only photos and videos can be analyzed'], 422);
         }
 
         $validated = $request->validate([
