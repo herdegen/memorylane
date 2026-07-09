@@ -78,7 +78,9 @@
         <!-- Media count -->
         <div class="mt-4 p-3 bg-brand-50 rounded-lg">
           <div class="text-sm text-surface-600">
-            {{ geolocatedMedia.length }} photo(s) géolocalisée(s)
+            {{ geolocatedMedia.length }} média(s)
+            <span v-if="geolocatedAlbums.length"> · {{ geolocatedAlbums.length }} album(s)</span>
+            géolocalisé(s)
           </div>
         </div>
 
@@ -132,6 +134,7 @@ let markersLayer = null;
 
 // Data
 const geolocatedMedia = ref([]);
+const geolocatedAlbums = ref([]);
 const availableTags = ref([]);
 const selectedTags = ref(props.filters.tags || []);
 
@@ -196,7 +199,8 @@ async function loadGeolocatedMedia() {
     }
 
     const response = await axios.get(`/map/media?${params.toString()}`);
-    geolocatedMedia.value = response.data;
+    geolocatedMedia.value = response.data.media || [];
+    geolocatedAlbums.value = response.data.albums || [];
 
     // Update markers on map
     updateMarkers();
@@ -205,31 +209,58 @@ async function loadGeolocatedMedia() {
   }
 }
 
+// Icône miniature (bordure blanche par défaut, teintée pour un album).
+function thumbIcon(thumbnailUrl, { badge = null, borderColor = '#fff' } = {}) {
+  const badgeHtml = badge
+    ? `<div style="position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#f59e0b;color:#fff;font-size:11px;font-weight:600;line-height:18px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.3);">${badge}</div>`
+    : '';
+  return L.divIcon({
+    className: 'custom-thumb-marker',
+    html: `<div style="position:relative;width:48px;height:48px;border-radius:8px;overflow:hidden;border:3px solid ${borderColor};box-shadow:0 2px 8px rgba(0,0,0,0.3);background:#e5e7eb;">
+        <img src="${thumbnailUrl}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'" />
+        ${badgeHtml}
+      </div>
+      <div style="width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:8px solid ${borderColor};margin:0 auto;filter:drop-shadow(0 2px 2px rgba(0,0,0,0.2));"></div>`,
+    iconSize: [48, 56],
+    iconAnchor: [24, 56],
+    popupAnchor: [0, -56],
+  });
+}
+
 // Update markers on the map
 function updateMarkers() {
   // Clear existing markers
   markersLayer.clearLayers();
 
-  if (geolocatedMedia.value.length === 0) return;
-
-  // Add markers for each media
   const bounds = [];
 
-  geolocatedMedia.value.forEach(media => {
-    const thumbIcon = L.divIcon({
-      className: 'custom-thumb-marker',
-      html: `<div style="width:48px;height:48px;border-radius:8px;overflow:hidden;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);background:#e5e7eb;">
-        <img src="${media.thumbnail_url}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'" />
-      </div>
-      <div style="width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:8px solid #fff;margin:0 auto;filter:drop-shadow(0 2px 2px rgba(0,0,0,0.2));"></div>`,
-      iconSize: [48, 56],
-      iconAnchor: [24, 56],
-      popupAnchor: [0, -56],
+  // Marqueurs d'album : le clic mène à l'album (permissions album respectées).
+  geolocatedAlbums.value.forEach(album => {
+    const marker = L.marker([album.latitude, album.longitude], {
+      icon: thumbIcon(album.thumbnail_url, { badge: album.media_count, borderColor: '#f59e0b' }),
     });
 
-    const marker = L.marker([media.latitude, media.longitude], { icon: thumbIcon });
+    marker.bindPopup(`
+      <div class="text-center">
+        <img src="${album.thumbnail_url}" alt="${album.name}" class="w-32 h-32 object-cover rounded-sm mb-2" />
+        <div class="font-medium text-sm">📁 ${album.name}</div>
+        <div class="text-xs text-surface-500">${album.media_count} média(s)</div>
+        <div class="mt-2">
+          <a href="/albums/${album.id}" class="text-brand-600 hover:text-brand-800 text-sm">Voir l'album</a>
+        </div>
+      </div>
+    `);
+    marker.addTo(markersLayer);
+    bounds.push([album.latitude, album.longitude]);
+  });
 
-    const popupContent = `
+  // Marqueurs média (hors album) : le clic mène au média.
+  geolocatedMedia.value.forEach(media => {
+    const marker = L.marker([media.latitude, media.longitude], {
+      icon: thumbIcon(media.thumbnail_url),
+    });
+
+    marker.bindPopup(`
       <div class="text-center">
         <img src="${media.thumbnail_url}" alt="${media.original_name}" class="w-32 h-32 object-cover rounded-sm mb-2" />
         <div class="font-medium text-sm">${media.original_name}</div>
@@ -238,11 +269,8 @@ function updateMarkers() {
           <a href="/media/${media.id}" class="text-brand-600 hover:text-brand-800 text-sm">Voir le média</a>
         </div>
       </div>
-    `;
-
-    marker.bindPopup(popupContent);
+    `);
     marker.addTo(markersLayer);
-
     bounds.push([media.latitude, media.longitude]);
   });
 
@@ -337,6 +365,7 @@ async function searchNearby() {
     });
 
     geolocatedMedia.value = response.data;
+    geolocatedAlbums.value = [];
     updateMarkers();
   } catch (error) {
     console.error('Nearby search failed:', error);

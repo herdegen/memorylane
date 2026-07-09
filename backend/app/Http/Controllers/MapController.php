@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Album;
 use App\Models\Media;
 use App\Services\MediaService;
 use Illuminate\Http\Request;
@@ -36,12 +37,15 @@ class MapController extends Controller
     {
         $filters = $request->only(['type', 'search', 'tags']);
 
-        $query = Media::with(['user', 'tags', 'metadata'])
+        $hasGeo = fn ($q) => $q->whereNotNull('latitude')->whereNotNull('longitude');
+
+        // Médias géolocalisés HORS album : ils restent des marqueurs média.
+        // Ceux appartenant à un album sont représentés par le marqueur d'album
+        // (cliquer mène alors à l'album, pas à la photo).
+        $query = Media::with(['user', 'tags', 'metadata', 'conversions'])
             ->accessibleBy(auth()->user())
-            ->whereHas('metadata', function ($q) {
-                $q->whereNotNull('latitude')
-                  ->whereNotNull('longitude');
-            })
+            ->whereDoesntHave('albums')
+            ->whereHas('metadata', $hasGeo)
             ->orderBy('taken_at', 'desc');
 
         // Apply filters
@@ -60,29 +64,63 @@ class MapController extends Controller
             });
         }
 
-        $media = $query->get()->map(function ($item) {
-            // Generate signed URL for thumbnail
-            $thumbnailConversion = $item->conversions->firstWhere('conversion_name', 'thumbnail');
-            if ($thumbnailConversion) {
-                $item->thumbnail_url = $this->mediaService->getSignedUrl($item, $thumbnailConversion->file_path);
-            } else {
-                $item->thumbnail_url = $this->mediaService->getSignedUrl($item);
-            }
+        $media = $query->get()->map(fn ($item) => [
+            'id' => $item->id,
+            'type' => $item->type,
+            'original_name' => $item->original_name,
+            'taken_at' => $item->taken_at,
+            'latitude' => $item->metadata->latitude,
+            'longitude' => $item->metadata->longitude,
+            'altitude' => $item->metadata->altitude,
+            'thumbnail_url' => $this->thumbnailUrl($item),
+            'tags' => $item->tags,
+        ]);
 
-            return [
-                'id' => $item->id,
-                'type' => $item->type,
-                'original_name' => $item->original_name,
-                'taken_at' => $item->taken_at,
-                'latitude' => $item->metadata->latitude,
-                'longitude' => $item->metadata->longitude,
-                'altitude' => $item->metadata->altitude,
-                'thumbnail_url' => $item->thumbnail_url,
-                'tags' => $item->tags,
-            ];
-        });
+        // Albums géolocalisés (au moins un média avec coordonnées) : un seul
+        // marqueur par album, positionné sur son premier média géolocalisé.
+        $albums = Album::query()
+            ->accessibleBy(auth()->user())
+            ->whereHas('media', fn ($q) => $q->whereHas('metadata', $hasGeo))
+            ->with(['media' => function ($q) use ($hasGeo) {
+                $q->whereHas('metadata', $hasGeo)
+                  ->with(['metadata', 'conversions'])
+                  ->orderBy('taken_at', 'desc');
+            }])
+            ->get()
+            ->map(function ($album) {
+                $first = $album->media->first();
+                if (! $first || ! $first->metadata) {
+                    return null;
+                }
 
-        return response()->json($media);
+                return [
+                    'id' => $album->id,
+                    'name' => $album->name,
+                    'latitude' => $first->metadata->latitude,
+                    'longitude' => $first->metadata->longitude,
+                    'media_count' => $album->media->count(),
+                    'thumbnail_url' => $this->thumbnailUrl($first),
+                ];
+            })
+            ->filter()
+            ->values();
+
+        return response()->json([
+            'media' => $media,
+            'albums' => $albums,
+        ]);
+    }
+
+    /**
+     * URL signée de la miniature (conversion thumbnail, sinon l'original).
+     */
+    private function thumbnailUrl(Media $item): string
+    {
+        $thumb = $item->conversions->firstWhere('conversion_name', 'thumbnail');
+
+        return $thumb
+            ? $this->mediaService->getSignedUrl($item, $thumb->file_path)
+            : $this->mediaService->getSignedUrl($item);
     }
 
     /**
@@ -177,7 +215,7 @@ class MapController extends Controller
         $radius = $validated['radius'] ?? 5; // default 5km
 
         // Haversine formula to calculate distance
-        $media = Media::with(['user', 'tags', 'metadata'])
+        $media = Media::with(['user', 'tags', 'metadata', 'conversions'])
             ->accessibleBy(auth()->user())
             ->whereHas('metadata', function ($q) use ($lat, $lon, $radius) {
                 $q->whereNotNull('latitude')
@@ -192,25 +230,16 @@ class MapController extends Controller
             })
             ->orderBy('taken_at', 'desc')
             ->get()
-            ->map(function ($item) {
-                $thumbnailConversion = $item->conversions->firstWhere('conversion_name', 'thumbnail');
-                if ($thumbnailConversion) {
-                    $item->thumbnail_url = $this->mediaService->getSignedUrl($item, $thumbnailConversion->file_path);
-                } else {
-                    $item->thumbnail_url = $this->mediaService->getSignedUrl($item);
-                }
-
-                return [
-                    'id' => $item->id,
-                    'type' => $item->type,
-                    'original_name' => $item->original_name,
-                    'taken_at' => $item->taken_at,
-                    'latitude' => $item->metadata->latitude,
-                    'longitude' => $item->metadata->longitude,
-                    'thumbnail_url' => $item->thumbnail_url,
-                    'tags' => $item->tags,
-                ];
-            });
+            ->map(fn ($item) => [
+                'id' => $item->id,
+                'type' => $item->type,
+                'original_name' => $item->original_name,
+                'taken_at' => $item->taken_at,
+                'latitude' => $item->metadata->latitude,
+                'longitude' => $item->metadata->longitude,
+                'thumbnail_url' => $this->thumbnailUrl($item),
+                'tags' => $item->tags,
+            ]);
 
         return response()->json($media);
     }

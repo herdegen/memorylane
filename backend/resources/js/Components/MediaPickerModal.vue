@@ -51,7 +51,7 @@
         </div>
 
         <!-- Media Grid -->
-        <div v-else class="flex-1 overflow-y-auto p-6">
+        <div v-else ref="scrollContainer" class="flex-1 overflow-y-auto p-6">
           <div v-if="availableMedia.length === 0" class="text-center py-12">
             <svg
               class="mx-auto h-12 w-12 text-surface-400"
@@ -155,6 +155,25 @@
               </div>
             </div>
           </div>
+
+          <!-- Sentinelle de scroll infini (+ repli bouton) -->
+          <div v-if="hasMorePages" ref="sentinel" class="mt-6 flex justify-center">
+            <div v-if="loadingMore" class="flex items-center gap-2 text-sm text-surface-500">
+              <svg class="animate-spin h-5 w-5 text-brand-600" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              Chargement…
+            </div>
+            <button
+              v-else
+              type="button"
+              class="px-4 py-2 text-sm font-medium text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50"
+              @click="handleLoadMore"
+            >
+              Charger plus
+            </button>
+          </div>
         </div>
 
         <!-- Footer -->
@@ -201,7 +220,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useIntersectionObserver } from '@vueuse/core';
 import axios from 'axios';
 
 const props = defineProps({
@@ -218,17 +238,65 @@ const props = defineProps({
 const emit = defineEmits(['close', 'added']);
 
 const loading = ref(true);
+const loadingMore = ref(false);
 const submitting = ref(false);
 const availableMedia = ref([]);
 const selectedIds = ref([]);
 
+// Pagination serveur (24/page) + scroll infini, comme la galerie principale.
+const page = ref(1);
+const lastPage = ref(1);
+const hasMorePages = computed(() => page.value < lastPage.value);
+
+const scrollContainer = ref(null);
+const sentinel = ref(null);
+const sentinelVisible = ref(false);
+
+// Charge une page et l'accumule (en excluant les médias déjà dans l'album).
+const loadPage = async (pageNum) => {
+  const { data } = await axios.get('/media', {
+    params: { page: pageNum },
+    headers: { Accept: 'application/json' },
+  });
+  const fresh = (data.data || []).filter((m) => !props.excludeMediaIds.includes(m.id));
+  availableMedia.value.push(...fresh);
+  page.value = data.current_page ?? pageNum;
+  lastPage.value = data.last_page ?? page.value;
+};
+
+const handleLoadMore = async () => {
+  if (loadingMore.value || loading.value || !hasMorePages.value) return;
+  loadingMore.value = true;
+  try {
+    await loadPage(page.value + 1);
+  } catch (error) {
+    console.error('Failed to load more media:', error);
+  } finally {
+    loadingMore.value = false;
+  }
+};
+
+const maybeLoadMore = () => {
+  if (sentinelVisible.value && hasMorePages.value && !loading.value && !loadingMore.value) {
+    handleLoadMore();
+  }
+};
+
+// Le scroll se fait dans le conteneur du modal, pas le viewport -> root explicite.
+useIntersectionObserver(
+  sentinel,
+  ([entry]) => { sentinelVisible.value = entry.isIntersecting; maybeLoadMore(); },
+  { root: scrollContainer, rootMargin: '400px 0px' }
+);
+
+// Enchaîne si la sentinelle reste visible (ex. page entièrement exclue).
+watch(loadingMore, (isLoading, wasLoading) => {
+  if (wasLoading && !isLoading) maybeLoadMore();
+});
+
 onMounted(async () => {
   try {
-    const response = await axios.get('/media?json=1');
-    // Filter out media already in the album
-    availableMedia.value = response.data.data.filter(
-      (media) => !props.excludeMediaIds.includes(media.id)
-    );
+    await loadPage(1);
   } catch (error) {
     console.error('Failed to load media:', error);
   } finally {

@@ -49,12 +49,12 @@ class MapControllerTest extends TestCase
         $response = $this->actingAs($this->user)->getJson('/map/media');
 
         $response->assertStatus(200)
-            ->assertJsonCount(1); // Only media with geolocation
+            ->assertJsonCount(1, 'media'); // Only media with geolocation
 
         // Verify the returned media has coordinates
-        $json = $response->json();
-        $this->assertEquals(48.8566, $json[0]['latitude']);
-        $this->assertEquals(2.3522, $json[0]['longitude']);
+        $media = $response->json('media');
+        $this->assertEquals(48.8566, $media[0]['latitude']);
+        $this->assertEquals(2.3522, $media[0]['longitude']);
     }
 
     /**
@@ -79,9 +79,9 @@ class MapControllerTest extends TestCase
         $response = $this->actingAs($this->user)->getJson('/map/media?type=photo');
 
         $response->assertStatus(200)
-            ->assertJsonCount(1);
+            ->assertJsonCount(1, 'media');
 
-        $this->assertEquals('photo', $response->json()[0]['type']);
+        $this->assertEquals('photo', $response->json('media')[0]['type']);
     }
 
     /**
@@ -107,7 +107,34 @@ class MapControllerTest extends TestCase
         $response = $this->actingAs($this->user)->getJson("/map/media?tags[]={$tag->id}");
 
         $response->assertStatus(200)
-            ->assertJsonCount(1);
+            ->assertJsonCount(1, 'media');
+    }
+
+    /**
+     * Un média dans un album géolocalisé est représenté par un marqueur d'ALBUM
+     * (dans la clé albums), pas par un marqueur média individuel.
+     */
+    public function test_geolocated_album_media_is_grouped_under_album(): void
+    {
+        $album = \App\Models\Album::factory()->create(['user_id' => $this->user->id]);
+
+        $media = Media::factory()->create(['user_id' => $this->user->id]);
+        $media->metadata()->create([
+            'latitude' => 48.8566,
+            'longitude' => 2.3522,
+        ]);
+        $album->media()->attach($media->id);
+
+        $response = $this->actingAs($this->user)->getJson('/map/media');
+
+        $response->assertStatus(200)
+            ->assertJsonCount(0, 'media')   // pas de marqueur média individuel
+            ->assertJsonCount(1, 'albums');
+
+        $albumMarker = $response->json('albums')[0];
+        $this->assertEquals($album->id, $albumMarker['id']);
+        $this->assertEquals(48.8566, $albumMarker['latitude']);
+        $this->assertEquals(1, $albumMarker['media_count']);
     }
 
     /**

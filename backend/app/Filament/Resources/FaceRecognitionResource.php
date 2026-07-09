@@ -65,6 +65,8 @@ class FaceRecognitionResource extends Resource
     {
         return $table
             ->defaultSort('uploaded_at', 'desc')
+            // Rafraîchit les badges d'état pendant qu'un traitement tourne en fond.
+            ->poll('10s')
             ->columns([
                 ImageColumn::make('thumbnail')
                     ->label('')
@@ -150,12 +152,21 @@ class FaceRecognitionResource extends Resource
             ])
             ->recordActions([
                 Action::make('reanalyzeDetection')
-                    ->label('Relancer la détection')
+                    // Libellé contextuel : première analyse vs relance ; « en cours » si un job tourne.
+                    ->label(fn (Media $record) => static::isProcessing($record)
+                        ? 'Détection en cours…'
+                        : (static::isUntouched($record) ? 'Lancer la détection' : 'Relancer la détection'))
                     ->icon('heroicon-o-arrow-path')
-                    ->color('warning')
+                    ->color(fn (Media $record) => static::isProcessing($record) ? 'gray' : 'warning')
+                    // Désactivée tant que le média est en file / en cours de traitement.
+                    ->disabled(fn (Media $record) => static::isProcessing($record))
                     ->requiresConfirmation()
-                    ->modalHeading('Relancer la détection des visages')
-                    ->modalDescription('Les visages actuels seront effacés et le média repassé « en attente » pour une nouvelle détection.')
+                    ->modalHeading(fn (Media $record) => static::isUntouched($record)
+                        ? 'Lancer la détection des visages'
+                        : 'Relancer la détection des visages')
+                    ->modalDescription(fn (Media $record) => static::isUntouched($record)
+                        ? 'Le média va être analysé pour détecter les visages.'
+                        : 'Les visages actuels seront effacés et le média repassé « en attente » pour une nouvelle détection.')
                     ->action(fn (Media $record) => static::resetDetection($record)),
                 Action::make('autoMatch')
                     ->label('Relancer l\'auto-association')
@@ -257,6 +268,22 @@ class FaceRecognitionResource extends Resource
         }
 
         return $matched;
+    }
+
+    /**
+     * Le média n'a jamais été analysé (aucun statut vision).
+     */
+    protected static function isUntouched(Media $record): bool
+    {
+        return empty($record->metadata?->vision_status);
+    }
+
+    /**
+     * Un traitement de détection est en file ou en cours (job de fond).
+     */
+    protected static function isProcessing(Media $record): bool
+    {
+        return in_array($record->metadata?->vision_status, ['pending', 'processing'], true);
     }
 
     /**
