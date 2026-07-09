@@ -151,6 +151,15 @@ class FaceRecognitionResource extends Resource
                     ->query(fn (Builder $query) => $query->whereHas('detectedFaces', fn (Builder $q) => $q->where('status', 'unmatched'))),
             ])
             ->recordActions([
+                // Pont vers la page média de l'app : la détection/vérification
+                // des visages est côté navigateur (face-api), donc impossible
+                // dans l'admin. On ouvre la fiche où l'on dessine/vérifie/associe.
+                Action::make('verifyFaces')
+                    ->label('Vérifier les visages')
+                    ->icon('heroicon-o-eye')
+                    ->color('gray')
+                    ->url(fn (Media $record) => '/media/' . $record->id)
+                    ->openUrlInNewTab(),
                 Action::make('reanalyzeDetection')
                     // Libellé contextuel : première analyse vs relance ; « en cours » si un job tourne.
                     ->label(fn (Media $record) => static::isProcessing($record)
@@ -176,6 +185,16 @@ class FaceRecognitionResource extends Resource
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    // Détection navigateur sur la sélection : ouvre la page de
+                    // lot ciblée (?ids=...) où face-api tourne côté client.
+                    BulkAction::make('detectSelection')
+                        ->label('Détecter les visages (sélection)')
+                        ->icon('heroicon-o-eye')
+                        ->color('primary')
+                        ->deselectRecordsAfterCompletion()
+                        ->action(fn (Collection $records) => redirect(
+                            '/vision/batch?ids=' . $records->pluck('id')->implode(',')
+                        )),
                     BulkAction::make('reanalyzeDetection')
                         ->label('Relancer la détection')
                         ->icon('heroicon-o-arrow-path')

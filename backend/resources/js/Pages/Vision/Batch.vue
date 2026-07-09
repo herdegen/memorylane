@@ -5,8 +5,14 @@
         <div class="bg-white rounded-lg shadow-xs p-6">
           <h1 class="text-xl font-semibold text-surface-900 mb-2">Détection des visages en lot</h1>
           <p class="text-sm text-surface-500 mb-6">
-            Analyse toutes les photos pas encore traitées, directement dans votre
-            navigateur. Laissez cet onglet ouvert pendant le traitement.
+            <template v-if="selectionMode">
+              Analyse les photos sélectionnées dans l'admin, directement dans votre
+              navigateur. Laissez cet onglet ouvert pendant le traitement.
+            </template>
+            <template v-else>
+              Analyse toutes les photos pas encore traitées, directement dans votre
+              navigateur. Laissez cet onglet ouvert pendant le traitement.
+            </template>
           </p>
 
           <!-- Chargement de la liste -->
@@ -76,13 +82,21 @@ const processed = ref(0);
 const total = ref(0);
 const errors = ref(0);
 const statusMessage = ref('');
+const selectionMode = ref(false);
 let cancelled = false;
 
 const loadPending = async () => {
   loadingList.value = true;
   try {
-    const { data } = await axios.get('/vision/pending');
-    pendingIds.value = data.media_ids || [];
+    // Mode sélection : ?ids=a,b,c passés depuis l'admin -> on n'analyse que ceux-là.
+    const idsParam = new URLSearchParams(window.location.search).get('ids');
+    if (idsParam) {
+      selectionMode.value = true;
+      pendingIds.value = idsParam.split(',').filter(Boolean);
+    } else {
+      const { data } = await axios.get('/vision/pending');
+      pendingIds.value = data.media_ids || [];
+    }
     total.value = pendingIds.value.length;
   } catch (e) {
     console.error('Failed to load pending media:', e);
