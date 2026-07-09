@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Jobs\AnalyzeMediaWithVision;
 use App\Models\DetectedFace;
 use App\Models\Media;
+use App\Services\Vision\FaceMatcher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -12,17 +13,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class VisionController extends Controller
 {
-    /**
-     * Distance euclidienne maximale entre deux descripteurs pour considérer
-     * qu'il s'agit de la même personne (métrique native de face-api.js).
-     */
-    private const MATCH_THRESHOLD = 0.6;
-
-    /**
-     * Seuil (plus strict) au-dessous duquel on associe AUTOMATIQUEMENT la
-     * personne, sans confirmation (auto-association en tâche de fond).
-     */
-    private const AUTO_MATCH_THRESHOLD = 0.45;
+    public function __construct(private FaceMatcher $faceMatcher)
+    {
+    }
 
     /**
      * Proxy image même-origine pour la détection de visages côté navigateur.
@@ -185,66 +178,15 @@ class VisionController extends Controller
     {
         $this->authorizeMedia($detectedFace->media);
 
-        $candidates = $this->rankedCandidates($detectedFace, self::MATCH_THRESHOLD);
+        $candidates = $this->faceMatcher->rankedCandidates(
+            $detectedFace,
+            FaceMatcher::MATCH_THRESHOLD,
+            auth()->id(),
+        );
 
         return response()->json([
             'suggestions' => array_slice($candidates, 0, 3),
         ]);
-    }
-
-    /**
-     * Personnes candidates (plus proche voisin par personne) sous $maxDistance,
-     * triées par distance croissante. Chaque entrée : {person{id,name}, distance, score}.
-     */
-    private function rankedCandidates(DetectedFace $detectedFace, float $maxDistance): array
-    {
-        $target = $detectedFace->embedding;
-
-        if (! is_array($target) || count($target) !== 128) {
-            return [];
-        }
-
-        // Visages labellisés de l'utilisateur (autres que celui-ci), avec embedding.
-        $labelled = DetectedFace::query()
-            ->whereNotNull('person_id')
-            ->whereNotNull('embedding')
-            ->where('id', '!=', $detectedFace->id)
-            ->whereHas('media', fn ($q) => $q->where('user_id', auth()->id()))
-            ->with('person:id,name')
-            ->get();
-
-        $bestByPerson = [];
-
-        foreach ($labelled as $face) {
-            if (! $face->person) {
-                continue;
-            }
-
-            $distance = $this->euclideanDistance($target, $face->embedding);
-
-            if ($distance > $maxDistance) {
-                continue;
-            }
-
-            $personId = $face->person->id;
-
-            if (! isset($bestByPerson[$personId]) || $distance < $bestByPerson[$personId]['distance']) {
-                $bestByPerson[$personId] = [
-                    'person' => [
-                        'id' => $face->person->id,
-                        'name' => $face->person->name,
-                    ],
-                    'distance' => round($distance, 4),
-                    // Score de similarité (0..1) : 1 = identique, 0 = au seuil de suggestion.
-                    'score' => round(max(0, 1 - $distance / self::MATCH_THRESHOLD), 4),
-                ];
-            }
-        }
-
-        $candidates = array_values($bestByPerson);
-        usort($candidates, fn ($a, $b) => $a['distance'] <=> $b['distance']);
-
-        return $candidates;
     }
 
     /**
@@ -264,16 +206,6 @@ class VisionController extends Controller
         ]);
     }
 
-    private function euclideanDistance(array $a, array $b): float
-    {
-        $sum = 0.0;
-        foreach ($a as $i => $v) {
-            $d = $v - ($b[$i] ?? 0);
-            $sum += $d * $d;
-        }
-
-        return sqrt($sum);
-    }
     /**
      * Get detected faces for a media.
      */
@@ -300,7 +232,7 @@ class VisionController extends Controller
             'person_id' => 'required|uuid|exists:people,id',
         ]);
 
-        $this->applyMatch($detectedFace, $validated['person_id']);
+        $this->faceMatcher->applyMatch($detectedFace, $validated['person_id']);
         $detectedFace->load('person');
 
         return response()->json($detectedFace);
@@ -315,41 +247,16 @@ class VisionController extends Controller
     {
         $this->authorizeMedia($detectedFace->media);
 
-        // Ne jamais écraser une association existante.
-        if ($detectedFace->person_id || $detectedFace->status !== 'unmatched') {
-            return response()->json(['matched' => false]);
-        }
-
-        $candidates = $this->rankedCandidates($detectedFace, self::AUTO_MATCH_THRESHOLD);
-        $best = $candidates[0] ?? null;
+        $best = $this->faceMatcher->autoMatch($detectedFace, auth()->id());
 
         if (! $best) {
             return response()->json(['matched' => false]);
         }
 
-        $this->applyMatch($detectedFace, $best['person']['id']);
-
         return response()->json([
             'matched' => true,
             'person' => $best['person'],
             'distance' => $best['distance'],
-        ]);
-    }
-
-    /**
-     * Associe un visage à une personne (statut matched + pivot media_person).
-     */
-    private function applyMatch(DetectedFace $detectedFace, string $personId): void
-    {
-        $detectedFace->update([
-            'person_id' => $personId,
-            'status' => 'matched',
-        ]);
-
-        $detectedFace->media->people()->syncWithoutDetaching([
-            $personId => [
-                'face_coordinates' => json_encode($detectedFace->bounding_box),
-            ],
         ]);
     }
 
