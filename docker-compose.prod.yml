@@ -1,0 +1,50 @@
+# Override production : intégration derrière Traefik (memorylane.maxibestof.com)
+# Usage : les vars COMPOSE_FILE du .env racine chargent automatiquement
+#         docker-compose.yml + ce fichier. Donc `docker compose up -d` suffit.
+#
+# Principe : AUCUN port publié sur l'hôte (8000 et 5432 sont déjà pris par
+# d'autres stacks). Tout le trafic entrant passe par Traefik via le réseau
+# externe `traefik-proxy`. Les services internes ne sont joignables que sur
+# le réseau `memorylane`.
+
+services:
+  postgres:
+    ports: !override []
+    restart: unless-stopped
+
+  redis:
+    ports: !override []
+    restart: unless-stopped
+
+  meilisearch:
+    ports: !override []
+    restart: unless-stopped
+    environment:
+      MEILI_ENV: production
+
+  mailpit:
+    ports: !override []
+
+  app:
+    ports: !override []
+    restart: unless-stopped
+
+  nginx:
+    # Pas de port publié : Traefik atteint nginx:80 via le réseau traefik-proxy
+    ports: !override []
+    restart: unless-stopped
+    networks:
+      - memorylane
+      - traefik-proxy
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "traefik-proxy"
+      traefik.http.routers.memorylane.entrypoints: "websecure"
+      traefik.http.routers.memorylane.rule: "Host(`memorylane.maxibestof.com`)"
+      traefik.http.routers.memorylane.tls.certresolver: "le"
+      traefik.http.services.memorylane.loadbalancer.server.port: "80"
+      traefik.http.services.memorylane.loadbalancer.passhostheader: "true"
+
+networks:
+  traefik-proxy:
+    external: true
