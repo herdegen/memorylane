@@ -353,9 +353,7 @@ class PersonController extends Controller
 
     public function setParent(Request $request, Person $person)
     {
-        if ($person->user_id !== auth()->id()) {
-            abort(403);
-        }
+        $this->authorizeManage($person);
 
         $validated = $request->validate([
             'parent_id' => 'required|exists:people,id',
@@ -363,9 +361,7 @@ class PersonController extends Controller
         ]);
 
         $parent = Person::findOrFail($validated['parent_id']);
-        if ($parent->user_id !== auth()->id()) {
-            abort(403);
-        }
+        $this->authorizeManage($parent);
 
         if ($validated['parent_id'] === $person->id) {
             return response()->json(['message' => 'Une personne ne peut pas etre son propre parent'], 422);
@@ -383,9 +379,7 @@ class PersonController extends Controller
 
     public function removeParent(Request $request, Person $person)
     {
-        if ($person->user_id !== auth()->id()) {
-            abort(403);
-        }
+        $this->authorizeManage($person);
 
         $validated = $request->validate([
             'parent_type' => 'required|in:father,mother',
@@ -400,9 +394,7 @@ class PersonController extends Controller
 
     public function addSpouse(Request $request, Person $person)
     {
-        if ($person->user_id !== auth()->id()) {
-            abort(403);
-        }
+        $this->authorizeManage($person);
 
         $validated = $request->validate([
             'spouse_id' => 'required|exists:people,id',
@@ -412,9 +404,7 @@ class PersonController extends Controller
         ]);
 
         $spouse = Person::findOrFail($validated['spouse_id']);
-        if ($spouse->user_id !== auth()->id()) {
-            abort(403);
-        }
+        $this->authorizeManage($spouse);
 
         if ($validated['spouse_id'] === $person->id) {
             return response()->json(['message' => 'Une personne ne peut pas etre son propre conjoint'], 422);
@@ -436,9 +426,7 @@ class PersonController extends Controller
 
     public function removeSpouse(Request $request, Person $person)
     {
-        if ($person->user_id !== auth()->id()) {
-            abort(403);
-        }
+        $this->authorizeManage($person);
 
         $validated = $request->validate([
             'spouse_id' => 'required|exists:people,id',
@@ -452,6 +440,66 @@ class PersonController extends Controller
             ->delete();
 
         return response()->json(['message' => 'Relation supprimee']);
+    }
+
+    /**
+     * Ajoute un enfant à une personne. Le parent occupe le slot déduit de son
+     * sexe (M → père, F/inconnu → mère/père) ; l'autre parent (conjoint choisi)
+     * remplit le slot complémentaire. L'enfant peut être une personne existante.
+     */
+    public function addChild(Request $request, Person $person)
+    {
+        $this->authorizeManage($person);
+
+        $validated = $request->validate([
+            'child_id' => 'required|exists:people,id',
+            'other_parent_id' => 'nullable|exists:people,id',
+            'parent_type' => 'nullable|in:father,mother',
+        ]);
+
+        $child = Person::findOrFail($validated['child_id']);
+        $this->authorizeManage($child);
+
+        if ($child->id === $person->id) {
+            return response()->json(['message' => 'Une personne ne peut pas être son propre enfant'], 422);
+        }
+
+        // Slot du parent courant : déduit du sexe, surchargé par parent_type.
+        $slot = $validated['parent_type'] ?? ($person->gender === 'F' ? 'mother' : 'father');
+        $otherSlot = $slot === 'father' ? 'mother' : 'father';
+
+        $update = [$slot . '_id' => $person->id];
+
+        if (! empty($validated['other_parent_id'])) {
+            if ($validated['other_parent_id'] === $child->id) {
+                return response()->json(['message' => 'L\'autre parent ne peut pas être l\'enfant'], 422);
+            }
+            $update[$otherSlot . '_id'] = $validated['other_parent_id'];
+        }
+
+        $child->update($update);
+
+        return response()->json([
+            'message' => 'Enfant ajouté',
+            'child' => $child->fresh(),
+        ]);
+    }
+
+    /**
+     * Peut gérer/éditer cette fiche : un admin, ou le créateur (propriétaire).
+     * (Le cas « la personne elle-même via un compte connecté » reste à modéliser,
+     * cf. issue #20.)
+     */
+    private function canManage(Person $person): bool
+    {
+        $user = auth()->user();
+
+        return $user !== null && ($user->isAdmin() || $person->user_id === $user->id);
+    }
+
+    private function authorizeManage(Person $person): void
+    {
+        abort_unless($this->canManage($person), 403);
     }
 
     /**

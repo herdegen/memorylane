@@ -178,6 +178,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/{person}/set-self', [PersonController::class, 'setSelf'])->name('setSelf');
         Route::post('/{person}/spouse', [PersonController::class, 'addSpouse'])->name('addSpouse');
         Route::delete('/{person}/spouse', [PersonController::class, 'removeSpouse'])->name('removeSpouse');
+        Route::post('/{person}/child', [PersonController::class, 'addChild'])->name('addChild');
     });
 
     // Family Tree routes

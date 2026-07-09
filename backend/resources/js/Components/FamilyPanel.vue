@@ -69,10 +69,11 @@
       </div>
     </div>
 
-    <!-- Children (read-only) -->
-    <div v-if="children.length > 0" class="mt-4">
+    <!-- Children -->
+    <div class="mt-4">
       <label class="block text-sm font-medium text-surface-700 mb-2">Enfants</label>
-      <div class="flex flex-wrap gap-2">
+
+      <div v-if="children.length > 0" class="flex flex-wrap gap-2 mb-2">
         <Link
           v-for="child in children"
           :key="child.id"
@@ -81,6 +82,58 @@
         >
           {{ child.name }}
         </Link>
+      </div>
+
+      <div v-if="!addingChild">
+        <button @click="startAddChild" class="text-sm text-brand-600 hover:text-brand-800">
+          + Ajouter un enfant
+        </button>
+      </div>
+
+      <div v-else class="mt-2 space-y-2">
+        <!-- Choix de l'autre parent quand plusieurs conjoints -->
+        <div v-if="spouses.length > 1">
+          <label class="block text-xs font-medium text-surface-600 mb-1">Autre parent</label>
+          <select v-model="coParentId" class="form-input">
+            <option value="">Inconnu</option>
+            <option v-for="s in spouses" :key="s.id" :value="s.id">{{ s.name }}</option>
+          </select>
+        </div>
+        <p v-else-if="spouses.length === 1" class="text-xs text-surface-500">
+          Autre parent : {{ spouses[0].name }}
+        </p>
+
+        <!-- Lier un enfant existant -->
+        <RelationshipPicker
+          label=""
+          :current-person="null"
+          :exclude-ids="excludeChildIds"
+          placeholder="Rechercher l'enfant..."
+          @select="addChild"
+          @remove=""
+        />
+
+        <!-- Ou créer un nouvel enfant -->
+        <div class="flex gap-2">
+          <input
+            v-model="newChildName"
+            type="text"
+            placeholder="ou créer : nom de l'enfant"
+            class="form-input flex-1"
+            @keyup.enter="createAndAddChild"
+          />
+          <button
+            @click="createAndAddChild"
+            :disabled="!newChildName.trim() || busy"
+            class="btn-primary disabled:opacity-50"
+          >
+            Créer
+          </button>
+        </div>
+
+        <button @click="addingChild = false" class="text-xs text-surface-400 hover:text-surface-600">
+          Annuler
+        </button>
       </div>
     </div>
   </div>
@@ -101,10 +154,66 @@ const props = defineProps({
 });
 
 const addingSpouse = ref(false);
+const addingChild = ref(false);
+const coParentId = ref('');
+const newChildName = ref('');
+const busy = ref(false);
 
 const excludeSpouseIds = computed(() => {
   return [props.person.id, ...props.spouses.map(s => s.id)];
 });
+
+// On exclut soi-même, les enfants déjà rattachés et les parents (évite les boucles).
+const excludeChildIds = computed(() => {
+  const ids = [props.person.id, ...props.children.map(c => c.id)];
+  if (props.father) ids.push(props.father.id);
+  if (props.mother) ids.push(props.mother.id);
+  return ids;
+});
+
+function startAddChild() {
+  addingChild.value = true;
+  newChildName.value = '';
+  // Si un seul conjoint, il est automatiquement l'autre parent.
+  coParentId.value = props.spouses.length === 1 ? props.spouses[0].id : '';
+}
+
+async function addChild(child) {
+  if (busy.value) return;
+  busy.value = true;
+  try {
+    await axios.post(`/people/${props.person.id}/child`, {
+      child_id: child.id,
+      other_parent_id: coParentId.value || null,
+    });
+    addingChild.value = false;
+    router.reload();
+  } catch (error) {
+    alert(error.response?.data?.message || 'Erreur');
+  } finally {
+    busy.value = false;
+  }
+}
+
+async function createAndAddChild() {
+  const name = newChildName.value.trim();
+  if (!name || busy.value) return;
+  busy.value = true;
+  try {
+    const { data } = await axios.post('/people', { name });
+    const created = data.person || data;
+    await axios.post(`/people/${props.person.id}/child`, {
+      child_id: created.id,
+      other_parent_id: coParentId.value || null,
+    });
+    addingChild.value = false;
+    router.reload();
+  } catch (error) {
+    alert(error.response?.data?.message || 'Erreur');
+  } finally {
+    busy.value = false;
+  }
+}
 
 async function setParent(parent, type) {
   try {
