@@ -110,6 +110,14 @@ class Person extends Model
         return $this->hasMany(DetectedFace::class);
     }
 
+    /**
+     * Moments de vie rattachés (frise chronologique).
+     */
+    public function lifeEvents()
+    {
+        return $this->hasMany(LifeEvent::class);
+    }
+
     public function father()
     {
         return $this->belongsTo(Person::class, 'father_id');

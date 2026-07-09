@@ -197,6 +197,28 @@ class PersonController extends Controller
 
         $person->avatar_url = $this->resolveAvatarUrl($person);
 
+        // Père / mère avec miniature (avatar_url) pour la navigation.
+        $father = $this->hydrateAvatar($person->father);
+        $mother = $this->hydrateAvatar($person->mother);
+
+        // Frères et sœurs : partagent père OU mère, en excluant la personne.
+        $siblings = collect();
+        if ($person->father_id || $person->mother_id) {
+            $siblings = Person::where('id', '!=', $person->id)
+                ->where(function ($q) use ($person) {
+                    if ($person->father_id) {
+                        $q->orWhere('father_id', $person->father_id);
+                    }
+                    if ($person->mother_id) {
+                        $q->orWhere('mother_id', $person->mother_id);
+                    }
+                })
+                ->with('avatar.conversions')
+                ->withCount(self::matchedFacesCount())
+                ->get()
+                ->each(fn ($s) => $s->avatar_url = $this->resolveAvatarUrl($s));
+        }
+
         // Load children
         $children = Person::where('father_id', $person->id)
             ->orWhere('mother_id', $person->id)
@@ -255,18 +277,157 @@ class PersonController extends Controller
                 'media' => $media,
                 'children' => $children,
                 'spouses' => $spouses,
+                'siblings' => $siblings,
             ]);
         }
 
         return Inertia::render('People/Show', [
             'person' => $person,
             'media' => $media,
-            'father' => $person->father,
-            'mother' => $person->mother,
+            'father' => $father,
+            'mother' => $mother,
             'children' => $children,
             'spouses' => $spouses,
+            'siblings' => $siblings,
             'isSelf' => auth()->user()->person_id === $person->id,
+            'canManage' => $this->canManage($person),
         ]);
+    }
+
+    /**
+     * Charge l'avatar (et le compteur de visages matchés pour le fallback) d'une
+     * personne et lui attache une avatar_url. Renvoie null si $person est null.
+     */
+    private function hydrateAvatar(?Person $person): ?Person
+    {
+        if (! $person) {
+            return null;
+        }
+
+        $person->loadMissing('avatar.conversions');
+        $person->loadCount(self::matchedFacesCount());
+        $person->avatar_url = $this->resolveAvatarUrl($person);
+
+        return $person;
+    }
+
+    /**
+     * Frise de vie : fusion d'événements auto-déduits (naissance, mariages,
+     * naissances des enfants, décès), des moments libres (life_events) et de
+     * toutes les photos datées de la personne, triés par date croissante.
+     */
+    public function timeline(Person $person)
+    {
+        $items = [];
+
+        if ($person->birth_date) {
+            $items[] = $this->autoEvent('birth', $person->birth_date, 'Naissance', $person->birth_place);
+        }
+        if ($person->death_date) {
+            $items[] = $this->autoEvent('death', $person->death_date, 'Décès', $person->death_place);
+        }
+
+        // Mariages / unions (dates portées par le pivot person_relationships)
+        foreach ($person->spouses as $spouse) {
+            $start = $spouse->pivot->start_date ?? null;
+            if ($start) {
+                $label = ($spouse->pivot->type ?? 'spouse') === 'partner' ? 'Union avec ' : 'Mariage avec ';
+                $items[] = array_merge(
+                    $this->autoEvent('marriage', $start, $label . $spouse->name, $spouse->pivot->start_place ?? null),
+                    ['related' => $this->relatedPayload($spouse)]
+                );
+            }
+        }
+
+        // Naissances des enfants
+        $children = Person::where('father_id', $person->id)
+            ->orWhere('mother_id', $person->id)
+            ->whereNotNull('birth_date')
+            ->get();
+        foreach ($children as $child) {
+            $items[] = array_merge(
+                $this->autoEvent('child', $child->birth_date, 'Naissance de ' . $child->name, $child->birth_place),
+                ['related' => $this->relatedPayload($child)]
+            );
+        }
+
+        // Moments libres
+        foreach ($person->lifeEvents()->with('media.conversions')->get() as $ev) {
+            $items[] = [
+                'date' => optional($ev->event_date)->format('Y-m-d'),
+                'end_date' => optional($ev->end_date)->format('Y-m-d'),
+                'kind' => $ev->type,
+                'title' => $ev->title,
+                'description' => $ev->description,
+                'place' => $ev->place,
+                'media' => $ev->media ? $this->mediaPayload($ev->media) : null,
+                'life_event_id' => $ev->id,
+            ];
+        }
+
+        // Photos datées, visibles par le visiteur
+        $photos = $person->media()
+            ->accessibleBy(auth()->user())
+            ->whereNotNull('taken_at')
+            ->with('conversions')
+            ->orderBy('taken_at')
+            ->get();
+        foreach ($photos as $m) {
+            $items[] = [
+                'date' => optional($m->taken_at)->format('Y-m-d'),
+                'kind' => 'photo',
+                'title' => $m->original_name,
+                'media' => $this->mediaPayload($m),
+            ];
+        }
+
+        $items = collect($items)
+            ->filter(fn ($i) => ! empty($i['date']))
+            ->sortBy('date')
+            ->values();
+
+        return response()->json($items);
+    }
+
+    private function autoEvent(string $kind, $date, string $title, ?string $place): array
+    {
+        return [
+            'date' => $date ? \Illuminate\Support\Carbon::parse($date)->format('Y-m-d') : null,
+            'kind' => $kind,
+            'title' => $title,
+            'place' => $place,
+        ];
+    }
+
+    private function relatedPayload(Person $person): array
+    {
+        $person->loadMissing('avatar.conversions');
+        $person->loadCount(self::matchedFacesCount());
+
+        return [
+            'id' => $person->id,
+            'name' => $person->name,
+            'avatar_url' => $this->resolveAvatarUrl($person),
+        ];
+    }
+
+    private function mediaPayload(Media $media): array
+    {
+        $media->loadMissing('conversions');
+        $thumb = $media->conversions->firstWhere('conversion_name', 'thumbnail')
+            ?? $media->conversions->firstWhere('conversion_name', 'small');
+        $medium = $media->conversions->firstWhere('conversion_name', 'medium')
+            ?? $media->conversions->firstWhere('conversion_name', 'web');
+
+        return [
+            'id' => $media->id,
+            'type' => $media->type,
+            'original_name' => $media->original_name,
+            'taken_at' => optional($media->taken_at)->toIso8601String(),
+            'url' => $this->mediaService->getSignedUrl($media),
+            'thumbnail_url' => $thumb ? $this->mediaService->getSignedUrl($media, $thumb->file_path) : null,
+            'medium_url' => $medium ? $this->mediaService->getSignedUrl($media, $medium->file_path) : null,
+        ];
     }
 
     public function update(Request $request, Person $person)

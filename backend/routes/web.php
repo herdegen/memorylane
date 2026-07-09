@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FamilyTreeController;
 use App\Http\Controllers\GedcomImportController;
 use App\Http\Controllers\GooglePhotosController;
+use App\Http\Controllers\LifeEventController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\PersonController;
 use App\Http\Controllers\ProfileController;
@@ -179,7 +180,15 @@ Route::middleware('auth')->group(function () {
         Route::post('/{person}/spouse', [PersonController::class, 'addSpouse'])->name('addSpouse');
         Route::delete('/{person}/spouse', [PersonController::class, 'removeSpouse'])->name('removeSpouse');
         Route::post('/{person}/child', [PersonController::class, 'addChild'])->name('addChild');
+
+        // Frise de vie + moments
+        Route::get('/{person}/timeline', [PersonController::class, 'timeline'])->name('timeline');
+        Route::post('/{person}/events', [LifeEventController::class, 'store'])->name('events.store');
     });
+
+    // Édition / suppression d'un moment de vie
+    Route::put('/life-events/{lifeEvent}', [LifeEventController::class, 'update'])->name('life-events.update');
+    Route::delete('/life-events/{lifeEvent}', [LifeEventController::class, 'destroy'])->name('life-events.destroy');
 
     // Family Tree routes
     Route::prefix('family-tree')->name('family-tree.')->group(function () {

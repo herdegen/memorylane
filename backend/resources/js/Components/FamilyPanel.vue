@@ -4,45 +4,48 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <!-- Father -->
-      <RelationshipPicker
-        label="Pere"
-        :current-person="father"
-        :exclude-ids="[person.id]"
-        placeholder="Definir le pere..."
-        @select="setParent($event, 'father')"
-        @remove="removeParent('father')"
-      />
+      <div>
+        <label class="block text-sm font-medium text-surface-700 mb-1">Père</label>
+        <RelativeCard v-if="father" :person="father" removable @remove="removeParent('father')" />
+        <RelationshipPicker
+          v-else
+          label=""
+          :current-person="null"
+          :exclude-ids="[person.id]"
+          placeholder="Définir le père..."
+          @select="setParent($event, 'father')"
+          @remove=""
+        />
+      </div>
 
       <!-- Mother -->
-      <RelationshipPicker
-        label="Mere"
-        :current-person="mother"
-        :exclude-ids="[person.id]"
-        placeholder="Definir la mere..."
-        @select="setParent($event, 'mother')"
-        @remove="removeParent('mother')"
-      />
+      <div>
+        <label class="block text-sm font-medium text-surface-700 mb-1">Mère</label>
+        <RelativeCard v-if="mother" :person="mother" removable @remove="removeParent('mother')" />
+        <RelationshipPicker
+          v-else
+          label=""
+          :current-person="null"
+          :exclude-ids="[person.id]"
+          placeholder="Définir la mère..."
+          @select="setParent($event, 'mother')"
+          @remove=""
+        />
+      </div>
     </div>
 
     <!-- Spouses -->
     <div class="mt-4">
       <label class="block text-sm font-medium text-surface-700 mb-2">Conjoint(s)</label>
 
-      <div v-if="spouses.length > 0" class="space-y-2 mb-2">
-        <div
+      <div v-if="spouses.length > 0" class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+        <RelativeCard
           v-for="spouse in spouses"
           :key="spouse.id"
-          class="flex items-center justify-between bg-amber-50 rounded-lg px-3 py-2"
-        >
-          <Link :href="`/people/${spouse.id}`" class="text-sm text-brand-600 hover:text-brand-800 font-medium">
-            {{ spouse.name }}
-          </Link>
-          <button @click="removeSpouse(spouse)" class="text-surface-400 hover:text-red-500">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+          :person="spouse"
+          removable
+          @remove="removeSpouse(spouse)"
+        />
       </div>
 
       <div v-if="!addingSpouse">
@@ -73,15 +76,8 @@
     <div class="mt-4">
       <label class="block text-sm font-medium text-surface-700 mb-2">Enfants</label>
 
-      <div v-if="children.length > 0" class="flex flex-wrap gap-2 mb-2">
-        <Link
-          v-for="child in children"
-          :key="child.id"
-          :href="`/people/${child.id}`"
-          class="px-3 py-1 text-sm bg-green-50 text-green-700 rounded-lg border border-green-200 hover:bg-green-100"
-        >
-          {{ child.name }}
-        </Link>
+      <div v-if="children.length > 0" class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+        <RelativeCard v-for="child in children" :key="child.id" :person="child" />
       </div>
 
       <div v-if="!addingChild">
@@ -136,13 +132,22 @@
         </button>
       </div>
     </div>
+
+    <!-- Frères et sœurs (lecture seule — dérivés des parents) -->
+    <div v-if="siblings.length > 0" class="mt-4">
+      <label class="block text-sm font-medium text-surface-700 mb-2">Frères et sœurs</label>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <RelativeCard v-for="sibling in siblings" :key="sibling.id" :person="sibling" />
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
-import { Link, router } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import RelationshipPicker from '@/Components/RelationshipPicker.vue';
+import RelativeCard from '@/Components/RelativeCard.vue';
 import axios from 'axios';
 
 const props = defineProps({
@@ -151,6 +156,7 @@ const props = defineProps({
   mother: { type: Object, default: null },
   spouses: { type: Array, default: () => [] },
   children: { type: Array, default: () => [] },
+  siblings: { type: Array, default: () => [] },
 });
 
 const addingSpouse = ref(false);

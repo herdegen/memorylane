@@ -112,7 +112,11 @@
           :mother="mother"
           :spouses="spouses"
           :children="children"
+          :siblings="siblings"
         />
+
+        <!-- Frise de vie (moments + diaporama) -->
+        <PersonTimeline :person-id="person.id" :can-manage="canManage" />
 
         <!-- Media Grid -->
         <div v-if="media.data && media.data.length > 0">
@@ -233,6 +237,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import MediaCard from '@/Components/MediaCard.vue';
 import PersonFormModal from '@/Components/PersonFormModal.vue';
 import FamilyPanel from '@/Components/FamilyPanel.vue';
+import PersonTimeline from '@/Components/PersonTimeline.vue';
 import { personLabel } from '@/utils/personName';
 
 const props = defineProps({
@@ -260,7 +265,15 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  siblings: {
+    type: Array,
+    default: () => [],
+  },
   isSelf: {
+    type: Boolean,
+    default: false,
+  },
+  canManage: {
     type: Boolean,
     default: false,
   },
