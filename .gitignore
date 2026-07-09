@@ -28,3 +28,6 @@ Homestead.json
 .env.production
 .phpactor.json
 auth.json
+
+# Dumps de base locaux (pré-upgrade, sauvegardes ponctuelles) — jamais en git
+/backups/
