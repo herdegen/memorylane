@@ -53,7 +53,6 @@
           type="text"
           placeholder="Rechercher..."
           class="w-full px-3 py-2 border border-surface-300 rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500"
-          @input="searchPeople"
         />
       </div>
 
@@ -70,6 +69,10 @@
             {{ person.name.charAt(0).toUpperCase() }}
           </div>
           <span>{{ person.name }}</span>
+          <span
+            v-if="person.score != null"
+            class="ml-auto text-xs font-medium text-brand-600"
+          >{{ Math.round(person.score * 100) }}%</span>
         </button>
       </div>
 
@@ -135,7 +138,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import axios from 'axios';
 
 const props = defineProps({
@@ -153,7 +156,7 @@ const emit = defineEmits(['matched', 'dismissed', 'reset', 'close']);
 
 const searchQuery = ref('');
 const people = ref([]);
-const filteredPeople = ref([]);
+const suggestions = ref([]); // candidats classés par proximité (embedding)
 const loadingPeople = ref(false);
 const matching = ref(false);
 const showCreatePerson = ref(false);
@@ -168,7 +171,6 @@ const loadPeople = async () => {
       headers: { Accept: 'application/json' },
     });
     people.value = Array.isArray(response.data) ? response.data : (response.data.data || []);
-    filteredPeople.value = people.value;
   } catch (error) {
     console.error('Failed to load people:', error);
   } finally {
@@ -176,16 +178,29 @@ const loadPeople = async () => {
   }
 };
 
-const searchPeople = () => {
-  const query = searchQuery.value.toLowerCase().trim();
-  if (!query) {
-    filteredPeople.value = people.value;
-    return;
+// Liste ordonnée : les personnes reconnues (par distance d'embedding) d'abord,
+// avec leur score, puis les autres par ordre alphabétique. Filtrée par recherche.
+const filteredPeople = computed(() => {
+  const ranked = suggestions.value.map((s) => ({
+    id: s.person.id,
+    name: s.person.name,
+    score: s.score,
+  }));
+  const rankedIds = new Set(ranked.map((p) => p.id));
+
+  const others = people.value
+    .filter((p) => !rankedIds.has(p.id))
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  let list = [...ranked, ...others];
+
+  const q = searchQuery.value.toLowerCase().trim();
+  if (q) {
+    list = list.filter((p) => p.name.toLowerCase().includes(q));
   }
-  filteredPeople.value = people.value.filter(p =>
-    p.name.toLowerCase().includes(query)
-  );
-};
+  return list;
+});
 
 const matchToPerson = async (person) => {
   matching.value = true;
@@ -252,11 +267,12 @@ const createAndMatch = async () => {
 // Suggestion de reconnaissance (plus proche voisin sur les visages labellisés).
 const loadSuggestion = async () => {
   topSuggestion.value = null;
-  // Inutile de suggérer un nom si le visage est déjà nommé.
-  if (props.face.person) return;
+  suggestions.value = [];
   try {
     const { data } = await axios.get(`/vision/faces/${props.face.id}/suggest`);
-    topSuggestion.value = data.suggestions?.[0] || null;
+    suggestions.value = data.suggestions || [];
+    // Bannière de suggestion : seulement si le visage n'est pas déjà nommé.
+    topSuggestion.value = props.face.person ? null : (suggestions.value[0] || null);
   } catch (error) {
     console.error('Failed to load suggestion:', error);
   }

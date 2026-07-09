@@ -12,7 +12,9 @@ import { ref } from 'vue';
  */
 
 // Seuil de confiance du détecteur (exposé en constante, cf. plan).
-const MIN_CONFIDENCE = 0.5;
+// Abaissé à 0.2 pour capter davantage de visages (profils, petits, flous) ;
+// contrepartie : plus de faux positifs, corrigeables manuellement (ignorer/retirer).
+const MIN_CONFIDENCE = 0.2;
 
 // Singletons partagés entre toutes les instances du composable.
 let faceapi = null;

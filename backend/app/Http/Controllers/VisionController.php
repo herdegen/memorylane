@@ -187,7 +187,7 @@ class VisionController extends Controller
         );
 
         return response()->json([
-            'suggestions' => array_slice($candidates, 0, 3),
+            'suggestions' => array_slice($candidates, 0, 8),
         ]);
     }
 
