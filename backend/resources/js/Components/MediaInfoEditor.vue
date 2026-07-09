@@ -39,6 +39,19 @@
         ></textarea>
       </div>
 
+      <div>
+        <label for="taken_at" class="block text-sm font-medium text-surface-700 mb-1">
+          Date
+        </label>
+        <input
+          id="taken_at"
+          v-model="form.taken_at"
+          type="datetime-local"
+          class="w-full px-3 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+        />
+        <p class="mt-1 text-xs text-surface-400">Date de prise de vue affichée dans la galerie.</p>
+      </div>
+
       <div class="flex justify-end gap-2">
         <button
           type="button"
@@ -166,14 +179,25 @@ const emit = defineEmits(['updated']);
 const isEditing = ref(false);
 const saving = ref(false);
 
+// Convertit une date ISO en valeur d'<input type="datetime-local"> (heure locale).
+const toLocalInput = (value) => {
+  if (!value) return '';
+  const d = new Date(value);
+  if (isNaN(d)) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
 const form = reactive({
   title: props.media.title || '',
   description: props.media.description || '',
+  taken_at: toLocalInput(props.media.taken_at),
 });
 
 const startEditing = () => {
   form.title = props.media.title || '';
   form.description = props.media.description || '';
+  form.taken_at = toLocalInput(props.media.taken_at);
   isEditing.value = true;
 };
 
@@ -187,6 +211,7 @@ const save = async () => {
     const response = await axios.put(`/media/${props.media.id}`, {
       title: form.title || null,
       description: form.description || null,
+      taken_at: form.taken_at || null,
     });
     isEditing.value = false;
     emit('updated', response.data.media);

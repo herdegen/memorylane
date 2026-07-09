@@ -97,7 +97,10 @@ class MediaController extends Controller
     {
         Gate::authorize('view', $media);
 
-        $media->load(['user', 'tags', 'conversions', 'metadata', 'people', 'detectedFaces.person']);
+        $media->load([
+            'user', 'tags', 'conversions', 'metadata', 'people', 'detectedFaces.person',
+            'sourceMedia', 'clips.conversions',
+        ]);
 
         // Generate signed URL
         $media->url = $this->mediaService->getSignedUrl($media);
@@ -107,6 +110,19 @@ class MediaController extends Controller
             $media->conversions->transform(function ($conversion) use ($media) {
                 $conversion->url = $this->mediaService->getSignedUrl($media, $conversion->file_path);
                 return $conversion;
+            });
+        }
+
+        // Vignettes signées des clips (pour la liste sur une vidéo source)
+        if ($media->clips) {
+            $media->clips->each(function ($clip) {
+                $clip->url = $this->mediaService->getSignedUrl($clip);
+                if ($clip->conversions) {
+                    $clip->conversions->transform(function ($conversion) use ($clip) {
+                        $conversion->url = $this->mediaService->getSignedUrl($clip, $conversion->file_path);
+                        return $conversion;
+                    });
+                }
             });
         }
 
@@ -132,6 +148,7 @@ class MediaController extends Controller
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
             'description' => 'nullable|string|max:2000',
+            'taken_at' => 'nullable|date',
         ]);
 
         $media->update($validated);
@@ -170,6 +187,41 @@ class MediaController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Découpe une vidéo en clips. Chaque segment [start, end] donne un Media
+     * distinct (traité en tâche de fond par SplitVideoIntoClips).
+     */
+    public function storeClips(Request $request, Media $media)
+    {
+        if ($media->user_id !== $this->getCurrentUserId()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        if ($media->type !== 'video') {
+            return response()->json(['error' => 'Seules les vidéos peuvent être découpées.'], 422);
+        }
+
+        if ($media->source_media_id !== null) {
+            return response()->json(['error' => 'Un clip ne peut pas être re-découpé.'], 422);
+        }
+
+        $maxEnd = $media->duration ? (float) $media->duration + 1 : null; // +1s de tolérance d'arrondi
+
+        $validated = $request->validate([
+            'segments' => 'required|array|min:1',
+            'segments.*.start' => 'required|numeric|min:0',
+            'segments.*.end' => 'required|numeric|gt:segments.*.start' . ($maxEnd ? "|max:{$maxEnd}" : ''),
+            'segments.*.title' => 'nullable|string|max:255',
+        ]);
+
+        \App\Jobs\SplitVideoIntoClips::dispatch($media, $validated['segments']);
+
+        return response()->json([
+            'message' => 'Découpage lancé. Les clips apparaîtront dans la galerie dans quelques instants.',
+            'count' => count($validated['segments']),
+        ], 202);
     }
 
     /**

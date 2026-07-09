@@ -47,6 +47,15 @@ onMounted(() => {
 onBeforeUnmount(() => {
   player?.destroy();
 });
+
+// Exposé pour l'éditeur de découpe : lire / positionner le temps courant.
+defineExpose({
+  getCurrentTime: () => player?.currentTime ?? videoEl.value?.currentTime ?? 0,
+  seekTo: (seconds) => {
+    if (player) player.currentTime = seconds;
+    else if (videoEl.value) videoEl.value.currentTime = seconds;
+  },
+});
 </script>
 
 <style>

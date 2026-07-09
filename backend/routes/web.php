@@ -12,6 +12,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ShareTargetController;
 use App\Http\Controllers\TakeoutImportController;
+use App\Http\Controllers\UploadController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\MapController;
 use App\Http\Controllers\VisionController;
@@ -77,10 +78,17 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [MediaController::class, 'index'])->name('index');
         Route::get('/upload', [MediaController::class, 'create'])->name('create');
         Route::post('/', [MediaController::class, 'store'])->name('store');
+        // Upload multipart direct S3 (gros fichiers / vidéos)
+        Route::post('/uploads/initiate', [UploadController::class, 'initiate'])->name('uploads.initiate');
+        Route::post('/uploads/part-url', [UploadController::class, 'partUrl'])->name('uploads.partUrl');
+        Route::post('/uploads/complete', [UploadController::class, 'complete'])->name('uploads.complete');
+        Route::post('/uploads/abort', [UploadController::class, 'abort'])->name('uploads.abort');
         Route::get('/{media}', [MediaController::class, 'show'])->name('show');
         Route::put('/{media}', [MediaController::class, 'update'])->name('update');
         Route::delete('/{media}', [MediaController::class, 'destroy'])->name('destroy');
         Route::get('/{media}/download', [MediaController::class, 'download'])->name('download');
+        // Découpage d'une vidéo en clips (un Media par segment)
+        Route::post('/{media}/clips', [MediaController::class, 'storeClips'])->name('storeClips');
     });
 
     // Tag routes

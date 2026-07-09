@@ -225,6 +225,105 @@ class S3Service
     }
 
     /**
+     * Nom du bucket configuré pour le disque courant.
+     */
+    public function getBucket(): ?string
+    {
+        return config("filesystems.disks.{$this->disk}.bucket");
+    }
+
+    /**
+     * Client S3 sous-jacent (aws-sdk-php) exposé par l'adaptateur Laravel.
+     */
+    public function getClient(): \Aws\S3\S3Client
+    {
+        return Storage::disk($this->disk)->getClient();
+    }
+
+    /**
+     * Démarre un upload multipart et renvoie l'UploadId S3.
+     */
+    public function createMultipartUpload(string $key, string $contentType): string
+    {
+        $result = $this->getClient()->createMultipartUpload([
+            'Bucket'      => $this->getBucket(),
+            'Key'         => $key,
+            'ContentType' => $contentType,
+            'ACL'         => 'private',
+        ]);
+
+        return $result['UploadId'];
+    }
+
+    /**
+     * URL présignée pour téléverser une part (PUT direct depuis le navigateur).
+     */
+    public function presignUploadPart(string $key, string $uploadId, int $partNumber, int $expiresMinutes = 120): string
+    {
+        $client = $this->getClient();
+
+        $command = $client->getCommand('UploadPart', [
+            'Bucket'     => $this->getBucket(),
+            'Key'        => $key,
+            'UploadId'   => $uploadId,
+            'PartNumber' => $partNumber,
+        ]);
+
+        $request = $client->createPresignedRequest($command, "+{$expiresMinutes} minutes");
+
+        return (string) $request->getUri();
+    }
+
+    /**
+     * Finalise l'upload multipart.
+     *
+     * @param  array<int, array{PartNumber: int, ETag: string}>  $parts
+     */
+    public function completeMultipartUpload(string $key, string $uploadId, array $parts): void
+    {
+        $this->getClient()->completeMultipartUpload([
+            'Bucket'          => $this->getBucket(),
+            'Key'             => $key,
+            'UploadId'        => $uploadId,
+            'MultipartUpload' => ['Parts' => $parts],
+        ]);
+    }
+
+    /**
+     * Annule un upload multipart (les parts déjà envoyées sont libérées).
+     */
+    public function abortMultipartUpload(string $key, string $uploadId): void
+    {
+        $this->getClient()->abortMultipartUpload([
+            'Bucket'   => $this->getBucket(),
+            'Key'      => $key,
+            'UploadId' => $uploadId,
+        ]);
+    }
+
+    /**
+     * Applique une politique CORS autorisant le PUT direct navigateur -> bucket.
+     *
+     * @param  array<int, string>  $allowedOrigins
+     */
+    public function putBucketCors(array $allowedOrigins): void
+    {
+        $this->getClient()->putBucketCors([
+            'Bucket' => $this->getBucket(),
+            'CORSConfiguration' => [
+                'CORSRules' => [[
+                    'AllowedOrigins' => $allowedOrigins,
+                    'AllowedMethods' => ['PUT', 'GET', 'HEAD'],
+                    'AllowedHeaders' => ['*'],
+                    // Indispensable : le navigateur doit lire l'ETag de chaque part.
+                    'ExposeHeaders'  => ['ETag'],
+                    'MaxAgeSeconds'  => 3600,
+                ]],
+            ],
+        ]);
+    }
+
+    /**
      * Set the disk to use.
      *
      * @param string $disk

@@ -38,12 +38,12 @@
               type="file"
               class="sr-only"
               multiple
-              accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/x-msvideo,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               @change="handleFileSelect"
             />
           </div>
           <p class="text-xs text-surface-500">
-            JPG, PNG, GIF, WEBP, MP4, MOV, AVI, PDF, DOC, DOCX jusqu'à 2GB
+            Photos/docs jusqu'à 2 Go · vidéos (MP4, MOV, AVI, MKV, WEBM) jusqu'à 20 Go
           </p>
         </div>
 
@@ -80,6 +80,9 @@
             </div>
             <p class="text-sm text-surface-600">
               {{ uploadedCount }} / {{ totalFiles }} fichier(s) téléchargé(s)
+            </p>
+            <p v-if="currentFileLabel" class="text-xs text-surface-500 truncate">
+              {{ currentFileLabel }}
             </p>
           </div>
 
@@ -274,8 +277,33 @@ const uploadedCount = ref(0);
 const totalFiles = ref(0);
 const error = ref(null);
 const uploadedMedia = ref([]);
+const currentFileLabel = ref('');
 
 let fileIdCounter = 0;
+
+// Au-delà de ce seuil (ou pour toute vidéo), on passe par l'upload multipart
+// direct vers S3 (contourne les limites 2 Go de PHP/nginx, reprise part/part).
+const DIRECT_UPLOAD_THRESHOLD = 100 * 1024 * 1024; // 100 Mo
+const MAX_VIDEO_SIZE = 20 * 1024 * 1024 * 1024; // 20 Go
+const MAX_DEFAULT_SIZE = 2097152000; // 2 Go
+
+// Types vidéo dont file.type peut être vide selon le navigateur.
+const VIDEO_EXT_MIME = {
+  mp4: 'video/mp4', mov: 'video/quicktime', avi: 'video/x-msvideo',
+  mkv: 'video/x-matroska', webm: 'video/webm', m4v: 'video/mp4',
+};
+
+// Résout le type MIME (certains navigateurs renvoient '' pour .mkv).
+const resolveMime = (file) => {
+  if (file.type) return file.type;
+  const ext = file.name.split('.').pop()?.toLowerCase();
+  return VIDEO_EXT_MIME[ext] || '';
+};
+
+const needsDirectUpload = (file) => {
+  const mime = resolveMime(file);
+  return mime.startsWith('video/') || file.size > DIRECT_UPLOAD_THRESHOLD;
+};
 
 const isImage = (mimeType) => {
   return mimeType.startsWith('image/');
@@ -316,9 +344,13 @@ const addFiles = (newFiles) => {
   error.value = null;
 
   const validFiles = newFiles.filter(file => {
-    // Check file size (2GB max)
-    if (file.size > 2097152000) {
-      error.value = `Le fichier "${file.name}" dépasse la taille maximale de 2GB`;
+    const mime = resolveMime(file);
+    const isVid = mime.startsWith('video/');
+    const maxSize = isVid ? MAX_VIDEO_SIZE : MAX_DEFAULT_SIZE;
+
+    if (file.size > maxSize) {
+      const label = isVid ? '20 Go' : '2 Go';
+      error.value = `Le fichier "${file.name}" dépasse la taille maximale de ${label}`;
       return false;
     }
 
@@ -331,12 +363,14 @@ const addFiles = (newFiles) => {
       'video/mp4',
       'video/quicktime',
       'video/x-msvideo',
+      'video/x-matroska',
+      'video/webm',
       'application/pdf',
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     ];
 
-    if (!allowedTypes.includes(file.type)) {
+    if (!allowedTypes.includes(mime)) {
       error.value = `Le type de fichier "${file.name}" n'est pas supporté`;
       return false;
     }
@@ -349,7 +383,7 @@ const addFiles = (newFiles) => {
     file: file,
     name: file.name,
     size: file.size,
-    type: file.type
+    type: resolveMime(file)
   }));
 
   files.value.push(...filesWithIds);
@@ -378,12 +412,23 @@ const startUpload = async () => {
   uploadedMedia.value = [];
 
   try {
-    for (let i = 0; i < files.value.length; i++) {
+    const total = files.value.length;
+    for (let i = 0; i < total; i++) {
       const fileData = files.value[i];
-      await uploadSingleFile(fileData.file);
+      currentFileLabel.value = total > 1 ? `${fileData.name} (${i + 1}/${total})` : fileData.name;
+
+      // Progression globale = fichiers déjà finis + fraction du fichier courant.
+      const onFraction = (frac) => {
+        uploadProgress.value = Math.round(((i + Math.min(frac, 1)) / total) * 100);
+      };
+      onFraction(0);
+
+      await uploadSingleFile(fileData.file, onFraction);
       uploadedCount.value++;
-      uploadProgress.value = Math.round((uploadedCount.value / totalFiles.value) * 100);
+      uploadProgress.value = Math.round((uploadedCount.value / total) * 100);
     }
+
+    currentFileLabel.value = '';
 
     // Success - clear the form
     clearFiles();
@@ -395,22 +440,95 @@ const startUpload = async () => {
     error.value = err.message || 'Une erreur est survenue lors du téléchargement';
   } finally {
     uploading.value = false;
+    currentFileLabel.value = '';
   }
 };
 
-const uploadSingleFile = async (file) => {
+const uploadSingleFile = async (file, onFraction) => {
+  try {
+    const media = needsDirectUpload(file)
+      ? await uploadViaMultipart(file, onFraction)
+      : await uploadViaPost(file, onFraction);
+
+    if (media) uploadedMedia.value.push(media);
+  } catch (err) {
+    const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message;
+    throw new Error(`Échec du téléchargement de "${file.name}": ${errorMessage}`);
+  }
+};
+
+// Petit upload synchrone classique (photos, docs) : POST multipart vers PHP.
+const uploadViaPost = async (file, onFraction) => {
   const formData = new FormData();
   formData.append('file', file);
 
-  try {
-    const response = await axios.post('/media', formData);
+  const response = await axios.post('/media', formData, {
+    onUploadProgress: (e) => {
+      if (e.total) onFraction(e.loaded / e.total);
+    },
+  });
+  return response.data?.media || null;
+};
 
-    if (response.data && response.data.media) {
-      uploadedMedia.value.push(response.data.media);
+// Upload multipart direct vers S3 : chaque part est PUT directement sur le
+// bucket via une URL présignée, sans passer par PHP/nginx.
+const uploadViaMultipart = async (file, onFraction) => {
+  const { data: init } = await axios.post('/media/uploads/initiate', {
+    original_name: file.name,
+    mime_type: resolveMime(file),
+    size: file.size,
+  });
+
+  const sessionId = init.upload_session_id;
+  const partSize = init.part_size;
+  const partCount = init.part_count;
+  const parts = [];
+
+  try {
+    for (let n = 1; n <= partCount; n++) {
+      const start = (n - 1) * partSize;
+      const blob = file.slice(start, Math.min(start + partSize, file.size));
+      const etag = await uploadPartWithRetry(sessionId, n, blob);
+      parts.push({ part_number: n, etag });
+      onFraction(n / partCount);
     }
+
+    const { data: done } = await axios.post('/media/uploads/complete', {
+      upload_session_id: sessionId,
+      parts,
+    });
+    return done.media;
   } catch (err) {
-    const errorMessage = err.response?.data?.message || err.message;
-    throw new Error(`Échec du téléchargement de "${file.name}": ${errorMessage}`);
+    // Meilleur effort : libère les parts déjà envoyées sur S3.
+    try {
+      await axios.post('/media/uploads/abort', { upload_session_id: sessionId });
+    } catch (_) { /* ignore */ }
+    throw err;
   }
+};
+
+// PUT d'une part vers S3, avec quelques tentatives. On utilise fetch (et non
+// axios) pour éviter d'envoyer les en-têtes/cookies de l'app à S3 (sinon le
+// CORS en mode credentials échoue).
+const uploadPartWithRetry = async (sessionId, partNumber, blob, attempts = 3) => {
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const { data } = await axios.post('/media/uploads/part-url', {
+        upload_session_id: sessionId,
+        part_number: partNumber,
+      });
+
+      const res = await fetch(data.url, { method: 'PUT', body: blob });
+      if (!res.ok) throw new Error(`S3 a répondu ${res.status} pour la part ${partNumber}`);
+
+      const etag = res.headers.get('ETag') || res.headers.get('etag');
+      if (!etag) throw new Error('ETag manquant (CORS ExposeHeaders ETag ?)');
+      return etag;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr;
 };
 </script>

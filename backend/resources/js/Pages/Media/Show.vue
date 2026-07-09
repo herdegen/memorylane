@@ -50,6 +50,7 @@
               <!-- Video -->
               <div v-else-if="media.type === 'video'">
                 <VideoPlayer
+                  ref="playerRef"
                   :src="videoUrl"
                   :poster="thumbnailUrl"
                 />
@@ -71,6 +72,63 @@
                   </svg>
                   Télécharger
                 </a>
+              </div>
+            </div>
+
+            <!-- Provenance : ce média est un clip d'une vidéo source -->
+            <div
+              v-if="media.source_media"
+              class="mt-4 flex items-center gap-3 rounded-lg bg-surface-50 border border-surface-200 px-4 py-3"
+            >
+              <svg class="w-5 h-5 text-surface-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z" />
+              </svg>
+              <p class="text-sm text-surface-600">
+                Extrait de
+                <Link :href="`/media/${media.source_media.id}`" class="font-medium text-brand-600 hover:text-brand-800">
+                  {{ media.source_media.original_name }}
+                </Link>
+                <span v-if="media.clip_start != null && media.clip_end != null" class="text-surface-400">
+                  ({{ formatDuration(media.clip_start) }} → {{ formatDuration(media.clip_end) }})
+                </span>
+              </p>
+            </div>
+
+            <!-- Éditeur de découpe : vidéo source (pas un clip) -->
+            <div v-if="media.type === 'video' && !media.source_media_id" class="mt-4">
+              <VideoClipEditor
+                :media-id="media.id"
+                :duration="media.duration"
+                :get-current-time="playerGetCurrentTime"
+                :seek-to="playerSeekTo"
+              />
+            </div>
+
+            <!-- Clips déjà découpés à partir de cette vidéo -->
+            <div v-if="media.clips && media.clips.length" class="mt-4 bg-white rounded-lg shadow-xs p-6">
+              <h2 class="text-lg font-semibold text-surface-900 mb-4">Clips ({{ media.clips.length }})</h2>
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <Link
+                  v-for="clip in media.clips"
+                  :key="clip.id"
+                  :href="`/media/${clip.id}`"
+                  class="group block"
+                >
+                  <div class="relative aspect-video rounded-lg overflow-hidden bg-black">
+                    <img
+                      v-if="clipThumb(clip)"
+                      :src="clipThumb(clip)"
+                      :alt="clip.original_name"
+                      class="w-full h-full object-cover group-hover:opacity-90"
+                      loading="lazy"
+                    />
+                    <span
+                      v-if="clip.duration"
+                      class="absolute bottom-1 right-1 px-1.5 py-0.5 text-[10px] font-medium text-white bg-black/60 rounded"
+                    >{{ formatDuration(clip.duration) }}</span>
+                  </div>
+                  <p class="mt-1 text-xs text-surface-700 truncate">{{ clip.title || clip.original_name }}</p>
+                </Link>
               </div>
             </div>
           </div>
@@ -212,6 +270,7 @@ import FaceMatchPanel from '@/Components/FaceMatchPanel.vue';
 import VisionStatusBadge from '@/Components/VisionStatusBadge.vue';
 import VisionLabels from '@/Components/VisionLabels.vue';
 import VideoPlayer from '@/Components/VideoPlayer.vue';
+import VideoClipEditor from '@/Components/VideoClipEditor.vue';
 import { useFaceDetection } from '@/composables/useFaceDetection';
 import axios from 'axios';
 
@@ -223,6 +282,21 @@ const props = defineProps({
 });
 
 const selectedFace = ref(null);
+
+// Référence au lecteur vidéo (pour capturer le temps courant dans l'éditeur de découpe).
+const playerRef = ref(null);
+const playerGetCurrentTime = () => playerRef.value?.getCurrentTime?.() ?? 0;
+const playerSeekTo = (t) => playerRef.value?.seekTo?.(t);
+
+// Vignette d'un clip (conversion small/thumbnail, sinon l'original).
+const clipThumb = (clip) => {
+  const order = ['small', 'thumbnail', 'medium'];
+  for (const name of order) {
+    const conv = clip.conversions?.find((c) => c.conversion_name === name);
+    if (conv?.url) return conv.url;
+  }
+  return clip.url || null;
+};
 
 // Détection de visages côté navigateur.
 const { detectFaces, computeDescriptorForRegion, loading: detecting, progress: detectProgress, error: detectError } = useFaceDetection();

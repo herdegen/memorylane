@@ -31,6 +31,9 @@ class MediaService
 
         $query = Media::with(['user', 'conversions', 'metadata', 'tags'])
             ->where('user_id', $userId)
+            // Les vidéos sources découpées sont masquées de la galerie (leurs
+            // clips les remplacent) ; elles restent accessibles depuis un clip.
+            ->where('is_source', false)
             ->orderBy('taken_at', 'desc')
             ->orderBy('uploaded_at', 'desc');
 
@@ -153,18 +156,57 @@ class MediaService
             'uploaded_at' => now(),
         ]);
 
-        // Dispatch background jobs for processing.
-        // Les métadonnées vidéo sont extraites par GenerateMediaConversions
-        // sur le fichier téléchargé (pas de job séparé, pas de double download S3).
+        $this->dispatchProcessingJobs($media);
+
+        return $media;
+    }
+
+    /**
+     * Crée un Media à partir d'un objet DÉJÀ présent sur S3 (upload multipart
+     * direct navigateur -> Scaleway). La clé est générée côté serveur, donc
+     * fiable. Réutilise la même chaîne de jobs que l'upload classique.
+     *
+     * @param  array<string, mixed>  $extra  Attributs supplémentaires (width, height…)
+     */
+    public function createFromS3Object(
+        string $userId,
+        string $key,
+        string $originalName,
+        string $mimeType,
+        int $size,
+        ?string $type = null,
+        array $extra = [],
+    ): Media {
+        $type = $type ?? $this->determineMediaType($mimeType);
+
+        $media = Media::create(array_merge([
+            'user_id'       => $userId,
+            'type'          => $type,
+            'original_name' => $originalName,
+            'file_path'     => $key,
+            'mime_type'     => $mimeType,
+            'size'          => $size,
+            'uploaded_at'   => now(),
+        ], $extra));
+
+        $this->dispatchProcessingJobs($media);
+
+        return $media;
+    }
+
+    /**
+     * Chaîne de traitement post-upload commune (métadonnées, conversions,
+     * vision). Les métadonnées vidéo sont extraites par GenerateMediaConversions
+     * sur le fichier téléchargé (pas de job séparé, pas de double download S3).
+     */
+    protected function dispatchProcessingJobs(Media $media): void
+    {
         ProcessUploadedMedia::dispatch($media);
         GenerateMediaConversions::dispatch($media);
 
-        // Dispatch Vision AI analysis if enabled
         if (config('vision.enabled')) {
             AnalyzeMediaWithVision::dispatch($media)->delay(now()->addSeconds(5));
         }
-
-        return $media;
     }
 
     /**

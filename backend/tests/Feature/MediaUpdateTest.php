@@ -112,6 +112,30 @@ class MediaUpdateTest extends TestCase
             ->assertJsonValidationErrors(['description']);
     }
 
+    public function test_can_update_taken_at(): void
+    {
+        $media = Media::factory()->create(['user_id' => $this->user->id]);
+
+        $response = $this->actingAs($this->user)->putJson("/media/{$media->id}", [
+            'taken_at' => '2024-06-15T14:30',
+        ]);
+
+        $response->assertStatus(200);
+
+        $media->refresh();
+        $this->assertNotNull($media->taken_at);
+        $this->assertEquals('2024-06-15 14:30', $media->taken_at->format('Y-m-d H:i'));
+    }
+
+    public function test_rejects_invalid_taken_at(): void
+    {
+        $media = Media::factory()->create(['user_id' => $this->user->id]);
+
+        $this->actingAs($this->user)->putJson("/media/{$media->id}", [
+            'taken_at' => 'not-a-date',
+        ])->assertStatus(422)->assertJsonValidationErrors(['taken_at']);
+    }
+
     public function test_show_media_includes_people(): void
     {
         $media = Media::factory()->create(['user_id' => $this->user->id]);

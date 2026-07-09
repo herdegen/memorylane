@@ -33,6 +33,7 @@ class Media extends Model
      */
     protected $fillable = [
         'user_id',
+        'source_media_id',
         'type',
         'original_name',
         'title',
@@ -44,6 +45,9 @@ class Media extends Model
         'width',
         'height',
         'duration',
+        'clip_start',
+        'clip_end',
+        'is_source',
         'video_codec',
         'audio_codec',
         'fps',
@@ -64,6 +68,9 @@ class Media extends Model
             'taken_at' => 'datetime',
             // Le driver pgsql renvoie les colonnes float/numeric en string
             'fps' => 'float',
+            'clip_start' => 'float',
+            'clip_end' => 'float',
+            'is_source' => 'boolean',
         ];
     }
 
@@ -73,6 +80,22 @@ class Media extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Vidéo source dont ce média est un clip (null si média normal).
+     */
+    public function sourceMedia()
+    {
+        return $this->belongsTo(Media::class, 'source_media_id');
+    }
+
+    /**
+     * Clips découpés à partir de ce média (si c'est une vidéo source).
+     */
+    public function clips()
+    {
+        return $this->hasMany(Media::class, 'source_media_id');
     }
 
     /**
