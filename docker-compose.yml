@@ -91,6 +91,10 @@ services:
       - "${VITE_PORT:-5173}:5173"
     environment:
       - PHP_IDE_CONFIG=serverName=memorylane
+      # Republie les assets Livewire/Filament au démarrage (voir docker/app/entrypoint.sh).
+      # Uniquement sur `app` : horizon/scheduler partagent l'image mais ne doivent
+      # pas republier en concurrence sur public/vendor (volume partagé).
+      - PUBLISH_ASSETS=1
     networks:
       - memorylane
     depends_on:

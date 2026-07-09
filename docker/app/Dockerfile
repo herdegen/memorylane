@@ -58,6 +58,10 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin -
 # Install Node.js and npm
 RUN apk add --no-cache nodejs npm
 
+# Entrypoint : republie les assets front (Livewire/Filament) au démarrage
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 # Create application user
 RUN addgroup -g ${GID} -S memorylane && \
     adduser -u ${UID} -S memorylane -G memorylane
@@ -73,6 +77,9 @@ USER memorylane
 
 # Expose port
 EXPOSE 9000
+
+# Republie les assets front au démarrage (si PUBLISH_ASSETS=1) puis lance la commande
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 # Start PHP-FPM
 CMD ["php-fpm"]
