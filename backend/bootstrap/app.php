@@ -24,6 +24,11 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\HandleInertiaRequests::class,
         ]);
 
+        // Alias « admin » : réserve une route aux administrateurs.
+        $middleware->alias([
+            'admin' => \App\Http\Middleware\EnsureAdmin::class,
+        ]);
+
         // Le POST du Web Share Target vient du système Android/iOS,
         // sans token CSRF possible (la route reste protégée par auth)
         $middleware->validateCsrfTokens(except: [

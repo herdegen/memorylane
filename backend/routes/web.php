@@ -186,11 +186,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/data', [FamilyTreeController::class, 'treeData'])->name('data');
         Route::get('/data/{person}', [FamilyTreeController::class, 'subtree'])->name('subtree');
 
-        // GEDCOM import
-        Route::get('/import', [GedcomImportController::class, 'index'])->name('import');
-        Route::post('/import/upload', [GedcomImportController::class, 'upload'])->name('import.upload');
-        Route::get('/import/{gedcomImport}/review', [GedcomImportController::class, 'review'])->name('import.review');
-        Route::post('/import/{gedcomImport}/confirm', [GedcomImportController::class, 'confirm'])->name('import.confirm');
+        // GEDCOM import — réservé aux admins (accès depuis le panneau admin)
+        Route::middleware('admin')->group(function () {
+            Route::get('/import', [GedcomImportController::class, 'index'])->name('import');
+            Route::post('/import/upload', [GedcomImportController::class, 'upload'])->name('import.upload');
+            Route::get('/import/{gedcomImport}/review', [GedcomImportController::class, 'review'])->name('import.review');
+            Route::post('/import/{gedcomImport}/confirm', [GedcomImportController::class, 'confirm'])->name('import.confirm');
+        });
     });
 });
 

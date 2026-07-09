@@ -6,6 +6,7 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationItem;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -40,6 +41,15 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 AccountWidget::class,
                 FilamentInfoWidget::class,
+            ])
+            ->navigationItems([
+                // L'assistant d'import GEDCOM vit dans l'app (flux Inertia avec
+                // matching interactif) ; on l'expose ici, réservé aux admins.
+                NavigationItem::make('Importer un GEDCOM')
+                    ->url('/family-tree/import', shouldOpenInNewTab: false)
+                    ->icon('heroicon-o-arrow-up-tray')
+                    ->group('Arbre')
+                    ->sort(99),
             ])
             ->middleware([
                 EncryptCookies::class,

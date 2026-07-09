@@ -2,7 +2,7 @@
   <AppLayout title="Arbre genealogique">
     <div class="h-[calc(100vh-4rem)] flex">
       <!-- Sidebar -->
-      <div class="w-80 bg-white border-r border-surface-200 p-4 overflow-y-auto shrink-0">
+      <div class="w-80 bg-surface-100 border-r border-surface-200 p-4 overflow-y-auto shrink-0">
         <h2 class="text-xl font-semibold mb-4 text-surface-900">Arbre généalogique</h2>
 
         <!-- Person search -->
@@ -36,16 +36,23 @@
           </div>
         </div>
 
-        <!-- Import GEDCOM -->
-        <div class="mb-4">
-          <Link href="/family-tree/import" class="btn-primary btn-full">
-            Importer un GEDCOM
-          </Link>
-        </div>
-
         <!-- Selected person detail -->
         <div v-if="selectedPerson" class="mt-4 p-4 bg-surface-50 rounded-lg border border-surface-100">
-          <h3 class="font-semibold text-surface-900">{{ personLabel(selectedPerson.data) }}</h3>
+          <div class="flex items-center gap-3 mb-2">
+            <img
+              v-if="selectedPerson.data.avatar_url"
+              :src="selectedPerson.data.avatar_url"
+              :alt="personLabel(selectedPerson.data)"
+              class="w-14 h-14 rounded-full object-cover border border-surface-200 shrink-0"
+            />
+            <div
+              v-else
+              class="w-14 h-14 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-lg font-semibold shrink-0"
+            >
+              {{ (selectedPerson.data.name || '?').charAt(0).toUpperCase() }}
+            </div>
+            <h3 class="font-semibold text-surface-900 leading-tight">{{ personLabel(selectedPerson.data) }}</h3>
+          </div>
           <p v-if="selectedPerson.data.birth_date" class="text-sm text-surface-500 mt-1">
             Naissance : {{ formatDate(selectedPerson.data.birth_date) }}
             <span v-if="selectedPerson.data.birth_place"> — {{ selectedPerson.data.birth_place }}</span>
@@ -83,9 +90,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
             <p class="text-surface-500 mb-4">Aucune personne avec des liens familiaux.</p>
-            <Link href="/family-tree/import" class="btn-primary">Importer un GEDCOM</Link>
-            <span class="mx-2 text-surface-400">ou</span>
-            <Link href="/people" class="btn-secondary">Gérer les personnes</Link>
+            <Link href="/people" class="btn-primary">Gérer les personnes</Link>
           </div>
         </div>
 
@@ -152,10 +157,14 @@ function toChartData(raw) {
   return raw.map(n => ({
     id: n.id,
     data: {
-      name: n.data.name,
+      // Nom composé (Prénom Nom (nom de naissance)) pour des cartes lisibles.
+      name: personLabel(n.data),
       gender: n.data.gender,
       birth_date: n.data.birth_date,
       years: yearSpan(n.data.birth_date, n.data.death_date),
+      // Bug corrigé : l'avatar n'était pas transmis -> les photos ne
+      // s'affichaient jamais sur les cartes.
+      avatar_url: n.data.avatar_url || null,
     },
     rels: {
       parents: [n.rels.father, n.rels.mother].filter(id => id && known.has(id)),
@@ -201,7 +210,7 @@ function renderChart() {
     // fallback « recadrage du visage tagué » (cf. #10).
     .setStyle('imageCircleRect')
     .setOnCardClick((e, d) => {
-      const id = d?.data?.id;
+      const id = d?.data?.id || d?.id;
       if (id && rawById[id]) selectedPerson.value = rawById[id];
       if (id) {
         chart.updateMainId(id);
@@ -276,6 +285,10 @@ onBeforeUnmount(() => {
 /* Texte des cartes en pierre foncée quel que soit le genre */
 .ml-tree .card-inner .card-label,
 .ml-tree svg.main_svg text { fill: #292524; }
+
+/* Lisibilité des cartes : coins arrondis, ombre douce, nom en gras */
+.ml-tree .card-inner { border-radius: 10px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14); }
+.ml-tree .card-inner .card-label:first-child { font-weight: 600; }
 
 /* --- Dark mode --- */
 :root[data-theme='dark'] .ml-tree.f3,

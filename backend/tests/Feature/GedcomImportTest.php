@@ -18,7 +18,16 @@ class GedcomImportTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->user = User::factory()->create();
+        // L'import GEDCOM est réservé aux admins (accès via le panneau admin).
+        $this->user = User::factory()->create(['role' => 'admin']);
+    }
+
+    public function test_non_admin_cannot_access_import(): void
+    {
+        $user = User::factory()->create(['role' => 'user']);
+
+        $this->actingAs($user)->get('/family-tree/import')->assertForbidden();
+        $this->actingAs($user)->postJson('/family-tree/import/upload', [])->assertForbidden();
     }
 
     public function test_parser_extracts_individuals(): void
