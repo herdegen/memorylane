@@ -76,6 +76,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
+import { matchesPerson } from '@/utils/personSearch';
 
 const props = defineProps({
   mediaId: {
@@ -102,8 +103,8 @@ const filteredTags = computed(() => {
   let tags = availableTags.value.filter(tag => !attachedIds.includes(tag.id));
 
   if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase();
-    tags = tags.filter(tag => tag.name.toLowerCase().includes(query));
+    // Insensible aux accents + tolérant aux fautes (helper partagé).
+    tags = tags.filter(tag => matchesPerson(searchQuery.value, tag.name));
   }
 
   return tags.slice(0, 10); // Limit to 10 suggestions
