@@ -140,6 +140,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import axios from 'axios';
+import { matchesPerson } from '@/utils/personSearch';
 
 const props = defineProps({
   face: {
@@ -195,9 +196,10 @@ const filteredPeople = computed(() => {
 
   let list = [...ranked, ...others];
 
-  const q = searchQuery.value.toLowerCase().trim();
-  if (q) {
-    list = list.filter((p) => p.name.toLowerCase().includes(q));
+  // Filtre insensible aux accents + tolérant aux fautes (helper partagé), en
+  // conservant l'ordre (suggestions par proximité d'embedding d'abord).
+  if (searchQuery.value.trim()) {
+    list = list.filter((p) => matchesPerson(searchQuery.value, p.name));
   }
   return list;
 });

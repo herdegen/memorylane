@@ -123,6 +123,7 @@ import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
 import PersonFormModal from '@/Components/PersonFormModal.vue';
 import { personLabel } from '@/utils/personName';
+import { searchPeople } from '@/utils/personSearch';
 
 const props = defineProps({
   mediaId: {
@@ -149,8 +150,8 @@ const filteredPeople = computed(() => {
   let people = availablePeople.value.filter(person => !attachedIds.includes(person.id));
 
   if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase();
-    people = people.filter(person => person.name.toLowerCase().includes(query));
+    // Insensible aux accents + tolérant aux fautes (helper partagé).
+    people = searchPeople(searchQuery.value, people, person => person.name);
   }
 
   return people.slice(0, 10);
