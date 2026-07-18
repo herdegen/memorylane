@@ -194,6 +194,7 @@ import axios from 'axios';
 import * as f3 from 'family-chart';
 import 'family-chart/styles/family-chart.css';
 import { personLabel } from '@/utils/personName';
+import { searchPeople } from '@/utils/personSearch';
 
 const chartRef = ref(null);
 const treeNodes = ref([]);      // données brutes (format backend) pour la sidebar
@@ -212,10 +213,8 @@ const MOBILE_TREE_SCALE = 0.8;   // niveau de zoom initial mobile (cartes lisibl
 
 const filteredPeople = computed(() => {
   if (!searchQuery.value) return [];
-  const q = searchQuery.value.toLowerCase();
-  return treeNodes.value
-    .filter(n => n.data.name.toLowerCase().includes(q))
-    .slice(0, 10);
+  // Recherche insensible aux accents + tolérante aux fautes (helper partagé).
+  return searchPeople(searchQuery.value, treeNodes.value, n => n.data.name).slice(0, 10);
 });
 
 // Année de naissance – décès, pour la 2e ligne de carte

@@ -55,6 +55,7 @@ import { ref } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import { personLabel } from '@/utils/personName';
+import { searchPeople } from '@/utils/personSearch';
 
 const props = defineProps({
   label: { type: String, required: true },
@@ -80,13 +81,9 @@ async function search() {
       headers: { Accept: 'application/json' },
     });
 
-    const q = query.value.toLowerCase();
-    results.value = response.data
-      .filter(p =>
-        p.name.toLowerCase().includes(q) &&
-        !props.excludeIds.includes(p.id)
-      )
-      .slice(0, 8);
+    // Insensible aux accents + tolérant aux fautes (helper partagé).
+    const candidates = response.data.filter(p => !props.excludeIds.includes(p.id));
+    results.value = searchPeople(query.value, candidates, p => p.name).slice(0, 8);
   } catch (error) {
     console.error('Erreur recherche:', error);
   }
