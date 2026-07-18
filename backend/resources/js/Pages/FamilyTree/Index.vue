@@ -1,9 +1,34 @@
 <template>
   <AppLayout title="Arbre genealogique">
-    <div class="h-[calc(100vh-4rem)] flex">
-      <!-- Sidebar -->
-      <div class="w-80 bg-surface-100 border-r border-surface-200 p-4 overflow-y-auto shrink-0">
-        <h2 class="text-xl font-semibold mb-4 text-surface-900">Arbre généalogique</h2>
+    <div class="h-[calc(100vh-4rem)] flex relative">
+      <!-- Backdrop (mobile, tiroir ouvert) -->
+      <div
+        v-if="drawerOpen"
+        @click="drawerOpen = false"
+        class="md:hidden fixed inset-x-0 top-16 bottom-0 z-20 bg-black/40"
+        aria-hidden="true"
+      ></div>
+
+      <!-- Sidebar — colonne fixe sur desktop, tiroir escamotable sur mobile -->
+      <div
+        class="w-80 bg-surface-100 border-r border-surface-200 p-4 overflow-y-auto shrink-0
+               max-md:fixed max-md:top-16 max-md:bottom-0 max-md:left-0 max-md:z-30
+               max-md:w-[85%] max-md:max-w-xs max-md:shadow-warm-lg
+               max-md:transition-transform max-md:duration-300"
+        :class="drawerOpen ? 'max-md:translate-x-0' : 'max-md:-translate-x-full'"
+      >
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-semibold text-surface-900">Arbre généalogique</h2>
+          <button
+            @click="drawerOpen = false"
+            class="md:hidden -mr-1 p-1 text-surface-500 hover:text-surface-800"
+            aria-label="Fermer le panneau"
+          >
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
 
         <!-- Person search -->
         <div class="mb-4">
@@ -76,13 +101,60 @@
         </div>
 
         <p class="mt-4 text-xs text-surface-400 leading-relaxed">
-          Molette pour zoomer, glisser pour déplacer. Cliquez sur une carte
-          pour recentrer l'arbre sur cette personne.
+          <span class="max-md:hidden">Molette pour zoomer, glisser pour déplacer.</span>
+          <span class="md:hidden">Pincez pour zoomer, glissez à un doigt pour déplacer.</span>
+          Touchez une carte pour recentrer l'arbre sur cette personne.
         </p>
       </div>
 
       <!-- Tree container -->
       <div class="flex-1 relative bg-surface-50 overflow-hidden">
+        <!-- Bouton d'ouverture du panneau (mobile) -->
+        <button
+          @click="drawerOpen = true"
+          class="md:hidden absolute top-3 left-3 z-10 inline-flex items-center gap-1.5
+                 rounded-full bg-white/90 backdrop-blur px-3 py-2 text-sm font-medium
+                 text-surface-700 shadow-warm border border-surface-200
+                 dark:bg-surface-100/90"
+          aria-label="Ouvrir le panneau (recherche et infos)"
+        >
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+          Rechercher
+        </button>
+
+        <!-- Contrôles de vue : tout voir / recentrer -->
+        <div
+          v-show="!loading && treeNodes.length > 0"
+          class="absolute bottom-4 right-4 z-10 flex flex-col gap-2"
+        >
+          <button
+            @click="fitAll"
+            class="inline-flex items-center gap-1.5 rounded-full bg-white/90 backdrop-blur
+                   px-3 py-2 text-sm font-medium text-surface-700 shadow-warm
+                   border border-surface-200 hover:bg-white dark:bg-surface-100/90"
+            aria-label="Voir tout l'arbre"
+          >
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V6a2 2 0 012-2h2M4 16v2a2 2 0 002 2h2m8-16h2a2 2 0 012 2v2m-4 12h2a2 2 0 002-2v-2" />
+            </svg>
+            <span class="max-md:hidden">Tout voir</span>
+          </button>
+          <button
+            @click="recenter"
+            class="inline-flex items-center gap-1.5 rounded-full bg-white/90 backdrop-blur
+                   px-3 py-2 text-sm font-medium text-surface-700 shadow-warm
+                   border border-surface-200 hover:bg-white dark:bg-surface-100/90"
+            aria-label="Recentrer sur la personne sélectionnée"
+          >
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v8m-4-4h8M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span class="max-md:hidden">Recentrer</span>
+          </button>
+        </div>
+
         <!-- Empty state -->
         <div v-if="!loading && treeNodes.length === 0" class="absolute inset-0 flex items-center justify-center">
           <div class="text-center">
@@ -116,7 +188,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import axios from 'axios';
 import * as f3 from 'family-chart';
@@ -128,9 +200,15 @@ const treeNodes = ref([]);      // données brutes (format backend) pour la side
 const loading = ref(true);
 const searchQuery = ref('');
 const selectedPerson = ref(null);
+const drawerOpen = ref(false);   // tiroir sidebar (mobile)
 
 let chart = null;
 let rawById = {};
+
+// Sous ce breakpoint (= md de Tailwind), on démarre l'arbre zoomé sur la
+// personne principale plutôt que cadré en entier (sinon cartes illisibles).
+const isMobile = () => window.matchMedia('(max-width: 767px)').matches;
+const MOBILE_TREE_SCALE = 0.8;   // niveau de zoom initial mobile (cartes lisibles)
 
 const filteredPeople = computed(() => {
   if (!searchQuery.value) return [];
@@ -189,18 +267,28 @@ function pickMainId(raw) {
   return best?.id;
 }
 
+// Point de départ de l'arbre : la fiche de l'utilisateur connecté si elle est
+// présente dans l'arbre, sinon la personne la plus centrale.
+function initialMainId(raw) {
+  const pid = usePage().props?.auth?.user?.person_id;
+  if (pid && rawById[pid]) return pid;
+  return pickMainId(raw);
+}
+
 function renderChart() {
   const raw = treeNodes.value;
   if (!raw.length || !chartRef.value) return;
 
   const data = toChartData(raw);
+  const mainId = initialMainId(raw);
+  if (rawById[mainId]) selectedPerson.value = rawById[mainId];
 
   chart = f3.createChart('#ml-family-chart', data)
     .setTransitionTime(700)
     .setCardXSpacing(300)
     .setCardYSpacing(190)
     .setOrientationVertical()
-    .updateMainId(pickMainId(raw));
+    .updateMainId(mainId);
 
   chart.setCardHtml()
     .setCardDisplay([['name'], ['years']])
@@ -218,15 +306,38 @@ function renderChart() {
       }
     });
 
-  chart.updateTree({ initial: true });
+  if (isMobile()) {
+    // Sur mobile, cadrer tout l'arbre rend les cartes minuscules : on démarre
+    // zoomé sur la personne principale (l'utilisateur connecté) à un niveau lisible.
+    chart.updateTree({ initial: false, tree_position: 'main_to_middle', scale: MOBILE_TREE_SCALE });
+  } else {
+    chart.updateTree({ initial: true });
+  }
 }
 
 function centerOnPerson(person) {
   selectedPerson.value = rawById[person.id] || person;
   searchQuery.value = '';
+  drawerOpen.value = false;   // referme le tiroir sur mobile après un choix
   if (chart) {
     chart.updateMainId(person.id);
-    chart.updateTree();
+    chart.updateTree({ tree_position: 'main_to_middle' });
+  }
+}
+
+// Dézoome pour cadrer l'arbre entier (vue d'ensemble).
+function fitAll() {
+  if (chart) chart.updateTree({ tree_position: 'fit' });
+}
+
+// Recentre sur la personne sélectionnée (ou cadre tout si aucune).
+function recenter() {
+  if (!chart) return;
+  if (selectedPerson.value) {
+    chart.updateMainId(selectedPerson.value.id);
+    chart.updateTree({ tree_position: 'main_to_middle', scale: isMobile() ? MOBILE_TREE_SCALE : undefined });
+  } else {
+    chart.updateTree({ tree_position: 'fit' });
   }
 }
 
@@ -267,6 +378,17 @@ onBeforeUnmount(() => {
    surcharge. Double sélecteur (.ml-tree.f3 / .ml-tree .f3) pour couvrir les deux
    structures DOM possibles et gagner en spécificité sur les styles de la lib.
    ============================================================================= */
+/* Tactile : laisser d3-zoom capter le pan/pinch au lieu du scroll/zoom natif du
+   navigateur. Sans touch-action:none, le geste part en défilement de page. */
+.ml-tree,
+.ml-tree #f3Canvas,
+.ml-tree svg.main_svg {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
 .ml-tree.f3,
 .ml-tree .f3 {
   --male-color: #dbe6ef;
