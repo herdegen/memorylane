@@ -140,7 +140,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import axios from 'axios';
-import { matchesPerson } from '@/utils/personSearch';
+import { matchesPerson, relevanceTier } from '@/utils/personSearch';
 
 const props = defineProps({
   face: {
@@ -197,9 +197,35 @@ const byKinshipThenBirth = (a, b) => {
   return a.name.localeCompare(b.name);
 };
 
-// Liste ordonnée : les personnes reconnues (par distance d'embedding) d'abord,
-// avec leur score, puis les autres par proximité de parenté. Filtrée par recherche.
+// Score d'embedding par personne (pour afficher le %), indexé par id.
+const scoreByPersonId = computed(() => {
+  const map = {};
+  for (const s of suggestions.value) map[s.person.id] = s.score;
+  return map;
+});
+
+// Liste ordonnée, selon le contexte :
+//  - RECHERCHE ACTIVE : la pertinence textuelle PRIME (l'exact/commence-par
+//    avant les matchs flous), la parenté ne fait que départager. Évite qu'un
+//    proche matchant « loi » en flou (Antoine/Julien) passe devant « Loïc ».
+//  - SANS RECHERCHE : suggestions par ressemblance d'embedding d'abord, puis
+//    les autres par proximité de parenté.
 const filteredPeople = computed(() => {
+  const scores = scoreByPersonId.value;
+  const q = searchQuery.value.trim();
+
+  if (q) {
+    return people.value
+      .filter((p) => matchesPerson(q, p.name))
+      .map((p) => ({ ...p, score: scores[p.id] }))
+      .sort((a, b) => {
+        const ta = relevanceTier(q, a.name);
+        const tb = relevanceTier(q, b.name);
+        if (ta !== tb) return ta - tb;
+        return byKinshipThenBirth(a, b);
+      });
+  }
+
   const ranked = suggestions.value.map((s) => ({
     id: s.person.id,
     name: s.person.name,
@@ -212,14 +238,7 @@ const filteredPeople = computed(() => {
     .slice()
     .sort(byKinshipThenBirth);
 
-  let list = [...ranked, ...others];
-
-  // Filtre insensible aux accents + tolérant aux fautes (helper partagé), en
-  // conservant l'ordre (suggestions par proximité d'embedding d'abord).
-  if (searchQuery.value.trim()) {
-    list = list.filter((p) => matchesPerson(searchQuery.value, p.name));
-  }
-  return list;
+  return [...ranked, ...others];
 });
 
 const matchToPerson = async (person) => {

@@ -61,6 +61,20 @@ export function matchesPerson(query, text) {
   return fuzzySubstringDistance(q, normalize(text)) <= typoBudget(q.length);
 }
 
+// Niveau de pertinence textuelle (plus bas = meilleur) : 0 exact, 1 commence
+// par la requête, 2 tous les mots présents, 3 sinon (match flou). Insensible
+// aux accents/casse. Aligné sur le tri serveur (SearchController) : sert à faire
+// PRIMER la pertinence sur la proximité (« loi » → « Loïc » avant un proche qui
+// matche seulement en flou).
+export function relevanceTier(query, text) {
+  const q = normalize(query);
+  const t = normalize(text);
+  if (!q || t === q) return 0;
+  if (t.startsWith(q)) return 1;
+  const tokens = q.split(' ').filter(Boolean);
+  return tokens.every((tok) => t.includes(tok)) ? 2 : 3;
+}
+
 // Filtre + trie une liste par pertinence (meilleure correspondance en tête).
 // `getName` extrait le libellé recherchable d'un item ; les items d'origine sont
 // renvoyés tels quels. Requête vide → liste inchangée.
