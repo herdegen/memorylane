@@ -239,24 +239,36 @@ class AlbumController extends Controller
 
     public function removeMedia(Request $request, Album $album)
     {
-        if ($album->user_id !== auth()->id()) {
-            abort(403);
-        }
-
         $validated = $request->validate([
             'media_ids' => 'required|array',
             'media_ids.*' => 'exists:media,id',
         ]);
 
-        $album->media()->detach($validated['media_ids']);
+        $userId = auth()->id();
+        $ids = $validated['media_ids'];
 
-        if (in_array($album->cover_media_id, $validated['media_ids'])) {
+        // Le propriétaire de l'album peut retirer n'importe quel média. Un
+        // contributeur (album partagé) ne peut retirer QUE les médias qu'il a
+        // lui-même ajoutés — c.-à-d. dont il est propriétaire.
+        if ($album->user_id !== $userId) {
+            $ids = Media::whereIn('id', $ids)
+                ->where('user_id', $userId)
+                ->pluck('id')
+                ->all();
+
+            abort_if(empty($ids), 403, 'Vous ne pouvez retirer que les médias que vous avez ajoutés.');
+        }
+
+        $album->media()->detach($ids);
+
+        if (in_array($album->cover_media_id, $ids, true)) {
             $firstMedia = $album->media()->first();
             $album->update(['cover_media_id' => $firstMedia?->id]);
         }
 
         return response()->json([
             'message' => 'Medias retires de l\'album',
+            'removed' => count($ids),
         ]);
     }
 
