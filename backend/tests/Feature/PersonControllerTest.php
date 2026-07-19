@@ -97,13 +97,17 @@ class PersonControllerTest extends TestCase
             ->assertNotFound();
     }
 
-    public function test_face_avatar_forbidden_for_other_user(): void
+    public function test_face_avatar_not_forbidden_for_other_user(): void
     {
+        // L'avatar-visage n'est plus réservé au créateur (fiche publique en
+        // lecture + identification des visages commune) : un autre compte n'est
+        // pas interdit. Sans visage matché, il obtient 404 comme le créateur,
+        // et non 403.
         $person = Person::factory()->create(['user_id' => $this->user->id]);
 
         $this->actingAs($this->otherUser)
             ->get("/people/{$person->id}/face-avatar")
-            ->assertForbidden();
+            ->assertNotFound();
     }
 
     public function test_can_create_person(): void

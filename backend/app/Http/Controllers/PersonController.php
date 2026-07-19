@@ -748,10 +748,11 @@ class PersonController extends Controller
      */
     public function faceAvatar(Person $person)
     {
-        if ($person->user_id !== auth()->id()) {
-            abort(403);
-        }
-
+        // Servi à tout compte connecté (route derrière le middleware auth) :
+        // la fiche personne est publique en lecture et l'identification des
+        // visages est commune à tous. On aligne donc l'avatar-visage sur
+        // l'avatar explicite (jusqu'ici il renvoyait 403 hors créateur → avatars
+        // cassés sur les fiches de proches vues depuis un autre compte).
         $face = $person->detectedFaces()
             ->whereNotNull('bounding_box')
             ->where('status', 'matched')
