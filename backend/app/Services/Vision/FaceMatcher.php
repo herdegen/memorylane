@@ -3,6 +3,7 @@
 namespace App\Services\Vision;
 
 use App\Models\DetectedFace;
+use App\Models\Media;
 
 /**
  * Reconnaissance des personnes à partir des descripteurs faciaux (face-api.js,
@@ -27,6 +28,14 @@ class FaceMatcher
     public const AUTO_MATCH_THRESHOLD = 0.45;
 
     /**
+     * Statut « collant » d'un visage explicitement désassocié par un humain :
+     * exclu de l'auto-association (autoMatch ne traite que `unmatched`) et retiré
+     * du jeu de références (person_id vidé). Empêche qu'une correction humaine
+     * soit défaite par le re-matching automatique (issue #30).
+     */
+    public const REJECTED_STATUS = 'rejected';
+
+    /**
      * Auto-association d'un visage : associe le plus proche voisin labellisé
      * (parmi les visages du même propriétaire) UNIQUEMENT si la distance est
      * sous le seuil strict. Retourne l'entrée candidate retenue, ou null.
@@ -40,7 +49,25 @@ class FaceMatcher
             return null;
         }
 
-        $best = $this->rankedCandidates($face, self::AUTO_MATCH_THRESHOLD, $ownerId)[0] ?? null;
+        // Une personne ne peut pas être auto-associée deux fois sur le même
+        // média : hors montage/reflet (rares, laissés à l'association manuelle),
+        // une personne n'apparaît qu'une fois par photo. On écarte donc les
+        // personnes déjà associées à un autre visage du média et on retient le
+        // meilleur candidat encore disponible.
+        $alreadyOnMedia = DetectedFace::query()
+            ->where('media_id', $face->media_id)
+            ->whereNotNull('person_id')
+            ->where('id', '!=', $face->id)
+            ->pluck('person_id')
+            ->all();
+
+        $best = null;
+        foreach ($this->rankedCandidates($face, self::AUTO_MATCH_THRESHOLD, $ownerId) as $candidate) {
+            if (! in_array($candidate['person']['id'], $alreadyOnMedia, true)) {
+                $best = $candidate;
+                break;
+            }
+        }
 
         if (! $best) {
             return null;
@@ -124,6 +151,44 @@ class FaceMatcher
                 'face_coordinates' => json_encode($face->bounding_box),
             ],
         ]);
+    }
+
+    /**
+     * Désassocie « collant » un visage de sa personne : vide `person_id`, passe
+     * le visage dans un statut terminal (`rejected` par défaut, ou `dismissed`)
+     * qui l'exclut de l'auto-association, et retire la personne du pivot
+     * media_person SEULEMENT si plus aucun autre visage d'elle ne reste sur ce
+     * média (le pivot est per-média, pas per-visage). Corrige une association
+     * erronée sans qu'elle revienne via le re-matching (issue #30).
+     */
+    public function disassociate(DetectedFace $face, string $status = self::REJECTED_STATUS): void
+    {
+        $personId = $face->person_id;
+
+        $face->update([
+            'person_id' => null,
+            'status' => $status,
+        ]);
+
+        if ($personId) {
+            $this->reconcileMediaPersonPivot($face->media, $personId);
+        }
+    }
+
+    /**
+     * Retire la personne du pivot media_person uniquement si aucun visage encore
+     * associé à elle ne subsiste sur ce média.
+     */
+    private function reconcileMediaPersonPivot(Media $media, string $personId): void
+    {
+        $stillTagged = DetectedFace::query()
+            ->where('media_id', $media->id)
+            ->where('person_id', $personId)
+            ->exists();
+
+        if (! $stillTagged) {
+            $media->people()->detach($personId);
+        }
     }
 
     public function euclideanDistance(array $a, array $b): float
