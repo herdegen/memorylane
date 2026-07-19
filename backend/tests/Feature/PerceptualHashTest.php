@@ -103,12 +103,17 @@ class PerceptualHashTest extends TestCase
         Storage::fake($disk);
 
         $admin = User::factory()->create();
+        // Le hash se calcule sur la conversion « small », pas sur l'original.
         $media = Media::factory()->photo()->create([
             'user_id' => $admin->id,
-            'file_path' => 'media/gradient.png',
             'perceptual_hash' => null,
         ]);
-        Storage::disk($disk)->put('media/gradient.png', $this->gradientPng());
+        $media->conversions()->create([
+            'conversion_name' => 'small',
+            'file_path' => 'media/gradient_small.png',
+            'mime_type' => 'image/png',
+        ]);
+        Storage::disk($disk)->put('media/gradient_small.png', $this->gradientPng());
 
         // Un média déjà pourvu ne doit pas être recalculé (ni compté en échec).
         $already = Media::factory()->photo()->create([
@@ -116,9 +121,17 @@ class PerceptualHashTest extends TestCase
             'perceptual_hash' => 'abcdef0123456789',
         ]);
 
+        // Une photo SANS conversion exploitable est sautée (pas d'échec, pas de
+        // décodage de l'original).
+        $noConversion = Media::factory()->photo()->create([
+            'user_id' => $admin->id,
+            'perceptual_hash' => null,
+        ]);
+
         $this->artisan('media:backfill-perceptual-hashes')->assertSuccessful();
 
         $this->assertSame('ffffffffffffffff', $media->fresh()->perceptual_hash);
         $this->assertSame('abcdef0123456789', $already->fresh()->perceptual_hash);
+        $this->assertNull($noConversion->fresh()->perceptual_hash);
     }
 }

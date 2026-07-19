@@ -114,22 +114,6 @@ class GenerateMediaConversions implements ShouldQueue
                 return;
             }
 
-            // Empreinte perceptuelle (dHash) pour la détection de quasi-doublons
-            // (#42). Calculée sur l'original déjà téléchargé (aucun re-download
-            // S3). Mise à jour CIBLÉE de la colonne pour ne pas écraser les
-            // champs touchés en parallèle par ProcessUploadedMedia (EXIF).
-            try {
-                $phash = app(PerceptualHashService::class)->fromFile($tempOriginalPath);
-                if ($phash) {
-                    Media::whereKey($this->media->id)->update(['perceptual_hash' => $phash]);
-                }
-            } catch (\Throwable $e) {
-                Log::warning('GenerateMediaConversions: perceptual hash failed', [
-                    'media_id' => $this->media->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-
             // Create image manager
             $manager = new ImageManager(new Driver);
 
@@ -181,6 +165,17 @@ class GenerateMediaConversions implements ShouldQueue
                             'mime_type' => 'image/jpeg',
                         ]
                     );
+
+                    // Empreinte perceptuelle (dHash) pour la détection de
+                    // quasi-doublons (#42). On la calcule sur la conversion
+                    // « small » (400px, ratio conservé) et NON sur l'original :
+                    // le dHash réduit de toute façon en 9×8, mais décoder
+                    // l'original plein format (+ auto-rotation EXIF) épuise la
+                    // mémoire sur les grandes photos. Mise à jour CIBLÉE de la
+                    // colonne (n'écrase pas les champs EXIF posés en parallèle).
+                    if ($conversionName === 'small') {
+                        $this->storePerceptualHash($tempConversionPath);
+                    }
 
                     // Clean up temporary conversion file
                     @unlink($tempConversionPath);
@@ -344,6 +339,26 @@ class GenerateMediaConversions implements ShouldQueue
                 'error' => $e->getMessage(),
             ]);
             throw $e;
+        }
+    }
+
+    /**
+     * Calcule et enregistre l'empreinte perceptuelle depuis un fichier local
+     * (une petite conversion). Non bloquant : un échec ne doit pas faire échouer
+     * la génération des conversions.
+     */
+    protected function storePerceptualHash(string $localPath): void
+    {
+        try {
+            $phash = app(PerceptualHashService::class)->fromFile($localPath);
+            if ($phash) {
+                Media::whereKey($this->media->id)->update(['perceptual_hash' => $phash]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('GenerateMediaConversions: perceptual hash failed', [
+                'media_id' => $this->media->id,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 
