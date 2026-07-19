@@ -418,8 +418,10 @@ const handlePeopleUpdated = (people) => {
 };
 
 const handleFaceClick = (face) => {
-  // Matché comme non-matché : on ouvre le panneau (permet de corriger/retirer).
-  if (face.status === 'unmatched' || face.status === 'matched') {
+  // Matché, non-matché OU rejeté : on ouvre le panneau (permet de corriger,
+  // ré-identifier ou ignorer). `rejected` = visage désassocié « collant »
+  // (issue #30) : il reste un carré cliquable pour pouvoir l'ignorer/re-tagger.
+  if (['unmatched', 'matched', 'rejected'].includes(face.status)) {
     selectedFace.value = face;
   }
 };

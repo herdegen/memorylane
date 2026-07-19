@@ -162,7 +162,9 @@ class PersonResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            PersonResource\RelationManagers\IdentifiedPhotosRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

@@ -159,14 +159,10 @@ class VisionController extends Controller
     {
         $this->authorizeMedia($detectedFace->media);
 
-        if ($detectedFace->person_id) {
-            $detectedFace->media->people()->detach($detectedFace->person_id);
-        }
-
-        $detectedFace->update([
-            'person_id' => null,
-            'status' => 'unmatched',
-        ]);
+        // Désassociation « collante » : le visage passe en `rejected` et n'est
+        // plus re-matché automatiquement (sinon la correction serait défaite par
+        // l'auto-association, issue #30). Il reste ré-identifiable manuellement.
+        $this->faceMatcher->disassociate($detectedFace);
 
         return response()->json(['message' => 'Face reset']);
     }
@@ -215,9 +211,11 @@ class VisionController extends Controller
     {
         $this->authorizeMedia($media);
 
+        // `rejected` inclus : un visage désassocié reste affiché (sans personne)
+        // pour rester ré-identifiable manuellement (issue #30).
         $faces = $media->detectedFaces()
             ->with('person')
-            ->whereIn('status', ['unmatched', 'matched'])
+            ->whereIn('status', ['unmatched', 'matched', 'rejected'])
             ->get();
 
         return response()->json($faces);
@@ -269,7 +267,9 @@ class VisionController extends Controller
     {
         $this->authorizeMedia($detectedFace->media);
 
-        $detectedFace->update(['status' => 'dismissed']);
+        // Rejeter un visage retire aussi son association éventuelle (person_id +
+        // pivot), pas seulement son affichage (issue #30, incohérence secondaire).
+        $this->faceMatcher->disassociate($detectedFace, 'dismissed');
 
         return response()->json(['message' => 'Face dismissed']);
     }

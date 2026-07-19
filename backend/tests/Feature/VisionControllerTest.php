@@ -402,7 +402,9 @@ class VisionControllerTest extends TestCase
 
         $face->refresh();
         $this->assertNull($face->person_id);
-        $this->assertEquals('unmatched', $face->status);
+        // Désassociation « collante » : le visage passe en `rejected` (exclu de
+        // l'auto-association), pas en `unmatched` re-matchable (issue #30).
+        $this->assertEquals('rejected', $face->status);
         $this->assertFalse($this->media->people()->where('person_id', $person->id)->exists());
     }
 
