@@ -33,7 +33,7 @@
                 </span>
               </div>
               <button
-                v-if="media.data && media.data.length > 0"
+                v-if="media.length > 0"
                 @click="showAvatarPicker = true"
                 class="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/40 flex items-center justify-center transition-all"
                 title="Changer l'avatar"
@@ -118,30 +118,60 @@
         <!-- Frise de vie (moments + diaporama) -->
         <PersonTimeline :person-id="person.id" :can-manage="canManage" />
 
-        <!-- Media Grid -->
-        <div v-if="media.data && media.data.length > 0">
-          <h2 class="text-lg font-semibold text-surface-900 mb-4">Medias de {{ person.name }}</h2>
+        <!-- Médias regroupés : par album puis « hors album » par année -->
+        <div v-if="media.length > 0">
+          <h2 class="text-lg font-semibold text-surface-900 mb-4">Médias de {{ person.name }}</h2>
 
-          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-            <MediaCard
-              v-for="item in media.data"
-              :key="item.id"
-              :media="item"
-              @click="goToMedia(item)"
-            />
+          <!-- Une section par album -->
+          <div
+            v-for="album in mediaGroups.albums"
+            :key="'album-' + album.id"
+            class="mb-8"
+          >
+            <div class="flex items-center gap-2 mb-3">
+              <svg class="w-5 h-5 text-brand-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" />
+              </svg>
+              <Link :href="`/albums/${album.id}`" class="text-base font-semibold text-surface-800 hover:text-brand-600 transition-colors">
+                {{ album.name }}
+              </Link>
+              <span class="text-sm text-surface-400">{{ album.media_ids.length }}</span>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+              <MediaCard
+                v-for="id in album.media_ids"
+                :key="id"
+                :media="mediaById[id]"
+                @click="goToMedia(mediaById[id])"
+              />
+            </div>
           </div>
 
-          <!-- Load More -->
-          <div
-            v-if="media.next_page_url"
-            class="mt-6 text-center"
-          >
-            <button
-              @click="loadMore"
-              class="px-6 py-2 text-sm font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100"
+          <!-- Hors album, regroupé par année -->
+          <div v-if="mediaGroups.by_year.length > 0">
+            <h3
+              v-if="mediaGroups.albums.length > 0"
+              class="text-base font-semibold text-surface-700 mb-3"
             >
-              Charger plus
-            </button>
+              Hors album
+            </h3>
+            <div
+              v-for="group in mediaGroups.by_year"
+              :key="'year-' + (group.year ?? 'none')"
+              class="mb-6"
+            >
+              <div class="text-sm font-semibold text-surface-500 mb-2">
+                {{ group.year ?? 'Sans date' }}
+              </div>
+              <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                <MediaCard
+                  v-for="id in group.media_ids"
+                  :key="id"
+                  :media="mediaById[id]"
+                  @click="goToMedia(mediaById[id])"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -246,8 +276,12 @@ const props = defineProps({
     required: true,
   },
   media: {
+    type: Array,
+    default: () => [],
+  },
+  mediaGroups: {
     type: Object,
-    default: () => ({ data: [] }),
+    default: () => ({ albums: [], by_year: [] }),
   },
   father: {
     type: Object,
@@ -286,10 +320,14 @@ const toggleSelf = () => {
 const showEditModal = ref(false);
 const showAvatarPicker = ref(false);
 
-const photoMedia = computed(() => {
-  if (!props.media.data) return [];
-  return props.media.data.filter(m => m.type === 'photo');
+// Index id -> média : les sections ne portent que des IDs, on résout ici.
+const mediaById = computed(() => {
+  const map = {};
+  for (const m of props.media) map[m.id] = m;
+  return map;
 });
+
+const photoMedia = computed(() => props.media.filter((m) => m.type === 'photo'));
 
 const setAvatar = async (mediaId) => {
   try {
@@ -336,13 +374,6 @@ const deletePerson = async () => {
   } catch (error) {
     alert('Erreur: ' + (error.response?.data?.message || error.message));
   }
-};
-
-const loadMore = () => {
-  router.visit(props.media.next_page_url, {
-    preserveState: true,
-    preserveScroll: true,
-  });
 };
 
 const formatDate = (dateString) => {
