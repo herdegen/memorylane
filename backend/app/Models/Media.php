@@ -40,6 +40,7 @@ class Media extends Model
         'description',
         'file_path',
         'content_hash',
+        'perceptual_hash',
         'mime_type',
         'size',
         'width',

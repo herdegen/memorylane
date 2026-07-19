@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Jobs\Concerns\DownloadsMediaToTemp;
 use App\Models\Media;
 use App\Models\MediaConversion;
+use App\Services\PerceptualHashService;
 use App\Services\S3Service;
 use App\Services\VideoMetadataService;
 use FFMpeg\Coordinate\TimeCode;
@@ -111,6 +112,22 @@ class GenerateMediaConversions implements ShouldQueue
                 ]);
 
                 return;
+            }
+
+            // Empreinte perceptuelle (dHash) pour la détection de quasi-doublons
+            // (#42). Calculée sur l'original déjà téléchargé (aucun re-download
+            // S3). Mise à jour CIBLÉE de la colonne pour ne pas écraser les
+            // champs touchés en parallèle par ProcessUploadedMedia (EXIF).
+            try {
+                $phash = app(PerceptualHashService::class)->fromFile($tempOriginalPath);
+                if ($phash) {
+                    Media::whereKey($this->media->id)->update(['perceptual_hash' => $phash]);
+                }
+            } catch (\Throwable $e) {
+                Log::warning('GenerateMediaConversions: perceptual hash failed', [
+                    'media_id' => $this->media->id,
+                    'error' => $e->getMessage(),
+                ]);
             }
 
             // Create image manager
