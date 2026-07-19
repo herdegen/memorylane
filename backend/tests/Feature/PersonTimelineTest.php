@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Album;
 use App\Models\LifeEvent;
 use App\Models\Media;
 use App\Models\Person;
@@ -67,6 +68,23 @@ class PersonTimelineTest extends TestCase
 
         // Ordre chronologique : naissance (1980) < photo (2000) < emploi (2010)
         $this->assertSame(['birth', 'photo', 'job'], $kinds);
+    }
+
+    public function test_timeline_photo_carries_its_accessible_albums(): void
+    {
+        // Le front regroupe la frise par album ; chaque item photo doit donc
+        // porter ses albums accessibles (issue #32).
+        $person = Person::factory()->create(['user_id' => $this->user->id, 'birth_date' => null, 'death_date' => null]);
+        $album = Album::factory()->create(['user_id' => $this->user->id, 'name' => 'Vacances']);
+        $photo = Media::factory()->photo()->create(['user_id' => $this->user->id, 'taken_at' => '2018-07-01']);
+        $person->media()->attach($photo->id);
+        $album->media()->attach($photo->id);
+
+        $data = $this->actingAs($this->user)->getJson("/people/{$person->id}/timeline")->assertOk()->json();
+
+        $this->assertCount(1, $data);
+        $this->assertSame('photo', $data[0]['kind']);
+        $this->assertSame([['id' => $album->id, 'name' => 'Vacances']], $data[0]['albums']);
     }
 
     public function test_timeline_excludes_undated_photos(): void

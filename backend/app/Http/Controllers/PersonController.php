@@ -399,19 +399,35 @@ class PersonController extends Controller
             ];
         }
 
-        // Photos datées, visibles par le visiteur
+        // Photos datées, visibles par le visiteur, avec leurs albums accessibles
+        // (le front regroupe la frise par album puis par année, issue #32).
         $photos = $person->media()
             ->accessibleBy(auth()->user())
             ->whereNotNull('taken_at')
             ->with('conversions')
             ->orderBy('taken_at')
             ->get();
+
+        $albumsByMedia = collect();
+        if ($photos->isNotEmpty()) {
+            $accessibleAlbumIds = Album::accessibleBy(auth()->user())->pluck('id');
+            $albumsByMedia = DB::table('album_media')
+                ->join('albums', 'albums.id', '=', 'album_media.album_id')
+                ->whereIn('album_media.media_id', $photos->pluck('id'))
+                ->whereIn('albums.id', $accessibleAlbumIds)
+                ->get(['album_media.media_id', 'albums.id as album_id', 'albums.name as album_name'])
+                ->groupBy('media_id');
+        }
+
         foreach ($photos as $m) {
             $items[] = [
                 'date' => optional($m->taken_at)->format('Y-m-d'),
                 'kind' => 'photo',
                 'title' => $m->original_name,
                 'media' => $this->mediaPayload($m),
+                'albums' => collect($albumsByMedia->get($m->id) ?? [])
+                    ->map(fn ($l) => ['id' => $l->album_id, 'name' => $l->album_name])
+                    ->values()->all(),
             ];
         }
 
