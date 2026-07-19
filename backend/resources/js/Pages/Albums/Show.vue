@@ -46,6 +46,7 @@
                 Diaporama
               </button>
               <button
+                v-if="isOwner"
                 @click="showSharePanel = !showSharePanel"
                 class="inline-flex items-center px-4 py-2 text-sm font-medium text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50"
               >
@@ -55,6 +56,7 @@
                 Partager
               </button>
               <button
+                v-if="isOwner"
                 @click="showGeolocateModal = true"
                 class="inline-flex items-center px-4 py-2 text-sm font-medium text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50"
               >
@@ -65,6 +67,7 @@
                 Géolocaliser
               </button>
               <button
+                v-if="isOwner"
                 @click="showEditModal = true"
                 class="inline-flex items-center px-4 py-2 text-sm font-medium text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50"
               >
@@ -74,6 +77,7 @@
                 Modifier
               </button>
               <button
+                v-if="isOwner"
                 @click="showAddMediaModal = true"
                 class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700"
               >
@@ -118,7 +122,7 @@
                 Éditer
               </button>
               <button
-                v-if="selectedMediaIds.length === 1"
+                v-if="selectedMediaIds.length === 1 && isOwner"
                 @click="setAsCover"
                 class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-surface-700 bg-surface-100 rounded-lg hover:bg-surface-200"
               >
@@ -128,13 +132,14 @@
                 Couverture
               </button>
               <button
+                v-if="removableSelectedIds.length > 0"
                 @click="removeSelectedMedia"
                 class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100"
               >
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
-                Retirer ({{ selectedMediaIds.length }})
+                Retirer ({{ removableSelectedIds.length }})
               </button>
             </div>
           </div>
@@ -173,6 +178,7 @@
           <h3 class="mt-4 text-lg font-medium text-surface-900">Aucun media</h3>
           <p class="mt-2 text-surface-500">Ajoutez des photos et videos a cet album.</p>
           <button
+            v-if="isOwner"
             @click="showAddMediaModal = true"
             class="mt-6 inline-flex items-center px-4 py-2 text-sm font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100"
           >
@@ -184,7 +190,7 @@
         </div>
 
         <!-- Delete Album Button -->
-        <div class="mt-8 pt-8 border-t border-surface-200">
+        <div v-if="isOwner" class="mt-8 pt-8 border-t border-surface-200">
           <button
             @click="deleteAlbum"
             class="inline-flex items-center px-4 py-2 text-sm font-medium text-red-600 hover:text-red-800"
@@ -241,7 +247,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { Link, router } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import MediaCard from '@/Components/MediaCard.vue';
@@ -284,6 +290,24 @@ const albumMediaIds = computed(() => {
 });
 
 const albumMedia = computed(() => props.album.media || []);
+
+// Propriétaire de l'album (les actions de gestion — couverture, modif,
+// partage — lui sont réservées ; le backend le vérifie aussi).
+const isOwner = computed(() => props.album.is_owner !== false);
+const currentUserId = computed(() => usePage().props.auth?.user?.id ?? null);
+
+// Médias de la sélection que l'utilisateur a le droit de RETIRER : tout s'il
+// est propriétaire de l'album, sinon uniquement ceux qu'il a lui-même ajoutés
+// (dont il est propriétaire).
+const removableSelectedIds = computed(() => {
+  if (isOwner.value) {
+    return selectedMediaIds.value;
+  }
+  return selectedMediaIds.value.filter((id) => {
+    const media = albumMedia.value.find((m) => m.id === id);
+    return media && media.user_id === currentUserId.value;
+  });
+});
 
 const isSelected = (id) => selectedMediaIds.value.includes(id);
 
@@ -334,13 +358,16 @@ const handleMediaAdded = () => {
 };
 
 const removeSelectedMedia = async () => {
-  if (!confirm(`Retirer ${selectedMediaIds.value.length} media(s) de l'album ?`)) {
+  const ids = removableSelectedIds.value;
+  if (ids.length === 0) return;
+
+  if (!confirm(`Retirer ${ids.length} media(s) de l'album ?`)) {
     return;
   }
 
   try {
     await axios.delete(`/albums/${props.album.id}/media`, {
-      data: { media_ids: selectedMediaIds.value },
+      data: { media_ids: ids },
     });
     selectedMediaIds.value = [];
     router.reload();
