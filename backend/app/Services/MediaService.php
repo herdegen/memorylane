@@ -6,6 +6,7 @@ use App\Jobs\AnalyzeMediaWithVision;
 use App\Jobs\GenerateMediaConversions;
 use App\Jobs\ProcessUploadedMedia;
 use App\Models\Media;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -26,11 +27,53 @@ class MediaService
      */
     public function getPaginatedMedia(array $filters = [], int $perPage = 24, ?string $userId = null): LengthAwarePaginator
     {
+        $media = $this->buildFilteredQuery($filters, $userId)
+            ->with(['user', 'conversions', 'metadata', 'tags'])
+            ->paginate($perPage);
+
+        // Add signed URLs for each media item and its conversions
+        $media->getCollection()->transform(function ($item) {
+            $item->url = $this->s3Service->getTemporaryUrl($item->file_path);
+
+            // Add signed URLs for conversions
+            if ($item->conversions) {
+                $item->conversions->transform(function ($conversion) {
+                    $conversion->url = $this->s3Service->getTemporaryUrl($conversion->file_path);
+                    return $conversion;
+                });
+            }
+
+            return $item;
+        });
+
+        return $media;
+    }
+
+    /**
+     * IDs de tous les médias correspondant aux filtres, sans pagination —
+     * pour un « tout sélectionner » qui couvre aussi les pages non encore
+     * chargées dans la galerie (infinite scroll).
+     *
+     * @return array<int,string>
+     */
+    public function getFilteredMediaIds(array $filters = [], ?string $userId = null): array
+    {
+        return $this->buildFilteredQuery($filters, $userId)
+            ->pluck('id')
+            ->all();
+    }
+
+    /**
+     * Construit la requête de galerie (scopée au propriétaire + filtres),
+     * partagée par la liste paginée et le « tout sélectionner ». Ne charge
+     * aucune relation ni URL : à compléter selon le besoin de l'appelant.
+     */
+    protected function buildFilteredQuery(array $filters = [], ?string $userId = null): Builder
+    {
         // Galerie privée : ne renvoyer que les médias du propriétaire.
         $userId = $userId ?? auth()->id();
 
-        $query = Media::with(['user', 'conversions', 'metadata', 'tags'])
-            ->where('user_id', $userId)
+        $query = Media::where('user_id', $userId)
             // Les vidéos sources découpées sont masquées de la galerie (leurs
             // clips les remplacent) ; elles restent accessibles depuis un clip.
             ->where('is_source', false)
@@ -77,24 +120,7 @@ class MediaService
             $query->where('video_codec', $filters['video_codec']);
         }
 
-        $media = $query->paginate($perPage);
-
-        // Add signed URLs for each media item and its conversions
-        $media->getCollection()->transform(function ($item) {
-            $item->url = $this->s3Service->getTemporaryUrl($item->file_path);
-
-            // Add signed URLs for conversions
-            if ($item->conversions) {
-                $item->conversions->transform(function ($conversion) {
-                    $conversion->url = $this->s3Service->getTemporaryUrl($conversion->file_path);
-                    return $conversion;
-                });
-            }
-
-            return $item;
-        });
-
-        return $media;
+        return $query;
     }
 
     /**

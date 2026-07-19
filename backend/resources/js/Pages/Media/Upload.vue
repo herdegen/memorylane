@@ -55,13 +55,41 @@
 
         <div v-if="recentUploads.length > 0" class="mt-6 bg-white overflow-hidden shadow-xs sm:rounded-lg">
           <div class="p-6">
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="text-xl font-semibold text-surface-900">Médias téléchargés</h2>
-              <Link
-                href="/media"
-                class="text-brand-600 hover:text-brand-700 text-sm font-medium"
-              >
-                Voir la galerie →
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <h2 class="text-xl font-semibold text-surface-900">
+                Médias téléchargés
+                <span v-if="uploadedIds.length > recentUploads.length" class="text-sm font-normal text-surface-500">
+                  ({{ uploadedIds.length }} au total)
+                </span>
+              </h2>
+              <div class="flex items-center gap-3">
+                <button
+                  type="button"
+                  class="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium bg-brand-600 text-white hover:bg-brand-700 transition"
+                  @click="showAlbumModal = true"
+                >
+                  <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" />
+                  </svg>
+                  Créer un album avec ces {{ uploadedIds.length }} médias
+                </button>
+                <Link
+                  href="/media"
+                  class="text-brand-600 hover:text-brand-700 text-sm font-medium"
+                >
+                  Voir la galerie →
+                </Link>
+              </div>
+            </div>
+
+            <!-- Confirmation après ajout -->
+            <div
+              v-if="albumFeedback"
+              class="mb-4 flex items-center justify-between gap-3 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800"
+            >
+              <span>{{ albumFeedback.message }}</span>
+              <Link :href="`/albums/${albumFeedback.albumId}`" class="font-semibold underline shrink-0">
+                Voir l'album
               </Link>
             </div>
             <div class="space-y-2">
@@ -148,6 +176,13 @@
         </div>
       </div>
     </div>
+
+    <AddToAlbumModal
+      v-if="showAlbumModal"
+      :media-ids="uploadedIds"
+      @close="showAlbumModal = false"
+      @done="handleAlbumDone"
+    />
   </AppLayout>
 </template>
 
@@ -156,17 +191,33 @@ import { ref } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import MediaUploader from '@/Components/MediaUploader.vue';
+import AddToAlbumModal from '@/Components/AddToAlbumModal.vue';
 
 const recentUploads = ref([]);
+// Tous les IDs uploadés dans la session (sans le plafond d'affichage de 10) :
+// permet de créer un album couvrant le lot entier, même volumineux.
+const uploadedIds = ref([]);
+const showAlbumModal = ref(false);
+const albumFeedback = ref(null);
 
 const handleUploadComplete = (uploadedMedia) => {
   // Add newly uploaded media to recent uploads list
   recentUploads.value.unshift(...uploadedMedia);
+  uploadedIds.value.push(...uploadedMedia.map((m) => m.id));
 
   // Keep only the last 10 uploads for display
   if (recentUploads.value.length > 10) {
     recentUploads.value = recentUploads.value.slice(0, 10);
   }
+};
+
+const handleAlbumDone = ({ albumId, albumName, count, isNew }) => {
+  albumFeedback.value = {
+    albumId,
+    message: isNew
+      ? `Album « ${albumName} » créé avec ${count} média${count > 1 ? 's' : ''}.`
+      : `${count} média${count > 1 ? 's' : ''} ajouté${count > 1 ? 's' : ''} à « ${albumName} ».`,
+  };
 };
 
 const formatFileSize = (bytes) => {

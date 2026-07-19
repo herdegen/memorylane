@@ -10,14 +10,83 @@
               Parcourez vos photos, vidéos et documents
             </p>
           </div>
-          <Link
-            :href="route('media.create')"
-            class="btn-primary"
-          >
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Télécharger
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              class="inline-flex items-center px-4 py-2 rounded-lg border text-sm font-medium transition"
+              :class="selectionMode
+                ? 'bg-brand-600 border-brand-600 text-white'
+                : 'bg-white border-surface-300 text-surface-700 hover:border-brand-400 hover:text-brand-600'"
+              @click="toggleSelectionMode"
+            >
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {{ selectionMode ? 'Terminer' : 'Sélectionner' }}
+            </button>
+            <Link
+              :href="route('media.create')"
+              class="btn-primary"
+            >
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Télécharger
+            </Link>
+          </div>
+        </div>
+
+        <!-- Barre d'actions de sélection -->
+        <div
+          v-if="selectionMode"
+          class="mb-6 sticky top-2 z-20 flex flex-wrap items-center gap-3 rounded-lg bg-brand-600 px-4 py-3 text-white shadow-md"
+        >
+          <span class="font-medium">
+            {{ selectedIds.length }} sélectionné{{ selectedIds.length > 1 ? 's' : '' }}
+          </span>
+          <div class="flex flex-wrap items-center gap-2 sm:ml-auto">
+            <button
+              type="button"
+              class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-white/15 hover:bg-white/25 transition disabled:opacity-50"
+              :disabled="selectingAll"
+              @click="selectAll"
+            >
+              <svg v-if="selectingAll" class="animate-spin h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              Tout sélectionner
+            </button>
+            <button
+              v-if="selectedIds.length > 0"
+              type="button"
+              class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-white/15 hover:bg-white/25 transition"
+              @click="selectedIds = []"
+            >
+              Effacer
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-white text-brand-700 hover:bg-brand-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="selectedIds.length === 0"
+              @click="showAlbumModal = true"
+            >
+              <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" />
+              </svg>
+              Ajouter à un album
+            </button>
+          </div>
+        </div>
+
+        <!-- Confirmation après ajout -->
+        <div
+          v-if="albumFeedback"
+          class="mb-6 flex items-center justify-between gap-3 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800"
+        >
+          <span>{{ albumFeedback.message }}</span>
+          <Link :href="route('albums.show', albumFeedback.albumId)" class="font-semibold underline shrink-0">
+            Voir l'album
           </Link>
         </div>
 
@@ -157,13 +226,23 @@
             :filter-tabs="filterTabs"
             :has-more-pages="hasMorePages"
             :empty-state-message="emptyStateMessage"
+            :selectable="selectionMode"
+            :selected-ids="selectedIds"
             @filter-change="handleFilterChange"
             @media-click="handleMediaClick"
             @load-more="handleLoadMore"
+            @selection-change="selectedIds = $event"
           />
         </div>
       </div>
     </div>
+
+    <AddToAlbumModal
+      v-if="showAlbumModal"
+      :media-ids="selectedIds"
+      @close="showAlbumModal = false"
+      @done="handleAlbumDone"
+    />
   </AppLayout>
 </template>
 
@@ -173,6 +252,7 @@ import axios from 'axios';
 import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import MediaGrid from '@/Components/MediaGrid.vue';
+import AddToAlbumModal from '@/Components/AddToAlbumModal.vue';
 
 const props = defineProps({
   media: {
@@ -197,6 +277,13 @@ const currentFilter = ref(props.filters.type || 'all');
 const selectedTags = ref(props.filters.tags ? (Array.isArray(props.filters.tags) ? props.filters.tags : [props.filters.tags]) : []);
 const availableTags = ref([]);
 let searchTimeout = null;
+
+// Sélection multiple + ajout à un album.
+const selectionMode = ref(false);
+const selectedIds = ref([]);
+const selectingAll = ref(false);
+const showAlbumModal = ref(false);
+const albumFeedback = ref(null);
 
 // Video filters (durées affichées en minutes, envoyées en secondes — pas de
 // troncature pour préserver les valeurs sub-minute venues de l'URL)
@@ -348,7 +435,50 @@ const debouncedSearch = () => {
 };
 
 const handleMediaClick = (media) => {
+  // En mode sélection, un clic sur une vignette bascule sa sélection au lieu
+  // d'ouvrir le média (la case à cocher reste disponible séparément).
+  if (selectionMode.value) {
+    selectedIds.value = selectedIds.value.includes(media.id)
+      ? selectedIds.value.filter((id) => id !== media.id)
+      : [...selectedIds.value, media.id];
+    return;
+  }
   router.visit(route('media.show', media.id));
+};
+
+const toggleSelectionMode = () => {
+  selectionMode.value = !selectionMode.value;
+  if (!selectionMode.value) {
+    selectedIds.value = [];
+  }
+};
+
+// « Tout sélectionner » : récupère les IDs de TOUS les médias du filtre courant
+// (pages non encore chargées comprises), pas seulement ceux affichés.
+const selectAll = async () => {
+  selectingAll.value = true;
+  try {
+    const { data } = await axios.get(route('media.ids'), {
+      params: buildQuery(),
+      headers: { Accept: 'application/json' },
+    });
+    selectedIds.value = data.ids || [];
+  } catch (error) {
+    console.error('« Tout sélectionner » a échoué :', error);
+  } finally {
+    selectingAll.value = false;
+  }
+};
+
+const handleAlbumDone = ({ albumId, albumName, count, isNew }) => {
+  albumFeedback.value = {
+    albumId,
+    message: isNew
+      ? `Album « ${albumName} » créé avec ${count} média${count > 1 ? 's' : ''}.`
+      : `${count} média${count > 1 ? 's' : ''} ajouté${count > 1 ? 's' : ''} à « ${albumName} ».`,
+  };
+  selectedIds.value = [];
+  selectionMode.value = false;
 };
 
 // Charge la page suivante et l'AJOUTE à l'accumulateur (scroll infini).

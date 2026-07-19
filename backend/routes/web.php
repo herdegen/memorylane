@@ -77,6 +77,9 @@ Route::middleware('auth')->group(function () {
     // Media routes
     Route::prefix('media')->name('media.')->group(function () {
         Route::get('/', [MediaController::class, 'index'])->name('index');
+        // IDs de tous les médias du filtre courant (« tout sélectionner »).
+        // Déclarée avant /{media} pour ne pas être capturée comme un id.
+        Route::get('/ids', [MediaController::class, 'ids'])->name('ids');
         Route::get('/upload', [MediaController::class, 'create'])->name('create');
         Route::post('/', [MediaController::class, 'store'])->name('store');
         // Upload multipart direct S3 (gros fichiers / vidéos)
