@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Album;
 use App\Models\DetectedFace;
 use App\Models\Media;
 use App\Models\Person;
@@ -182,7 +183,40 @@ class PersonControllerTest extends TestCase
         $private->people()->attach($person->id);
 
         $data = $this->actingAs($this->user)->getJson("/people/{$person->id}")->assertOk()->json();
-        $this->assertCount(0, $data['media']['data']);
+        // `media` est désormais une liste plate (regroupée côté `mediaGroups`).
+        $this->assertCount(0, $data['media']);
+        $this->assertSame([], $data['mediaGroups']['albums']);
+        $this->assertSame([], $data['mediaGroups']['by_year']);
+    }
+
+    public function test_person_media_grouped_by_album_then_year(): void
+    {
+        $person = Person::factory()->create(['user_id' => $this->user->id]);
+
+        $album = Album::factory()->create(['user_id' => $this->user->id, 'name' => 'Mariage']);
+        $inAlbum1 = Media::factory()->create(['user_id' => $this->user->id, 'type' => 'photo', 'taken_at' => '2015-06-01']);
+        $inAlbum2 = Media::factory()->create(['user_id' => $this->user->id, 'type' => 'photo', 'taken_at' => '2015-06-02']);
+        $loose = Media::factory()->create(['user_id' => $this->user->id, 'type' => 'photo', 'taken_at' => '2020-03-01']);
+
+        foreach ([$inAlbum1, $inAlbum2, $loose] as $m) {
+            $m->people()->attach($person->id);
+        }
+        $album->media()->attach([$inAlbum1->id, $inAlbum2->id]);
+
+        $data = $this->actingAs($this->user)->getJson("/people/{$person->id}")->assertOk()->json();
+
+        // Une section album avec ses 2 photos.
+        $this->assertCount(1, $data['mediaGroups']['albums']);
+        $this->assertSame('Mariage', $data['mediaGroups']['albums'][0]['name']);
+        $this->assertCount(2, $data['mediaGroups']['albums'][0]['media_ids']);
+
+        // Hors album : une section année 2020 avec la photo restante.
+        $this->assertCount(1, $data['mediaGroups']['by_year']);
+        $this->assertSame('2020', $data['mediaGroups']['by_year'][0]['year']);
+        $this->assertSame([$loose->id], $data['mediaGroups']['by_year'][0]['media_ids']);
+
+        // La liste plate contient les 3 médias.
+        $this->assertCount(3, $data['media']);
     }
 
     public function test_can_update_person(): void

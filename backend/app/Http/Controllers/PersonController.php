@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Album;
 use App\Models\Person;
 use App\Models\PersonRelationship;
 use App\Models\Media;
@@ -201,28 +202,30 @@ class PersonController extends Controller
         // Médias de la personne visibles PAR LE VISITEUR uniquement (la galerie
         // reste privée : ne pas fuiter les photos privées via la fiche, surtout
         // quand l'arbre sera public).
+        // On charge TOUS les médias accessibles de la personne (volume borné à
+        // l'échelle d'une personne) pour pouvoir les regrouper par album puis
+        // par année (issue #32) plutôt qu'une grille à plat paginée.
         $media = $person->media()
             ->accessibleBy(auth()->user())
             ->with(['conversions', 'tags'])
             ->orderBy('taken_at', 'desc')
             ->orderBy('uploaded_at', 'desc')
-            ->paginate(24);
+            ->get();
 
-        $media->getCollection()->transform(function ($item) {
+        $media->each(function ($item) {
             $item->url = $this->mediaService->getSignedUrl($item);
-            if ($item->conversions) {
-                $item->conversions->transform(function ($conv) use ($item) {
-                    $conv->url = $this->mediaService->getSignedUrl($item, $conv->file_path);
-                    return $conv;
-                });
-            }
-            return $item;
+            $item->conversions?->each(function ($conv) use ($item) {
+                $conv->url = $this->mediaService->getSignedUrl($item, $conv->file_path);
+            });
         });
+
+        $mediaGroups = $this->groupPersonMedia($media);
 
         if ($request->wantsJson()) {
             return response()->json([
                 'person' => $person,
-                'media' => $media,
+                'media' => $media->values(),
+                'mediaGroups' => $mediaGroups,
                 'children' => $children,
                 'spouses' => $spouses,
                 'siblings' => $siblings,
@@ -231,7 +234,8 @@ class PersonController extends Controller
 
         return Inertia::render('People/Show', [
             'person' => $person,
-            'media' => $media,
+            'media' => $media->values(),
+            'mediaGroups' => $mediaGroups,
             'father' => $father,
             'mother' => $mother,
             'children' => $children,
@@ -240,6 +244,88 @@ class PersonController extends Controller
             'isSelf' => auth()->user()->person_id === $person->id,
             'canManage' => $this->canManage($person),
         ]);
+    }
+
+    /**
+     * Regroupe les médias d'une personne pour sa fiche (issue #32) : une section
+     * par album ACCESSIBLE au visiteur contenant ces médias (album le plus récent
+     * d'abord), puis le reste « hors album » regroupé par année (récent d'abord,
+     * « sans date » en fin). Les sections ne portent que des IDs ; le front les
+     * résout via la liste plate `media`. Un média dans plusieurs albums apparaît
+     * dans chacun.
+     *
+     * @param  \Illuminate\Support\Collection<int, Media>  $media
+     * @return array{albums: array<int, array{id: string, name: string, media_ids: array<int, string>}>, by_year: array<int, array{year: ?string, media_ids: array<int, string>}>}
+     */
+    private function groupPersonMedia(\Illuminate\Support\Collection $media): array
+    {
+        if ($media->isEmpty()) {
+            return ['albums' => [], 'by_year' => []];
+        }
+
+        $accessibleAlbumIds = Album::accessibleBy(auth()->user())->pluck('id');
+
+        $linksByMedia = DB::table('album_media')
+            ->join('albums', 'albums.id', '=', 'album_media.album_id')
+            ->whereIn('album_media.media_id', $media->pluck('id'))
+            ->whereIn('albums.id', $accessibleAlbumIds)
+            ->get(['album_media.media_id', 'albums.id as album_id', 'albums.name as album_name'])
+            ->groupBy('media_id');
+
+        $albums = [];
+        $inAlbum = [];
+
+        foreach ($media as $m) {
+            $links = $linksByMedia->get($m->id);
+            if (! $links) {
+                continue;
+            }
+            $inAlbum[$m->id] = true;
+            $ts = ($m->taken_at ?? $m->uploaded_at)?->getTimestamp() ?? 0;
+
+            foreach ($links as $link) {
+                $albums[$link->album_id] ??= [
+                    'id'        => $link->album_id,
+                    'name'      => $link->album_name,
+                    'media_ids' => [],
+                    'latest'    => 0,
+                ];
+                $albums[$link->album_id]['media_ids'][] = $m->id;
+                $albums[$link->album_id]['latest'] = max($albums[$link->album_id]['latest'], $ts);
+            }
+        }
+
+        $albumSections = collect($albums)
+            ->sortByDesc('latest')
+            ->map(fn ($a) => ['id' => $a['id'], 'name' => $a['name'], 'media_ids' => $a['media_ids']])
+            ->values()
+            ->all();
+
+        // Hors album, regroupé par année.
+        $byYear = [];
+        $undated = [];
+        foreach ($media as $m) {
+            if (isset($inAlbum[$m->id])) {
+                continue;
+            }
+            $date = $m->taken_at ?? $m->uploaded_at;
+            if ($date) {
+                $byYear[(int) $date->format('Y')][] = $m->id;
+            } else {
+                $undated[] = $m->id;
+            }
+        }
+        krsort($byYear); // années décroissantes
+
+        $yearSections = [];
+        foreach ($byYear as $year => $ids) {
+            $yearSections[] = ['year' => (string) $year, 'media_ids' => $ids];
+        }
+        if ($undated) {
+            $yearSections[] = ['year' => null, 'media_ids' => $undated];
+        }
+
+        return ['albums' => $albumSections, 'by_year' => $yearSections];
     }
 
     /**
