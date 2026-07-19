@@ -121,6 +121,13 @@ class AlbumController extends Controller
         $album->load(['coverMedia.conversions', 'media.conversions', 'media.tags']);
         $album->loadCount('media');
 
+        // Nombre de visages reconnus (matched) par média : le diaporama animé
+        // s'en sert pour donner la priorité aux photos où des personnes sont
+        // identifiées (pondération, pas de filtrage).
+        $album->media->loadCount([
+            'detectedFaces as matched_faces_count' => fn ($q) => $q->where('status', 'matched'),
+        ]);
+
         $album->media->transform(function ($media) {
             $media->url = $this->mediaService->getSignedUrl($media);
             if ($media->conversions) {
