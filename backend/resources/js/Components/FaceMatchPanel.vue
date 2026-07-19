@@ -179,8 +179,26 @@ const loadPeople = async () => {
   }
 };
 
+// Tri des « autres » personnes : proximité de parenté d'abord (les proches du
+// user connecté remontent, ex. sa grand-mère avant des homonymes lointains),
+// puis date de naissance décroissante (familles récentes = plus de photos),
+// puis nom. Les personnes sans lien de parenté connu passent en fin.
+const byKinshipThenBirth = (a, b) => {
+  const pa = a.proximity, pb = b.proximity;
+  if (pa == null && pb != null) return 1;
+  if (pa != null && pb == null) return -1;
+  if (pa != null && pb != null && pa !== pb) return pa - pb;
+
+  const da = a.birth_date, db = b.birth_date;
+  if (da && db && da !== db) return da < db ? 1 : -1; // récent d'abord
+  if (da && !db) return -1;
+  if (!da && db) return 1;
+
+  return a.name.localeCompare(b.name);
+};
+
 // Liste ordonnée : les personnes reconnues (par distance d'embedding) d'abord,
-// avec leur score, puis les autres par ordre alphabétique. Filtrée par recherche.
+// avec leur score, puis les autres par proximité de parenté. Filtrée par recherche.
 const filteredPeople = computed(() => {
   const ranked = suggestions.value.map((s) => ({
     id: s.person.id,
@@ -192,7 +210,7 @@ const filteredPeople = computed(() => {
   const others = people.value
     .filter((p) => !rankedIds.has(p.id))
     .slice()
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort(byKinshipThenBirth);
 
   let list = [...ranked, ...others];
 
