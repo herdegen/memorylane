@@ -64,7 +64,10 @@ class AlbumFromSelectionTest extends TestCase
 
     public function test_smart_album_ignores_media_ids(): void
     {
-        $media = Media::factory()->create(['user_id' => $this->user->id]);
+        // Une PHOTO (type forcé) : elle ne matche pas la règle vidéo, donc son
+        // éventuel rattachement viendrait forcément de media_ids — ce qu'on veut
+        // justement voir ignoré pour un album intelligent.
+        $media = Media::factory()->photo()->create(['user_id' => $this->user->id]);
 
         $response = $this->actingAs($this->user)->postJson('/albums', [
             'name' => 'Intelligent',
@@ -116,5 +119,25 @@ class AlbumFromSelectionTest extends TestCase
 
         $response->assertStatus(200);
         $this->assertSame([$visible->id], $response->json('ids'));
+    }
+
+    public function test_album_media_est_trie_par_date_de_prise_de_vue(): void
+    {
+        $album = Album::factory()->create(['user_id' => $this->user->id]);
+
+        $recent = Media::factory()->create(['user_id' => $this->user->id, 'taken_at' => '2023-01-01']);
+        $ancien = Media::factory()->create(['user_id' => $this->user->id, 'taken_at' => '2020-01-01']);
+        $milieu = Media::factory()->create(['user_id' => $this->user->id, 'taken_at' => '2021-06-01']);
+
+        // Attaché dans un ordre NON chronologique (l'ordre d'insertion ne doit
+        // plus décider du tri).
+        $album->media()->attach($recent->id, ['order' => 0]);
+        $album->media()->attach($ancien->id, ['order' => 1]);
+        $album->media()->attach($milieu->id, ['order' => 2]);
+
+        $ordered = $album->media()->pluck('media.id')->all();
+
+        // Chronologique croissant : ancien → milieu → récent.
+        $this->assertSame([$ancien->id, $milieu->id, $recent->id], $ordered);
     }
 }
