@@ -98,6 +98,8 @@
         <Slideshow
           ref="slideshowEl"
           :media="album.media || []"
+          shuffle
+          ken-burns
         />
 
         <!-- Media Grid -->
