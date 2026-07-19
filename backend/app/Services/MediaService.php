@@ -252,6 +252,26 @@ class MediaService
     }
 
     /**
+     * Purge tous les fichiers S3 d'un média : l'original ET ses conversions
+     * (miniatures). `deleteMedia()` / le soft delete n'effacent que l'original,
+     * laissant les miniatures orphelines ; à utiliser lors d'une suppression
+     * DÉFINITIVE (force delete), où la ligne `media_conversions` disparaît par
+     * cascade mais le fichier S3, lui, resterait.
+     */
+    public function purgeStorageFiles(Media $media): void
+    {
+        if ($media->file_path) {
+            $this->s3Service->delete($media->file_path);
+        }
+
+        foreach ($media->conversions as $conversion) {
+            if ($conversion->file_path) {
+                $this->s3Service->delete($conversion->file_path);
+            }
+        }
+    }
+
+    /**
      * Get a signed URL for a media file, or one of its conversions.
      *
      * @param Media $media
