@@ -72,7 +72,15 @@ class AlbumController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate($this->albumRules());
+        $validated = $request->validate($this->albumRules() + [
+            // Création « album à partir d'une sélection » : IDs de médias à
+            // attacher directement (galerie ou fin d'upload). Optionnel.
+            'media_ids' => 'nullable|array',
+            'media_ids.*' => 'exists:media,id',
+        ]);
+
+        $mediaIds = $validated['media_ids'] ?? [];
+        unset($validated['media_ids']);
 
         $album = Album::create([
             ...$validated,
@@ -82,6 +90,11 @@ class AlbumController extends Controller
 
         // Un album intelligent se remplit dès sa création
         $this->smartAlbumService->refresh($album);
+
+        // Album manuel créé avec une sélection initiale de médias.
+        if (! $album->is_smart && ! empty($mediaIds)) {
+            $this->attachMediaToAlbum($album, $mediaIds);
+        }
 
         if ($request->wantsJson()) {
             return response()->json([
@@ -188,21 +201,33 @@ class AlbumController extends Controller
             'media_ids.*' => 'exists:media,id',
         ]);
 
+        $this->attachMediaToAlbum($album, $validated['media_ids']);
+
+        return response()->json([
+            'message' => 'Medias ajoutes a l\'album',
+        ]);
+    }
+
+    /**
+     * Attache une liste de médias à un album en préservant l'ordre : ignore
+     * ceux déjà présents et incrémente `album_media.order`. Définit la
+     * couverture sur le premier média si l'album n'en a pas encore.
+     *
+     * @param array<int,string> $mediaIds
+     */
+    protected function attachMediaToAlbum(Album $album, array $mediaIds): void
+    {
         $maxOrder = $album->media()->max('album_media.order') ?? -1;
 
-        foreach ($validated['media_ids'] as $index => $mediaId) {
+        foreach ($mediaIds as $index => $mediaId) {
             if (!$album->media()->where('media_id', $mediaId)->exists()) {
                 $album->media()->attach($mediaId, ['order' => $maxOrder + $index + 1]);
             }
         }
 
-        if (!$album->cover_media_id && count($validated['media_ids']) > 0) {
-            $album->update(['cover_media_id' => $validated['media_ids'][0]]);
+        if (!$album->cover_media_id && count($mediaIds) > 0) {
+            $album->update(['cover_media_id' => $mediaIds[0]]);
         }
-
-        return response()->json([
-            'message' => 'Medias ajoutes a l\'album',
-        ]);
     }
 
     public function removeMedia(Request $request, Album $album)

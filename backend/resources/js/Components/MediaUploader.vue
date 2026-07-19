@@ -160,10 +160,50 @@
               </button>
             </div>
 
+            <!-- Album de destination (choisi avant l'upload) -->
+            <div class="pt-3 border-t border-surface-100 text-left">
+              <label class="block text-sm font-medium text-surface-700 mb-2">
+                Album de destination
+              </label>
+              <div class="flex rounded-lg bg-surface-100 p-1 text-sm font-medium">
+                <button
+                  v-for="opt in albumModeOptions"
+                  :key="opt.value"
+                  type="button"
+                  class="flex-1 rounded-md px-3 py-1.5 transition"
+                  :class="albumMode === opt.value ? 'bg-white text-surface-900 shadow-xs' : 'text-surface-500 hover:text-surface-700'"
+                  @click="albumMode = opt.value"
+                >
+                  {{ opt.label }}
+                </button>
+              </div>
+              <select
+                v-if="albumMode === 'existing'"
+                v-model="selectedAlbumId"
+                class="mt-2 block w-full px-3 py-2 border border-surface-300 rounded-md focus:outline-hidden focus:ring-1 focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
+              >
+                <option :value="null" disabled>Choisir un album…</option>
+                <option v-for="album in ownedAlbums" :key="album.id" :value="album.id">
+                  {{ album.name }} ({{ album.media_count }})
+                </option>
+              </select>
+              <p v-if="albumMode === 'existing' && !loadingAlbums && ownedAlbums.length === 0" class="mt-2 text-xs text-surface-500">
+                Aucun album existant. Choisissez « Nouvel album ».
+              </p>
+              <input
+                v-else-if="albumMode === 'new'"
+                v-model="newAlbumName"
+                type="text"
+                placeholder="Nom du nouvel album"
+                class="mt-2 block w-full px-3 py-2 border border-surface-300 rounded-md focus:outline-hidden focus:ring-1 focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
+              />
+            </div>
+
             <div class="flex space-x-3 pt-2">
               <button
                 type="button"
-                class="flex-1 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors font-medium"
+                class="flex-1 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                :disabled="!canUpload"
                 @click="startUpload"
               >
                 Télécharger {{ files.length }} fichier(s)
@@ -261,11 +301,65 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
+import { fetchOwnedAlbums, createAlbumWithMedia, addMediaToAlbum } from '@/utils/albums';
 
-const emit = defineEmits(['upload-complete']);
+// `album-attached` : { albumId, albumName, count, isNew } — pour un retour parent.
+const emit = defineEmits(['upload-complete', 'album-attached']);
+
+// Album de destination choisi AVANT l'upload (rattaché une fois tout monté).
+const albumModeOptions = [
+  { value: 'none', label: 'Aucun' },
+  { value: 'existing', label: 'Album existant' },
+  { value: 'new', label: 'Nouvel album' },
+];
+const albumMode = ref('none');
+const selectedAlbumId = ref(null);
+const newAlbumName = ref('');
+const ownedAlbums = ref([]);
+const loadingAlbums = ref(false);
+
+// Empêche de lancer l'upload avec une destination album incomplète.
+const canUpload = computed(() => {
+  if (albumMode.value === 'existing') return !!selectedAlbumId.value;
+  if (albumMode.value === 'new') return newAlbumName.value.trim().length > 0;
+  return true;
+});
+
+onMounted(async () => {
+  loadingAlbums.value = true;
+  try {
+    ownedAlbums.value = await fetchOwnedAlbums();
+  } catch (e) {
+    console.error('Chargement des albums impossible :', e);
+  } finally {
+    loadingAlbums.value = false;
+  }
+});
+
+// Rattache les médias tout juste uploadés à l'album choisi (créé si « nouveau »).
+const attachToChosenAlbum = async (mediaIds) => {
+  if (albumMode.value === 'none' || mediaIds.length === 0) return;
+  try {
+    if (albumMode.value === 'new') {
+      const album = await createAlbumWithMedia(newAlbumName.value.trim(), mediaIds);
+      emit('album-attached', { albumId: album.id, albumName: album.name, count: mediaIds.length, isNew: true });
+    } else {
+      const album = ownedAlbums.value.find((a) => a.id === selectedAlbumId.value);
+      await addMediaToAlbum(selectedAlbumId.value, mediaIds);
+      emit('album-attached', { albumId: selectedAlbumId.value, albumName: album?.name ?? '', count: mediaIds.length, isNew: false });
+    }
+    // Réinitialise le choix pour le prochain lot.
+    albumMode.value = 'none';
+    selectedAlbumId.value = null;
+    newAlbumName.value = '';
+  } catch (e) {
+    error.value = "Fichiers téléchargés, mais l'ajout à l'album a échoué.";
+    console.error('Ajout à l\'album impossible :', e);
+  }
+};
 
 const fileInput = ref(null);
 const dropZone = ref(null);
@@ -435,6 +529,9 @@ const startUpload = async () => {
 
     // Emit event to notify parent component
     emit('upload-complete', uploadedMedia.value);
+
+    // Rattachement à l'album de destination choisi avant l'upload.
+    await attachToChosenAlbum(uploadedMedia.value.map((m) => m.id));
 
   } catch (err) {
     error.value = err.message || 'Une erreur est survenue lors du téléchargement';

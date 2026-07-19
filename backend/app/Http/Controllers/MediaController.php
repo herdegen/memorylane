@@ -53,6 +53,20 @@ class MediaController extends Controller
     }
 
     /**
+     * IDs de tous les médias correspondant aux filtres courants (sans
+     * pagination). Sert au « tout sélectionner » de la galerie pour couvrir
+     * aussi les pages non encore chargées.
+     */
+    public function ids(Request $request)
+    {
+        $filters = $request->only(['type', 'search', 'tags', 'duration_min', 'duration_max', 'resolution', 'video_codec']);
+
+        return response()->json([
+            'ids' => $this->mediaService->getFilteredMediaIds($filters),
+        ]);
+    }
+
+    /**
      * Show the form for uploading new media.
      */
     public function create()
