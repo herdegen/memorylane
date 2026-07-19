@@ -71,10 +71,13 @@ class Album extends Model
 
     public function media()
     {
+        // Tri par défaut : chronologique sur la date de prise de vue (à défaut
+        // la date d'upload). Le champ pivot `order` (réordonnancement manuel)
+        // est conservé mais n'est plus le tri par défaut.
         return $this->belongsToMany(Media::class, 'album_media')
             ->withPivot('order')
             ->withTimestamps()
-            ->orderBy('album_media.order');
+            ->orderByRaw('COALESCE(media.taken_at, media.uploaded_at) ASC');
     }
 
     /**
