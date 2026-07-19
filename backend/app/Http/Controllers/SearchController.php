@@ -6,13 +6,16 @@ use App\Models\Album;
 use App\Models\Media;
 use App\Models\Person;
 use App\Models\Tag;
+use App\Services\GenealogyService;
 use App\Services\MediaService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class SearchController extends Controller
 {
     public function __construct(
-        protected MediaService $mediaService
+        protected MediaService $mediaService,
+        protected GenealogyService $genealogy,
     ) {}
 
     /**
@@ -54,17 +57,7 @@ class SearchController extends Controller
                 'type'          => $m->type,
                 'thumbnail_url' => $m->thumbnail_url,
             ])->values(),
-            'people' => $this->safeSearch(fn () => Person::search($query)
-                ->query(fn ($b) => $b->with('avatar.conversions')->withCount([
-                    'detectedFaces as matched_faces_count' => fn ($q) => $q
-                        ->where('status', 'matched')->whereNotNull('bounding_box'),
-                ]))
-                ->take(5)->get())
-                ->map(fn ($p) => [
-                    'id'         => $p->id,
-                    'name'       => $p->name,
-                    'avatar_url' => $this->personAvatarUrl($p),
-                ])->values(),
+            'people' => $this->rankedPeople($query),
             'albums' => $this->safeSearch(fn () => Album::search($query)
                 ->query(fn ($builder) => $builder->where('user_id', $userId))
                 ->take(30)->get()->take(5))
@@ -96,6 +89,97 @@ class SearchController extends Controller
 
             return collect();
         }
+    }
+
+    /**
+     * Personnes de la recherche globale, re-classées après Scout :
+     *   1. pertinence textuelle — l'exact avant les voisins fautés (« rene
+     *      kormann » avant « Renée Bormann » ou « Anna Maria ») ;
+     *   2. proximité de parenté au user connecté (les proches d'abord) ;
+     *   3. date de naissance décroissante (familles récentes = + de photos) ;
+     *   4. nom.
+     * On élargit le take() Scout pour avoir assez de candidats à re-trier avant
+     * de couper à 5. La proximité reste un DÉPARTAGE derrière la pertinence :
+     * un proche mal orthographié ne double pas l'exact recherché.
+     */
+    private function rankedPeople(string $query): \Illuminate\Support\Collection
+    {
+        $people = $this->safeSearch(fn () => Person::search($query)
+            ->query(fn ($b) => $b->with('avatar.conversions')->withCount([
+                'detectedFaces as matched_faces_count' => fn ($q) => $q
+                    ->where('status', 'matched')->whereNotNull('bounding_box'),
+            ]))
+            ->take(30)->get());
+
+        if ($people->isEmpty()) {
+            return collect();
+        }
+
+        $distance = $this->genealogy->proximity(auth()->user()->person_id)['distance'];
+        $normalizedQuery = $this->normalize($query);
+
+        return $people
+            ->sort(function (Person $a, Person $b) use ($distance, $normalizedQuery) {
+                $ta = $this->relevanceTier($a->name, $normalizedQuery);
+                $tb = $this->relevanceTier($b->name, $normalizedQuery);
+                if ($ta !== $tb) {
+                    return $ta <=> $tb;
+                }
+
+                $pa = $distance[$a->id] ?? PHP_INT_MAX;
+                $pb = $distance[$b->id] ?? PHP_INT_MAX;
+                if ($pa !== $pb) {
+                    return $pa <=> $pb;
+                }
+
+                $da = $a->birth_date?->timestamp ?? PHP_INT_MIN;
+                $db = $b->birth_date?->timestamp ?? PHP_INT_MIN;
+                if ($da !== $db) {
+                    return $db <=> $da; // récent d'abord
+                }
+
+                return strcmp($a->name, $b->name);
+            })
+            ->take(5)
+            ->map(fn ($p) => [
+                'id'         => $p->id,
+                'name'       => $p->name,
+                'avatar_url' => $this->personAvatarUrl($p),
+            ])->values();
+    }
+
+    /**
+     * Niveau de pertinence textuelle (plus bas = meilleur) : 0 exact, 1 commence
+     * par la requête, 2 tous les mots présents, 3 sinon. Insensible aux accents
+     * et à la casse (cohérent avec Meilisearch et le helper client).
+     */
+    private function relevanceTier(string $name, string $normalizedQuery): int
+    {
+        $n = $this->normalize($name);
+
+        if ($n === $normalizedQuery) {
+            return 0;
+        }
+        if (str_starts_with($n, $normalizedQuery)) {
+            return 1;
+        }
+
+        $tokens = array_filter(explode(' ', $normalizedQuery), fn ($t) => $t !== '');
+        foreach ($tokens as $token) {
+            if (! str_contains($n, $token)) {
+                return 3;
+            }
+        }
+
+        return $tokens ? 2 : 3;
+    }
+
+    /**
+     * Minuscules, sans accents (translittération Str::ascii), espaces normalisés.
+     */
+    private function normalize(string $s): string
+    {
+        return preg_replace('/\s+/', ' ', trim(Str::lower(Str::ascii($s))));
     }
 
     /**

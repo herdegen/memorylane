@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Person;
 use App\Models\PersonRelationship;
 use App\Models\Media;
+use App\Services\GenealogyService;
 use App\Services\MediaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,9 +16,12 @@ class PersonController extends Controller
 {
     protected MediaService $mediaService;
 
-    public function __construct(MediaService $mediaService)
+    protected GenealogyService $genealogy;
+
+    public function __construct(MediaService $mediaService, GenealogyService $genealogy)
     {
         $this->mediaService = $mediaService;
+        $this->genealogy = $genealogy;
     }
 
     public function index(Request $request)
@@ -32,7 +36,7 @@ class PersonController extends Controller
         // Proximité généalogique : distance (BFS) depuis la fiche « moi » de
         // l'utilisateur, sur le graphe parents/enfants/conjoints. Sert au tri.
         $selfPersonId = auth()->user()->person_id;
-        $proximity = $this->computeProximity($people, $selfPersonId);
+        $proximity = $this->genealogy->proximity($selfPersonId);
 
         $people->transform(function ($person) use ($proximity) {
             $person->avatar_url = $this->resolveAvatarUrl($person);
@@ -49,62 +53,6 @@ class PersonController extends Controller
             'people' => $people,
             'selfPersonId' => $selfPersonId,
         ]);
-    }
-
-    /**
-     * Calcule, pour chaque personne : sa distance de parenté à la fiche « moi »
-     * (BFS sur parents/enfants/conjoints) et son nombre de proches directs.
-     *
-     * @return array{distance: array<string,int>, degree: array<string,int>}
-     */
-    private function computeProximity($people, ?string $selfPersonId): array
-    {
-        $ids = $people->pluck('id')->all();
-        $known = array_flip($ids);
-
-        // Graphe d'adjacence non orienté
-        $adj = array_fill_keys($ids, []);
-        foreach ($people as $p) {
-            foreach ([$p->father_id, $p->mother_id] as $parentId) {
-                if ($parentId && isset($known[$parentId])) {
-                    $adj[$p->id][] = $parentId;
-                    $adj[$parentId][] = $p->id;
-                }
-            }
-        }
-
-        foreach (DB::table('person_relationships')
-            ->whereIn('person1_id', $ids)
-            ->orWhereIn('person2_id', $ids)
-            ->get(['person1_id', 'person2_id']) as $rel) {
-            if (isset($known[$rel->person1_id], $known[$rel->person2_id])) {
-                $adj[$rel->person1_id][] = $rel->person2_id;
-                $adj[$rel->person2_id][] = $rel->person1_id;
-            }
-        }
-
-        $degree = [];
-        foreach ($adj as $id => $neighbours) {
-            $degree[$id] = count(array_unique($neighbours));
-        }
-
-        // BFS depuis « moi »
-        $distance = [];
-        if ($selfPersonId && isset($known[$selfPersonId])) {
-            $distance[$selfPersonId] = 0;
-            $queue = [$selfPersonId];
-            while ($queue) {
-                $current = array_shift($queue);
-                foreach ($adj[$current] as $neighbour) {
-                    if (! isset($distance[$neighbour])) {
-                        $distance[$neighbour] = $distance[$current] + 1;
-                        $queue[] = $neighbour;
-                    }
-                }
-            }
-        }
-
-        return ['distance' => $distance, 'degree' => $degree];
     }
 
     /**

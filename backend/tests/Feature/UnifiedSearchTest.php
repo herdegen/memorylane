@@ -88,6 +88,43 @@ class UnifiedSearchTest extends TestCase
     }
 
     /**
+     * À la recherche, la correspondance exacte remonte avant les voisins
+     * textuels (« rene » → « Rene » avant « Rene Dupont » / « Irene Martin »).
+     */
+    public function test_people_exact_match_ranks_first(): void
+    {
+        Person::factory()->create(['user_id' => $this->user->id, 'name' => 'Irene Martin']);
+        Person::factory()->create(['user_id' => $this->user->id, 'name' => 'Rene Dupont']);
+        $exact = Person::factory()->create(['user_id' => $this->user->id, 'name' => 'Rene']);
+
+        $response = $this->actingAs($this->user)->getJson('/search?q=rene');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('people.0.id', $exact->id);
+    }
+
+    /**
+     * À pertinence textuelle égale, la proximité de parenté départage : un
+     * proche du « moi » connecté passe devant un homonyme sans lien.
+     */
+    public function test_people_kinship_breaks_relevance_ties(): void
+    {
+        $self = Person::factory()->create(['user_id' => $this->user->id, 'name' => 'Moi Testeur']);
+        $this->user->update(['person_id' => $self->id]);
+
+        $close = Person::factory()->create(['user_id' => $this->user->id, 'name' => 'Mari Proche']);
+        Person::factory()->create(['user_id' => $this->user->id, 'name' => 'Mari Loin']);
+
+        // Mari Proche est la mère de « moi » (distance 1) ; Mari Loin sans lien.
+        $self->update(['mother_id' => $close->id]);
+
+        $response = $this->actingAs($this->user)->getJson('/search?q=mari');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('people.0.id', $close->id);
+    }
+
+    /**
      * Une requête trop courte est rejetée.
      */
     public function test_search_requires_at_least_two_characters(): void
