@@ -11,7 +11,10 @@
 
         <div class="bg-white overflow-hidden shadow-xs sm:rounded-lg">
           <div class="p-6">
-            <MediaUploader @upload-complete="handleUploadComplete" />
+            <MediaUploader
+              @upload-complete="handleUploadComplete"
+              @album-attached="handleAlbumDone"
+            />
           </div>
         </div>
 
@@ -71,7 +74,7 @@
                   <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" />
                   </svg>
-                  Créer un album avec ces {{ uploadedIds.length }} médias
+                  Ajouter ces {{ uploadedIds.length }} médias à un album
                 </button>
                 <Link
                   href="/media"

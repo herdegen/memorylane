@@ -85,10 +85,11 @@
       class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"
     >
       <div
-        v-for="item in media"
+        v-for="(item, index) in media"
         :key="item.id"
         class="relative group aspect-square rounded-lg overflow-hidden bg-surface-100 cursor-pointer transition-transform duration-200 hover:scale-105 hover:shadow-lg"
-        @click="$emit('media-click', item)"
+        :class="{ 'ring-2 ring-brand-500 ring-offset-2': selectable && isSelected(item.id) }"
+        @click="handleTileClick(item, index, $event)"
       >
         <!-- Image Thumbnail -->
         <img
@@ -186,7 +187,7 @@
         <div
           v-if="selectable"
           class="absolute top-2 right-2 z-10"
-          @click.stop="toggleSelection(item)"
+          @click.stop="applySelection(item, index, $event)"
         >
           <div
             :class="[
@@ -409,11 +410,35 @@ const isSelected = (mediaId) => {
   return props.selectedIds.includes(mediaId);
 };
 
-const toggleSelection = (item) => {
-  const newSelection = isSelected(item.id)
-    ? props.selectedIds.filter(id => id !== item.id)
-    : [...props.selectedIds, item.id];
+// Ancre de la dernière sélection, pour la sélection de plage au shift+clic.
+const lastIndex = ref(null);
 
+// Clic sur une vignette : en mode sélection, il coche/décoche (au lieu d'ouvrir
+// le média) ; sinon il ouvre le média.
+const handleTileClick = (item, index, event) => {
+  if (props.selectable) {
+    applySelection(item, index, event);
+  } else {
+    emit('media-click', item);
+  }
+};
+
+// Applique la sélection. Shift+clic depuis une ancre : ajoute toute la plage
+// (dans l'ordre affiché) à la sélection courante. Sinon : bascule l'élément.
+const applySelection = (item, index, event) => {
+  let newSelection;
+  if (event.shiftKey && lastIndex.value !== null) {
+    const [start, end] = lastIndex.value < index
+      ? [lastIndex.value, index]
+      : [index, lastIndex.value];
+    const rangeIds = props.media.slice(start, end + 1).map((m) => m.id);
+    newSelection = Array.from(new Set([...props.selectedIds, ...rangeIds]));
+  } else {
+    newSelection = isSelected(item.id)
+      ? props.selectedIds.filter((id) => id !== item.id)
+      : [...props.selectedIds, item.id];
+  }
+  lastIndex.value = index;
   emit('selection-change', newSelection);
 };
 </script>

@@ -435,14 +435,8 @@ const debouncedSearch = () => {
 };
 
 const handleMediaClick = (media) => {
-  // En mode sélection, un clic sur une vignette bascule sa sélection au lieu
-  // d'ouvrir le média (la case à cocher reste disponible séparément).
-  if (selectionMode.value) {
-    selectedIds.value = selectedIds.value.includes(media.id)
-      ? selectedIds.value.filter((id) => id !== media.id)
-      : [...selectedIds.value, media.id];
-    return;
-  }
+  // En mode sélection, MediaGrid gère la sélection (clic + shift+clic) et
+  // n'émet pas media-click ; ici on ne reçoit donc que les clics hors sélection.
   router.visit(route('media.show', media.id));
 };
 

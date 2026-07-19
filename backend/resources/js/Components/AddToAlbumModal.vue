@@ -127,7 +127,7 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue';
-import axios from 'axios';
+import { fetchOwnedAlbums, createAlbumWithMedia, addMediaToAlbum } from '@/utils/albums';
 
 const props = defineProps({
   // IDs des médias à ajouter/regrouper dans un album.
@@ -161,8 +161,7 @@ const canConfirm = computed(() => {
 const loadAlbums = async () => {
   loadingAlbums.value = true;
   try {
-    const { data } = await axios.get('/albums', { headers: { Accept: 'application/json' } });
-    ownedAlbums.value = (data || []).filter((a) => a.is_owner && !a.is_smart);
+    ownedAlbums.value = await fetchOwnedAlbums();
   } catch (e) {
     console.error('Chargement des albums impossible :', e);
   } finally {
@@ -176,21 +175,16 @@ const confirm = async () => {
   error.value = '';
   try {
     if (mode.value === 'new') {
-      const { data } = await axios.post('/albums', {
-        name: newAlbumName.value.trim(),
-        media_ids: props.mediaIds,
-      }, { headers: { Accept: 'application/json' } });
+      const album = await createAlbumWithMedia(newAlbumName.value.trim(), props.mediaIds);
       emit('done', {
-        albumId: data.album.id,
-        albumName: data.album.name,
+        albumId: album.id,
+        albumName: album.name,
         count: props.mediaIds.length,
         isNew: true,
       });
     } else {
       const album = ownedAlbums.value.find((a) => a.id === selectedAlbumId.value);
-      await axios.post(`/albums/${selectedAlbumId.value}/media`, {
-        media_ids: props.mediaIds,
-      });
+      await addMediaToAlbum(selectedAlbumId.value, props.mediaIds);
       emit('done', {
         albumId: selectedAlbumId.value,
         albumName: album?.name ?? '',
