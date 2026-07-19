@@ -8,6 +8,7 @@ use App\Http\Controllers\GedcomImportController;
 use App\Http\Controllers\GooglePhotosController;
 use App\Http\Controllers\LifeEventController;
 use App\Http\Controllers\MediaController;
+use App\Http\Controllers\HouseholdController;
 use App\Http\Controllers\PersonController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SearchController;
@@ -145,6 +146,19 @@ Route::middleware('auth')->group(function () {
         Route::get('/{album}/access/candidates', [AlbumController::class, 'grantCandidates'])->name('access.candidates');
         Route::post('/{album}/access', [AlbumController::class, 'grantAccess'])->name('access.grant');
         Route::delete('/{album}/access', [AlbumController::class, 'revokeAccess'])->name('access.revoke');
+    });
+
+    // Foyers (cercles familiaux) — appartenance ; le partage média arrive en 2b
+    Route::prefix('households')->name('households.')->group(function () {
+        Route::get('/', [HouseholdController::class, 'index'])->name('index');
+        Route::post('/', [HouseholdController::class, 'store'])->name('store');
+        Route::get('/{household}', [HouseholdController::class, 'show'])->name('show');
+        Route::delete('/{household}', [HouseholdController::class, 'destroy'])->name('destroy');
+        Route::post('/{household}/leave', [HouseholdController::class, 'leave'])->name('leave');
+
+        Route::get('/{household}/members/candidates', [HouseholdController::class, 'inviteCandidates'])->name('members.candidates');
+        Route::post('/{household}/members', [HouseholdController::class, 'invite'])->name('members.invite');
+        Route::delete('/{household}/members/{user}', [HouseholdController::class, 'removeMember'])->name('members.remove');
     });
 
     // Vision AI routes

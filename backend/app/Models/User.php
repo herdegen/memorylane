@@ -75,4 +75,25 @@ class User extends Authenticatable implements FilamentUser
     {
         return $this->belongsTo(Person::class);
     }
+
+    /**
+     * Foyers dont l'utilisateur est membre (plusieurs possibles).
+     */
+    public function households()
+    {
+        return $this->belongsToMany(Household::class, 'household_user')
+            ->withPivot('invited_by')
+            ->withTimestamps();
+    }
+
+    /**
+     * IDs des foyers de l'utilisateur, mémoïsés sur l'instance (utilisé par
+     * Media::scopeAccessibleBy, potentiellement plusieurs fois par requête).
+     */
+    protected ?array $householdIdsCache = null;
+
+    public function householdIds(): array
+    {
+        return $this->householdIdsCache ??= $this->households()->pluck('households.id')->all();
+    }
 }

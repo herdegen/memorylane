@@ -4,8 +4,10 @@ namespace App\Providers;
 
 use App\Contracts\VisionServiceInterface;
 use App\Models\Album;
+use App\Models\Household;
 use App\Models\Media;
 use App\Policies\AlbumPolicy;
+use App\Policies\HouseholdPolicy;
 use App\Policies\MediaPolicy;
 use App\Services\Vision\GoogleVisionService;
 use App\Services\Vision\NullVisionService;
@@ -38,5 +40,6 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(Album::class, AlbumPolicy::class);
         Gate::policy(Media::class, MediaPolicy::class);
+        Gate::policy(Household::class, HouseholdPolicy::class);
     }
 }
