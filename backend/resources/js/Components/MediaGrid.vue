@@ -79,18 +79,27 @@
       </p>
     </div>
 
-    <!-- Media Grid -->
-    <div
-      v-else
-      class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"
-    >
+    <!-- Media Grid — regroupé par année, en-têtes de section « sticky » -->
+    <div v-else>
       <div
-        v-for="(item, index) in media"
-        :key="item.id"
-        class="relative group aspect-square rounded-lg overflow-hidden bg-surface-100 cursor-pointer transition-transform duration-200 hover:scale-105 hover:shadow-lg"
-        :class="{ 'ring-2 ring-brand-500 ring-offset-2': selectable && isSelected(item.id) }"
-        @click="handleTileClick(item, index, $event)"
+        v-for="grp in groupedMedia"
+        :key="'year-' + (grp.year ?? 'none')"
+        class="[&:not(:first-child)]:mt-8"
       >
+        <!-- En-tête d'année, collant juste sous la barre de navigation (h-16) -->
+        <div class="sticky top-16 z-10 -mx-6 mb-4 border-b border-surface-100 bg-white/95 px-6 py-2 backdrop-blur-sm">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-surface-500">
+            {{ grp.label }}
+          </h2>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div
+            v-for="{ item, index } in grp.items"
+            :key="item.id"
+            class="relative group aspect-square rounded-lg overflow-hidden bg-surface-100 cursor-pointer transition-transform duration-200 hover:scale-105 hover:shadow-lg"
+            :class="{ 'ring-2 ring-brand-500 ring-offset-2': selectable && isSelected(item.id) }"
+            @click="handleTileClick(item, index, $event)"
+          >
         <!-- Image Thumbnail -->
         <img
           v-if="item.type === 'photo' && getThumbnailUrl(item)"
@@ -223,6 +232,8 @@
             {{ formatDuration(item.duration) }}
           </span>
         </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -265,7 +276,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useIntersectionObserver } from '@vueuse/core';
 
 const props = defineProps({
@@ -318,6 +329,27 @@ const emit = defineEmits([
   'load-more',
   'selection-change',
 ]);
+
+// Regroupe les médias (déjà triés par date de prise de vue décroissante côté
+// serveur) par année, en conservant l'index global de chaque élément : la
+// sélection par plage (shift+clic) reste ainsi correcte à travers les en-têtes.
+// Les médias sans date sont triés en dernier (NULLs en fin) et forment une
+// section « Sans date ». Comme le tri est strictement décroissant, chaque année
+// est contiguë : un simple découpage séquentiel suffit.
+const groupedMedia = computed(() => {
+  const groups = [];
+  let current = null;
+  props.media.forEach((item, index) => {
+    const date = item.taken_at ? new Date(item.taken_at) : null;
+    const year = date && !Number.isNaN(date.getTime()) ? date.getFullYear() : null;
+    if (!current || current.year !== year) {
+      current = { year, label: year !== null ? String(year) : 'Sans date', items: [] };
+      groups.push(current);
+    }
+    current.items.push({ item, index });
+  });
+  return groups;
+});
 
 // Scroll infini : on observe une sentinelle en bas de grille. `rootMargin`
 // déclenche le chargement ~600px AVANT d'atteindre le bas (transition fluide).
