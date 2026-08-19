@@ -52,14 +52,39 @@ class ProcessUploadedMedia implements ShouldQueue
                 'file_path' => $this->media->file_path,
             ]);
 
-            // Only process photos for EXIF data extraction
-            if ($this->media->type === 'photo') {
-                $takenAt = $this->extractExifData($exifExtractor, $s3Service);
+            // L'upload multipart direct navigateur->S3 crée le Media sans
+            // empreinte ni validation du contenu réel (le serveur n'a jamais
+            // vu les octets) : on comble ici les deux.
+            $needsIntegrityCheck = $this->media->content_hash === null;
 
-                // Update the taken_at timestamp if we extracted it from EXIF
-                if ($takenAt) {
-                    $this->media->taken_at = $takenAt;
-                    $this->media->save();
+            if ($this->media->type === 'photo' || $needsIntegrityCheck) {
+                $tempPath = $this->downloadFileToTemp($s3Service);
+
+                if (! $tempPath) {
+                    Log::warning('ProcessUploadedMedia: Failed to download file from S3', [
+                        'media_id' => $this->media->id,
+                        'file_path' => $this->media->file_path,
+                    ]);
+
+                    return;
+                }
+
+                try {
+                    if ($needsIntegrityCheck && ! $this->verifyAndFingerprint($tempPath, $s3Service)) {
+                        return; // contenu rejeté : média purgé
+                    }
+
+                    if ($this->media->type === 'photo') {
+                        $takenAt = $this->extractExifData($exifExtractor, $tempPath);
+
+                        // Update the taken_at timestamp if we extracted it from EXIF
+                        if ($takenAt) {
+                            $this->media->taken_at = $takenAt;
+                            $this->media->save();
+                        }
+                    }
+                } finally {
+                    @unlink($tempPath);
                 }
             }
 
@@ -78,26 +103,64 @@ class ProcessUploadedMedia implements ShouldQueue
     }
 
     /**
+     * Calcule l'empreinte sha256 manquante et vérifie que le contenu réel
+     * correspond à un type autorisé (l'upload direct ne valide que le MIME
+     * annoncé par le client).
+     *
+     * @return bool false si le média a été rejeté (et purgé)
+     */
+    protected function verifyAndFingerprint(string $tempPath, S3Service $s3Service): bool
+    {
+        $realMime = @mime_content_type($tempPath) ?: null;
+
+        // Types au contenu actif (exécutable/interprétable par un navigateur) :
+        // jamais acceptables pour une galerie photo/vidéo.
+        $isDangerous = $realMime !== null && (
+            str_starts_with($realMime, 'text/')
+            || in_array($realMime, ['image/svg+xml', 'application/xml', 'application/xhtml+xml', 'application/javascript'], true)
+        );
+
+        if ($isDangerous) {
+            Log::warning('ProcessUploadedMedia: contenu réel refusé, média purgé', [
+                'media_id' => $this->media->id,
+                'declared_mime' => $this->media->mime_type,
+                'real_mime' => $realMime,
+            ]);
+
+            $s3Service->delete($this->media->file_path);
+            $this->media->forceDelete();
+
+            return false;
+        }
+
+        $updates = ['content_hash' => @hash_file('sha256', $tempPath) ?: null];
+
+        // Réaligne le MIME (et le type photo/vidéo) sur le contenu réel quand
+        // la détection est fiable — octet-stream = indéterminé, on garde le déclaré.
+        if ($realMime && $realMime !== 'application/octet-stream' && $realMime !== $this->media->mime_type) {
+            $updates['mime_type'] = $realMime;
+
+            $realType = str_starts_with($realMime, 'image/') ? 'photo'
+                : (str_starts_with($realMime, 'video/') ? 'video' : $this->media->type);
+            if ($realType !== $this->media->type) {
+                $updates['type'] = $realType;
+            }
+        }
+
+        $this->media->fill($updates)->save();
+
+        return true;
+    }
+
+    /**
      * Extract EXIF data from the media file and store it in the database.
      *
-     * @param ExifExtractor $exifExtractor
-     * @param S3Service $s3Service
+     * @param string $tempPath Chemin local du fichier déjà téléchargé
      * @return string|null The taken_at timestamp from EXIF data, or null
      */
-    protected function extractExifData(ExifExtractor $exifExtractor, S3Service $s3Service): ?string
+    protected function extractExifData(ExifExtractor $exifExtractor, string $tempPath): ?string
     {
         try {
-            // Download file from S3 to temporary location
-            $tempPath = $this->downloadFileToTemp($s3Service);
-
-            if (!$tempPath) {
-                Log::warning('ProcessUploadedMedia: Failed to download file from S3', [
-                    'media_id' => $this->media->id,
-                    'file_path' => $this->media->file_path,
-                ]);
-                return null;
-            }
-
             // Extract EXIF data
             $exifData = $exifExtractor->extract($tempPath);
 
@@ -123,9 +186,6 @@ class ProcessUploadedMedia implements ShouldQueue
                 ['media_id' => $this->media->id],
                 $values
             );
-
-            // Clean up temporary file
-            @unlink($tempPath);
 
             Log::info('ProcessUploadedMedia: EXIF data extracted and saved', [
                 'media_id' => $this->media->id,

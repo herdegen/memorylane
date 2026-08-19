@@ -14,9 +14,11 @@ class WeeklyDigestTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * Chaque membre reçoit le digest quand il y a du nouveau.
+     * Le digest ne contient pour chaque destinataire que les médias
+     * auxquels il a accès : les médias privés ne partent qu'à leur
+     * propriétaire.
      */
-    public function test_digest_is_sent_to_all_users_when_new_media_exist(): void
+    public function test_digest_only_includes_media_accessible_to_recipient(): void
     {
         Notification::fake();
 
@@ -30,9 +32,41 @@ class WeeklyDigestTest extends TestCase
 
         $this->artisan('memorylane:weekly-digest')->assertSuccessful();
 
-        Notification::assertSentTo($uploader, WeeklyDigest::class);
-        Notification::assertSentTo($grandma, WeeklyDigest::class, function (WeeklyDigest $digest) {
+        Notification::assertSentTo($uploader, WeeklyDigest::class, function (WeeklyDigest $digest) {
             return $digest->mediaCount === 3
+                && in_array('Paul', $digest->uploaderNames);
+        });
+
+        // Les médias sont privés : Mamie ne reçoit rien.
+        Notification::assertNotSentTo($grandma, WeeklyDigest::class);
+    }
+
+    /**
+     * Un média partagé via un album public apparaît dans le digest des autres.
+     */
+    public function test_digest_includes_media_shared_through_public_album(): void
+    {
+        Notification::fake();
+
+        $uploader = User::factory()->create(['name' => 'Paul Herdegen']);
+        $grandma = User::factory()->create(['name' => 'Mamie Jeanne']);
+
+        $media = Media::factory()->create([
+            'user_id' => $uploader->id,
+            'uploaded_at' => now()->subDays(2),
+        ]);
+
+        $album = \App\Models\Album::create([
+            'user_id' => $uploader->id,
+            'name' => 'Vacances',
+            'is_public' => true,
+        ]);
+        $album->media()->attach($media->id);
+
+        $this->artisan('memorylane:weekly-digest')->assertSuccessful();
+
+        Notification::assertSentTo($grandma, WeeklyDigest::class, function (WeeklyDigest $digest) {
+            return $digest->mediaCount === 1
                 && in_array('Paul', $digest->uploaderNames);
         });
     }

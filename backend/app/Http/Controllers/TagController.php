@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Tag;
 use App\Models\Media;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
 class TagController extends Controller
@@ -59,6 +60,10 @@ class TagController extends Controller
      */
     public function update(Request $request, Tag $tag)
     {
+        // Les tags sont globaux (partagés entre tous les comptes) :
+        // seul un admin peut les renommer ou les supprimer.
+        abort_unless($request->user()->isAdmin(), 403);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:tags,name,' . $tag->id,
             'color' => 'nullable|string|max:7',
@@ -81,6 +86,8 @@ class TagController extends Controller
      */
     public function destroy(Request $request, Tag $tag)
     {
+        abort_unless($request->user()->isAdmin(), 403);
+
         $tag->delete();
 
         if ($request->wantsJson()) {
@@ -103,6 +110,7 @@ class TagController extends Controller
         ]);
 
         $media = Media::findOrFail($validated['media_id']);
+        Gate::authorize('update', $media);
 
         // Attach tag if not already attached
         if (!$media->tags()->where('tag_id', $validated['tag_id'])->exists()) {
@@ -125,6 +133,8 @@ class TagController extends Controller
         ]);
 
         $media = Media::findOrFail($validated['media_id']);
+        Gate::authorize('update', $media);
+
         $media->tags()->detach($validated['tag_id']);
 
         return response()->json([
@@ -137,6 +147,8 @@ class TagController extends Controller
      */
     public function mediaTags(Media $media)
     {
+        Gate::authorize('view', $media);
+
         $tags = $media->tags;
 
         return response()->json($tags);

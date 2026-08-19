@@ -86,6 +86,7 @@
                 </div>
               </Link>
               <button
+                v-if="isAdmin"
                 @click.stop="deleteTag(tag)"
                 class="btn-icon-danger"
                 title="Supprimer ce tag"
@@ -101,8 +102,8 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useForm, router, Link } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { useForm, router, Link, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FormField from '@/Components/Forms/FormField.vue';
 import FormError from '@/Components/Forms/FormError.vue';
@@ -115,6 +116,9 @@ const props = defineProps({
     required: true,
   },
 });
+
+// Les tags sont globaux : seuls les admins peuvent les supprimer (aligné sur TagController)
+const isAdmin = computed(() => usePage().props.auth?.user?.role === 'admin');
 
 const form = useForm({
   name: '',

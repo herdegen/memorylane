@@ -126,6 +126,45 @@ class GooglePhotosImportTest extends TestCase
     }
 
     /**
+     * On ne peut pas cibler l'album d'un autre utilisateur.
+     */
+    public function test_import_rejects_album_of_another_user(): void
+    {
+        Bus::fake();
+
+        $other = User::factory()->create();
+        $foreignAlbum = Album::factory()->create(['user_id' => $other->id]);
+
+        $response = $this->actingAs($this->user)
+            ->withSession($this->withGoogleSession())
+            ->postJson('/google-photos/import', [
+                'album_id' => $foreignAlbum->id,
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['album_id']);
+        Bus::assertNotDispatched(ImportGooglePhotosItems::class);
+    }
+
+    /**
+     * La page d'import ne liste que les albums de l'utilisateur connecté.
+     */
+    public function test_import_page_only_lists_own_albums(): void
+    {
+        $other = User::factory()->create();
+        $mine = Album::factory()->create(['user_id' => $this->user->id, 'name' => 'Mien']);
+        Album::factory()->create(['user_id' => $other->id, 'name' => 'Privé autrui']);
+
+        $this->actingAs($this->user)
+            ->get('/google-photos')
+            ->assertStatus(200)
+            ->assertInertia(fn ($page) => $page
+                ->has('albums', 1)
+                ->where('albums.0.id', $mine->id)
+            );
+    }
+
+    /**
      * Sans session Picker, l'import est refusé.
      */
     public function test_import_requires_picker_session(): void

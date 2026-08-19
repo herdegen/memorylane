@@ -185,6 +185,49 @@ class MapControllerTest extends TestCase
     }
 
     /**
+     * Un utilisateur ne peut pas modifier la géolocalisation du média d'un autre.
+     */
+    public function test_cannot_update_geolocation_of_someone_elses_media(): void
+    {
+        $other = User::factory()->create();
+        $media = Media::factory()->create(['user_id' => $other->id]);
+
+        $this->actingAs($this->user)
+            ->postJson("/map/media/{$media->id}/geolocation", [
+                'latitude' => 48.8566,
+                'longitude' => 2.3522,
+            ])
+            ->assertStatus(403);
+
+        $this->assertDatabaseMissing('media_metadata', [
+            'media_id' => $media->id,
+            'latitude' => 48.8566,
+        ]);
+    }
+
+    /**
+     * Un utilisateur ne peut pas effacer la géolocalisation du média d'un autre.
+     */
+    public function test_cannot_remove_geolocation_of_someone_elses_media(): void
+    {
+        $other = User::factory()->create();
+        $media = Media::factory()->create(['user_id' => $other->id]);
+        $media->metadata()->create([
+            'latitude' => 48.8566,
+            'longitude' => 2.3522,
+        ]);
+
+        $this->actingAs($this->user)
+            ->deleteJson("/map/media/{$media->id}/geolocation")
+            ->assertStatus(403);
+
+        $this->assertDatabaseHas('media_metadata', [
+            'media_id' => $media->id,
+            'latitude' => 48.8566,
+        ]);
+    }
+
+    /**
      * Test geolocation validation - latitude.
      */
     public function test_geolocation_validates_latitude(): void

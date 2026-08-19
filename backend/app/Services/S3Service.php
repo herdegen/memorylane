@@ -58,13 +58,21 @@ class S3Service
     public function putFile(string $localPath, string $storagePath, string $visibility = 'private'): string
     {
         try {
-            $contents = file_get_contents($localPath);
+            // Stream plutôt que file_get_contents : les conversions vidéo
+            // peuvent peser plusieurs Go, les workers sont limités en RAM.
+            $stream = fopen($localPath, 'rb');
 
-            Storage::disk($this->disk)->put(
-                $storagePath,
-                $contents,
-                $visibility
-            );
+            try {
+                Storage::disk($this->disk)->put(
+                    $storagePath,
+                    $stream,
+                    $visibility
+                );
+            } finally {
+                if (is_resource($stream)) {
+                    fclose($stream);
+                }
+            }
 
             return $storagePath;
         } catch (\Exception $e) {

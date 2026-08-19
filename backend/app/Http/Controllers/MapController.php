@@ -6,6 +6,7 @@ use App\Models\Album;
 use App\Models\Media;
 use App\Services\MediaService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Http;
 use Inertia\Inertia;
 
@@ -128,6 +129,8 @@ class MapController extends Controller
      */
     public function updateGeolocation(Request $request, Media $media)
     {
+        Gate::authorize('update', $media);
+
         $validated = $request->validate([
             'latitude' => 'required|numeric|between:-90,90',
             'longitude' => 'required|numeric|between:-180,180',
@@ -154,6 +157,8 @@ class MapController extends Controller
      */
     public function removeGeolocation(Media $media)
     {
+        Gate::authorize('update', $media);
+
         $media->metadata()->update([
             'latitude' => null,
             'longitude' => null,

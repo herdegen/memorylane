@@ -16,41 +16,50 @@ class SendWeeklyDigest extends Command
 
     public function handle(MediaService $mediaService): int
     {
-        $newMedia = Media::with(['user', 'conversions'])
-            ->where('uploaded_at', '>=', now()->subDays(7))
-            ->orderByDesc('uploaded_at')
-            ->get();
-
-        if ($newMedia->isEmpty()) {
-            $this->info('Aucun nouveau média cette semaine : pas de digest.');
-            return self::SUCCESS;
-        }
-
-        $uploaderNames = $newMedia->pluck('user.name')
-            ->filter()
-            ->unique()
-            ->map(fn ($name) => explode(' ', $name)[0])
-            ->values()
-            ->all();
-
-        // 4 vignettes, URLs signées valables 7 jours (durée de vie du mail)
-        $samples = $newMedia->take(4)->map(function ($media) use ($mediaService) {
-            $thumb = $media->conversions->firstWhere('conversion_name', 'small')
-                ?? $media->conversions->firstWhere('conversion_name', 'thumbnail');
-
-            return [
-                'name' => $media->title ?: $media->original_name,
-                'url' => $mediaService->getSignedUrl($media, $thumb?->file_path, 60 * 24 * 7),
-            ];
-        })->all();
-
+        $since = now()->subDays(7);
         $count = 0;
-        User::each(function (User $user) use ($newMedia, $uploaderNames, $samples, &$count) {
+
+        // Chaque destinataire ne voit que les nouveaux médias auxquels il a
+        // accès (galerie privée) : décompte, prénoms et vignettes sont
+        // calculés par utilisateur.
+        User::each(function (User $user) use ($mediaService, $since, &$count) {
+            $newMedia = Media::accessibleBy($user)
+                ->with(['user', 'conversions'])
+                ->where('uploaded_at', '>=', $since)
+                ->orderByDesc('uploaded_at')
+                ->get();
+
+            if ($newMedia->isEmpty()) {
+                return;
+            }
+
+            $uploaderNames = $newMedia->pluck('user.name')
+                ->filter()
+                ->unique()
+                ->map(fn ($name) => explode(' ', $name)[0])
+                ->values()
+                ->all();
+
+            // 4 vignettes, URLs signées valables 7 jours (durée de vie du mail)
+            $samples = $newMedia->take(4)->map(function ($media) use ($mediaService) {
+                $thumb = $media->conversions->firstWhere('conversion_name', 'small')
+                    ?? $media->conversions->firstWhere('conversion_name', 'thumbnail');
+
+                return [
+                    'name' => $media->title ?: $media->original_name,
+                    'url' => $mediaService->getSignedUrl($media, $thumb?->file_path, 60 * 24 * 7),
+                ];
+            })->all();
+
             $user->notify(new WeeklyDigest($newMedia->count(), $uploaderNames, $samples));
             $count++;
         });
 
-        $this->info("Digest envoyé à {$count} membre(s) — {$newMedia->count()} nouveau(x) média(s).");
+        if ($count === 0) {
+            $this->info('Aucun nouveau média cette semaine : pas de digest.');
+        } else {
+            $this->info("Digest envoyé à {$count} membre(s).");
+        }
 
         return self::SUCCESS;
     }

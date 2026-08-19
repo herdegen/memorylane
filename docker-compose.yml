@@ -6,7 +6,8 @@ services:
     environment:
       POSTGRES_DB: ${DB_DATABASE:-memorylane}
       POSTGRES_USER: ${DB_USERNAME:-memorylane}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+      # Pas de valeur par défaut : échoue si DB_PASSWORD n'est pas défini (cf. .env racine)
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD doit être défini dans le .env racine}
       POSTGRES_INITDB_ARGS: "--encoding=UTF8"
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -43,7 +44,7 @@ services:
     image: docker.io/getmeili/meilisearch:v1.6
     container_name: memorylane_meilisearch
     environment:
-      MEILI_MASTER_KEY: ${MEILISEARCH_KEY:-masterKey}
+      MEILI_MASTER_KEY: ${MEILISEARCH_KEY:?MEILISEARCH_KEY doit être défini dans le .env racine}
       MEILI_NO_ANALYTICS: ${MEILI_NO_ANALYTICS:-true}
       MEILI_ENV: ${MEILI_ENV:-development}
       MEILI_HTTP_ADDR: '0.0.0.0:7700'

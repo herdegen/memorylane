@@ -38,7 +38,9 @@ class GooglePhotosController extends Controller
             'isConnected' => $request->session()->has('google_photos.access_token'),
             'pickerSession' => $request->session()->get('google_photos.picker_session'),
             'people' => \App\Models\Person::orderBy('name')->get(['id', 'name']),
-            'albums' => \App\Models\Album::orderBy('name')->get(['id', 'name']),
+            'albums' => \App\Models\Album::where('user_id', $request->user()->id)
+                ->orderBy('name')
+                ->get(['id', 'name']),
         ]);
     }
 
@@ -194,7 +196,13 @@ class GooglePhotosController extends Controller
     {
         $validated = $request->validate([
             'person_id' => ['nullable', 'uuid', 'exists:people,id'],
-            'album_id' => ['nullable', 'uuid', 'exists:albums,id'],
+            // L'album cible doit appartenir à l'importateur (sinon on écrirait
+            // dans l'album d'un autre compte).
+            'album_id' => [
+                'nullable',
+                'uuid',
+                \Illuminate\Validation\Rule::exists('albums', 'id')->where('user_id', auth()->id()),
+            ],
             'new_album_name' => ['nullable', 'string', 'max:255'],
         ]);
 

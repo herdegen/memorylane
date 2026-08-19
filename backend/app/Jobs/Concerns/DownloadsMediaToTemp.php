@@ -30,8 +30,23 @@ trait DownloadsMediaToTemp
             $extension = pathinfo($this->media->original_name, PATHINFO_EXTENSION) ?: 'tmp';
             $tempPath = sys_get_temp_dir() . '/media_' . $this->media->id . '_' . uniqid() . '.' . $extension;
 
-            $contents = $disk->get($this->media->file_path);
-            file_put_contents($tempPath, $contents);
+            // Copie en streaming : ne jamais charger le fichier entier en RAM
+            // (l'upload direct accepte des vidéos de plusieurs Go, les workers
+            // sont limités à 512 Mo).
+            $readStream = $disk->readStream($this->media->file_path);
+            if ($readStream === null) {
+                throw new \RuntimeException('readStream a renvoyé null');
+            }
+
+            $writeStream = fopen($tempPath, 'wb');
+            try {
+                stream_copy_to_stream($readStream, $writeStream);
+            } finally {
+                fclose($writeStream);
+                if (is_resource($readStream)) {
+                    fclose($readStream);
+                }
+            }
 
             return $tempPath;
         } catch (\Exception $e) {

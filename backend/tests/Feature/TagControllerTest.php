@@ -102,7 +102,9 @@ class TagControllerTest extends TestCase
             'color' => '#FFFFFF',
         ];
 
-        $response = $this->actingAs($this->user)->putJson("/tags/{$tag->id}", $updateData);
+        // La gestion des tags globaux est réservée aux admins (cf. TagAuthorizationTest)
+        $admin = User::factory()->create(['role' => 'admin']);
+        $response = $this->actingAs($admin)->putJson("/tags/{$tag->id}", $updateData);
 
         $response->assertStatus(200)
             ->assertJsonPath('tag.name', 'New Name')
@@ -122,7 +124,8 @@ class TagControllerTest extends TestCase
     {
         $tag = Tag::factory()->create();
 
-        $response = $this->actingAs($this->user)->deleteJson("/tags/{$tag->id}");
+        $admin = User::factory()->create(['role' => 'admin']);
+        $response = $this->actingAs($admin)->deleteJson("/tags/{$tag->id}");
 
         $response->assertStatus(200)
             ->assertJson(['message' => 'Tag deleted successfully']);

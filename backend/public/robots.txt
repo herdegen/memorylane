@@ -1,2 +1,3 @@
 User-agent: *
-Disallow:
+# Les albums partagés par lien secret ne doivent jamais être indexés
+Disallow: /albums/shared/
