@@ -89,8 +89,7 @@ class MediaController extends Controller
                 $this->getCurrentUserId()
             );
 
-            // Generate signed URL for response
-            $media->url = $this->mediaService->getSignedUrl($media);
+            $media->url = $this->mediaService->fileUrl($media);
 
             return response()->json([
                 'message' => 'Media uploaded successfully',
@@ -220,6 +219,34 @@ class MediaController extends Controller
             'message' => 'Découpage lancé. Les clips apparaîtront dans la galerie dans quelques instants.',
             'count' => count($validated['segments']),
         ], 202);
+    }
+
+    /**
+     * Sert un fichier média (original ou conversion) : session + droit de
+     * lecture vérifiés à CHAQUE chargement, puis redirection vers une URL S3
+     * présignée très courte. C'est la seule porte d'entrée des <img>/<video>
+     * du front — une URL copiée à un tiers non connecté ne donne rien.
+     */
+    public function file(Request $request, Media $media, ?string $conversion = null)
+    {
+        // Les admins doivent voir toutes les vignettes (panneau Filament :
+        // doublons, visages…) ; pour les autres, la MediaPolicy s'applique.
+        if (! $request->user()->isAdmin()) {
+            Gate::authorize('view', $media);
+        }
+
+        $conversionPath = null;
+        if ($conversion !== null) {
+            $conversionModel = $media->conversions()->where('conversion_name', $conversion)->first();
+            abort_unless($conversionModel, 404);
+            $conversionPath = $conversionModel->file_path;
+        }
+
+        // Présignée de 10 min ; la redirection est réutilisable 5 min par le
+        // navigateur (Cache-Control) pour limiter les allers-retours.
+        return redirect()
+            ->away($this->mediaService->getSignedUrl($media, $conversionPath, 10))
+            ->header('Cache-Control', 'private, max-age=300');
     }
 
     /**

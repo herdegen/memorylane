@@ -93,6 +93,9 @@ Route::middleware('auth')->group(function () {
         Route::put('/{media}', [MediaController::class, 'update'])->name('update');
         Route::delete('/{media}', [MediaController::class, 'destroy'])->name('destroy');
         Route::get('/{media}/download', [MediaController::class, 'download'])->name('download');
+        // Porte d'entrée unique des <img>/<video> : auth + policy à chaque
+        // chargement, puis 302 vers une présignée S3 très courte.
+        Route::get('/{media}/file/{conversion?}', [MediaController::class, 'file'])->name('file');
         // Découpage d'une vidéo en clips (un Media par segment)
         Route::post('/{media}/clips', [MediaController::class, 'storeClips'])->name('storeClips');
     });
@@ -185,6 +188,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [PersonController::class, 'store'])->name('store');
         Route::get('/{person}', [PersonController::class, 'show'])->name('show');
         Route::get('/{person}/face-avatar', [PersonController::class, 'faceAvatar'])->name('faceAvatar');
+        // Photo de profil explicite : servie à tout compte connecté (fiches
+        // et arbre « publics entre comptes »), jamais en présigné long.
+        Route::get('/{person}/avatar-image', [PersonController::class, 'avatarImage'])->name('avatarImage');
         Route::put('/{person}', [PersonController::class, 'update'])->name('update');
         Route::delete('/{person}', [PersonController::class, 'destroy'])->name('destroy');
         Route::post('/attach', [PersonController::class, 'attachToMedia'])->name('attach');
@@ -225,6 +231,7 @@ Route::middleware('auth')->group(function () {
 
 // Public shared album route
 Route::get('/albums/shared/{token}', [AlbumController::class, 'showShared'])->name('albums.shared');
+Route::get('/albums/shared/{token}/media/{media}/file/{conversion?}', [AlbumController::class, 'sharedFile'])->name('albums.shared.file');
 
 // Health check endpoint for Docker
 Route::get('/health', function () {

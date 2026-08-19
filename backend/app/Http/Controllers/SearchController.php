@@ -182,7 +182,7 @@ class SearchController extends Controller
     private function personAvatarUrl(Person $person): ?string
     {
         if ($person->avatar) {
-            return $this->mediaService->thumbnailUrl($person->avatar);
+            return route('people.avatarImage', $person);
         }
 
         if (($person->matched_faces_count ?? 0) > 0) {

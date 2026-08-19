@@ -163,7 +163,7 @@ class UploadController extends Controller
 
         $session->delete();
 
-        $media->url = $this->mediaService->getSignedUrl($media);
+        $media->url = $this->mediaService->fileUrl($media);
 
         return response()->json([
             'message' => 'Upload terminé',

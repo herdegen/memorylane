@@ -40,10 +40,11 @@ class SendWeeklyDigest extends Command
                 ->values()
                 ->all();
 
-            // 4 vignettes, URLs signées valables 7 jours (durée de vie du mail)
+            // 4 vignettes en présigné 7 jours (durée de vie du mail) : un
+            // client mail n'a pas de session, la route protégée est exclue ici.
             $samples = $newMedia->take(4)->map(fn ($media) => [
                 'name' => $media->title ?: $media->original_name,
-                'url' => $mediaService->thumbnailUrl($media, expirationMinutes: 60 * 24 * 7),
+                'url' => $mediaService->thumbnailUrl($media, expirationMinutes: 60 * 24 * 7, presigned: true),
             ])->all();
 
             $user->notify(new WeeklyDigest($newMedia->count(), $uploaderNames, $samples));

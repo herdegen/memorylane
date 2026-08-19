@@ -470,9 +470,9 @@ class PersonController extends Controller
             'type' => $media->type,
             'original_name' => $media->original_name,
             'taken_at' => optional($media->taken_at)->toIso8601String(),
-            'url' => $this->mediaService->getSignedUrl($media),
-            'thumbnail_url' => $thumb ? $this->mediaService->getSignedUrl($media, $thumb->file_path) : null,
-            'medium_url' => $medium ? $this->mediaService->getSignedUrl($media, $medium->file_path) : null,
+            'url' => $this->mediaService->fileUrl($media),
+            'thumbnail_url' => $thumb ? $this->mediaService->fileUrl($media, $thumb->conversion_name) : null,
+            'medium_url' => $medium ? $this->mediaService->fileUrl($media, $medium->conversion_name) : null,
         ];
     }
 
@@ -717,7 +717,9 @@ class PersonController extends Controller
     private function resolveAvatarUrl(Person $person): ?string
     {
         if ($person->avatar) {
-            return $this->mediaService->thumbnailUrl($person->avatar);
+            // Endpoint authentifié (servi à tout compte connecté) : plus de
+            // présignée longue dans les pages.
+            return route('people.avatarImage', $person);
         }
 
         if (($person->matched_faces_count ?? 0) > 0) {
@@ -725,6 +727,25 @@ class PersonController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Redirige vers la vignette de la photo de profil explicite (présignée
+     * S3 courte). Servi à tout compte connecté, comme faceAvatar : les fiches
+     * et l'arbre sont publics entre comptes (phase 1 visibilité).
+     */
+    public function avatarImage(Person $person)
+    {
+        $person->loadMissing('avatar.conversions');
+        abort_unless($person->avatar, 404);
+
+        $media = $person->avatar;
+        $thumb = $media->conversions->firstWhere('conversion_name', 'small')
+            ?? $media->conversions->firstWhere('conversion_name', 'thumbnail');
+
+        return redirect()
+            ->away($this->mediaService->getSignedUrl($media, $thumb?->file_path, 10))
+            ->header('Cache-Control', 'private, max-age=300');
     }
 
     /**

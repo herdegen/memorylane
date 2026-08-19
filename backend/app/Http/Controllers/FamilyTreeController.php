@@ -177,7 +177,7 @@ class FamilyTreeController extends Controller
     private function avatarUrl(Person $person): ?string
     {
         if ($person->avatar) {
-            return $this->mediaService->thumbnailUrl($person->avatar);
+            return route('people.avatarImage', $person);
         }
 
         if (($person->matched_faces_count ?? 0) > 0) {

@@ -321,16 +321,46 @@ class AlbumController extends Controller
 
         $album->loadCount('media');
 
-        $this->mediaService->hydrateSignedUrls($album->media);
+        // Visiteur anonyme : toutes les URLs passent par la route token.
+        $this->mediaService->hydrateSharedUrls($token, $album->media);
 
         $cover = $this->coverMediaFor($album);
         if ($cover) {
-            $album->cover_url = $this->getCoverUrl($cover);
+            $thumb = $cover->conversions->firstWhere('conversion_name', 'small')
+                ?? $cover->conversions->firstWhere('conversion_name', 'thumbnail');
+            $album->cover_url = route('albums.shared.file', array_filter([
+                'token' => $token,
+                'media' => $cover->id,
+                'conversion' => $thumb?->conversion_name,
+            ]));
         }
 
         return Inertia::render('Albums/Shared', [
             'album' => $album,
         ]);
+    }
+
+    /**
+     * Sert un fichier d'un album partagé par lien secret : le token vaut
+     * autorisation, mais uniquement pour les médias DE CET album. 302 vers
+     * une présignée S3 courte.
+     */
+    public function sharedFile(string $token, Media $media, ?string $conversion = null)
+    {
+        $album = Album::where('share_token', $token)->firstOrFail();
+
+        abort_unless($album->media()->whereKey($media->id)->exists(), 404);
+
+        $conversionPath = null;
+        if ($conversion !== null) {
+            $conversionModel = $media->conversions()->where('conversion_name', $conversion)->first();
+            abort_unless($conversionModel, 404);
+            $conversionPath = $conversionModel->file_path;
+        }
+
+        return redirect()
+            ->away($this->mediaService->getSignedUrl($media, $conversionPath, 10))
+            ->header('Cache-Control', 'private, max-age=300');
     }
 
     /**

@@ -37,31 +37,72 @@ class MediaService
     }
 
     /**
-     * Hydrate `->url` (URL signée) sur chaque média ET sur chacune de ses
-     * conversions chargées. Point unique de génération des URLs exposées au
-     * navigateur : toute évolution du mode de service des fichiers (proxy
-     * authentifié, présignées…) se fait ici.
+     * URL applicative PROTÉGÉE d'un fichier média : le navigateur passe par
+     * /media/{media}/file/{conversion?} (session + policy `view` vérifiées à
+     * CHAQUE chargement) qui redirige vers une présignée S3 très courte.
+     * Une URL copiée-collée est donc inutilisable sans être connecté.
+     */
+    public function fileUrl(Media $media, ?string $conversionName = null): string
+    {
+        return route('media.file', array_filter([
+            'media' => $media->id,
+            'conversion' => $conversionName,
+        ]));
+    }
+
+    /**
+     * Hydrate `->url` sur chaque média ET sur chacune de ses conversions
+     * chargées. Point unique de génération des URLs exposées au navigateur :
+     * URLs applicatives protégées (cf. fileUrl), plus jamais de présignées
+     * longues dans les pages.
      *
      * @param iterable<Media> $mediaItems
      */
     public function hydrateSignedUrls(iterable $mediaItems): void
     {
         foreach ($mediaItems as $item) {
-            $item->url = $this->s3Service->getTemporaryUrl($item->file_path);
+            $item->url = $this->fileUrl($item);
 
             if ($item->relationLoaded('conversions')) {
                 foreach ($item->conversions as $conversion) {
-                    $conversion->url = $this->s3Service->getTemporaryUrl($conversion->file_path);
+                    $conversion->url = $this->fileUrl($item, $conversion->conversion_name);
                 }
             }
         }
     }
 
     /**
-     * URL signée de la meilleure vignette disponible : la première conversion
-     * de $preferred qui existe, sinon l'original.
+     * Variante « album partagé par lien secret » : URLs passant par la route
+     * token (pas de session requise, mais le token EST le droit d'accès et
+     * chaque fichier est vérifié comme appartenant à l'album).
+     *
+     * @param iterable<Media> $mediaItems
      */
-    public function thumbnailUrl(Media $media, array $preferred = ['small', 'thumbnail'], int $expirationMinutes = 60): string
+    public function hydrateSharedUrls(string $token, iterable $mediaItems): void
+    {
+        foreach ($mediaItems as $item) {
+            $item->url = route('albums.shared.file', ['token' => $token, 'media' => $item->id]);
+
+            if ($item->relationLoaded('conversions')) {
+                foreach ($item->conversions as $conversion) {
+                    $conversion->url = route('albums.shared.file', [
+                        'token' => $token,
+                        'media' => $item->id,
+                        'conversion' => $conversion->conversion_name,
+                    ]);
+                }
+            }
+        }
+    }
+
+    /**
+     * URL de la meilleure vignette disponible : la première conversion de
+     * $preferred qui existe, sinon l'original.
+     *
+     * Par défaut : URL applicative protégée. `presigned: true` force une
+     * présignée S3 (uniquement pour les contextes SANS session : emails).
+     */
+    public function thumbnailUrl(Media $media, array $preferred = ['small', 'thumbnail'], int $expirationMinutes = 60, bool $presigned = false): string
     {
         $conversion = null;
         foreach ($preferred as $name) {
@@ -71,7 +112,11 @@ class MediaService
             }
         }
 
-        return $this->getSignedUrl($media, $conversion?->file_path, $expirationMinutes);
+        if ($presigned) {
+            return $this->getSignedUrl($media, $conversion?->file_path, $expirationMinutes);
+        }
+
+        return $this->fileUrl($media, $conversion?->conversion_name);
     }
 
     /**
