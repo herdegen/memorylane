@@ -7,10 +7,7 @@ use App\Models\Media;
 use App\Services\S3Service;
 use FFMpeg\Coordinate\Dimension;
 use FFMpeg\Coordinate\TimeCode;
-use FFMpeg\FFMpeg;
-use FFMpeg\FFProbe;
 use FFMpeg\Filters\Video\ResizeFilter;
-use FFMpeg\Format\Video\X264;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -68,15 +65,8 @@ class SplitVideoIntoClips implements ShouldQueue
         $this->media->loadMissing('metadata');
         $visibility = in_array($s3Service->getDisk(), ['local', 'public']) ? 'public' : 'private';
 
-        $ffmpeg = FFMpeg::create([
-            'ffmpeg.binaries'  => env('FFMPEG_BINARIES', '/usr/bin/ffmpeg'),
-            'ffprobe.binaries' => env('FFPROBE_BINARIES', '/usr/bin/ffprobe'),
-            'timeout'          => $this->timeout,
-            'ffmpeg.threads'   => 4,
-        ]);
-        $ffprobe = FFProbe::create([
-            'ffprobe.binaries' => env('FFPROBE_BINARIES', '/usr/bin/ffprobe'),
-        ]);
+        $ffmpeg = \App\Services\FfmpegFactory::ffmpeg($this->timeout);
+        $ffprobe = \App\Services\FfmpegFactory::ffprobe();
 
         $created = 0;
 
@@ -107,10 +97,7 @@ class SplitVideoIntoClips implements ShouldQueue
                             ->synchronize();
                     }
 
-                    $format = new X264('aac', 'libx264');
-                    $format->setKiloBitrate(2500);
-                    $format->setAudioKiloBitrate(128);
-                    $format->setAdditionalParameters(['-movflags', '+faststart', '-preset', 'fast', '-pix_fmt', 'yuv420p']);
+                    $format = \App\Services\FfmpegFactory::webX264();
 
                     $video->save($format, $outputPath);
 

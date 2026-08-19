@@ -132,6 +132,9 @@ class GedcomImportService
         $import->update(['status' => 'importing']);
 
         try {
+            // Import multi-phases tout-ou-rien : en cas d'erreur, aucune
+            // personne/relation partiellement créée ne subsiste.
+            \Illuminate\Support\Facades\DB::transaction(function () use ($parsed, $userId, $decisions, $import, &$gedcomToPersonId, &$stats) {
             // Phase 1: Create or match individuals
             foreach ($parsed['individuals'] as $gedcomId => $individual) {
                 $decision = $decisions[$gedcomId] ?? 'skip';
@@ -241,11 +244,12 @@ class GedcomImportService
                 }
             }
 
-            $import->update([
-                'status' => 'completed',
-                'matching_decisions' => $decisions,
-                'imported_count' => $stats['created'] + $stats['matched'],
-            ]);
+                $import->update([
+                    'status' => 'completed',
+                    'matching_decisions' => $decisions,
+                    'imported_count' => $stats['created'] + $stats['matched'],
+                ]);
+            });
         } catch (\Exception $e) {
             $import->update([
                 'status' => 'failed',

@@ -267,15 +267,11 @@ class GooglePhotosController extends Controller
             ->with('conversions')
             ->limit(12)
             ->get()
-            ->map(function (Media $m) use ($mediaService) {
-                $conv = $m->conversions->firstWhere('conversion_name', 'small')
-                    ?? $m->conversions->first();
-                $url = $conv
-                    ? $mediaService->getSignedUrl($m, $conv->file_path)
-                    : $mediaService->getSignedUrl($m);
-
-                return ['id' => $m->id, 'url' => $url, 'name' => $m->original_name];
-            });
+            ->map(fn (Media $m) => [
+                'id' => $m->id,
+                'url' => $mediaService->thumbnailUrl($m),
+                'name' => $m->original_name,
+            ]);
 
         $status = Cache::get(ImportGooglePhotosItems::statusKey(auth()->id()));
 

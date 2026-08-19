@@ -88,11 +88,9 @@ class S3Service
      */
     public function delete(string $path): bool
     {
-        if ($this->exists($path)) {
-            return Storage::disk($this->disk)->delete($path);
-        }
-
-        return false;
+        // delete() est déjà silencieux si le fichier n'existe pas : inutile de
+        // payer un aller-retour S3 exists() supplémentaire.
+        return Storage::disk($this->disk)->delete($path);
     }
 
     /**
@@ -163,63 +161,6 @@ class S3Service
     {
         $filename = Str::uuid() . '.' . $extension;
         return "media/{$type}s/" . date('Y/m') . "/{$filename}";
-    }
-
-    /**
-     * Get the size of a file in storage.
-     *
-     * @param string $path
-     * @return int File size in bytes
-     */
-    public function size(string $path): int
-    {
-        return Storage::disk($this->disk)->size($path);
-    }
-
-    /**
-     * Get the MIME type of a file in storage.
-     *
-     * @param string $path
-     * @return string|false
-     */
-    public function mimeType(string $path): string|false
-    {
-        return Storage::disk($this->disk)->mimeType($path);
-    }
-
-    /**
-     * Get the public URL of a file (for public files).
-     *
-     * @param string $path
-     * @return string
-     */
-    public function url(string $path): string
-    {
-        return Storage::disk($this->disk)->url($path);
-    }
-
-    /**
-     * Copy a file to a new location.
-     *
-     * @param string $from
-     * @param string $to
-     * @return bool
-     */
-    public function copy(string $from, string $to): bool
-    {
-        return Storage::disk($this->disk)->copy($from, $to);
-    }
-
-    /**
-     * Move a file to a new location.
-     *
-     * @param string $from
-     * @param string $to
-     * @return bool
-     */
-    public function move(string $from, string $to): bool
-    {
-        return Storage::disk($this->disk)->move($from, $to);
     }
 
     /**

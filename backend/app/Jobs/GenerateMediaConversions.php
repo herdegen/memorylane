@@ -9,7 +9,6 @@ use App\Services\PerceptualHashService;
 use App\Services\S3Service;
 use App\Services\VideoMetadataService;
 use FFMpeg\Coordinate\TimeCode;
-use FFMpeg\FFMpeg;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -223,13 +222,7 @@ class GenerateMediaConversions implements ShouldQueue
                 return;
             }
 
-            // Create FFMpeg instance
-            $ffmpeg = FFMpeg::create([
-                'ffmpeg.binaries' => env('FFMPEG_BINARIES', '/usr/bin/ffmpeg'),
-                'ffprobe.binaries' => env('FFPROBE_BINARIES', '/usr/bin/ffprobe'),
-                'timeout' => 3600,
-                'ffmpeg.threads' => 4,
-            ]);
+            $ffmpeg = \App\Services\FfmpegFactory::ffmpeg(3600);
 
             // Extraction des métadonnées techniques sur le fichier déjà téléchargé
             // (évite un second téléchargement S3 par un job séparé). Non bloquant :

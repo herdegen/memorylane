@@ -117,11 +117,7 @@ class MapController extends Controller
      */
     private function thumbnailUrl(Media $item): string
     {
-        $thumb = $item->conversions->firstWhere('conversion_name', 'thumbnail');
-
-        return $thumb
-            ? $this->mediaService->getSignedUrl($item, $thumb->file_path)
-            : $this->mediaService->getSignedUrl($item);
+        return $this->mediaService->thumbnailUrl($item, ['thumbnail']);
     }
 
     /**

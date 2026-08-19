@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Jobs\ExtractVideoMetadata;
 use App\Jobs\GenerateMediaConversions;
 use App\Jobs\ProcessUploadedMedia;
 use App\Models\Media;
@@ -32,7 +31,7 @@ class VideoMetadataTest extends TestCase
      * vidéo sont extraites par GenerateMediaConversions (pas de job séparé,
      * pas de double téléchargement S3).
      */
-    public function test_video_upload_dispatches_processing_jobs_without_separate_metadata_job(): void
+    public function test_video_upload_dispatches_processing_jobs(): void
     {
         Bus::fake();
 
@@ -42,13 +41,12 @@ class VideoMetadataTest extends TestCase
 
         Bus::assertDispatched(GenerateMediaConversions::class);
         Bus::assertDispatched(ProcessUploadedMedia::class);
-        Bus::assertNotDispatched(ExtractVideoMetadata::class);
     }
 
     /**
-     * Vérifie que ExtractVideoMetadata n'est PAS dispatché pour une photo.
+     * L'upload d'une photo dispatche la même chaîne de jobs.
      */
-    public function test_extract_video_metadata_job_is_not_dispatched_for_photo_upload(): void
+    public function test_photo_upload_dispatches_processing_jobs(): void
     {
         Bus::fake();
 
@@ -56,7 +54,6 @@ class VideoMetadataTest extends TestCase
 
         $this->actingAs($this->user)->postJson('/media', ['file' => $file]);
 
-        Bus::assertNotDispatched(ExtractVideoMetadata::class);
         Bus::assertDispatched(ProcessUploadedMedia::class);
         Bus::assertDispatched(GenerateMediaConversions::class);
     }

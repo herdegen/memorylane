@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\PersonResource\RelationManagers;
 
 use App\Models\DetectedFace;
-use App\Services\S3Service;
+use App\Services\MediaService;
 use App\Services\Vision\FaceMatcher;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
@@ -121,15 +121,14 @@ class IdentifiedPhotosRelationManager extends RelationManager
             return null;
         }
 
-        $conversion = $media->conversions
-            ->whereIn('conversion_name', ['thumbnail', 'small', 'medium'])
-            ->sortBy(fn ($c) => array_search($c->conversion_name, ['thumbnail', 'small', 'medium']))
-            ->first();
+        $preferred = ['thumbnail', 'small', 'medium'];
 
-        if (! $conversion) {
+        // Comportement historique : pas de conversion → pas de vignette
+        // (on ne sert jamais l'original en liste admin).
+        if ($media->conversions->whereIn('conversion_name', $preferred)->isEmpty()) {
             return null;
         }
 
-        return app(S3Service::class)->getTemporaryUrl($conversion->file_path);
+        return app(MediaService::class)->thumbnailUrl($media, $preferred);
     }
 }

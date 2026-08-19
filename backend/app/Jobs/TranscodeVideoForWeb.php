@@ -7,10 +7,7 @@ use App\Models\Media;
 use App\Models\MediaConversion;
 use App\Services\S3Service;
 use FFMpeg\Coordinate\Dimension;
-use FFMpeg\FFMpeg;
-use FFMpeg\FFProbe;
 use FFMpeg\Filters\Video\ResizeFilter;
-use FFMpeg\Format\Video\X264;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -56,12 +53,7 @@ class TranscodeVideoForWeb implements ShouldQueue
         $outputPath = sys_get_temp_dir() . '/video_web_' . uniqid() . '.mp4';
 
         try {
-            $ffmpeg = FFMpeg::create([
-                'ffmpeg.binaries'  => env('FFMPEG_BINARIES', '/usr/bin/ffmpeg'),
-                'ffprobe.binaries' => env('FFPROBE_BINARIES', '/usr/bin/ffprobe'),
-                'timeout'          => $this->timeout,
-                'ffmpeg.threads'   => 4,
-            ]);
+            $ffmpeg = \App\Services\FfmpegFactory::ffmpeg($this->timeout);
 
             $video = $ffmpeg->open($tempPath);
 
@@ -72,19 +64,12 @@ class TranscodeVideoForWeb implements ShouldQueue
                     ->synchronize();
             }
 
-            $format = new X264('aac', 'libx264');
-            $format->setKiloBitrate(2500);
-            $format->setAudioKiloBitrate(128);
-            // faststart : lecture avant téléchargement complet ; yuv420p : compat
-            // navigateurs (les sources 10 bits type HEVC repassent en 8 bits)
-            $format->setAdditionalParameters(['-movflags', '+faststart', '-preset', 'fast', '-pix_fmt', 'yuv420p']);
+            $format = \App\Services\FfmpegFactory::webX264();
 
             $video->save($format, $outputPath);
 
             // Dimensions réelles de la sortie
-            $ffprobe = FFProbe::create([
-                'ffprobe.binaries' => env('FFPROBE_BINARIES', '/usr/bin/ffprobe'),
-            ]);
+            $ffprobe = \App\Services\FfmpegFactory::ffprobe();
             $stream = $ffprobe->streams($outputPath)->videos()->first();
 
             $conversionPath = $this->uploadToS3($s3Service, $outputPath);

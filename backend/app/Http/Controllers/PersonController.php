@@ -29,7 +29,8 @@ class PersonController extends Controller
     {
         // Arbre/personnes publics : tous les comptes connectés voient les fiches
         // (lecture). L'écriture reste réservée au propriétaire.
-        $people = Person::withCount(array_merge(['media'], self::matchedFacesCount()))
+        $people = Person::withCount('media')
+            ->withMatchedFacesCount()
             ->with(['avatar.conversions'])
             ->orderBy('name')
             ->get();
@@ -163,7 +164,7 @@ class PersonController extends Controller
                     }
                 })
                 ->with('avatar.conversions')
-                ->withCount(self::matchedFacesCount())
+                ->withMatchedFacesCount()
                 ->get()
                 ->each(fn ($s) => $s->avatar_url = $this->resolveAvatarUrl($s));
         }
@@ -172,7 +173,7 @@ class PersonController extends Controller
         $children = Person::where('father_id', $person->id)
             ->orWhere('mother_id', $person->id)
             ->with('avatar.conversions')
-            ->withCount(self::matchedFacesCount())
+            ->withMatchedFacesCount()
             ->get();
 
         $children->transform(function ($child) {
@@ -191,7 +192,7 @@ class PersonController extends Controller
 
         $spouses = Person::whereIn('id', $spouseIds)
             ->with('avatar.conversions')
-            ->withCount(self::matchedFacesCount())
+            ->withMatchedFacesCount()
             ->get();
 
         $spouses->transform(function ($spouse) {
@@ -212,12 +213,7 @@ class PersonController extends Controller
             ->orderBy('uploaded_at', 'desc')
             ->get();
 
-        $media->each(function ($item) {
-            $item->url = $this->mediaService->getSignedUrl($item);
-            $item->conversions?->each(function ($conv) use ($item) {
-                $conv->url = $this->mediaService->getSignedUrl($item, $conv->file_path);
-            });
-        });
+        $this->mediaService->hydrateSignedUrls($media);
 
         $mediaGroups = $this->groupPersonMedia($media);
 
@@ -721,7 +717,7 @@ class PersonController extends Controller
     private function resolveAvatarUrl(Person $person): ?string
     {
         if ($person->avatar) {
-            return $this->getAvatarUrl($person->avatar);
+            return $this->mediaService->thumbnailUrl($person->avatar);
         }
 
         if (($person->matched_faces_count ?? 0) > 0) {
@@ -732,7 +728,9 @@ class PersonController extends Controller
     }
 
     /**
-     * Contrainte de comptage des visages matchés (réutilisée en withCount).
+     * Contrainte de comptage des visages matchés pour les `loadCount()` sur des
+     * instances déjà chargées (le scope Person::withMatchedFacesCount couvre
+     * les requêtes, mais un scope ne s'applique pas à loadCount).
      */
     private static function matchedFacesCount(): array
     {
@@ -802,17 +800,5 @@ class PersonController extends Controller
             'Content-Type' => 'image/jpeg',
             'Cache-Control' => 'private, max-age=86400',
         ]);
-    }
-
-    private function getAvatarUrl(Media $media): string
-    {
-        if ($media->conversions && $media->conversions->count() > 0) {
-            $thumb = $media->conversions->firstWhere('conversion_name', 'small')
-                ?? $media->conversions->first();
-            if ($thumb) {
-                return $this->mediaService->getSignedUrl($media, $thumb->file_path);
-            }
-        }
-        return $this->mediaService->getSignedUrl($media);
     }
 }

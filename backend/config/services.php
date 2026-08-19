@@ -35,20 +35,10 @@ return [
         ],
     ],
 
-    'google_vision' => [
-        'project_id' => env('GOOGLE_CLOUD_PROJECT'),
-        'credentials' => env('GOOGLE_APPLICATION_CREDENTIALS'),
-    ],
-
     'google_photos' => [
         'client_id' => env('GOOGLE_PHOTOS_CLIENT_ID'),
         'client_secret' => env('GOOGLE_PHOTOS_CLIENT_SECRET'),
         'redirect' => env('GOOGLE_PHOTOS_REDIRECT_URI', env('APP_URL') . '/auth/google/callback'),
-    ],
-
-    'meilisearch' => [
-        'host' => env('MEILISEARCH_HOST', 'http://meilisearch:7700'),
-        'key' => env('MEILISEARCH_KEY'),
     ],
 
 ];

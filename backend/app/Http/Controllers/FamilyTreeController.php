@@ -24,7 +24,7 @@ class FamilyTreeController extends Controller
     {
         // Arbre public : lecture ouverte à tous les comptes connectés.
         $people = Person::with(['avatar.conversions'])
-            ->withCount($this->matchedFacesCount())
+            ->withMatchedFacesCount()
             ->get();
 
         $nodes = $people->map(fn (Person $person) => $this->buildNode($person));
@@ -42,7 +42,7 @@ class FamilyTreeController extends Controller
 
         $people = Person::whereIn('id', $relatedIds)
             ->with(['avatar.conversions'])
-            ->withCount($this->matchedFacesCount())
+            ->withMatchedFacesCount()
             ->get();
 
         $nodes = $people->map(fn (Person $p) => $this->buildNode($p));
@@ -163,7 +163,7 @@ class FamilyTreeController extends Controller
     private function avatarUrl(Person $person): ?string
     {
         if ($person->avatar) {
-            return $this->getAvatarUrl($person);
+            return $this->mediaService->thumbnailUrl($person->avatar);
         }
 
         if (($person->matched_faces_count ?? 0) > 0) {
@@ -171,30 +171,5 @@ class FamilyTreeController extends Controller
         }
 
         return null;
-    }
-
-    private function matchedFacesCount(): array
-    {
-        return ['detectedFaces as matched_faces_count' => function ($q) {
-            $q->where('status', 'matched')->whereNotNull('bounding_box');
-        }];
-    }
-
-    private function getAvatarUrl(Person $person): ?string
-    {
-        $media = $person->avatar;
-        if (! $media) {
-            return null;
-        }
-
-        if ($media->conversions && $media->conversions->count() > 0) {
-            $thumb = $media->conversions->firstWhere('conversion_name', 'small')
-                ?? $media->conversions->first();
-            if ($thumb) {
-                return $this->mediaService->getSignedUrl($media, $thumb->file_path);
-            }
-        }
-
-        return $this->mediaService->getSignedUrl($media);
     }
 }

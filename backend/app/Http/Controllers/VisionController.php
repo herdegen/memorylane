@@ -82,25 +82,29 @@ class VisionController extends Controller
 
         $faces = $validated['faces'];
 
-        $media->detectedFaces()->delete();
+        // Wipe + recreate en transaction : un échec à mi-course ne doit pas
+        // perdre les visages existants.
+        \Illuminate\Support\Facades\DB::transaction(function () use ($media, $faces) {
+            $media->detectedFaces()->delete();
 
-        foreach ($faces as $face) {
-            $media->detectedFaces()->create([
-                'bounding_box' => $face['bounding_box'],
-                'confidence' => $face['confidence'] ?? null,
-                'embedding' => $face['embedding'] ?? null,
-                'provider' => 'faceapi',
-                'status' => 'unmatched',
+            foreach ($faces as $face) {
+                $media->detectedFaces()->create([
+                    'bounding_box' => $face['bounding_box'],
+                    'confidence' => $face['confidence'] ?? null,
+                    'embedding' => $face['embedding'] ?? null,
+                    'provider' => 'faceapi',
+                    'status' => 'unmatched',
+                ]);
+            }
+
+            $media->metadata()->updateOrCreate([], [
+                'vision_status' => 'completed',
+                'vision_provider' => 'faceapi',
+                'vision_faces_count' => count($faces),
+                'vision_processed_at' => now(),
+                'vision_error' => null,
             ]);
-        }
-
-        $media->metadata()->updateOrCreate([], [
-            'vision_status' => 'completed',
-            'vision_provider' => 'faceapi',
-            'vision_faces_count' => count($faces),
-            'vision_processed_at' => now(),
-            'vision_error' => null,
-        ]);
+        });
 
         return response()->json([
             'status' => 'completed',

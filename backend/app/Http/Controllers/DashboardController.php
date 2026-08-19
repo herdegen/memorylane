@@ -37,12 +37,7 @@ class DashboardController extends Controller
             ->limit(48)
             ->get();
 
-        $memories->each(function ($media) {
-            $media->url = $this->mediaService->getSignedUrl($media);
-            $media->conversions->each(function ($conv) use ($media) {
-                $conv->url = $this->mediaService->getSignedUrl($media, $conv->file_path);
-            });
-        });
+        $this->mediaService->hydrateSignedUrls($memories);
 
         return $memories
             ->groupBy(fn ($media) => $media->taken_at->year)

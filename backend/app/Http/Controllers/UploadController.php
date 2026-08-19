@@ -36,7 +36,7 @@ class UploadController extends Controller
     /** Plafond configurable (défaut 20 Go). */
     protected function maxBytes(): int
     {
-        return (int) env('UPLOAD_MAX_BYTES', 20 * 1024 * 1024 * 1024);
+        return (int) config('media.upload_max_bytes');
     }
 
     /**

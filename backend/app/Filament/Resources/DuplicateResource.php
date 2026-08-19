@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\DuplicateResource\Pages\ListDuplicates;
 use App\Models\Media;
+use App\Services\MediaService;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
@@ -228,16 +229,15 @@ class DuplicateResource extends Resource
      */
     protected static function thumbnailUrl(Media $record): ?string
     {
-        $conversion = $record->conversions
-            ->whereIn('conversion_name', ['thumbnail', 'small', 'medium'])
-            ->sortBy(fn ($c) => array_search($c->conversion_name, ['thumbnail', 'small', 'medium']))
-            ->first();
+        $preferred = ['thumbnail', 'small', 'medium'];
 
-        if (! $conversion) {
+        // Comportement historique : pas de conversion → pas de vignette
+        // (on ne sert jamais l'original en liste admin).
+        if ($record->conversions->whereIn('conversion_name', $preferred)->isEmpty()) {
             return null;
         }
 
-        return app(\App\Services\S3Service::class)->getTemporaryUrl($conversion->file_path);
+        return app(MediaService::class)->thumbnailUrl($record, $preferred);
     }
 
     protected static function humanSize(int $bytes): string

@@ -41,12 +41,7 @@ class SearchController extends Controller
             ->take(8));
 
         $media->each(function ($item) {
-            $item->url = $this->mediaService->getSignedUrl($item);
-            $thumb = $item->conversions->firstWhere('conversion_name', 'thumbnail')
-                ?? $item->conversions->firstWhere('conversion_name', 'small');
-            $item->thumbnail_url = $thumb
-                ? $this->mediaService->getSignedUrl($item, $thumb->file_path)
-                : $item->url;
+            $item->thumbnail_url = $this->mediaService->thumbnailUrl($item, ['thumbnail', 'small']);
         });
 
         return response()->json([
@@ -105,10 +100,7 @@ class SearchController extends Controller
     private function rankedPeople(string $query): \Illuminate\Support\Collection
     {
         $people = $this->safeSearch(fn () => Person::search($query)
-            ->query(fn ($b) => $b->with('avatar.conversions')->withCount([
-                'detectedFaces as matched_faces_count' => fn ($q) => $q
-                    ->where('status', 'matched')->whereNotNull('bounding_box'),
-            ]))
+            ->query(fn ($b) => $b->with('avatar.conversions')->withMatchedFacesCount())
             ->take(30)->get());
 
         if ($people->isEmpty()) {
@@ -190,12 +182,7 @@ class SearchController extends Controller
     private function personAvatarUrl(Person $person): ?string
     {
         if ($person->avatar) {
-            $thumb = $person->avatar->conversions->firstWhere('conversion_name', 'small')
-                ?? $person->avatar->conversions->first();
-
-            return $thumb
-                ? $this->mediaService->getSignedUrl($person->avatar, $thumb->file_path)
-                : $this->mediaService->getSignedUrl($person->avatar);
+            return $this->mediaService->thumbnailUrl($person->avatar);
         }
 
         if (($person->matched_faces_count ?? 0) > 0) {

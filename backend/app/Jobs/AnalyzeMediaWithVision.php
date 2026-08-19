@@ -64,28 +64,33 @@ class AnalyzeMediaWithVision implements ShouldQueue
 
             $results = $visionService->analyze($tempPath);
 
-            // Store detected faces
-            $this->storeDetectedFaces($results['faces'], $visionService->getProviderName());
+            // Toutes les écritures dans une transaction : un échec à mi-course
+            // (ou un retry du job) ne laisse jamais de visages dupliqués ou
+            // d'état partiel.
+            \Illuminate\Support\Facades\DB::transaction(function () use ($results, $visionService) {
+                // Store detected faces
+                $this->storeDetectedFaces($results['faces'], $visionService->getProviderName());
 
-            // Store labels in media_metadata
-            $this->storeLabels($results['labels']);
+                // Store labels in media_metadata
+                $this->storeLabels($results['labels']);
 
-            // Auto-tag if enabled
-            if (config('vision.auto_tag')) {
-                $this->autoTagMedia($results['labels']);
-            }
+                // Auto-tag if enabled
+                if (config('vision.auto_tag')) {
+                    $this->autoTagMedia($results['labels']);
+                }
 
-            // Update status to completed
-            MediaMetadata::updateOrCreate(
-                ['media_id' => $this->media->id],
-                [
-                    'vision_status' => 'completed',
-                    'vision_provider' => $visionService->getProviderName(),
-                    'vision_processed_at' => now(),
-                    'vision_error' => null,
-                    'vision_faces_count' => count($results['faces']),
-                ]
-            );
+                // Update status to completed
+                MediaMetadata::updateOrCreate(
+                    ['media_id' => $this->media->id],
+                    [
+                        'vision_status' => 'completed',
+                        'vision_provider' => $visionService->getProviderName(),
+                        'vision_processed_at' => now(),
+                        'vision_error' => null,
+                        'vision_faces_count' => count($results['faces']),
+                    ]
+                );
+            });
 
             Log::info('AnalyzeMediaWithVision: Analysis completed', [
                 'media_id' => $this->media->id,

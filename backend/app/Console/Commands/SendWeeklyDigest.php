@@ -41,15 +41,10 @@ class SendWeeklyDigest extends Command
                 ->all();
 
             // 4 vignettes, URLs signées valables 7 jours (durée de vie du mail)
-            $samples = $newMedia->take(4)->map(function ($media) use ($mediaService) {
-                $thumb = $media->conversions->firstWhere('conversion_name', 'small')
-                    ?? $media->conversions->firstWhere('conversion_name', 'thumbnail');
-
-                return [
-                    'name' => $media->title ?: $media->original_name,
-                    'url' => $mediaService->getSignedUrl($media, $thumb?->file_path, 60 * 24 * 7),
-                ];
-            })->all();
+            $samples = $newMedia->take(4)->map(fn ($media) => [
+                'name' => $media->title ?: $media->original_name,
+                'url' => $mediaService->thumbnailUrl($media, expirationMinutes: 60 * 24 * 7),
+            ])->all();
 
             $user->notify(new WeeklyDigest($newMedia->count(), $uploaderNames, $samples));
             $count++;

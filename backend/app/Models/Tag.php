@@ -47,7 +47,9 @@ class Tag extends Model
         });
 
         static::updating(function ($tag) {
-            if ($tag->isDirty('name') && empty($tag->slug)) {
+            // Le slug suit toujours le nom : l'auto-tag Vision déduplique par
+            // slug, un slug figé après renommage créerait des doublons.
+            if ($tag->isDirty('name') && ! $tag->isDirty('slug')) {
                 $tag->slug = Str::slug($tag->name);
             }
         });

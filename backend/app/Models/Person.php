@@ -111,6 +111,18 @@ class Person extends Model
     }
 
     /**
+     * Charge `matched_faces_count` : le nombre de visages confirmés (matched,
+     * avec bounding box) — nécessaire pour savoir si un avatar-visage existe.
+     * Contrainte partagée entre fiches, recherche, arbre et admin.
+     */
+    public function scopeWithMatchedFacesCount($query)
+    {
+        return $query->withCount(['detectedFaces as matched_faces_count' => function ($q) {
+            $q->where('status', 'matched')->whereNotNull('bounding_box');
+        }]);
+    }
+
+    /**
      * Moments de vie rattachés (frise chronologique).
      */
     public function lifeEvents()

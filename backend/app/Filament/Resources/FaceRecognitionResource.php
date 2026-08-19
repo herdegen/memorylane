@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\FaceRecognitionResource\Pages\ListFaceRecognition;
 use App\Jobs\AnalyzeMediaWithVision;
 use App\Models\Media;
+use App\Services\MediaService;
 use App\Services\Vision\FaceMatcher;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
@@ -310,16 +311,15 @@ class FaceRecognitionResource extends Resource
      */
     protected static function thumbnailUrl(Media $record): ?string
     {
-        $conversion = $record->conversions
-            ->whereIn('conversion_name', ['thumbnail', 'small', 'medium'])
-            ->sortBy(fn ($c) => array_search($c->conversion_name, ['thumbnail', 'small', 'medium']))
-            ->first();
+        $preferred = ['thumbnail', 'small', 'medium'];
 
-        if (! $conversion) {
+        // Comportement historique : pas de conversion → pas de vignette
+        // (on ne sert jamais l'original en liste admin).
+        if ($record->conversions->whereIn('conversion_name', $preferred)->isEmpty()) {
             return null;
         }
 
-        return app(\App\Services\S3Service::class)->getTemporaryUrl($conversion->file_path);
+        return app(MediaService::class)->thumbnailUrl($record, $preferred);
     }
 
     public static function getPages(): array

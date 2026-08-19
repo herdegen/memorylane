@@ -124,20 +124,13 @@ class AlbumController extends Controller
         // Nombre de visages reconnus (matched) par média : le diaporama animé
         // s'en sert pour donner la priorité aux photos où des personnes sont
         // identifiées (pondération, pas de filtrage).
+        // NB : contrainte volontairement différente de Person::withMatchedFacesCount
+        // (modèle Media, et pas d'exigence de bounding_box ici).
         $album->media->loadCount([
             'detectedFaces as matched_faces_count' => fn ($q) => $q->where('status', 'matched'),
         ]);
 
-        $album->media->transform(function ($media) {
-            $media->url = $this->mediaService->getSignedUrl($media);
-            if ($media->conversions) {
-                $media->conversions->transform(function ($conv) use ($media) {
-                    $conv->url = $this->mediaService->getSignedUrl($media, $conv->file_path);
-                    return $conv;
-                });
-            }
-            return $media;
-        });
+        $this->mediaService->hydrateSignedUrls($album->media);
 
         $cover = $this->coverMediaFor($album);
         if ($cover) {
@@ -328,16 +321,7 @@ class AlbumController extends Controller
 
         $album->loadCount('media');
 
-        $album->media->transform(function ($media) {
-            $media->url = $this->mediaService->getSignedUrl($media);
-            if ($media->conversions) {
-                $media->conversions->transform(function ($conv) use ($media) {
-                    $conv->url = $this->mediaService->getSignedUrl($media, $conv->file_path);
-                    return $conv;
-                });
-            }
-            return $media;
-        });
+        $this->mediaService->hydrateSignedUrls($album->media);
 
         $cover = $this->coverMediaFor($album);
         if ($cover) {
@@ -366,14 +350,7 @@ class AlbumController extends Controller
 
     private function getCoverUrl(Media $media): string
     {
-        if ($media->conversions && $media->conversions->count() > 0) {
-            $thumb = $media->conversions->firstWhere('conversion_name', 'small')
-                ?? $media->conversions->first();
-            if ($thumb) {
-                return $this->mediaService->getSignedUrl($media, $thumb->file_path);
-            }
-        }
-        return $this->mediaService->getSignedUrl($media);
+        return $this->mediaService->thumbnailUrl($media);
     }
 
     /**

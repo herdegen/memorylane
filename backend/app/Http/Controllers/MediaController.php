@@ -116,28 +116,12 @@ class MediaController extends Controller
             'sourceMedia', 'clips.conversions',
         ]);
 
-        // Generate signed URL
-        $media->url = $this->mediaService->getSignedUrl($media);
-
-        // Generate signed URLs for conversions
-        if ($media->conversions) {
-            $media->conversions->transform(function ($conversion) use ($media) {
-                $conversion->url = $this->mediaService->getSignedUrl($media, $conversion->file_path);
-                return $conversion;
-            });
-        }
+        // URLs signées du média + de ses conversions
+        $this->mediaService->hydrateSignedUrls([$media]);
 
         // Vignettes signées des clips (pour la liste sur une vidéo source)
         if ($media->clips) {
-            $media->clips->each(function ($clip) {
-                $clip->url = $this->mediaService->getSignedUrl($clip);
-                if ($clip->conversions) {
-                    $clip->conversions->transform(function ($conversion) use ($clip) {
-                        $conversion->url = $this->mediaService->getSignedUrl($clip, $conversion->file_path);
-                        return $conversion;
-                    });
-                }
-            });
+            $this->mediaService->hydrateSignedUrls($media->clips);
         }
 
         // Append computed accessor for videos

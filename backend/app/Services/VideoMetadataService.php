@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Media;
-use FFMpeg\FFProbe;
 
 class VideoMetadataService
 {
@@ -39,9 +38,7 @@ class VideoMetadataService
      */
     public function extractFromFile(Media $media, string $localPath): void
     {
-        $ffprobe = FFProbe::create([
-            'ffprobe.binaries' => env('FFPROBE_BINARIES', '/usr/bin/ffprobe'),
-        ]);
+        $ffprobe = FfmpegFactory::ffprobe();
 
         $streams = $ffprobe->streams($localPath);
         $format  = $ffprobe->format($localPath);

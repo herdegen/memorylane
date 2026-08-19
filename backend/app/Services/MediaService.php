@@ -31,22 +31,47 @@ class MediaService
             ->with(['user', 'conversions', 'metadata', 'tags'])
             ->paginate($perPage);
 
-        // Add signed URLs for each media item and its conversions
-        $media->getCollection()->transform(function ($item) {
-            $item->url = $this->s3Service->getTemporaryUrl($item->file_path);
-
-            // Add signed URLs for conversions
-            if ($item->conversions) {
-                $item->conversions->transform(function ($conversion) {
-                    $conversion->url = $this->s3Service->getTemporaryUrl($conversion->file_path);
-                    return $conversion;
-                });
-            }
-
-            return $item;
-        });
+        $this->hydrateSignedUrls($media->getCollection());
 
         return $media;
+    }
+
+    /**
+     * Hydrate `->url` (URL signée) sur chaque média ET sur chacune de ses
+     * conversions chargées. Point unique de génération des URLs exposées au
+     * navigateur : toute évolution du mode de service des fichiers (proxy
+     * authentifié, présignées…) se fait ici.
+     *
+     * @param iterable<Media> $mediaItems
+     */
+    public function hydrateSignedUrls(iterable $mediaItems): void
+    {
+        foreach ($mediaItems as $item) {
+            $item->url = $this->s3Service->getTemporaryUrl($item->file_path);
+
+            if ($item->relationLoaded('conversions')) {
+                foreach ($item->conversions as $conversion) {
+                    $conversion->url = $this->s3Service->getTemporaryUrl($conversion->file_path);
+                }
+            }
+        }
+    }
+
+    /**
+     * URL signée de la meilleure vignette disponible : la première conversion
+     * de $preferred qui existe, sinon l'original.
+     */
+    public function thumbnailUrl(Media $media, array $preferred = ['small', 'thumbnail'], int $expirationMinutes = 60): string
+    {
+        $conversion = null;
+        foreach ($preferred as $name) {
+            $conversion = $media->conversions->firstWhere('conversion_name', $name);
+            if ($conversion) {
+                break;
+            }
+        }
+
+        return $this->getSignedUrl($media, $conversion?->file_path, $expirationMinutes);
     }
 
     /**
