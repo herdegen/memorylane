@@ -147,7 +147,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 
@@ -182,6 +182,7 @@ const locationSearch = ref('');
 const locationResults = ref([]);
 const errorMessage = ref('');
 let searchTimeout = null;
+onUnmounted(() => clearTimeout(searchTimeout));
 
 const editForm = ref({
   latitude: props.initialLatitude,

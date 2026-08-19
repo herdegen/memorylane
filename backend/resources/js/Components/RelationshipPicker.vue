@@ -44,7 +44,7 @@
       </div>
 
       <p v-if="showResults && query.length >= 2 && results.length === 0" class="text-xs text-surface-400 mt-1">
-        Aucune personne trouvee
+        Aucune personne trouvée
       </p>
     </div>
   </div>
@@ -70,23 +70,34 @@ const query = ref('');
 const results = ref([]);
 const showResults = ref(false);
 
+// La liste complète est chargée UNE fois (comme PersonInput), le filtrage est
+// local — avant : un GET /people complet à chaque frappe.
+const allPeople = ref(null);
+
+async function loadPeople() {
+  if (allPeople.value !== null) return;
+  try {
+    const response = await axios.get('/people', {
+      headers: { Accept: 'application/json' },
+    });
+    allPeople.value = response.data;
+  } catch (error) {
+    console.error('Erreur chargement personnes:', error);
+    allPeople.value = [];
+  }
+}
+
 async function search() {
   if (query.value.length < 2) {
     results.value = [];
     return;
   }
 
-  try {
-    const response = await axios.get('/people', {
-      headers: { Accept: 'application/json' },
-    });
+  await loadPeople();
 
-    // Insensible aux accents + tolérant aux fautes (helper partagé).
-    const candidates = response.data.filter(p => !props.excludeIds.includes(p.id));
-    results.value = searchPeople(query.value, candidates, p => p.name).slice(0, 8);
-  } catch (error) {
-    console.error('Erreur recherche:', error);
-  }
+  // Insensible aux accents + tolérant aux fautes (helper partagé).
+  const candidates = allPeople.value.filter(p => !props.excludeIds.includes(p.id));
+  results.value = searchPeople(query.value, candidates, p => p.name).slice(0, 8);
 }
 
 function selectPerson(person) {

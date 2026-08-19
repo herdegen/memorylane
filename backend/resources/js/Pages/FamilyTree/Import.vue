@@ -6,7 +6,7 @@
           href="/family-tree"
           class="inline-flex items-center text-sm text-surface-500 hover:text-surface-700 mb-6"
         >
-          &larr; Retour a l'arbre
+          &larr; Retour à l'arbre
         </Link>
 
         <h1 class="text-display text-4xl text-surface-900 mb-6">Importer un fichier GEDCOM</h1>
@@ -14,7 +14,7 @@
         <!-- Step 1: Upload -->
         <div v-if="step === 'upload'" class="bg-white rounded-lg shadow-md p-6">
           <p class="text-surface-600 mb-4">
-            Selectionnez un fichier GEDCOM (.ged) exporte depuis Geneanet ou un autre logiciel de genealogie.
+            Sélectionnez un fichier GEDCOM (.ged) exporté depuis Geneanet ou un autre logiciel de généalogie.
           </p>
 
           <div
@@ -41,14 +41,14 @@
             >
               {{ uploading ? 'Analyse en cours...' : 'Choisir un fichier' }}
             </button>
-            <p class="mt-2 text-sm text-surface-500">ou glissez-deposez un fichier .ged ici</p>
+            <p class="mt-2 text-sm text-surface-500">ou glissez-déposez un fichier .ged ici</p>
           </div>
 
           <p v-if="uploadError" class="mt-4 text-red-600 text-sm">{{ uploadError }}</p>
 
           <!-- Previous imports -->
           <div v-if="imports.length > 0" class="mt-8">
-            <h3 class="font-semibold text-surface-900 mb-3">Imports precedents</h3>
+            <h3 class="font-semibold text-surface-900 mb-3">Imports précédents</h3>
             <div v-for="imp in imports" :key="imp.id" class="flex items-center justify-between py-2 border-b">
               <div>
                 <span class="font-medium">{{ imp.filename }}</span>
@@ -73,10 +73,10 @@
         <div v-if="step === 'matching'" class="bg-white rounded-lg shadow-md p-6">
           <div class="flex justify-between items-center mb-6">
             <div>
-              <h2 class="text-lg font-semibold">Verification des correspondances</h2>
+              <h2 class="text-lg font-semibold">Vérification des correspondances</h2>
               <p class="text-sm text-surface-500">
-                {{ suggestions.length }} individus trouves dans le fichier.
-                Choisissez de creer, associer ou ignorer chaque personne.
+                {{ suggestions.length }} individus trouvés dans le fichier.
+                Choisissez de créer, associer ou ignorer chaque personne.
               </p>
             </div>
             <div class="flex gap-2">
@@ -84,7 +84,7 @@
                 @click="setAllDecisions('create')"
                 class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-sm hover:bg-green-200"
               >
-                Tout creer
+                Tout créer
               </button>
               <button
                 @click="setAllDecisions('skip')"
@@ -178,17 +178,17 @@
           <svg class="mx-auto h-16 w-16 text-green-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
           </svg>
-          <h2 class="text-xl font-semibold text-surface-900 mb-2">Import termine</h2>
+          <h2 class="text-xl font-semibold text-surface-900 mb-2">Import terminé</h2>
           <div class="text-surface-600 space-y-1">
-            <p>{{ importStats.created }} personne(s) creee(s)</p>
-            <p>{{ importStats.matched }} personne(s) associee(s)</p>
-            <p>{{ importStats.skipped }} personne(s) ignoree(s)</p>
+            <p>{{ importStats.created }} personne(s) créée(s)</p>
+            <p>{{ importStats.matched }} personne(s) associée(s)</p>
+            <p>{{ importStats.skipped }} personne(s) ignorée(s)</p>
           </div>
           <Link
             href="/family-tree"
             class="mt-6 inline-flex items-center px-6 py-2 text-sm text-white bg-brand-600 rounded-lg hover:bg-brand-700"
           >
-            Voir l'arbre genealogique
+            Voir l'arbre généalogique
           </Link>
         </div>
       </div>
@@ -283,10 +283,10 @@ function setAllDecisions(action) {
 function statusLabel(status) {
   const labels = {
     pending: 'En attente',
-    matching: 'En cours de verification',
+    matching: 'En cours de vérification',
     importing: 'Import en cours',
-    completed: 'Termine',
-    failed: 'Echoue',
+    completed: 'Terminé',
+    failed: 'Échoué',
   };
   return labels[status] || status;
 }

@@ -2,11 +2,17 @@
   <div class="bg-white rounded-xl border border-surface-200 shadow-xs p-6 mb-6">
     <h3 class="text-lg font-semibold text-surface-900 mb-4">Partage</h3>
 
+    <!-- Erreur d'action de partage -->
+    <div v-if="errorMessage" class="mb-3 px-3 py-2 text-sm text-red-700 bg-red-50 rounded-lg flex items-start justify-between gap-2">
+      <span>{{ errorMessage }}</span>
+      <button type="button" class="text-red-500 hover:text-red-700" @click="errorMessage = null">✕</button>
+    </div>
+
     <!-- Public Toggle (propriétaire uniquement) -->
     <div v-if="isOwner" class="flex items-center justify-between py-3 border-b border-surface-200">
       <div>
         <p class="text-sm font-medium text-surface-700">Album public</p>
-        <p class="text-xs text-surface-500">Visible par tous les utilisateurs connectes</p>
+        <p class="text-xs text-surface-500">Visible par tous les utilisateurs connectés</p>
       </div>
       <button
         type="button"
@@ -29,7 +35,7 @@
     <div v-if="isOwner" class="py-4">
       <p class="text-sm font-medium text-surface-700 mb-2">Lien de partage</p>
       <p class="text-xs text-surface-500 mb-3">
-        Partagez ce lien pour permettre a n'importe qui de voir l'album
+        Partagez ce lien pour permettre à n'importe qui de voir l'album
       </p>
 
       <div v-if="shareUrl" class="space-y-3">
@@ -46,7 +52,7 @@
             class="px-4 py-2 text-sm font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100 focus:outline-hidden focus:ring-2 focus:ring-brand-500"
             @click="copyLink"
           >
-            {{ copied ? 'Copie !' : 'Copier' }}
+            {{ copied ? 'Copié !' : 'Copier' }}
           </button>
         </div>
 
@@ -56,7 +62,7 @@
           class="text-sm text-red-600 hover:text-red-800"
           @click="revokeLink"
         >
-          Revoquer le lien
+          Révoquer le lien
         </button>
       </div>
 
@@ -101,7 +107,7 @@
               d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
             />
           </svg>
-          Generer un lien
+          Générer un lien
         </button>
       </div>
     </div>
@@ -168,7 +174,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
 
 const props = defineProps({
@@ -190,6 +196,7 @@ const isPublic = ref(props.album.is_public);
 const shareUrl = ref(props.album.share_url);
 const copied = ref(false);
 const generating = ref(false);
+const errorMessage = ref(null);
 
 // Accès par compte (partage restreint)
 const accesses = ref([]);
@@ -231,7 +238,7 @@ const grant = async (candidate) => {
     await loadAccesses();
     emit('updated');
   } catch (e) {
-    console.error('Failed to grant access:', e);
+    errorMessage.value = e.response?.data?.message || "Impossible d'ajouter cet accès.";
   }
 };
 
@@ -241,7 +248,7 @@ const revoke = async (access) => {
     await loadAccesses();
     emit('updated');
   } catch (e) {
-    console.error('Failed to revoke access:', e);
+    errorMessage.value = e.response?.data?.message || 'Impossible de retirer cet accès.';
   }
 };
 
@@ -252,6 +259,7 @@ const originLabel = (a) => {
 };
 
 onMounted(loadAccesses);
+onUnmounted(() => clearTimeout(searchTimer));
 
 const togglePublic = async () => {
   try {
@@ -263,7 +271,7 @@ const togglePublic = async () => {
     isPublic.value = !isPublic.value;
     emit('updated');
   } catch (error) {
-    console.error('Failed to update album visibility:', error);
+    errorMessage.value = error.response?.data?.message || "Impossible de changer la visibilité de l'album.";
   }
 };
 
@@ -274,14 +282,14 @@ const generateLink = async () => {
     shareUrl.value = response.data.share_url;
     emit('updated');
   } catch (error) {
-    console.error('Failed to generate share link:', error);
+    errorMessage.value = error.response?.data?.message || 'Impossible de générer le lien de partage.';
   } finally {
     generating.value = false;
   }
 };
 
 const revokeLink = async () => {
-  if (!confirm('Etes-vous sur de vouloir revoquer ce lien ? Les personnes ayant le lien ne pourront plus acceder a l\'album.')) {
+  if (!confirm('Êtes-vous sûr de vouloir révoquer ce lien ? Les personnes ayant le lien ne pourront plus accéder à l\'album.')) {
     return;
   }
   try {
@@ -289,7 +297,7 @@ const revokeLink = async () => {
     shareUrl.value = null;
     emit('updated');
   } catch (error) {
-    console.error('Failed to revoke share link:', error);
+    errorMessage.value = error.response?.data?.message || 'Impossible de révoquer le lien de partage.';
   }
 };
 

@@ -22,7 +22,7 @@
           v-model="form.title"
           type="text"
           class="w-full px-3 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-          placeholder="Titre du media"
+          placeholder="Titre du média"
         />
       </div>
 
@@ -35,7 +35,7 @@
           v-model="form.description"
           rows="3"
           class="w-full px-3 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-          placeholder="Decrivez ce media..."
+          placeholder="Décrivez ce média..."
         ></textarea>
       </div>
 
@@ -107,12 +107,12 @@
       </div>
 
       <div v-if="media.duration">
-        <dt class="text-sm font-medium text-surface-500">Duree</dt>
+        <dt class="text-sm font-medium text-surface-500">Durée</dt>
         <dd class="mt-1 text-sm text-surface-900">{{ formatDuration(media.duration) }}</dd>
       </div>
 
       <div>
-        <dt class="text-sm font-medium text-surface-500">Telecharge le</dt>
+        <dt class="text-sm font-medium text-surface-500">Téléchargé le</dt>
         <dd class="mt-1 text-sm text-surface-900">{{ formatDate(media.uploaded_at) }}</dd>
       </div>
 
@@ -122,7 +122,7 @@
       </div>
 
       <div v-if="media.user">
-        <dt class="text-sm font-medium text-surface-500">Uploade par</dt>
+        <dt class="text-sm font-medium text-surface-500">Uploadé par</dt>
         <dd class="mt-1 text-sm text-surface-900">{{ media.user.name }}</dd>
       </div>
 
@@ -217,14 +217,14 @@ const save = async () => {
     emit('updated', response.data.media);
   } catch (error) {
     console.error('Failed to update media:', error);
-    alert('Erreur lors de la mise a jour');
+    alert('Erreur lors de la mise à jour');
   } finally {
     saving.value = false;
   }
 };
 
 const formatType = (type) => {
-  const types = { photo: 'Photo', video: 'Video', document: 'Document' };
+  const types = { photo: 'Photo', video: 'Vidéo', document: 'Document' };
   return types[type] || type;
 };
 

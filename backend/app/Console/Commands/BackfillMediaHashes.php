@@ -30,7 +30,16 @@ class BackfillMediaHashes extends Command
                         $failed++;
                         continue;
                     }
-                    $media->content_hash = hash('sha256', Storage::disk($disk)->get($media->file_path));
+                    // Hash en streaming : ne jamais charger un fichier entier
+                    // en RAM (les vidéos peuvent peser plusieurs Go).
+                    $stream = Storage::disk($disk)->readStream($media->file_path);
+                    $ctx = hash_init('sha256');
+                    hash_update_stream($ctx, $stream);
+                    if (is_resource($stream)) {
+                        fclose($stream);
+                    }
+
+                    $media->content_hash = hash_final($ctx);
                     $media->saveQuietly(); // pas d'événements (évite une réindexation Scout)
                     $done++;
                 } catch (\Throwable $e) {

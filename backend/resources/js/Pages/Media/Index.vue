@@ -103,7 +103,7 @@
               v-model="searchQuery"
               type="text"
               placeholder="Rechercher dans vos médias..."
-              class="block w-full pl-10 pr-3 py-2 border border-surface-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-hidden focus:placeholder-gray-400 focus:ring-1 focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
+              class="block w-full pl-10 pr-3 py-2 border border-surface-300 rounded-md leading-5 bg-white placeholder-surface-500 focus:outline-hidden focus:placeholder-surface-400 focus:ring-1 focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
               @input="debouncedSearch"
             />
           </div>
@@ -247,7 +247,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted, watch } from 'vue';
+import { ref, computed, reactive, onMounted, onUnmounted, watch } from 'vue';
 import axios from 'axios';
 import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -411,10 +411,9 @@ const clearTagFilters = () => {
 
 const loadAvailableTags = async () => {
   try {
-    const response = await fetch('/tags', {
+    const { data } = await axios.get('/tags', {
       headers: { 'Accept': 'application/json' }
     });
-    const data = await response.json();
     availableTags.value = data;
   } catch (error) {
     console.error('Error loading tags:', error);
@@ -511,6 +510,8 @@ const clearVideoFilters = () => {
 };
 
 // Initialize on mount
+onUnmounted(() => clearTimeout(searchTimeout));
+
 onMounted(() => {
   loadAvailableTags();
 });

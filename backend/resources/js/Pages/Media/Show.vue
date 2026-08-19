@@ -170,7 +170,7 @@
             <!-- Tags -->
             <div class="bg-white rounded-lg shadow-xs p-6">
               <h2 class="text-lg font-semibold text-surface-900 mb-4">Tags</h2>
-              <TagInput :media-id="media.id" :initial-tags="media.tags || []" @tags-updated="handleTagsUpdated" />
+              <TagInput :media-id="media.id" :initial-tags="media.tags || []" />
             </div>
 
             <!-- Détection de visages (100% navigateur, face-api.js) -->
@@ -241,7 +241,6 @@
             <PersonInput
               :media-id="media.id"
               :initial-people="media.people || []"
-              @people-updated="handlePeopleUpdated"
             />
 
             <!-- Geolocation -->
@@ -250,8 +249,6 @@
               :initial-latitude="media.metadata?.latitude"
               :initial-longitude="media.metadata?.longitude"
               :initial-altitude="media.metadata?.altitude"
-              @updated="handleGeolocationUpdated"
-              @removed="handleGeolocationRemoved"
             />
 
             <!-- Actions -->
@@ -401,22 +398,6 @@ const handleMediaUpdated = (updatedMedia) => {
   router.reload();
 };
 
-const handleTagsUpdated = (tags) => {
-  console.log('Tags updated:', tags);
-};
-
-const handleGeolocationUpdated = (metadata) => {
-  console.log('Geolocation updated:', metadata);
-};
-
-const handleGeolocationRemoved = () => {
-  console.log('Geolocation removed');
-};
-
-const handlePeopleUpdated = (people) => {
-  console.log('People updated:', people);
-};
-
 const handleFaceClick = (face) => {
   // Matché, non-matché OU rejeté : on ouvre le panneau (permet de corriger,
   // ré-identifier ou ignorer). `rejected` = visage désassocié « collant »
@@ -441,10 +422,6 @@ const handleFaceReset = () => {
   router.reload();
 };
 
-const handleAnalysisComplete = () => {
-  router.reload();
-};
-
 const deleteMedia = async () => {
   if (!confirm('Êtes-vous sûr de vouloir supprimer ce média ? Cette action est irréversible.')) {
     return;
@@ -456,15 +433,6 @@ const deleteMedia = async () => {
   } catch (error) {
     alert('Erreur lors de la suppression: ' + (error.response?.data?.message || error.message));
   }
-};
-
-const formatType = (type) => {
-  const types = {
-    photo: 'Photo',
-    video: 'Vidéo',
-    document: 'Document',
-  };
-  return types[type] || type;
 };
 
 const formatFileSize = (bytes) => {
@@ -484,17 +452,5 @@ const formatDuration = (seconds) => {
     return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
   return `${minutes}:${secs.toString().padStart(2, '0')}`;
-};
-
-const formatDate = (dateString) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 };
 </script>

@@ -98,12 +98,12 @@
         v-if="showSuggestions && searchQuery && filteredPeople.length === 0 && availablePeople.length > 0"
         class="absolute z-10 w-full mt-1 bg-white border border-surface-200 rounded-lg shadow-lg p-4 text-center text-sm text-surface-500"
       >
-        <p>Aucune personne trouvee pour "{{ searchQuery }}"</p>
+        <p>Aucune personne trouvée pour "{{ searchQuery }}"</p>
         <button
           @mousedown.prevent="showCreateModal = true"
           class="mt-2 text-brand-600 hover:text-brand-800"
         >
-          Creer "{{ searchQuery }}"
+          Créer "{{ searchQuery }}"
         </button>
       </div>
     </div>

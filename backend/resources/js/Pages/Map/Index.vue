@@ -47,7 +47,7 @@
           <!-- Search by name -->
           <input
             v-model="filters.search"
-            @input="applyFilters"
+            @input="debounceFilters"
             type="text"
             placeholder="Rechercher par nom..."
             class="w-full px-3 py-2 border border-surface-300 rounded-lg mb-3"
@@ -114,7 +114,6 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue';
-import { router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -131,6 +130,7 @@ const props = defineProps({
 const mapContainer = ref(null);
 let map = null;
 let markersLayer = null;
+let searchMarker = null;
 
 // Data
 const geolocatedMedia = ref([]);
@@ -173,6 +173,8 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  clearTimeout(searchTimeout);
+  clearTimeout(filterTimeout);
   if (map) {
     map.remove();
   }
@@ -297,6 +299,13 @@ function applyFilters() {
   loadGeolocatedMedia();
 }
 
+// Filtre « nom » : requête réseau debouncée (pas une par frappe)
+let filterTimeout = null;
+function debounceFilters() {
+  clearTimeout(filterTimeout);
+  filterTimeout = setTimeout(applyFilters, 400);
+}
+
 // Debounced location search
 function debounceSearch() {
   clearTimeout(searchTimeout);
@@ -332,15 +341,18 @@ function selectLocation(location) {
   // Pan map to selected location
   map.setView([selectedLocation.value.lat, selectedLocation.value.lon], 12);
 
-  // Add a marker for selected location
-  const marker = L.marker([selectedLocation.value.lat, selectedLocation.value.lon], {
-    icon: L.icon({
-      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      shadowSize: [41, 41]
+  // Marqueur du lieu recherché : un seul à la fois (l'ancien est retiré),
+  // icône locale (pas de dépendance à un CDN externe).
+  if (searchMarker) {
+    searchMarker.remove();
+  }
+  searchMarker = L.marker([selectedLocation.value.lat, selectedLocation.value.lon], {
+    icon: L.divIcon({
+      className: 'custom-thumb-marker',
+      html: '<div style="width:18px;height:18px;border-radius:50% 50% 50% 0;background:#dc2626;border:2px solid #fff;transform:rotate(-45deg);box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>',
+      iconSize: [18, 18],
+      iconAnchor: [9, 18],
+      popupAnchor: [0, -18],
     })
   })
   .bindPopup(location.display_name)
@@ -375,6 +387,10 @@ async function searchNearby() {
 // Clear location selection
 function clearSelection() {
   selectedLocation.value = null;
+  if (searchMarker) {
+    searchMarker.remove();
+    searchMarker = null;
+  }
   loadGeolocatedMedia();
 }
 </script>

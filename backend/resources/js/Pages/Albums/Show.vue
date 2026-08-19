@@ -13,6 +13,12 @@
           Retour aux albums
         </Link>
 
+        <!-- Erreur d'action -->
+        <div v-if="errorMessage" class="mb-4 px-4 py-3 text-sm text-red-700 bg-red-50 rounded-lg flex items-start justify-between gap-2">
+          <span>{{ errorMessage }}</span>
+          <button type="button" class="text-red-500 hover:text-red-700" @click="errorMessage = null">✕</button>
+        </div>
+
         <!-- Album Header -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-6">
           <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -84,7 +90,7 @@
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                 </svg>
-                Ajouter des medias
+                Ajouter des médias
               </button>
             </div>
           </div>
@@ -109,7 +115,7 @@
         <!-- Media Grid -->
         <div v-if="album.media && album.media.length > 0">
           <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-surface-900">Medias</h2>
+            <h2 class="text-lg font-semibold text-surface-900">Médias</h2>
             <div v-if="selectedMediaIds.length > 0" class="flex items-center gap-2">
               <button
                 v-if="selectedMediaIds.length === 1"
@@ -175,8 +181,8 @@
               d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
             />
           </svg>
-          <h3 class="mt-4 text-lg font-medium text-surface-900">Aucun media</h3>
-          <p class="mt-2 text-surface-500">Ajoutez des photos et videos a cet album.</p>
+          <h3 class="mt-4 text-lg font-medium text-surface-900">Aucun média</h3>
+          <p class="mt-2 text-surface-500">Ajoutez des photos et vidéos à cet album.</p>
           <button
             v-if="isOwner"
             @click="showAddMediaModal = true"
@@ -185,7 +191,7 @@
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
-            Ajouter des medias
+            Ajouter des médias
           </button>
         </div>
 
@@ -267,6 +273,7 @@ const props = defineProps({
 });
 
 const showSharePanel = ref(false);
+const errorMessage = ref(null);
 
 // Diaporama
 const slideshowEl = ref(null);
@@ -361,7 +368,7 @@ const removeSelectedMedia = async () => {
   const ids = removableSelectedIds.value;
   if (ids.length === 0) return;
 
-  if (!confirm(`Retirer ${ids.length} media(s) de l'album ?`)) {
+  if (!confirm(`Retirer ${ids.length} média(s) de l'album ?`)) {
     return;
   }
 
@@ -372,12 +379,12 @@ const removeSelectedMedia = async () => {
     selectedMediaIds.value = [];
     router.reload();
   } catch (error) {
-    console.error('Failed to remove media:', error);
+    errorMessage.value = error.response?.data?.message || "Impossible de retirer ces médias de l'album.";
   }
 };
 
 const deleteAlbum = async () => {
-  if (!confirm('Etes-vous sur de vouloir supprimer cet album ? Les medias ne seront pas supprimes.')) {
+  if (!confirm('Êtes-vous sûr de vouloir supprimer cet album ? Les médias ne seront pas supprimés.')) {
     return;
   }
 
@@ -385,7 +392,7 @@ const deleteAlbum = async () => {
     await axios.delete(`/albums/${props.album.id}`);
     router.visit('/albums');
   } catch (error) {
-    console.error('Failed to delete album:', error);
+    errorMessage.value = error.response?.data?.message || "Impossible de supprimer l'album.";
   }
 };
 

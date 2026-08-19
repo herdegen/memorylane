@@ -79,9 +79,9 @@
               v-model="form.gender"
               class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
             >
-              <option value="U">Non specifie</option>
+              <option value="U">Non spécifié</option>
               <option value="M">Masculin</option>
-              <option value="F">Feminin</option>
+              <option value="F">Féminin</option>
             </select>
           </div>
 
@@ -100,7 +100,7 @@
 
             <div>
               <label for="death_date" class="block text-sm font-medium text-surface-700 mb-1">
-                Date de deces
+                Date de décès
               </label>
               <input
                 id="death_date"
@@ -140,7 +140,7 @@
             class="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50"
             @click="submit"
           >
-            {{ submitting ? 'Enregistrement...' : (person ? 'Enregistrer' : 'Creer') }}
+            {{ submitting ? 'Enregistrement...' : (person ? 'Enregistrer' : 'Créer') }}
           </button>
         </div>
       </div>

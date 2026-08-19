@@ -45,7 +45,7 @@
     <!-- Search existing people -->
     <div class="mb-4">
       <label class="block text-sm font-medium text-surface-700 mb-1">
-        {{ face.person ? 'Changer de personne' : 'Selectionner une personne' }}
+        {{ face.person ? 'Changer de personne' : 'Sélectionner une personne' }}
       </label>
       <div class="relative">
         <input
@@ -77,7 +77,7 @@
       </div>
 
       <p v-else-if="searchQuery && !loadingPeople" class="mt-2 text-sm text-surface-500">
-        Aucune personne trouvee
+        Aucune personne trouvée
       </p>
     </div>
 
@@ -124,7 +124,7 @@
           :disabled="!newPersonName.trim() || matching"
           class="flex-1 px-3 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50"
         >
-          Creer et associer
+          Créer et associer
         </button>
         <button
           @click="showCreatePerson = false"

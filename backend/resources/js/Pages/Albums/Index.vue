@@ -52,7 +52,7 @@
             />
           </svg>
           <h3 class="mt-4 text-lg font-medium text-surface-900">Aucun album</h3>
-          <p class="mt-2 text-surface-500">Creez votre premier album pour organiser vos medias.</p>
+          <p class="mt-2 text-surface-500">Créez votre premier album pour organiser vos médias.</p>
           <button
             @click="showCreateModal = true"
             class="mt-6 inline-flex items-center px-4 py-2 text-sm font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100"
@@ -60,7 +60,7 @@
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
-            Creer un album
+            Créer un album
           </button>
         </div>
 

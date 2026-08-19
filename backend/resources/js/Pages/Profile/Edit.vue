@@ -13,11 +13,11 @@
             </p>
 
             <FormError
-              v-if="flash.success"
+              v-if="flash.success && !successDismissed"
               type="success"
               :message="flash.success"
               dismissible
-              @dismiss="flash.success = null"
+              @dismiss="successDismissed = true"
             />
 
             <form @submit.prevent="updateProfile" class="space-y-6">
@@ -131,6 +131,7 @@
 </template>
 
 <script setup>
+import { ref } from 'vue';
 import { Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FormField from '@/Components/Forms/FormField.vue';
@@ -143,6 +144,8 @@ const props = defineProps({
 });
 
 const { flash } = useAuth();
+// Fermeture locale du bandeau : on ne mute pas les props de page Inertia.
+const successDismissed = ref(false);
 
 const profileForm = useForm({
   name: props.user.name,

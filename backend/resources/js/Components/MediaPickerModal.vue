@@ -20,10 +20,10 @@
         <!-- Header -->
         <div class="bg-white px-6 py-4 border-b border-surface-200 flex items-center justify-between">
           <h3 class="text-lg font-semibold text-surface-900">
-            Ajouter des medias
+            Ajouter des médias
           </h3>
           <span class="text-sm text-surface-500">
-            {{ selectedIds.length }} selectionne(s)
+            {{ selectedIds.length }} sélectionné(s)
           </span>
         </div>
 
@@ -66,7 +66,7 @@
                 d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
               />
             </svg>
-            <p class="mt-4 text-surface-500">Aucun media disponible</p>
+            <p class="mt-4 text-surface-500">Aucun média disponible</p>
           </div>
 
           <div
@@ -80,7 +80,7 @@
               :class="[
                 isSelected(media.id)
                   ? 'ring-2 ring-brand-500 ring-offset-2'
-                  : 'hover:ring-2 hover:ring-gray-300'
+                  : 'hover:ring-2 hover:ring-surface-300'
               ]"
               @click="toggleSelection(media.id)"
             >
@@ -176,6 +176,11 @@
           </div>
         </div>
 
+        <!-- Erreur d'ajout -->
+        <div v-if="errorMessage" class="px-6 py-3 text-sm text-red-700 bg-red-50 border-t border-red-200">
+          {{ errorMessage }}
+        </div>
+
         <!-- Footer -->
         <div class="bg-surface-50 px-6 py-4 flex justify-end gap-3 border-t border-surface-200">
           <button
@@ -211,7 +216,7 @@
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
               />
             </svg>
-            Ajouter {{ selectedIds.length }} media(s)
+            Ajouter {{ selectedIds.length }} média(s)
           </button>
         </div>
       </div>
@@ -240,6 +245,7 @@ const emit = defineEmits(['close', 'added']);
 const loading = ref(true);
 const loadingMore = ref(false);
 const submitting = ref(false);
+const errorMessage = ref(null);
 const availableMedia = ref([]);
 const selectedIds = ref([]);
 
@@ -329,6 +335,7 @@ const getThumbnailUrl = (media) => {
 
 const confirm = async () => {
   submitting.value = true;
+  errorMessage.value = null;
   try {
     await axios.post(`/albums/${props.albumId}/media`, {
       media_ids: selectedIds.value,
@@ -336,7 +343,7 @@ const confirm = async () => {
     emit('added', selectedIds.value);
     emit('close');
   } catch (error) {
-    console.error('Failed to add media to album:', error);
+    errorMessage.value = error.response?.data?.message || "Impossible d'ajouter les médias à l'album.";
   } finally {
     submitting.value = false;
   }

@@ -8,7 +8,7 @@
       </svg>
       <div>
         <p class="text-sm font-medium text-surface-900">Analyse IA en cours...</p>
-        <p class="text-xs text-surface-500">Detection des visages et labels</p>
+        <p class="text-xs text-surface-500">Détection des visages et labels</p>
       </div>
     </div>
 
@@ -21,9 +21,9 @@
           </svg>
         </div>
         <div>
-          <p class="text-sm font-medium text-surface-900">Analyse terminee</p>
+          <p class="text-sm font-medium text-surface-900">Analyse terminée</p>
           <p class="text-xs text-surface-500">
-            {{ facesCount }} visage{{ facesCount !== 1 ? 's' : '' }} detecte{{ facesCount !== 1 ? 's' : '' }}
+            {{ facesCount }} visage{{ facesCount !== 1 ? 's' : '' }} détecté{{ facesCount !== 1 ? 's' : '' }}
           </p>
         </div>
       </div>
@@ -44,7 +44,7 @@
           </svg>
         </div>
         <div>
-          <p class="text-sm font-medium text-surface-900">Echec de l'analyse</p>
+          <p class="text-sm font-medium text-surface-900">Échec de l'analyse</p>
           <p class="text-xs text-red-500">{{ currentError || 'Erreur inconnue' }}</p>
         </div>
       </div>
@@ -52,7 +52,7 @@
         @click="$emit('rerun')"
         class="text-xs text-brand-600 hover:text-brand-800 font-medium"
       >
-        Reessayer
+        Réessayer
       </button>
     </div>
   </div>

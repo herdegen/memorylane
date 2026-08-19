@@ -30,7 +30,7 @@
 
     <!-- Frise verticale -->
     <ol v-else class="relative border-l-2 border-surface-200 ml-3 space-y-5">
-      <li v-for="(item, i) in displayItems" :key="i" class="ml-6">
+      <li v-for="item in displayItems" :key="item._key" class="ml-6">
         <!-- ===== Groupe de photos : une ligne par album ou par année ===== -->
         <template v-if="item._group">
           <span class="absolute -left-[13px] flex items-center justify-center w-6 h-6 rounded-full bg-white border-2 border-surface-200 text-xs">
@@ -173,9 +173,21 @@ const photoGroups = computed(() => {
 
 // Événements + groupes photos, triés chronologiquement (comme la frise brute).
 const displayItems = computed(() => {
+  // _key : clé stable pour le v-for (la liste est retriée à chaque
+  // rechargement, une clé d'index provoquerait des réutilisations erronées).
   const all = [
-    ...eventItems.value.map((e) => ({ ...e, _group: false, _sort: e.date || '' })),
-    ...photoGroups.value.map((g) => ({ ...g, _group: true, _sort: g.date || '' })),
+    ...eventItems.value.map((e) => ({
+      ...e,
+      _group: false,
+      _sort: e.date || '',
+      _key: `event-${e.life_event_id ?? `${e.type}-${e.date}`}`,
+    })),
+    ...photoGroups.value.map((g) => ({
+      ...g,
+      _group: true,
+      _sort: g.date || '',
+      _key: `group-${g.type}-${g.type === 'album' ? g.id : (g.year ?? 'none')}`,
+    })),
   ];
   return all.sort((a, b) => (a._sort < b._sort ? -1 : a._sort > b._sort ? 1 : 0));
 });

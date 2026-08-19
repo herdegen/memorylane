@@ -14,7 +14,6 @@
           :exclude-ids="[person.id]"
           placeholder="Définir le père..."
           @select="setParent($event, 'father')"
-          @remove=""
         />
       </div>
 
@@ -29,7 +28,6 @@
           :exclude-ids="[person.id]"
           placeholder="Définir la mère..."
           @select="setParent($event, 'mother')"
-          @remove=""
         />
       </div>
     </div>
@@ -64,7 +62,6 @@
           :exclude-ids="excludeSpouseIds"
           placeholder="Rechercher un conjoint..."
           @select="addSpouse"
-          @remove=""
         />
         <button @click="addingSpouse = false" class="text-xs text-surface-400 hover:text-surface-600 mt-1">
           Annuler
@@ -106,7 +103,6 @@
           :exclude-ids="excludeChildIds"
           placeholder="Rechercher l'enfant..."
           @select="addChild"
-          @remove=""
         />
 
         <!-- Ou créer un nouvel enfant -->

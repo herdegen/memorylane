@@ -97,7 +97,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onUnmounted } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -110,6 +110,7 @@ const props = defineProps({
 const search = ref('');
 const candidates = ref([]);
 let searchTimer = null;
+onUnmounted(() => clearTimeout(searchTimer));
 
 const onSearch = () => {
   if (searchTimer) clearTimeout(searchTimer);

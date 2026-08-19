@@ -20,7 +20,7 @@
         <!-- Header -->
         <div class="bg-white px-6 py-4 border-b border-surface-200">
           <h3 class="text-lg font-semibold text-surface-900">
-            {{ album ? 'Modifier l\'album' : 'Creer un album' }}
+            {{ album ? 'Modifier l\'album' : 'Créer un album' }}
           </h3>
         </div>
 
@@ -30,7 +30,7 @@
             v-model="form.name"
             id="album-name"
             label="Nom de l'album"
-            placeholder="Ex: Vacances ete 2024"
+            placeholder="Ex: Vacances été 2024"
             :error="form.errors.name"
             required
           />
@@ -43,7 +43,7 @@
               v-model="form.description"
               rows="3"
               class="w-full px-4 py-2.5 border border-surface-300 rounded-lg shadow-xs focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-              placeholder="Decrivez cet album..."
+              placeholder="Décrivez cet album..."
             ></textarea>
             <p v-if="form.errors.description" class="mt-1 text-sm text-red-600">
               {{ form.errors.description }}
@@ -142,8 +142,8 @@
           </button>
           <FormButton
             type="submit"
-            :text="album ? 'Enregistrer' : 'Creer'"
-            :loading-text="album ? 'Enregistrement...' : 'Creation...'"
+            :text="album ? 'Enregistrer' : 'Créer'"
+            :loading-text="album ? 'Enregistrement...' : 'Création...'"
             :loading="form.processing"
             @click="submit"
           />
