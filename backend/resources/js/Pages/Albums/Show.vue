@@ -224,11 +224,15 @@
           @added="handleMediaAdded"
         />
 
-        <AlbumGeolocateModal
+        <GeolocatePickerModal
           v-if="showGeolocateModal"
-          :album="album"
+          :title="`Géolocaliser « ${album.name} »`"
+          description="Cliquez sur la carte pour situer toutes les photos de cet album. Pratique quand la localisation d'origine a été perdue à l'import."
+          apply-label="Appliquer à l'album"
+          :saving="geolocating"
+          :error-message="geolocateError"
           @close="showGeolocateModal = false"
-          @done="handleGeolocated"
+          @apply="applyAlbumGeolocation"
         />
       </div>
     </div>
@@ -260,7 +264,7 @@ import MediaCard from '@/Components/MediaCard.vue';
 import AlbumFormModal from '@/Components/AlbumFormModal.vue';
 import SharePanel from '@/Components/SharePanel.vue';
 import MediaPickerModal from '@/Components/MediaPickerModal.vue';
-import AlbumGeolocateModal from '@/Components/AlbumGeolocateModal.vue';
+import GeolocatePickerModal from '@/Components/GeolocatePickerModal.vue';
 import Slideshow from '@/Components/Slideshow.vue';
 import PhotoSwipeLightbox from 'photoswipe/lightbox';
 import 'photoswipe/style.css';
@@ -285,9 +289,21 @@ const showEditModal = ref(false);
 const showAddMediaModal = ref(false);
 const showGeolocateModal = ref(false);
 
-const handleGeolocated = () => {
-  showGeolocateModal.value = false;
-  router.reload();
+const geolocating = ref(false);
+const geolocateError = ref(null);
+
+const applyAlbumGeolocation = async ({ latitude, longitude }) => {
+  geolocating.value = true;
+  geolocateError.value = null;
+  try {
+    await axios.post(`/albums/${props.album.id}/geolocate`, { latitude, longitude });
+    showGeolocateModal.value = false;
+    router.reload();
+  } catch (e) {
+    geolocateError.value = e.response?.data?.message || 'Erreur lors de la géolocalisation.';
+  } finally {
+    geolocating.value = false;
+  }
 };
 const selectedMediaIds = ref([]);
 let lightbox = null;

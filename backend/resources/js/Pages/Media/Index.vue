@@ -69,6 +69,29 @@
               type="button"
               class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-white text-brand-700 hover:bg-brand-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
               :disabled="selectedIds.length === 0"
+              @click="showDateModal = true"
+            >
+              <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Dater
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-white text-brand-700 hover:bg-brand-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="selectedIds.length === 0"
+              @click="showGeoModal = true"
+            >
+              <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Géolocaliser
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-white text-brand-700 hover:bg-brand-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="selectedIds.length === 0"
               @click="showAlbumModal = true"
             >
               <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -85,7 +108,11 @@
           class="mb-6 flex items-center justify-between gap-3 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800"
         >
           <span>{{ albumFeedback.message }}</span>
-          <Link :href="route('albums.show', albumFeedback.albumId)" class="font-semibold underline shrink-0">
+          <Link
+            v-if="albumFeedback.albumId"
+            :href="route('albums.show', albumFeedback.albumId)"
+            class="font-semibold underline shrink-0"
+          >
             Voir l'album
           </Link>
         </div>
@@ -243,6 +270,26 @@
       @close="showAlbumModal = false"
       @done="handleAlbumDone"
     />
+
+    <BulkDateModal
+      v-if="showDateModal"
+      :count="selectedIds.length"
+      :saving="bulkSaving"
+      :error-message="bulkError"
+      @close="closeBulkModals"
+      @apply="applyBulkDate"
+    />
+
+    <GeolocatePickerModal
+      v-if="showGeoModal"
+      :title="`Géolocaliser ${selectedIds.length} média${selectedIds.length > 1 ? 's' : ''}`"
+      description="Cliquez sur la carte ou cherchez une adresse : la position sera appliquée à toute la sélection."
+      apply-label="Appliquer la position"
+      :saving="bulkSaving"
+      :error-message="bulkError"
+      @close="closeBulkModals"
+      @apply="applyBulkGeolocation"
+    />
   </AppLayout>
 </template>
 
@@ -253,6 +300,8 @@ import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import MediaGrid from '@/Components/MediaGrid.vue';
 import AddToAlbumModal from '@/Components/AddToAlbumModal.vue';
+import BulkDateModal from '@/Components/BulkDateModal.vue';
+import GeolocatePickerModal from '@/Components/GeolocatePickerModal.vue';
 
 const props = defineProps({
   media: {
@@ -284,6 +333,10 @@ const selectedIds = ref([]);
 const selectingAll = ref(false);
 const showAlbumModal = ref(false);
 const albumFeedback = ref(null);
+const showDateModal = ref(false);
+const showGeoModal = ref(false);
+const bulkSaving = ref(false);
+const bulkError = ref(null);
 
 // Video filters (durées affichées en minutes, envoyées en secondes — pas de
 // troncature pour préserver les valeurs sub-minute venues de l'URL)
@@ -460,6 +513,58 @@ const selectAll = async () => {
     console.error('« Tout sélectionner » a échoué :', error);
   } finally {
     selectingAll.value = false;
+  }
+};
+
+const closeBulkModals = () => {
+  showDateModal.value = false;
+  showGeoModal.value = false;
+  bulkError.value = null;
+};
+
+const finishBulk = (data) => {
+  closeBulkModals();
+  albumFeedback.value = {
+    message: data.skipped > 0
+      ? `${data.message} — ${data.skipped} ignoré(s) (médias d'un autre membre).`
+      : data.message,
+  };
+  selectedIds.value = [];
+  selectionMode.value = false;
+};
+
+const applyBulkDate = async (takenAt) => {
+  bulkSaving.value = true;
+  bulkError.value = null;
+  try {
+    const { data } = await axios.post('/media/bulk/taken-at', {
+      media_ids: selectedIds.value,
+      taken_at: takenAt,
+    });
+    finishBulk(data);
+    // La date change l'ordre de la galerie : on recharge avec les filtres courants.
+    navigate();
+  } catch (e) {
+    bulkError.value = e.response?.data?.message || "Impossible d'appliquer la date.";
+  } finally {
+    bulkSaving.value = false;
+  }
+};
+
+const applyBulkGeolocation = async ({ latitude, longitude }) => {
+  bulkSaving.value = true;
+  bulkError.value = null;
+  try {
+    const { data } = await axios.post('/media/bulk/geolocation', {
+      media_ids: selectedIds.value,
+      latitude,
+      longitude,
+    });
+    finishBulk(data);
+  } catch (e) {
+    bulkError.value = e.response?.data?.message || "Impossible d'appliquer la position.";
+  } finally {
+    bulkSaving.value = false;
   }
 };
 

@@ -161,6 +161,66 @@ class MediaController extends Controller
     }
 
     /**
+     * Modification de masse : applique une date de prise de vue à une
+     * sélection. Seuls les médias appartenant à l'appelant sont modifiés
+     * (les autres sont ignorés et comptés dans `skipped`).
+     */
+    public function bulkUpdateTakenAt(Request $request)
+    {
+        $validated = $request->validate([
+            'media_ids' => 'required|array|min:1|max:500',
+            'media_ids.*' => 'uuid|exists:media,id',
+            'taken_at' => 'required|date',
+        ]);
+
+        $updated = Media::whereIn('id', $validated['media_ids'])
+            ->where('user_id', $request->user()->id)
+            ->update(['taken_at' => $validated['taken_at']]);
+
+        return response()->json([
+            'message' => "Date appliquée à {$updated} média(s)",
+            'updated' => $updated,
+            'skipped' => count($validated['media_ids']) - $updated,
+        ]);
+    }
+
+    /**
+     * Modification de masse : applique une position GPS à une sélection.
+     * Même règle de propriété que bulkUpdateTakenAt.
+     */
+    public function bulkUpdateGeolocation(Request $request)
+    {
+        $validated = $request->validate([
+            'media_ids' => 'required|array|min:1|max:500',
+            'media_ids.*' => 'uuid|exists:media,id',
+            'latitude' => 'required|numeric|between:-90,90',
+            'longitude' => 'required|numeric|between:-180,180',
+            'altitude' => 'nullable|numeric',
+        ]);
+
+        $ownedIds = Media::whereIn('id', $validated['media_ids'])
+            ->where('user_id', $request->user()->id)
+            ->pluck('id');
+
+        foreach ($ownedIds as $mediaId) {
+            \App\Models\MediaMetadata::updateOrCreate(
+                ['media_id' => $mediaId],
+                [
+                    'latitude' => $validated['latitude'],
+                    'longitude' => $validated['longitude'],
+                    'altitude' => $validated['altitude'] ?? null,
+                ]
+            );
+        }
+
+        return response()->json([
+            'message' => "Position appliquée à {$ownedIds->count()} média(s)",
+            'updated' => $ownedIds->count(),
+            'skipped' => count($validated['media_ids']) - $ownedIds->count(),
+        ]);
+    }
+
+    /**
      * Remove the specified media from storage.
      */
     public function destroy(Media $media)

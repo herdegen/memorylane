@@ -89,6 +89,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/uploads/part-url', [UploadController::class, 'partUrl'])->name('uploads.partUrl');
         Route::post('/uploads/complete', [UploadController::class, 'complete'])->name('uploads.complete');
         Route::post('/uploads/abort', [UploadController::class, 'abort'])->name('uploads.abort');
+        // Modifications de masse depuis la galerie (sélection multiple)
+        Route::post('/bulk/taken-at', [MediaController::class, 'bulkUpdateTakenAt'])->name('bulk.takenAt');
+        Route::post('/bulk/geolocation', [MediaController::class, 'bulkUpdateGeolocation'])->name('bulk.geolocation');
         Route::get('/{media}', [MediaController::class, 'show'])->name('show');
         Route::put('/{media}', [MediaController::class, 'update'])->name('update');
         Route::delete('/{media}', [MediaController::class, 'destroy'])->name('destroy');

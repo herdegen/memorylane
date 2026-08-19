@@ -2,11 +2,8 @@
   <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/50" @click.self="$emit('close')">
     <div class="bg-white rounded-modal shadow-warm-lg w-full max-w-2xl overflow-hidden">
       <div class="p-6">
-        <h3 class="card-title mb-1">Géolocaliser « {{ album.name }} »</h3>
-        <p class="text-sm text-surface-500 mb-4">
-          Cliquez sur la carte pour situer toutes les photos de cet album.
-          Pratique quand la localisation d'origine a été perdue à l'import.
-        </p>
+        <h3 class="card-title mb-1">{{ title }}</h3>
+        <p class="text-sm text-surface-500 mb-4">{{ description }}</p>
 
         <!-- Recherche d'adresse -->
         <div class="relative mb-3">
@@ -44,12 +41,19 @@
           <template v-if="coords">Position choisie : {{ coords.lat.toFixed(5) }}, {{ coords.lng.toFixed(5) }}</template>
           <template v-else>Aucune position choisie.</template>
         </p>
+
+        <p v-if="errorMessage" class="mt-2 text-sm text-red-600">{{ errorMessage }}</p>
       </div>
 
       <div class="flex justify-end gap-2 px-6 py-4 bg-surface-50 border-t border-surface-100">
         <button @click="$emit('close')" type="button" class="btn-secondary">Annuler</button>
-        <button @click="apply" type="button" :disabled="!coords || saving" class="btn-primary">
-          {{ saving ? 'Application…' : "Appliquer à l'album" }}
+        <button
+          @click="$emit('apply', { latitude: coords.lat, longitude: coords.lng })"
+          type="button"
+          :disabled="!coords || saving"
+          class="btn-primary"
+        >
+          {{ saving ? 'Application…' : applyLabel }}
         </button>
       </div>
     </div>
@@ -57,24 +61,37 @@
 </template>
 
 <script setup>
+// Sélecteur de position générique (carte + recherche Nominatim) : le parent
+// décide quoi faire des coordonnées via l'événement `apply`. Utilisé pour la
+// géoloc d'album et la géoloc de masse de la galerie.
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
 
-const props = defineProps({
-  album: { type: Object, required: true },
+defineProps({
+  title: { type: String, required: true },
+  description: { type: String, default: '' },
+  applyLabel: { type: String, default: 'Appliquer' },
+  saving: { type: Boolean, default: false },
+  errorMessage: { type: String, default: null },
 });
-const emit = defineEmits(['close', 'done']);
+defineEmits(['close', 'apply']);
 
 const mapEl = ref(null);
 const coords = ref(null);
-const saving = ref(false);
 const searchQuery = ref('');
 const results = ref([]);
 const searching = ref(false);
 let map = null;
 let marker = null;
+
+const pinIcon = L.divIcon({
+  html: '<div style="font-size:24px;line-height:1">📍</div>',
+  className: '',
+  iconSize: [24, 24],
+  iconAnchor: [12, 24],
+});
 
 const placeMarker = (lat, lng) => {
   coords.value = { lat, lng };
@@ -111,13 +128,6 @@ const pickResult = (r) => {
   placeMarker(r.lat, r.lng);
 };
 
-const pinIcon = L.divIcon({
-  html: '<div style="font-size:24px;line-height:1">📍</div>',
-  className: '',
-  iconSize: [24, 24],
-  iconAnchor: [12, 24],
-});
-
 onMounted(async () => {
   await nextTick();
   map = L.map(mapEl.value).setView([46.603354, 1.888334], 5); // France
@@ -139,20 +149,4 @@ onBeforeUnmount(() => {
     map = null;
   }
 });
-
-const apply = async () => {
-  if (!coords.value) return;
-  saving.value = true;
-  try {
-    await axios.post(`/albums/${props.album.id}/geolocate`, {
-      latitude: coords.value.lat,
-      longitude: coords.value.lng,
-    });
-    emit('done');
-  } catch (e) {
-    alert('Erreur : ' + (e.response?.data?.message || e.message));
-  } finally {
-    saving.value = false;
-  }
-};
 </script>
