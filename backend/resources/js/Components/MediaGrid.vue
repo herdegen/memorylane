@@ -309,6 +309,12 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  // Vrai dès qu'une sélection est en cours : le clic sur la tuile bascule
+  // alors la sélection (sinon il ouvre le média, la case restant cliquable).
+  selectionActive: {
+    type: Boolean,
+    default: false,
+  },
   selectedIds: {
     type: Array,
     default: () => [],
@@ -448,7 +454,7 @@ const lastIndex = ref(null);
 // Clic sur une vignette : en mode sélection, il coche/décoche (au lieu d'ouvrir
 // le média) ; sinon il ouvre le média.
 const handleTileClick = (item, index, event) => {
-  if (props.selectable) {
+  if (props.selectable && props.selectionActive) {
     applySelection(item, index, event);
   } else {
     emit('media-click', item);

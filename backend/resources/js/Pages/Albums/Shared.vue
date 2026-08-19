@@ -124,7 +124,8 @@
       </div>
     </main>
 
-    <!-- Simple Lightbox -->
+    <!-- Lecteur vidéo en surimpression (les photos passent par PhotoSwipe ;
+         pas de page média pour un visiteur anonyme) -->
     <div
       v-if="lightboxMedia"
       class="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
@@ -139,18 +140,10 @@
         </svg>
       </button>
 
-      <img
-        v-if="lightboxMedia.type === 'photo'"
-        :src="lightboxMedia.url"
-        :alt="lightboxMedia.original_name"
-        class="max-w-full max-h-full object-contain"
-        @click.stop
-      />
-
       <video
-        v-else-if="lightboxMedia.type === 'video'"
         :src="lightboxMedia.url"
         controls
+        autoplay
         class="max-w-full max-h-full"
         @click.stop
       />
@@ -160,6 +153,7 @@
 
 <script setup>
 import { ref } from 'vue';
+import { usePhotoSwipe } from '@/composables/usePhotoSwipe';
 
 const props = defineProps({
   album: {
@@ -168,7 +162,10 @@ const props = defineProps({
   },
 });
 
+// Vidéo en cours de lecture dans la surimpression (photos → PhotoSwipe)
 const lightboxMedia = ref(null);
+
+const { open: openPhoto } = usePhotoSwipe(() => props.album.media || []);
 
 const getThumbnailUrl = (media) => {
   if (media.conversions && media.conversions.length > 0) {
@@ -183,7 +180,11 @@ const getThumbnailUrl = (media) => {
 };
 
 const openLightbox = (media) => {
-  lightboxMedia.value = media;
+  if (media.type === 'photo') {
+    openPhoto(media);
+  } else if (media.type === 'video') {
+    lightboxMedia.value = media;
+  }
 };
 
 const closeLightbox = () => {

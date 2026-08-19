@@ -103,7 +103,7 @@
       @saved="onSaved"
     />
 
-    <TimelineDiaporama ref="diaporama" :items="items" />
+    <FullscreenSlideshow ref="diaporama" :slides="diaporamaSlides" :photo-duration="6000" />
   </div>
 </template>
 
@@ -112,7 +112,7 @@ import { ref, computed, onMounted } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import LifeEventFormModal from '@/Components/LifeEventFormModal.vue';
-import TimelineDiaporama from '@/Components/TimelineDiaporama.vue';
+import FullscreenSlideshow from '@/Components/FullscreenSlideshow.vue';
 
 const props = defineProps({
   personId: { type: String, required: true },
@@ -219,6 +219,30 @@ const removeEvent = async (item) => {
 };
 
 const playSlideshow = () => diaporama.value?.open(0);
+
+// Slides normalisés pour le diaporama unifié : les moments SANS média
+// deviennent des slides « carte » (texte : naissance d'un enfant, mariage…).
+const diaporamaSlides = computed(() => items.value.map((it, i) => {
+  if (it.media) {
+    return it.media.type === 'video'
+      ? { key: `s-${i}`, type: 'video', src: it.media.url, label: it.title }
+      : { key: `s-${i}`, type: 'photo', src: it.media.medium_url || it.media.url, label: it.title };
+  }
+
+  return {
+    key: `s-${i}`,
+    type: 'card',
+    label: it.title,
+    card: {
+      icon: kindIcon(it.kind),
+      date: formatDate(it.date),
+      title: it.title,
+      place: it.place,
+      description: it.description,
+      avatarUrl: it.related?.avatar_url || null,
+    },
+  };
+}));
 
 const thumb = (item) => item.media?.thumbnail_url || item.media?.medium_url || item.related?.avatar_url || null;
 

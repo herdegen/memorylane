@@ -7,18 +7,18 @@
       @mousemove="showControls"
       @click="showControls"
     >
-      <!-- Média courant : chaque slide est un calque absolu, ce qui permet un
+      <!-- Slide courant : chaque slide est un calque absolu, ce qui permet un
            vrai crossfade (l'entrant et le sortant se superposent). -->
       <Transition name="crossfade">
         <div
           v-if="currentItem"
-          :key="currentItem.id"
+          :key="currentItem.key"
           class="absolute inset-0 flex items-center justify-center"
         >
           <img
             v-if="currentItem.type === 'photo'"
-            :src="photoUrl(currentItem)"
-            :alt="currentItem.original_name"
+            :src="currentItem.src"
+            :alt="currentItem.label"
             class="max-w-full max-h-full object-contain"
             :class="{ 'ken-burns': kenBurns }"
             :style="kenBurns ? kbStyle : null"
@@ -26,15 +26,33 @@
           <video
             v-else-if="currentItem.type === 'video'"
             ref="videoEl"
-            :src="videoUrl(currentItem)"
+            :src="currentItem.src"
             autoplay
             playsinline
             class="max-w-full max-h-full object-contain"
             @ended="next"
             @error="next"
           />
+          <!-- Slide « carte » : événement de vie, texte… (frise personne) -->
+          <div
+            v-else-if="currentItem.type === 'card'"
+            class="w-full h-full flex items-center justify-center bg-linear-to-br from-brand-900 to-surface-900 px-8"
+          >
+            <div class="text-center max-w-2xl">
+              <div v-if="currentItem.card.icon" class="text-6xl mb-4">{{ currentItem.card.icon }}</div>
+              <p v-if="currentItem.card.date" class="text-brand-300 text-lg mb-2">{{ currentItem.card.date }}</p>
+              <h2 class="text-white text-3xl font-semibold mb-2">{{ currentItem.card.title }}</h2>
+              <p v-if="currentItem.card.place" class="text-white/70 text-lg">{{ currentItem.card.place }}</p>
+              <p v-if="currentItem.card.description" class="text-white/60 mt-3 whitespace-pre-wrap">{{ currentItem.card.description }}</p>
+              <img
+                v-if="currentItem.card.avatarUrl"
+                :src="currentItem.card.avatarUrl"
+                class="w-24 h-24 rounded-full object-cover mx-auto mt-5 border-2 border-white/30"
+              />
+            </div>
+          </div>
           <div v-else class="text-surface-400 text-center">
-            <p class="text-lg">{{ currentItem.original_name }}</p>
+            <p class="text-lg">{{ currentItem.label }}</p>
           </div>
         </div>
       </Transition>
@@ -92,7 +110,7 @@
 
             <p class="text-center text-white/70 text-sm mt-3">
               {{ pointer + 1 }} / {{ order.length }}
-              <span v-if="currentItem?.original_name" class="text-white/40">— {{ currentItem.original_name }}</span>
+              <span v-if="currentItem?.label" class="text-white/40">— {{ currentItem.label }}</span>
             </p>
           </div>
         </div>
@@ -102,12 +120,18 @@
 </template>
 
 <script setup>
+// Diaporama plein écran UNIQUE (albums, frise personne…). Chaque slide est
+// normalisé par l'appelant :
+//   { key, type: 'photo'|'video'|'card', src?, label?, weight?,
+//     card?: { icon, date, title, place, description, avatarUrl } }
+// Le type 'card' permet des slides texte/événements (naissance d'un enfant,
+// moment de vie…) au milieu des photos.
 import { ref, computed, watch, onBeforeUnmount } from 'vue';
 
 const props = defineProps({
-  media: { type: Array, required: true },
+  slides: { type: Array, required: true },
   photoDuration: { type: Number, default: 5000 },
-  // Ordre pseudo-aléatoire pondéré vers les photos à visages reconnus.
+  // Ordre pseudo-aléatoire pondéré par slide.weight (ex. photos à visages).
   shuffle: { type: Boolean, default: false },
   // Zoom/pan lent (Ken Burns) sur les photos.
   kenBurns: { type: Boolean, default: false },
@@ -125,23 +149,18 @@ const videoEl = ref(null);
 let photoTimer = null;
 let controlsTimer = null;
 
-// Les documents ne sont pas affichables : on ne garde que photos et vidéos.
-const playableItems = computed(() =>
-  props.media.filter((m) => m.type === 'photo' || m.type === 'video')
-);
-
 // Ordre de lecture effectif (figé à l'ouverture pour rester stable).
 const order = ref([]);
 
 const currentItem = computed(() => order.value[pointer.value] || null);
 
 // Mélange pondéré (Efraimidis–Spirakis) : chaque élément reçoit une clé
-// u^(1/poids) ; on trie par clé décroissante. Les photos avec au moins un
-// visage reconnu pèsent davantage → elles remontent, sans jamais être exclues.
+// u^(1/poids) ; on trie par clé décroissante. Les slides à poids fort
+// remontent, sans jamais être exclus.
 const weightedShuffle = (list) =>
   list
     .map((item) => {
-      const weight = item.matched_faces_count > 0 ? 3 : 1;
+      const weight = item.weight || 1;
       const u = Math.random() || 1e-9;
       return { item, key: Math.pow(u, 1 / weight) };
     })
@@ -165,16 +184,6 @@ const refreshKenBurns = () => {
   };
 };
 
-const photoUrl = (media) => {
-  const medium = media.conversions?.find((c) => c.conversion_name === 'medium');
-  return medium?.url || media.url;
-};
-
-const videoUrl = (media) => {
-  const web = media.conversions?.find((c) => c.conversion_name === 'web');
-  return web?.url || media.url;
-};
-
 const clearPhotoTimer = () => {
   if (photoTimer) {
     clearTimeout(photoTimer);
@@ -186,7 +195,7 @@ const scheduleAdvance = () => {
   clearPhotoTimer();
   if (isPaused.value || !currentItem.value) return;
 
-  // Les photos avancent après un délai ; les vidéos avancent sur @ended.
+  // Photos et cartes avancent après un délai ; les vidéos sur @ended.
   if (currentItem.value.type !== 'video') {
     photoTimer = setTimeout(next, props.photoDuration);
   }
@@ -239,7 +248,7 @@ const handleFullscreenChange = () => {
 };
 
 const open = (startIndex = 0) => {
-  const base = playableItems.value;
+  const base = props.slides;
   if (base.length === 0) return;
 
   // Fige l'ordre de lecture pour toute la séance.

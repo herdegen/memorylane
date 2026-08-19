@@ -11,19 +11,6 @@
             </p>
           </div>
           <div class="flex items-center gap-2">
-            <button
-              type="button"
-              class="inline-flex items-center px-4 py-2 rounded-lg border text-sm font-medium transition"
-              :class="selectionMode
-                ? 'bg-brand-600 border-brand-600 text-white'
-                : 'bg-white border-surface-300 text-surface-700 hover:border-brand-400 hover:text-brand-600'"
-              @click="toggleSelectionMode"
-            >
-              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              {{ selectionMode ? 'Terminer' : 'Sélectionner' }}
-            </button>
             <Link
               :href="route('media.create')"
               class="btn-primary"
@@ -38,7 +25,7 @@
 
         <!-- Barre d'actions de sélection -->
         <div
-          v-if="selectionMode"
+          v-if="selectedIds.length > 0"
           class="mb-6 sticky top-2 z-20 flex flex-wrap items-center gap-3 rounded-lg bg-brand-600 px-4 py-3 text-white shadow-md"
         >
           <span class="font-medium">
@@ -253,7 +240,8 @@
             :filter-tabs="filterTabs"
             :has-more-pages="hasMorePages"
             :empty-state-message="emptyStateMessage"
-            :selectable="selectionMode"
+            :selectable="true"
+            :selection-active="selectedIds.length > 0"
             :selected-ids="selectedIds"
             @filter-change="handleFilterChange"
             @media-click="handleMediaClick"
@@ -302,6 +290,7 @@ import MediaGrid from '@/Components/MediaGrid.vue';
 import AddToAlbumModal from '@/Components/AddToAlbumModal.vue';
 import BulkDateModal from '@/Components/BulkDateModal.vue';
 import GeolocatePickerModal from '@/Components/GeolocatePickerModal.vue';
+import { usePhotoSwipe } from '@/composables/usePhotoSwipe';
 
 const props = defineProps({
   media: {
@@ -328,7 +317,6 @@ const availableTags = ref([]);
 let searchTimeout = null;
 
 // Sélection multiple + ajout à un album.
-const selectionMode = ref(false);
 const selectedIds = ref([]);
 const selectingAll = ref(false);
 const showAlbumModal = ref(false);
@@ -486,16 +474,18 @@ const debouncedSearch = () => {
   }, 300);
 };
 
-const handleMediaClick = (media) => {
-  // En mode sélection, MediaGrid gère la sélection (clic + shift+clic) et
-  // n'émet pas media-click ; ici on ne reçoit donc que les clics hors sélection.
-  router.visit(route('media.show', media.id));
-};
+// Visionneuse PhotoSwipe sur la galerie (reconstruite quand la liste grandit
+// via le scroll infini) ; la légende propose « Ouvrir la fiche ».
+const { open: openPhoto } = usePhotoSwipe(() => mediaItems.value, {
+  watchSource: () => mediaItems.value,
+  detailLink: true,
+});
 
-const toggleSelectionMode = () => {
-  selectionMode.value = !selectionMode.value;
-  if (!selectionMode.value) {
-    selectedIds.value = [];
+const handleMediaClick = (media) => {
+  // Quand une sélection est en cours, MediaGrid gère les clics (sélection).
+  // Sinon : photo → visionneuse ; vidéo/document → page média (lecteur, infos).
+  if (media.type !== 'photo' || !openPhoto(media)) {
+    router.visit(route('media.show', media.id));
   }
 };
 
@@ -530,7 +520,6 @@ const finishBulk = (data) => {
       : data.message,
   };
   selectedIds.value = [];
-  selectionMode.value = false;
 };
 
 const applyBulkDate = async (takenAt) => {
@@ -576,7 +565,6 @@ const handleAlbumDone = ({ albumId, albumName, count, isNew }) => {
       : `${count} média${count > 1 ? 's' : ''} ajouté${count > 1 ? 's' : ''} à « ${albumName} ».`,
   };
   selectedIds.value = [];
-  selectionMode.value = false;
 };
 
 // Charge la page suivante et l'AJOUTE à l'accumulateur (scroll infini).

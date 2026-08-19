@@ -105,9 +105,9 @@
         />
 
         <!-- Diaporama plein écran -->
-        <Slideshow
+        <FullscreenSlideshow
           ref="slideshowEl"
-          :media="album.media || []"
+          :slides="slideshowSlides"
           shuffle
           ken-burns
         />
@@ -240,23 +240,10 @@
 </template>
 
 <style scoped>
-:deep(.pswp__custom-caption) {
-  background: rgba(0, 0, 0, 0.75);
-  color: white;
-  padding: 12px 16px;
-  font-size: 14px;
-  text-align: center;
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 20;
-  border-radius: 0 0 4px 4px;
-}
 </style>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -265,9 +252,8 @@ import AlbumFormModal from '@/Components/AlbumFormModal.vue';
 import SharePanel from '@/Components/SharePanel.vue';
 import MediaPickerModal from '@/Components/MediaPickerModal.vue';
 import GeolocatePickerModal from '@/Components/GeolocatePickerModal.vue';
-import Slideshow from '@/Components/Slideshow.vue';
-import PhotoSwipeLightbox from 'photoswipe/lightbox';
-import 'photoswipe/style.css';
+import FullscreenSlideshow from '@/Components/FullscreenSlideshow.vue';
+import { usePhotoSwipe } from '@/composables/usePhotoSwipe';
 
 const props = defineProps({
   album: {
@@ -306,7 +292,6 @@ const applyAlbumGeolocation = async ({ latitude, longitude }) => {
   }
 };
 const selectedMediaIds = ref([]);
-let lightbox = null;
 
 const albumMediaIds = computed(() => {
   return props.album.media?.map((m) => m.id) || [];
@@ -361,13 +346,7 @@ const setAsCover = async () => {
 };
 
 const handleMediaClick = (media) => {
-  if (media.type === 'photo') {
-    const photoItems = albumMedia.value.filter(item => item.type === 'photo');
-    const photoIndex = photoItems.findIndex(item => item.id === media.id);
-    if (photoIndex !== -1 && lightbox) {
-      lightbox.loadAndOpen(photoIndex);
-    }
-  } else {
+  if (media.type !== 'photo' || !openLightbox(media)) {
     router.visit(`/media/${media.id}`);
   }
 };
@@ -412,83 +391,23 @@ const deleteAlbum = async () => {
   }
 };
 
-// PhotoSwipe helpers
-const getImageUrl = (media) => {
-  if (media.conversions && media.conversions.length > 0) {
-    const large = media.conversions.find(c => c.conversion_name === 'large');
-    if (large?.url) return large.url;
-    const medium = media.conversions.find(c => c.conversion_name === 'medium');
-    if (medium?.url) return medium.url;
-  }
-  return media.url;
-};
-
-const getImageDimensions = (media) => {
-  if (media.conversions && media.conversions.length > 0) {
-    const large = media.conversions.find(c => c.conversion_name === 'large');
-    if (large?.width && large?.height) return { width: large.width, height: large.height };
-  }
-  return { width: media.width || 1600, height: media.height || 1200 };
-};
-
-const initPhotoSwipe = () => {
-  if (lightbox) {
-    lightbox.destroy();
-    lightbox = null;
-  }
-
-  const photoItems = albumMedia.value.filter(item => item.type === 'photo');
-  if (photoItems.length === 0) return;
-
-  lightbox = new PhotoSwipeLightbox({
-    dataSource: photoItems.map(media => {
-      const dims = getImageDimensions(media);
-      return {
-        src: getImageUrl(media),
-        width: dims.width,
-        height: dims.height,
-        alt: media.title || media.original_name,
-        caption: media.title || media.original_name,
-      };
-    }),
-    pswpModule: () => import('photoswipe'),
-    padding: { top: 50, bottom: 50, left: 50, right: 50 },
-    bgOpacity: 0.9,
-    showHideAnimationType: 'zoom',
-    appendToEl: document.body,
-  });
-
-  lightbox.on('uiRegister', function() {
-    lightbox.pswp.ui.registerElement({
-      name: 'custom-caption',
-      order: 9,
-      isButton: false,
-      appendTo: 'root',
-      html: '',
-      onInit: (el) => {
-        lightbox.pswp.on('change', () => {
-          const data = lightbox.pswp.currSlide.data;
-          el.innerHTML = `<div class="pswp__custom-caption">${data.caption || ''}</div>`;
-        });
-      }
-    });
-  });
-
-  lightbox.init();
-};
-
-watch(() => props.album.media, () => {
-  initPhotoSwipe();
-}, { deep: true });
-
-onMounted(() => {
-  initPhotoSwipe();
+// Visionneuse partagée (reconstruite quand la liste de médias change)
+const { open: openLightbox } = usePhotoSwipe(() => albumMedia.value, {
+  watchSource: () => props.album.media,
 });
 
-onUnmounted(() => {
-  if (lightbox) {
-    lightbox.destroy();
-    lightbox = null;
-  }
-});
+// Slides du diaporama : médias jouables normalisés (poids fort aux visages).
+const slideshowSlides = computed(() =>
+  albumMedia.value
+    .filter((m) => m.type === 'photo' || m.type === 'video')
+    .map((m) => ({
+      key: m.id,
+      type: m.type,
+      src: m.type === 'video'
+        ? (m.conversions?.find((c) => c.conversion_name === 'web')?.url || m.url)
+        : (m.conversions?.find((c) => c.conversion_name === 'medium')?.url || m.url),
+      label: m.title || m.original_name,
+      weight: m.matched_faces_count > 0 ? 3 : 1,
+    }))
+);
 </script>
