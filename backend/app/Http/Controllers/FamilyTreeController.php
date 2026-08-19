@@ -27,7 +27,9 @@ class FamilyTreeController extends Controller
             ->withMatchedFacesCount()
             ->get();
 
-        $nodes = $people->map(fn (Person $person) => $this->buildNode($person));
+        [$spouseMap, $childrenMap] = $this->buildRelationMaps();
+
+        $nodes = $people->map(fn (Person $person) => $this->buildNode($person, $spouseMap, $childrenMap));
 
         return response()->json($nodes->values());
     }
@@ -45,12 +47,45 @@ class FamilyTreeController extends Controller
             ->withMatchedFacesCount()
             ->get();
 
-        $nodes = $people->map(fn (Person $p) => $this->buildNode($p));
+        [$spouseMap, $childrenMap] = $this->buildRelationMaps();
+
+        $nodes = $people->map(fn (Person $p) => $this->buildNode($p, $spouseMap, $childrenMap));
 
         return response()->json($nodes->values());
     }
 
-    private function buildNode(Person $person): array
+    /**
+     * Charge en 2 requêtes les maps conjoint(s) et enfants de TOUTES les
+     * personnes (avant : 2 requêtes PAR personne lors de la construction de
+     * l'arbre complet).
+     *
+     * @return array{0: array<string, array<int, string>>, 1: array<string, array<int, string>>}
+     */
+    private function buildRelationMaps(): array
+    {
+        $spouseMap = [];
+        foreach (DB::table('person_relationships')->get(['person1_id', 'person2_id']) as $rel) {
+            $spouseMap[$rel->person1_id][] = $rel->person2_id;
+            $spouseMap[$rel->person2_id][] = $rel->person1_id;
+        }
+
+        $childrenMap = [];
+        $children = Person::query()
+            ->where(fn ($q) => $q->whereNotNull('father_id')->orWhereNotNull('mother_id'))
+            ->get(['id', 'father_id', 'mother_id']);
+        foreach ($children as $child) {
+            if ($child->father_id) {
+                $childrenMap[$child->father_id][] = $child->id;
+            }
+            if ($child->mother_id) {
+                $childrenMap[$child->mother_id][] = $child->id;
+            }
+        }
+
+        return [$spouseMap, $childrenMap];
+    }
+
+    private function buildNode(Person $person, array $spouseMap, array $childrenMap): array
     {
         return [
             'id' => $person->id,
@@ -68,31 +103,10 @@ class FamilyTreeController extends Controller
             'rels' => [
                 'father' => $person->father_id,
                 'mother' => $person->mother_id,
-                'spouses' => $this->getSpouseIds($person),
-                'children' => $this->getChildrenIds($person),
+                'spouses' => array_values(array_unique($spouseMap[$person->id] ?? [])),
+                'children' => array_values(array_unique($childrenMap[$person->id] ?? [])),
             ],
         ];
-    }
-
-    private function getSpouseIds(Person $person): array
-    {
-        return DB::table('person_relationships')
-            ->where(function ($q) use ($person) {
-                $q->where('person1_id', $person->id)
-                    ->orWhere('person2_id', $person->id);
-            })
-            ->get()
-            ->map(fn ($r) => $r->person1_id === $person->id ? $r->person2_id : $r->person1_id)
-            ->values()
-            ->toArray();
-    }
-
-    private function getChildrenIds(Person $person): array
-    {
-        return Person::where('father_id', $person->id)
-            ->orWhere('mother_id', $person->id)
-            ->pluck('id')
-            ->toArray();
     }
 
     private function gatherRelatedIds(Person $person, int $ancestorDepth, int $descendantDepth): array
