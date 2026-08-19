@@ -4,7 +4,6 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\DuplicateResource\Pages\ListDuplicates;
 use App\Models\Media;
-use App\Services\MediaService;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
@@ -179,9 +178,8 @@ class DuplicateResource extends Resource
                             static::notifyTrashed($records->count());
                         })
                         ->deselectRecordsAfterCompletion(),
-                    // Suppression DÉFINITIVE : purge S3 (original + conversions)
-                    // puis force delete (les lignes conversions partent en
-                    // cascade DB).
+                    // Suppression DÉFINITIVE : le forceDelete purge S3
+                    // (original + conversions) via l'event du modèle Media.
                     BulkAction::make('forceDelete')
                         ->label('Supprimer définitivement')
                         ->icon('heroicon-o-x-circle')
@@ -190,10 +188,7 @@ class DuplicateResource extends Resource
                         ->modalHeading('Suppression définitive')
                         ->modalDescription('Les médias sélectionnés et leurs fichiers (original + miniatures) seront supprimés définitivement. Cette action est irréversible.')
                         ->action(function (Collection $records) {
-                            $service = app(MediaService::class);
-
                             foreach ($records as $media) {
-                                $service->purgeStorageFiles($media);
                                 $media->forceDelete();
                             }
 

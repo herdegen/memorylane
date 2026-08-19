@@ -127,7 +127,7 @@ class ProcessUploadedMedia implements ShouldQueue
                 'real_mime' => $realMime,
             ]);
 
-            $s3Service->delete($this->media->file_path);
+            // Le forceDelete purge le fichier S3 via l'event du modèle Media.
             $this->media->forceDelete();
 
             return false;

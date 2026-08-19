@@ -13,6 +13,19 @@ class Media extends Model
     use HasFactory, HasUuids, Searchable, SoftDeletes;
 
     /**
+     * La purge des fichiers S3 (original + conversions) est liée au
+     * forceDelete, quel que soit le chemin (Filament, jobs, tinker…).
+     * Le soft delete, lui, ne touche jamais au stockage : la corbeille
+     * doit rester restaurable.
+     */
+    protected static function booted(): void
+    {
+        static::forceDeleting(function (Media $media) {
+            app(\App\Services\MediaService::class)->purgeStorageFiles($media);
+        });
+    }
+
+    /**
      * Colonnes indexées pour la recherche unifiée.
      * Uniquement de vraies colonnes : compatible avec les drivers
      * meilisearch (prod) et database (tests).

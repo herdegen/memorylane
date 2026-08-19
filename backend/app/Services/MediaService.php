@@ -244,10 +244,9 @@ class MediaService
      */
     public function deleteMedia(Media $media): void
     {
-        // Delete from storage
-        $this->s3Service->delete($media->file_path);
-
-        // Soft delete the media record
+        // Soft delete pur : les fichiers S3 (original + conversions) sont
+        // conservés pour que la restauration depuis la corbeille (admin)
+        // fonctionne. La purge S3 a lieu au forceDelete (event du modèle).
         $media->delete();
     }
 
