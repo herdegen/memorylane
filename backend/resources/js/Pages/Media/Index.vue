@@ -87,6 +87,17 @@
               </svg>
               Ajouter à un album
             </button>
+            <button
+              type="button"
+              class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-white text-brand-700 hover:bg-brand-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="selectedIds.length === 0"
+              @click="showHouseholdModal = true"
+            >
+              <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h3m10-11v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              Foyer
+            </button>
           </div>
         </div>
 
@@ -260,6 +271,13 @@
       @done="handleAlbumDone"
     />
 
+    <ShareToHouseholdModal
+      v-if="showHouseholdModal"
+      :media-ids="selectedIds"
+      @close="showHouseholdModal = false"
+      @done="handleHouseholdDone"
+    />
+
     <BulkDateModal
       v-if="showDateModal"
       :count="selectedIds.length"
@@ -289,9 +307,11 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import MediaGrid from '@/Components/MediaGrid.vue';
 import AddToAlbumModal from '@/Components/AddToAlbumModal.vue';
+import ShareToHouseholdModal from '@/Components/ShareToHouseholdModal.vue';
 import BulkDateModal from '@/Components/BulkDateModal.vue';
 import GeolocatePickerModal from '@/Components/GeolocatePickerModal.vue';
 import { usePhotoSwipe } from '@/composables/usePhotoSwipe';
+import { useToast } from '@/Composables/useToast';
 
 const props = defineProps({
   media: {
@@ -320,7 +340,10 @@ let searchTimeout = null;
 // Sélection multiple + ajout à un album.
 const selectedIds = ref([]);
 const selectingAll = ref(false);
+const toast = useToast();
+
 const showAlbumModal = ref(false);
+const showHouseholdModal = ref(false);
 const albumFeedback = ref(null);
 const showDateModal = ref(false);
 const showGeoModal = ref(false);
@@ -556,6 +579,13 @@ const applyBulkGeolocation = async ({ latitude, longitude }) => {
   } finally {
     bulkSaving.value = false;
   }
+};
+
+// Partage foyer terminé : toast récapitulatif (dont les ignorés — médias
+// d'autrui présents dans la sélection) et sortie du mode sélection.
+const handleHouseholdDone = ({ message, skipped }) => {
+  toast.success(skipped > 0 ? `${message} (${skipped} ignoré(s) : pas à vous)` : message);
+  selectedIds.value = [];
 };
 
 const handleAlbumDone = ({ albumId, albumName, count, isNew }) => {

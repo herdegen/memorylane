@@ -147,6 +147,16 @@ class Media extends Model
     }
 
     /**
+     * Foyers dans lesquels ce média est partagé.
+     */
+    public function households()
+    {
+        return $this->belongsToMany(Household::class, 'household_media')
+            ->withPivot('added_by')
+            ->withTimestamps();
+    }
+
+    /**
      * Get the people tagged in this media.
      */
     public function people()
@@ -177,7 +187,10 @@ class Media extends Model
 
         return $query->where(function ($q) use ($user) {
             $q->where('user_id', $user->id)
-                ->orWhereHas('albums', fn ($a) => $a->accessibleBy($user));
+                ->orWhereHas('albums', fn ($a) => $a->accessibleBy($user))
+                // Branche foyer : média partagé dans un foyer dont le viewer
+                // est membre (pivot household_media).
+                ->orWhereHas('households', fn ($h) => $h->whereIn('households.id', $user->householdIds()));
         });
     }
 

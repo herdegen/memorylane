@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Household;
 use App\Models\Media;
 use App\Services\MediaService;
 use Illuminate\Http\Request;
@@ -210,6 +211,73 @@ class MediaController extends Controller
         return response()->json([
             'message' => "Position appliquée à {$ownedIds->count()} média(s)",
             'updated' => $ownedIds->count(),
+            'skipped' => count($validated['media_ids']) - $ownedIds->count(),
+        ]);
+    }
+
+    /**
+     * Partage de masse : ajoute une sélection au périmètre d'un foyer dont
+     * l'appelant est membre. Seuls les médias APPARTENANT à l'appelant sont
+     * partagés (les autres → `skipped` : partager le média d'un tiers
+     * ouvrirait des accès à son insu).
+     */
+    public function bulkShareToHousehold(Request $request)
+    {
+        $validated = $request->validate([
+            'media_ids' => 'required|array|min:1|max:500',
+            'media_ids.*' => 'uuid',
+            'household_id' => 'required|uuid',
+        ]);
+
+        $household = Household::findOrFail($validated['household_id']);
+        Gate::authorize('view', $household);
+
+        $ownedIds = Media::whereIn('id', $validated['media_ids'])
+            ->where('user_id', $request->user()->id)
+            ->pluck('id');
+
+        // Attache groupée en ignorant les déjà partagés (2 requêtes).
+        $existing = $household->media()->whereIn('media.id', $ownedIds)->pluck('media.id')->all();
+        $toAttach = $ownedIds
+            ->diff($existing)
+            ->mapWithKeys(fn ($id) => [$id => ['added_by' => $request->user()->id]])
+            ->all();
+
+        if ($toAttach !== []) {
+            $household->media()->attach($toAttach);
+        }
+
+        return response()->json([
+            'message' => "{$ownedIds->count()} média(s) partagé(s) avec « {$household->name} »",
+            'updated' => $ownedIds->count(),
+            'skipped' => count($validated['media_ids']) - $ownedIds->count(),
+        ]);
+    }
+
+    /**
+     * Retire une sélection du périmètre d'un foyer. Même règle de propriété
+     * que le partage : on ne retire que SES propres médias.
+     */
+    public function bulkRemoveFromHousehold(Request $request)
+    {
+        $validated = $request->validate([
+            'media_ids' => 'required|array|min:1|max:500',
+            'media_ids.*' => 'uuid',
+            'household_id' => 'required|uuid',
+        ]);
+
+        $household = Household::findOrFail($validated['household_id']);
+        Gate::authorize('view', $household);
+
+        $ownedIds = Media::whereIn('id', $validated['media_ids'])
+            ->where('user_id', $request->user()->id)
+            ->pluck('id');
+
+        $removed = $household->media()->detach($ownedIds->all());
+
+        return response()->json([
+            'message' => "{$removed} média(s) retiré(s) de « {$household->name} »",
+            'updated' => $removed,
             'skipped' => count($validated['media_ids']) - $ownedIds->count(),
         ]);
     }

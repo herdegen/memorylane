@@ -92,6 +92,9 @@ Route::middleware('auth')->group(function () {
         // Modifications de masse depuis la galerie (sélection multiple)
         Route::post('/bulk/taken-at', [MediaController::class, 'bulkUpdateTakenAt'])->name('bulk.takenAt');
         Route::post('/bulk/geolocation', [MediaController::class, 'bulkUpdateGeolocation'])->name('bulk.geolocation');
+        // Partage foyer : ajoute/retire la sélection du périmètre d'un foyer
+        Route::post('/bulk/household', [MediaController::class, 'bulkShareToHousehold'])->name('bulk.household.share');
+        Route::post('/bulk/household/remove', [MediaController::class, 'bulkRemoveFromHousehold'])->name('bulk.household.remove');
         Route::get('/{media}', [MediaController::class, 'show'])->name('show');
         Route::put('/{media}', [MediaController::class, 'update'])->name('update');
         Route::delete('/{media}', [MediaController::class, 'destroy'])->name('destroy');

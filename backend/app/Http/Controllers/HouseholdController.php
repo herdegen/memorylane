@@ -4,16 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Models\Household;
 use App\Models\User;
+use App\Services\MediaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
 /**
- * Foyers (cercles familiaux). Gestion des foyers et de leur appartenance.
- * Le partage de médias dans un foyer arrive en phase 2b.
+ * Foyers (cercles familiaux). Gestion des foyers, de leur appartenance et
+ * de leur galerie partagée (pivot household_media).
  */
 class HouseholdController extends Controller
 {
+    public function __construct(protected MediaService $mediaService)
+    {
+    }
+
     /**
      * Liste des foyers dont l'utilisateur est membre.
      */
@@ -80,6 +85,23 @@ class HouseholdController extends Controller
             'is_creator' => $u->id === $household->created_by,
         ]);
 
+        // Galerie du foyer : les médias partagés par les membres, plus
+        // récents d'abord. Les URLs passent par les routes protégées
+        // (MediaPolicy::view couvre la branche foyer de accessibleBy).
+        $media = $household->media()
+            ->with(['conversions', 'user:id,name'])
+            ->orderByRaw('taken_at DESC NULLS LAST')
+            ->orderByDesc('uploaded_at')
+            ->get();
+
+        $this->mediaService->hydrateSignedUrls($media);
+
+        $userId = $request->user()->id;
+        $media->each(function ($m) use ($userId) {
+            $m->is_mine = $m->user_id === $userId;
+            $m->shared_by = $m->pivot?->added_by;
+        });
+
         return Inertia::render('Households/Show', [
             'household' => [
                 'id' => $household->id,
@@ -87,6 +109,7 @@ class HouseholdController extends Controller
                 'is_creator' => $isCreator,
             ],
             'members' => $members,
+            'media' => $media,
         ]);
     }
 
