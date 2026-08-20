@@ -1,4 +1,5 @@
 <template>
+  <Head :title="album.name" />
   <AppLayout>
     <div class="py-12">
       <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
@@ -13,12 +14,6 @@
           Retour aux albums
         </Link>
 
-        <!-- Erreur d'action -->
-        <div v-if="errorMessage" class="mb-4 px-4 py-3 text-sm text-red-700 bg-red-50 rounded-lg flex items-start justify-between gap-2">
-          <span>{{ errorMessage }}</span>
-          <button type="button" class="text-red-500 hover:text-red-700" @click="errorMessage = null">✕</button>
-        </div>
-
         <!-- Album Header -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-6">
           <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -31,7 +26,7 @@
                   :class="[
                     'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
                     album.is_public
-                      ? 'bg-teal-100 text-teal-700'
+                      ? 'bg-teal-100 dark:bg-teal-500/15 text-teal-700 dark:text-teal-300'
                       : 'bg-surface-100 text-surface-600'
                   ]"
                 >
@@ -50,6 +45,21 @@
                   <path d="M8 5v14l11-7z" />
                 </svg>
                 Diaporama
+              </button>
+              <button
+                v-if="album.media && album.media.length > 0"
+                @click="toggleSelectionMode"
+                :class="[
+                  'inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg border',
+                  selectionMode
+                    ? 'text-brand-700 bg-brand-50 border-brand-300 hover:bg-brand-100'
+                    : 'text-surface-700 bg-white border-surface-300 hover:bg-surface-50'
+                ]"
+              >
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+                {{ selectionMode ? 'Terminer' : 'Sélectionner' }}
               </button>
               <button
                 v-if="isOwner"
@@ -140,7 +150,7 @@
               <button
                 v-if="removableSelectedIds.length > 0"
                 @click="removeSelectedMedia"
-                class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100"
+                class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20"
               >
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -155,7 +165,7 @@
               v-for="media in album.media"
               :key="media.id"
               :media="media"
-              :selectable="true"
+              :selectable="selectionMode"
               :is-selected="isSelected(media.id)"
               @click="handleMediaClick(media)"
               @toggle-selection="toggleSelection(media)"
@@ -199,7 +209,7 @@
         <div v-if="isOwner" class="mt-8 pt-8 border-t border-surface-200">
           <button
             @click="deleteAlbum"
-            class="inline-flex items-center px-4 py-2 text-sm font-medium text-red-600 hover:text-red-800"
+            class="inline-flex items-center px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
           >
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -244,7 +254,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { Link, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import MediaCard from '@/Components/MediaCard.vue';
@@ -254,6 +264,7 @@ import MediaPickerModal from '@/Components/MediaPickerModal.vue';
 import GeolocatePickerModal from '@/Components/GeolocatePickerModal.vue';
 import FullscreenSlideshow from '@/Components/FullscreenSlideshow.vue';
 import { usePhotoSwipe } from '@/composables/usePhotoSwipe';
+import { useToast } from '@/Composables/useToast';
 
 const props = defineProps({
   album: {
@@ -262,8 +273,9 @@ const props = defineProps({
   },
 });
 
+const toast = useToast();
+
 const showSharePanel = ref(false);
-const errorMessage = ref(null);
 
 // Diaporama
 const slideshowEl = ref(null);
@@ -291,7 +303,17 @@ const applyAlbumGeolocation = async ({ latitude, longitude }) => {
     geolocating.value = false;
   }
 };
+// Mode sélection : les cases à cocher n'apparaissent qu'une fois activé
+// via le bouton « Sélectionner » (demande UX : pas de cases par défaut).
+const selectionMode = ref(false);
 const selectedMediaIds = ref([]);
+
+const toggleSelectionMode = () => {
+  selectionMode.value = !selectionMode.value;
+  if (!selectionMode.value) {
+    selectedMediaIds.value = [];
+  }
+};
 
 const albumMediaIds = computed(() => {
   return props.album.media?.map((m) => m.id) || [];
@@ -341,11 +363,17 @@ const setAsCover = async () => {
     selectedMediaIds.value = [];
     router.reload();
   } catch (error) {
-    alert('Erreur : ' + (error.response?.data?.message || error.message));
+    toast.error(error.response?.data?.message || 'Erreur lors de la définition de la couverture.');
   }
 };
 
+// En mode sélection, le clic sur la tuile coche/décoche (comme la galerie) ;
+// sinon il ouvre la visionneuse (ou la fiche pour les non-photos).
 const handleMediaClick = (media) => {
+  if (selectionMode.value) {
+    toggleSelection(media);
+    return;
+  }
   if (media.type !== 'photo' || !openLightbox(media)) {
     router.visit(`/media/${media.id}`);
   }
@@ -374,7 +402,7 @@ const removeSelectedMedia = async () => {
     selectedMediaIds.value = [];
     router.reload();
   } catch (error) {
-    errorMessage.value = error.response?.data?.message || "Impossible de retirer ces médias de l'album.";
+    toast.error(error.response?.data?.message || "Impossible de retirer ces médias de l'album.");
   }
 };
 
@@ -387,7 +415,7 @@ const deleteAlbum = async () => {
     await axios.delete(`/albums/${props.album.id}`);
     router.visit('/albums');
   } catch (error) {
-    errorMessage.value = error.response?.data?.message || "Impossible de supprimer l'album.";
+    toast.error(error.response?.data?.message || "Impossible de supprimer l'album.");
   }
 };
 

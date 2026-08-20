@@ -3,7 +3,7 @@
     <h3 class="text-lg font-semibold mb-4">Géolocalisation</h3>
 
     <!-- Current location display -->
-    <div v-if="hasLocation" class="mb-4 p-4 bg-green-50 rounded-lg">
+    <div v-if="hasLocation" class="mb-4 p-4 bg-green-50 dark:bg-green-500/10 rounded-lg">
       <div class="text-sm text-surface-700 mb-2">
         <strong>Latitude:</strong> {{ currentLatitude }}
       </div>
@@ -28,7 +28,7 @@
         </button>
         <button
           @click="removeLocation"
-          class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 text-sm"
+          class="px-4 py-2 bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-500/25 text-sm"
         >
           Supprimer
         </button>
@@ -139,7 +139,7 @@
       </div>
 
       <!-- Error message -->
-      <div v-if="errorMessage" class="mt-3 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+      <div v-if="errorMessage" class="mt-3 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-lg text-sm">
         {{ errorMessage }}
       </div>
     </div>
@@ -150,6 +150,9 @@
 import { ref, computed, watch, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
+import { useToast } from '@/Composables/useToast';
+
+const toast = useToast();
 
 const props = defineProps({
   mediaId: {
@@ -266,8 +269,7 @@ async function saveLocation() {
 
     emit('updated', response.data.metadata);
 
-    // Show success message
-    alert('Géolocalisation mise à jour avec succès !');
+    toast.success('Géolocalisation mise à jour avec succès !');
   } catch (error) {
     errorMessage.value = error.response?.data?.message || 'Erreur lors de la sauvegarde';
   }
@@ -287,7 +289,7 @@ async function removeLocation() {
 
     emit('removed');
 
-    alert('Géolocalisation supprimée avec succès !');
+    toast.success('Géolocalisation supprimée avec succès !');
   } catch (error) {
     errorMessage.value = error.response?.data?.message || 'Erreur lors de la suppression';
   }

@@ -3,9 +3,9 @@
     <h3 class="text-lg font-semibold text-surface-900 mb-4">Partage</h3>
 
     <!-- Erreur d'action de partage -->
-    <div v-if="errorMessage" class="mb-3 px-3 py-2 text-sm text-red-700 bg-red-50 rounded-lg flex items-start justify-between gap-2">
+    <div v-if="errorMessage" class="mb-3 px-3 py-2 text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-500/10 rounded-lg flex items-start justify-between gap-2">
       <span>{{ errorMessage }}</span>
-      <button type="button" class="text-red-500 hover:text-red-700" @click="errorMessage = null">✕</button>
+      <button type="button" class="text-red-500 hover:text-red-700 dark:hover:text-red-200" @click="errorMessage = null">✕</button>
     </div>
 
     <!-- Public Toggle (propriétaire uniquement) -->
@@ -59,7 +59,7 @@
         <!-- Revoke Button -->
         <button
           type="button"
-          class="text-sm text-red-600 hover:text-red-800"
+          class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
           @click="revokeLink"
         >
           Révoquer le lien
@@ -159,7 +159,7 @@
           <button
             v-if="a.origin === 'granted'"
             type="button"
-            class="text-xs text-red-600 hover:text-red-800"
+            class="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
             @click="revoke(a)"
           >
             Retirer

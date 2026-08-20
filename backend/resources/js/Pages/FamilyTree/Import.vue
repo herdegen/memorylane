@@ -1,4 +1,5 @@
 <template>
+  <Head title="Import GEDCOM" />
   <AppLayout title="Import GEDCOM">
     <div class="py-12">
       <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
@@ -44,7 +45,7 @@
             <p class="mt-2 text-sm text-surface-500">ou glissez-déposez un fichier .ged ici</p>
           </div>
 
-          <p v-if="uploadError" class="mt-4 text-red-600 text-sm">{{ uploadError }}</p>
+          <p v-if="uploadError" class="mt-4 text-red-600 dark:text-red-400 text-sm">{{ uploadError }}</p>
 
           <!-- Previous imports -->
           <div v-if="imports.length > 0" class="mt-8">
@@ -56,9 +57,9 @@
               </div>
               <span
                 :class="{
-                  'text-green-600': imp.status === 'completed',
-                  'text-yellow-600': imp.status === 'matching',
-                  'text-red-600': imp.status === 'failed',
+                  'text-green-600 dark:text-green-400': imp.status === 'completed',
+                  'text-yellow-600 dark:text-yellow-400': imp.status === 'matching',
+                  'text-red-600 dark:text-red-400': imp.status === 'failed',
                   'text-surface-500': imp.status === 'pending',
                 }"
                 class="text-sm font-medium"
@@ -82,7 +83,7 @@
             <div class="flex gap-2">
               <button
                 @click="setAllDecisions('create')"
-                class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-sm hover:bg-green-200"
+                class="px-3 py-1 text-sm bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-300 rounded-sm hover:bg-green-200 dark:hover:bg-green-500/25"
               >
                 Tout créer
               </button>
@@ -101,7 +102,7 @@
               :key="suggestion.gedcom_id"
               class="border rounded-lg p-4"
               :class="{
-                'border-teal-300 bg-teal-50': decisions[suggestion.gedcom_id] === 'create',
+                'border-teal-300 dark:border-teal-500/40 bg-teal-50 dark:bg-teal-500/10': decisions[suggestion.gedcom_id] === 'create',
                 'border-brand-300 bg-brand-50': decisions[suggestion.gedcom_id]?.startsWith('match_'),
                 'border-surface-200 bg-surface-50': decisions[suggestion.gedcom_id] === 'skip',
               }"
@@ -198,9 +199,12 @@
 
 <script setup>
 import { ref, reactive } from 'vue';
-import { Link } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import axios from 'axios';
+import { useToast } from '@/Composables/useToast';
+
+const toast = useToast();
 
 const props = defineProps({
   imports: { type: Array, default: () => [] },
@@ -268,7 +272,7 @@ async function confirmImport() {
     importStats.value = response.data.stats;
     step.value = 'results';
   } catch (error) {
-    alert('Erreur: ' + (error.response?.data?.message || error.message));
+    toast.error(error.response?.data?.message || "Erreur lors de l'import.");
   } finally {
     importing.value = false;
   }

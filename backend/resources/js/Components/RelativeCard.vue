@@ -26,7 +26,7 @@
       v-if="removable"
       type="button"
       @click.prevent="$emit('remove')"
-      class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-surface-400 hover:text-red-500 bg-white/90 rounded-full p-0.5 transition"
+      class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-surface-400 hover:text-red-500 dark:hover:text-red-400 bg-white/90 rounded-full p-0.5 transition"
       title="Retirer"
     >
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

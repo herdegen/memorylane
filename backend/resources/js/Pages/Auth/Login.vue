@@ -1,4 +1,5 @@
 <template>
+  <Head title="Connexion" />
   <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-linear-to-br from-brand-50 via-white to-surface-50">
     <div class="w-full sm:max-w-md mt-6 px-8 py-8 bg-white shadow-xl rounded-2xl border border-surface-200">
       <!-- Logo / Branding -->
@@ -98,7 +99,7 @@
         <p v-if="!form.email" class="mt-2 text-xs text-surface-400 text-center">
           Saisissez votre e-mail ci-dessus, puis cliquez ici — pas besoin de mot de passe.
         </p>
-        <p v-if="magicForm.errors.email" class="mt-2 text-xs text-red-600 text-center">
+        <p v-if="magicForm.errors.email" class="mt-2 text-xs text-red-600 dark:text-red-400 text-center">
           {{ magicForm.errors.email }}
         </p>
       </div>
@@ -108,7 +109,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { useForm, usePage } from '@inertiajs/vue3';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
 import FormField from '@/Components/Forms/FormField.vue';
 import FormError from '@/Components/Forms/FormError.vue';
 import FormButton from '@/Components/Forms/FormButton.vue';

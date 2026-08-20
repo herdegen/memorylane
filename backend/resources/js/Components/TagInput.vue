@@ -77,6 +77,9 @@
 import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
 import { matchesPerson } from '@/utils/personSearch';
+import { useToast } from '@/Composables/useToast';
+
+const toast = useToast();
 
 const props = defineProps({
   mediaId: {
@@ -136,7 +139,7 @@ const addTag = async (tag) => {
     showSuggestions.value = false;
     emit('tags-updated', mediaTags.value);
   } catch (error) {
-    alert('Erreur lors de l\'ajout du tag: ' + (error.response?.data?.message || error.message));
+    toast.error(error.response?.data?.message || 'Impossible d\'ajouter le tag.');
   } finally {
     loading.value = false;
   }
@@ -155,7 +158,7 @@ const removeTag = async (tag) => {
     mediaTags.value = mediaTags.value.filter(t => t.id !== tag.id);
     emit('tags-updated', mediaTags.value);
   } catch (error) {
-    alert('Erreur lors du retrait du tag: ' + (error.response?.data?.message || error.message));
+    toast.error(error.response?.data?.message || 'Impossible de retirer le tag.');
   } finally {
     loading.value = false;
   }

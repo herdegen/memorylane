@@ -1,4 +1,5 @@
 <template>
+  <Head title="Galerie" />
   <AppLayout>
     <div class="py-12">
       <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
@@ -92,7 +93,7 @@
         <!-- Confirmation après ajout -->
         <div
           v-if="albumFeedback"
-          class="mb-6 flex items-center justify-between gap-3 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800"
+          class="mb-6 flex items-center justify-between gap-3 rounded-lg bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 px-4 py-3 text-sm text-green-800 dark:text-green-200"
         >
           <span>{{ albumFeedback.message }}</span>
           <Link
@@ -129,7 +130,7 @@
               <button
                 v-if="hasVideoFilters"
                 @click="clearVideoFilters"
-                class="text-xs text-red-600 hover:text-red-800 transition"
+                class="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 transition"
               >
                 Réinitialiser
               </button>
@@ -219,7 +220,7 @@
               <button
                 v-if="selectedTags.length > 0"
                 @click="clearTagFilters"
-                class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-700 hover:bg-red-200 transition"
+                class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-500/25 transition"
               >
                 <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -284,7 +285,7 @@
 <script setup>
 import { ref, computed, reactive, onMounted, onUnmounted, watch } from 'vue';
 import axios from 'axios';
-import { Link, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import MediaGrid from '@/Components/MediaGrid.vue';
 import AddToAlbumModal from '@/Components/AddToAlbumModal.vue';

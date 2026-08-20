@@ -31,7 +31,7 @@
         {{ personLabel(person) }}
         <button
           @click="removePerson(person)"
-          class="ml-1 hover:text-red-600 transition"
+          class="ml-1 hover:text-red-600 dark:hover:text-red-400 transition"
           type="button"
           title="Retirer cette personne"
         >
@@ -124,6 +124,9 @@ import axios from 'axios';
 import PersonFormModal from '@/Components/PersonFormModal.vue';
 import { personLabel } from '@/utils/personName';
 import { searchPeople } from '@/utils/personSearch';
+import { useToast } from '@/Composables/useToast';
+
+const toast = useToast();
 
 const props = defineProps({
   mediaId: {
@@ -183,7 +186,7 @@ const addPerson = async (person) => {
     showSuggestions.value = false;
     emit('people-updated', mediaPeople.value);
   } catch (error) {
-    alert('Erreur lors de l\'ajout: ' + (error.response?.data?.message || error.message));
+    toast.error(error.response?.data?.message || 'Impossible d\'ajouter cette personne.');
   } finally {
     loading.value = false;
   }
@@ -202,7 +205,7 @@ const removePerson = async (person) => {
     mediaPeople.value = mediaPeople.value.filter(p => p.id !== person.id);
     emit('people-updated', mediaPeople.value);
   } catch (error) {
-    alert('Erreur lors du retrait: ' + (error.response?.data?.message || error.message));
+    toast.error(error.response?.data?.message || 'Impossible de retirer cette personne.');
   } finally {
     loading.value = false;
   }

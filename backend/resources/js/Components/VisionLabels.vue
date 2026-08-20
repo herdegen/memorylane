@@ -5,7 +5,7 @@
       <span
         v-for="label in labels"
         :key="label.name"
-        class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-violet-100 text-violet-700 border border-violet-200"
+        class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-violet-100 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-500/30"
         :title="`Confiance : ${Math.round(label.score * 100)}%`"
       >
         <svg class="w-3 h-3 mr-1 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

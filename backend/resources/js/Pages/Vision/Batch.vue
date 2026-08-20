@@ -1,4 +1,5 @@
 <template>
+  <Head title="Détection des visages" />
   <AppLayout>
     <div class="py-12">
       <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
@@ -28,7 +29,7 @@
             <div class="mb-4">
               <div class="flex justify-between text-sm text-surface-600 mb-1">
                 <span>{{ processed }} / {{ total }} photos</span>
-                <span v-if="errors > 0" class="text-red-600">{{ errors }} erreur{{ errors > 1 ? 's' : '' }}</span>
+                <span v-if="errors > 0" class="text-red-600 dark:text-red-400">{{ errors }} erreur{{ errors > 1 ? 's' : '' }}</span>
               </div>
               <div class="w-full h-2 bg-surface-100 rounded-full overflow-hidden">
                 <div
@@ -55,7 +56,7 @@
               >
                 Arrêter
               </button>
-              <div v-if="done" class="text-sm text-green-700 font-medium py-2">
+              <div v-if="done" class="text-sm text-green-700 dark:text-green-300 font-medium py-2">
                 Terminé : {{ processed - errors }} photo(s) analysée(s){{ errors ? `, ${errors} en échec` : '' }}.
               </div>
             </div>
@@ -68,6 +69,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { useFaceDetection } from '@/composables/useFaceDetection';
 import axios from 'axios';

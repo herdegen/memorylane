@@ -145,6 +145,9 @@ import { router } from '@inertiajs/vue3';
 import RelationshipPicker from '@/Components/RelationshipPicker.vue';
 import RelativeCard from '@/Components/RelativeCard.vue';
 import axios from 'axios';
+import { useToast } from '@/Composables/useToast';
+
+const toast = useToast();
 
 const props = defineProps({
   person: { type: Object, required: true },
@@ -191,7 +194,7 @@ async function addChild(child) {
     addingChild.value = false;
     router.reload();
   } catch (error) {
-    alert(error.response?.data?.message || 'Erreur');
+    toast.error(error.response?.data?.message || 'Impossible d\'ajouter cet enfant.');
   } finally {
     busy.value = false;
   }
@@ -211,7 +214,7 @@ async function createAndAddChild() {
     addingChild.value = false;
     router.reload();
   } catch (error) {
-    alert(error.response?.data?.message || 'Erreur');
+    toast.error(error.response?.data?.message || 'Impossible de créer cet enfant.');
   } finally {
     busy.value = false;
   }
@@ -225,7 +228,7 @@ async function setParent(parent, type) {
     });
     router.reload();
   } catch (error) {
-    alert(error.response?.data?.message || 'Erreur');
+    toast.error(error.response?.data?.message || 'Impossible de définir ce parent.');
   }
 }
 
@@ -236,7 +239,7 @@ async function removeParent(type) {
     });
     router.reload();
   } catch (error) {
-    alert(error.response?.data?.message || 'Erreur');
+    toast.error(error.response?.data?.message || 'Impossible de retirer ce parent.');
   }
 }
 
@@ -248,7 +251,7 @@ async function addSpouse(spouse) {
     addingSpouse.value = false;
     router.reload();
   } catch (error) {
-    alert(error.response?.data?.message || 'Erreur');
+    toast.error(error.response?.data?.message || 'Impossible d\'ajouter ce conjoint.');
   }
 }
 
@@ -259,7 +262,7 @@ async function removeSpouse(spouse) {
     });
     router.reload();
   } catch (error) {
-    alert(error.response?.data?.message || 'Erreur');
+    toast.error(error.response?.data?.message || 'Impossible de retirer ce conjoint.');
   }
 }
 </script>

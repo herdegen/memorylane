@@ -1,4 +1,5 @@
 <template>
+  <Head title="Personnes" />
   <AppLayout>
     <div class="py-12">
       <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
@@ -92,8 +93,8 @@
                 {{ person.media_count }} {{ person.media_count === 1 ? 'média' : 'médias' }}
               </p>
               <p v-if="person.birth_date" class="text-xs text-surface-400 mt-1">
-                {{ formatDate(person.birth_date) }}
-                {{ person.death_date ? ' - ' + formatDate(person.death_date) : '' }}
+                {{ formatLongDate(person.birth_date) }}
+                {{ person.death_date ? ' - ' + formatLongDate(person.death_date) : '' }}
               </p>
             </div>
           </div>
@@ -143,10 +144,11 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PersonFormModal from '@/Components/PersonFormModal.vue';
 import { personLabel } from '@/utils/personName';
+import { formatLongDate } from '@/utils/format';
 
 const props = defineProps({
   people: {
@@ -221,15 +223,5 @@ const goToPerson = (person) => {
 
 const handlePersonCreated = () => {
   router.reload();
-};
-
-const formatDate = (dateString) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
 };
 </script>

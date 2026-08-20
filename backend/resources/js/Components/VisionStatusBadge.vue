@@ -15,8 +15,8 @@
     <!-- Completed -->
     <div v-else-if="currentStatus === 'completed'" class="flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-          <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="shrink-0 w-8 h-8 bg-green-100 dark:bg-green-500/15 rounded-full flex items-center justify-center">
+          <svg class="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
           </svg>
         </div>
@@ -38,8 +38,8 @@
     <!-- Failed -->
     <div v-else-if="currentStatus === 'failed'" class="flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="shrink-0 w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-          <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="shrink-0 w-8 h-8 bg-red-100 dark:bg-red-500/15 rounded-full flex items-center justify-center">
+          <svg class="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>

@@ -1,4 +1,5 @@
 <template>
+  <Head :title="album.name" />
   <div class="min-h-screen bg-surface-100">
     <!-- Simple Header -->
     <nav class="bg-white shadow-xs">
@@ -153,6 +154,7 @@
 
 <script setup>
 import { ref } from 'vue';
+import { Head } from '@inertiajs/vue3';
 import { usePhotoSwipe } from '@/composables/usePhotoSwipe';
 
 const props = defineProps({

@@ -113,12 +113,12 @@
 
       <div>
         <dt class="text-sm font-medium text-surface-500">Téléchargé le</dt>
-        <dd class="mt-1 text-sm text-surface-900">{{ formatDate(media.uploaded_at) }}</dd>
+        <dd class="mt-1 text-sm text-surface-900">{{ formatDateTime(media.uploaded_at) }}</dd>
       </div>
 
       <div v-if="media.taken_at">
         <dt class="text-sm font-medium text-surface-500">Pris le</dt>
-        <dd class="mt-1 text-sm text-surface-900">{{ formatDate(media.taken_at) }}</dd>
+        <dd class="mt-1 text-sm text-surface-900">{{ formatDateTime(media.taken_at) }}</dd>
       </div>
 
       <div v-if="media.user">
@@ -161,6 +161,10 @@
 <script setup>
 import { ref, reactive, computed } from 'vue';
 import axios from 'axios';
+import { useToast } from '@/Composables/useToast';
+import { formatFileSize, formatDuration, formatDateTime } from '@/utils/format';
+
+const toast = useToast();
 
 const props = defineProps({
   media: {
@@ -217,7 +221,7 @@ const save = async () => {
     emit('updated', response.data.media);
   } catch (error) {
     console.error('Failed to update media:', error);
-    alert('Erreur lors de la mise à jour');
+    toast.error(error.response?.data?.message || 'Impossible de mettre à jour le média.');
   } finally {
     saving.value = false;
   }
@@ -228,33 +232,4 @@ const formatType = (type) => {
   return types[type] || type;
 };
 
-const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-};
-
-const formatDuration = (seconds) => {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
-  if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  }
-  return `${minutes}:${secs.toString().padStart(2, '0')}`;
-};
-
-const formatDate = (dateString) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
 </script>

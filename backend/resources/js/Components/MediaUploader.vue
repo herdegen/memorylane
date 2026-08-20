@@ -146,7 +146,7 @@
               </div>
               <button
                 type="button"
-                class="ml-3 text-red-600 hover:text-red-800"
+                class="ml-3 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
                 @click="removeFile(file.id)"
               >
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -220,7 +220,7 @@
         </div>
       </div>
 
-      <div v-if="error" class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+      <div v-if="error" class="mt-4 p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg">
         <div class="flex">
           <svg
             class="h-5 w-5 text-red-400"
@@ -236,7 +236,7 @@
             />
           </svg>
           <div class="ml-3">
-            <p class="text-sm text-red-700">{{ error }}</p>
+            <p class="text-sm text-red-700 dark:text-red-300">{{ error }}</p>
           </div>
         </div>
       </div>
@@ -261,14 +261,14 @@
             <!-- Vidéo : card violet avec icône play -->
             <div
               v-else-if="media.type === 'video'"
-              class="w-full h-full flex flex-col items-center justify-center bg-violet-50 p-3"
+              class="w-full h-full flex flex-col items-center justify-center bg-violet-50 dark:bg-violet-500/10 p-3"
             >
-              <div class="rounded-full bg-violet-100 p-3 mb-2">
+              <div class="rounded-full bg-violet-100 dark:bg-violet-500/15 p-3 mb-2">
                 <svg class="h-8 w-8 text-violet-500" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M8 5v14l11-7z" />
                 </svg>
               </div>
-              <p class="text-xs text-violet-700 text-center font-medium leading-tight line-clamp-2">
+              <p class="text-xs text-violet-700 dark:text-violet-300 text-center font-medium leading-tight line-clamp-2">
                 {{ media.original_filename }}
               </p>
             </div>
@@ -305,6 +305,7 @@ import { ref, computed, onMounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { fetchOwnedAlbums, createAlbumWithMedia, addMediaToAlbum } from '@/utils/albums';
+import { formatFileSize } from '@/utils/format';
 
 // `album-attached` : { albumId, albumName, count, isNew } — pour un retour parent.
 const emit = defineEmits(['upload-complete', 'album-attached']);
@@ -405,14 +406,6 @@ const isImage = (mimeType) => {
 
 const isVideo = (mimeType) => {
   return mimeType.startsWith('video/');
-};
-
-const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
 };
 
 const handleDragOver = (e) => {

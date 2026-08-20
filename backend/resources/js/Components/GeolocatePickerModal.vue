@@ -1,63 +1,61 @@
 <template>
-  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/50" @click.self="$emit('close')">
-    <div class="bg-white rounded-modal shadow-warm-lg w-full max-w-2xl overflow-hidden">
-      <div class="p-6">
-        <h3 class="card-title mb-1">{{ title }}</h3>
-        <p class="text-sm text-surface-500 mb-4">{{ description }}</p>
+  <BaseModal max-width="2xl" labelledby="geolocate-picker-title" @close="$emit('close')">
+    <div class="p-6">
+      <h3 id="geolocate-picker-title" class="card-title mb-1">{{ title }}</h3>
+      <p class="text-sm text-surface-500 mb-4">{{ description }}</p>
 
-        <!-- Recherche d'adresse -->
-        <div class="relative mb-3">
-          <div class="flex gap-2">
-            <input
-              v-model="searchQuery"
-              @keyup.enter="searchAddress"
-              type="text"
-              class="form-input"
-              placeholder="Rechercher une adresse, une ville…"
-            />
-            <button @click="searchAddress" type="button" :disabled="searching" class="btn-secondary shrink-0">
-              {{ searching ? '…' : 'Chercher' }}
-            </button>
-          </div>
-          <ul
-            v-if="results.length"
-            class="absolute z-10 mt-1 w-full bg-white border border-surface-200 rounded-lg shadow-warm-lg max-h-48 overflow-auto"
-          >
-            <li v-for="r in results" :key="r.label">
-              <button
-                type="button"
-                @click="pickResult(r)"
-                class="w-full text-left px-3 py-2 hover:bg-surface-50 text-sm text-surface-700"
-              >
-                {{ r.label }}
-              </button>
-            </li>
-          </ul>
+      <!-- Recherche d'adresse -->
+      <div class="relative mb-3">
+        <div class="flex gap-2">
+          <input
+            v-model="searchQuery"
+            @keyup.enter="searchAddress"
+            type="text"
+            class="form-input"
+            placeholder="Rechercher une adresse, une ville…"
+          />
+          <button @click="searchAddress" type="button" :disabled="searching" class="btn-secondary shrink-0">
+            {{ searching ? '…' : 'Chercher' }}
+          </button>
         </div>
-
-        <div ref="mapEl" class="h-80 rounded-lg overflow-hidden border border-surface-200 z-0"></div>
-
-        <p class="mt-3 text-sm" :class="coords ? 'text-surface-700' : 'text-surface-400'">
-          <template v-if="coords">Position choisie : {{ coords.lat.toFixed(5) }}, {{ coords.lng.toFixed(5) }}</template>
-          <template v-else>Aucune position choisie.</template>
-        </p>
-
-        <p v-if="errorMessage" class="mt-2 text-sm text-red-600">{{ errorMessage }}</p>
-      </div>
-
-      <div class="flex justify-end gap-2 px-6 py-4 bg-surface-50 border-t border-surface-100">
-        <button @click="$emit('close')" type="button" class="btn-secondary">Annuler</button>
-        <button
-          @click="$emit('apply', { latitude: coords.lat, longitude: coords.lng })"
-          type="button"
-          :disabled="!coords || saving"
-          class="btn-primary"
+        <ul
+          v-if="results.length"
+          class="absolute z-10 mt-1 w-full bg-white border border-surface-200 rounded-lg shadow-warm-lg max-h-48 overflow-auto"
         >
-          {{ saving ? 'Application…' : applyLabel }}
-        </button>
+          <li v-for="r in results" :key="r.label">
+            <button
+              type="button"
+              @click="pickResult(r)"
+              class="w-full text-left px-3 py-2 hover:bg-surface-50 text-sm text-surface-700"
+            >
+              {{ r.label }}
+            </button>
+          </li>
+        </ul>
       </div>
+
+      <div ref="mapEl" class="h-80 rounded-lg overflow-hidden border border-surface-200 z-0"></div>
+
+      <p class="mt-3 text-sm" :class="coords ? 'text-surface-700' : 'text-surface-400'">
+        <template v-if="coords">Position choisie : {{ coords.lat.toFixed(5) }}, {{ coords.lng.toFixed(5) }}</template>
+        <template v-else>Aucune position choisie.</template>
+      </p>
+
+      <p v-if="errorMessage" class="mt-2 text-sm text-red-600 dark:text-red-400">{{ errorMessage }}</p>
     </div>
-  </div>
+
+    <div class="flex justify-end gap-2 px-6 py-4 bg-surface-50 border-t border-surface-100">
+      <button @click="$emit('close')" type="button" class="btn-secondary">Annuler</button>
+      <button
+        @click="$emit('apply', { latitude: coords.lat, longitude: coords.lng })"
+        type="button"
+        :disabled="!coords || saving"
+        class="btn-primary"
+      >
+        {{ saving ? 'Application…' : applyLabel }}
+      </button>
+    </div>
+  </BaseModal>
 </template>
 
 <script setup>
@@ -68,6 +66,7 @@ import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
+import BaseModal from '@/Components/BaseModal.vue';
 
 defineProps({
   title: { type: String, required: true },

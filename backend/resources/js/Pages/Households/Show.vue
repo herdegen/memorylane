@@ -1,4 +1,5 @@
 <template>
+  <Head :title="household.name" />
   <AppLayout>
     <div class="py-12">
       <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
@@ -17,7 +18,7 @@
           <button
             v-if="household.is_creator"
             @click="destroyHousehold"
-            class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-800"
+            class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
           >
             Supprimer le foyer
           </button>
@@ -81,7 +82,7 @@
             <button
               v-if="household.is_creator && !m.is_creator"
               @click="removeMember(m)"
-              class="text-sm text-red-600 hover:text-red-800"
+              class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
             >
               Retirer
             </button>
@@ -98,9 +99,12 @@
 
 <script setup>
 import { ref, onUnmounted } from 'vue';
-import { Link, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { useToast } from '@/Composables/useToast';
+
+const toast = useToast();
 
 const props = defineProps({
   household: { type: Object, required: true },
@@ -136,7 +140,7 @@ const invite = async (candidate) => {
     candidates.value = [];
     router.reload();
   } catch (error) {
-    alert('Erreur : ' + (error.response?.data?.message || error.message));
+    toast.error(error.response?.data?.message || "Erreur lors de l'invitation.");
   }
 };
 
@@ -146,7 +150,7 @@ const removeMember = async (member) => {
     await axios.delete(`/households/${props.household.id}/members/${member.user_id}`);
     router.reload();
   } catch (error) {
-    alert('Erreur : ' + (error.response?.data?.message || error.message));
+    toast.error(error.response?.data?.message || 'Erreur lors du retrait du membre.');
   }
 };
 
@@ -156,7 +160,7 @@ const leaveHousehold = async () => {
     await axios.post(`/households/${props.household.id}/leave`);
     router.visit('/households');
   } catch (error) {
-    alert('Erreur : ' + (error.response?.data?.message || error.message));
+    toast.error(error.response?.data?.message || 'Erreur : impossible de quitter le foyer.');
   }
 };
 
@@ -166,7 +170,7 @@ const destroyHousehold = async () => {
     await axios.delete(`/households/${props.household.id}`);
     router.visit('/households');
   } catch (error) {
-    alert('Erreur : ' + (error.response?.data?.message || error.message));
+    toast.error(error.response?.data?.message || 'Erreur lors de la suppression du foyer.');
   }
 };
 </script>

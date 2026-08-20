@@ -1,4 +1,5 @@
 <template>
+  <Head title="Foyers" />
   <AppLayout>
     <div class="py-12">
       <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
@@ -64,9 +65,12 @@
 
 <script setup>
 import { ref } from 'vue';
-import { Link, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { useToast } from '@/Composables/useToast';
+
+const toast = useToast();
 
 defineProps({
   households: { type: Array, default: () => [] },
@@ -83,7 +87,7 @@ const createHousehold = async () => {
     const { data } = await axios.post('/households', { name });
     router.visit(`/households/${data.id}`);
   } catch (error) {
-    alert('Erreur : ' + (error.response?.data?.message || error.message));
+    toast.error(error.response?.data?.message || 'Erreur lors de la création du foyer.');
     creating.value = false;
   }
 };

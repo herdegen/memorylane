@@ -1,4 +1,5 @@
 <template>
+  <Head title="Carte" />
   <AppLayout title="Carte">
     <div class="h-[calc(100vh-4rem)] flex">
       <!-- Sidebar with filters and search -->
@@ -85,8 +86,8 @@
         </div>
 
         <!-- Nearby search -->
-        <div v-if="selectedLocation" class="mt-4 p-3 bg-green-50 rounded-lg">
-          <div class="text-sm font-medium text-green-800 mb-2">
+        <div v-if="selectedLocation" class="mt-4 p-3 bg-green-50 dark:bg-green-500/10 rounded-lg">
+          <div class="text-sm font-medium text-green-800 dark:text-green-200 mb-2">
             Photos à proximité de {{ selectedLocation.name }}
           </div>
           <button
@@ -114,7 +115,9 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { formatDate } from '@/utils/format';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
@@ -266,7 +269,7 @@ function updateMarkers() {
       <div class="text-center">
         <img src="${media.thumbnail_url}" alt="${media.original_name}" class="w-32 h-32 object-cover rounded-sm mb-2" />
         <div class="font-medium text-sm">${media.original_name}</div>
-        ${media.taken_at ? `<div class="text-xs text-surface-500">${new Date(media.taken_at).toLocaleDateString()}</div>` : ''}
+        ${media.taken_at ? `<div class="text-xs text-surface-500">${formatDate(media.taken_at)}</div>` : ''}
         <div class="mt-2">
           <a href="/media/${media.id}" class="text-brand-600 hover:text-brand-800 text-sm">Voir le média</a>
         </div>

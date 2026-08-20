@@ -52,7 +52,7 @@
       leave-from-class="opacity-100 translate-y-0"
       leave-to-class="opacity-0 -translate-y-1"
     >
-      <p v-if="error" class="mt-2 text-sm text-red-600 flex items-center gap-1">
+      <p v-if="error" class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
         <svg
           class="h-4 w-4 shrink-0"
           xmlns="http://www.w3.org/2000/svg"
@@ -126,7 +126,7 @@ defineEmits(['update:modelValue']);
 
 const inputClasses = computed(() => {
   if (props.error) {
-    return 'border-red-300 text-red-900 placeholder-red-300 focus:ring-red-500 focus:border-red-500';
+    return 'border-red-300 dark:border-red-500/40 text-red-900 dark:text-red-100 placeholder-red-300 dark:placeholder-red-400/50 focus:ring-red-500 focus:border-red-500';
   }
   return 'border-surface-300 text-surface-900 placeholder-surface-400 focus:ring-brand-500 focus:border-brand-500';
 });

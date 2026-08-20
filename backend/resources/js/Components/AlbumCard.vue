@@ -55,7 +55,7 @@
         <!-- Smart Badge -->
         <span
           v-if="album.is_smart"
-          class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-violet-100 text-violet-700"
+          class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-violet-100 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300"
           title="Album intelligent : se remplit automatiquement"
         >
           <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -118,10 +118,10 @@ defineEmits(['click']);
 
 const visibility = computed(() => {
   if (props.album.is_public) {
-    return { label: 'Public', class: 'bg-teal-100 text-teal-700' };
+    return { label: 'Public', class: 'bg-teal-100 dark:bg-teal-500/15 text-teal-700 dark:text-teal-300' };
   }
   if ((props.album.accesses_count || 0) > 0) {
-    return { label: 'Partagé', class: 'bg-amber-100 text-amber-700' };
+    return { label: 'Partagé', class: 'bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300' };
   }
   return { label: 'Privé', class: 'bg-surface-100 text-surface-600' };
 });

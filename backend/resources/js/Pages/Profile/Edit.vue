@@ -1,4 +1,5 @@
 <template>
+  <Head title="Modifier mon profil" />
   <AppLayout>
     <div class="py-12">
       <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
@@ -11,14 +12,6 @@
             <p class="mt-1 text-sm text-surface-600 mb-6">
               Mettez à jour les informations de votre compte.
             </p>
-
-            <FormError
-              v-if="flash.success && !successDismissed"
-              type="success"
-              :message="flash.success"
-              dismissible
-              @dismiss="successDismissed = true"
-            />
 
             <form @submit.prevent="updateProfile" class="space-y-6">
               <FormField
@@ -131,21 +124,16 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FormField from '@/Components/Forms/FormField.vue';
-import FormError from '@/Components/Forms/FormError.vue';
 import FormButton from '@/Components/Forms/FormButton.vue';
-import { useAuth } from '@/Composables/useAuth';
 
 const props = defineProps({
   user: Object,
 });
 
-const { flash } = useAuth();
 // Fermeture locale du bandeau : on ne mute pas les props de page Inertia.
-const successDismissed = ref(false);
 
 const profileForm = useForm({
   name: props.user.name,

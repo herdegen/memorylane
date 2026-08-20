@@ -1,4 +1,5 @@
 <template>
+  <Head title="Télécharger" />
   <AppLayout>
     <div class="py-12">
       <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
@@ -42,8 +43,8 @@
           href="/takeout"
           class="mt-4 card card--padded flex items-center gap-4 group"
         >
-          <span class="w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center shrink-0 group-hover:bg-teal-200 transition-colors">
-            <svg class="w-6 h-6 text-teal-700" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <span class="w-12 h-12 rounded-xl bg-teal-100 dark:bg-teal-500/15 flex items-center justify-center shrink-0 group-hover:bg-teal-200 dark:group-hover:bg-teal-500/25 transition-colors">
+            <svg class="w-6 h-6 text-teal-700 dark:text-teal-300" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
             </svg>
           </span>
@@ -88,7 +89,7 @@
             <!-- Confirmation après ajout -->
             <div
               v-if="albumFeedback"
-              class="mb-4 flex items-center justify-between gap-3 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800"
+              class="mb-4 flex items-center justify-between gap-3 rounded-lg bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 px-4 py-3 text-sm text-green-800 dark:text-green-200"
             >
               <span>{{ albumFeedback.message }}</span>
               <Link :href="`/albums/${albumFeedback.albumId}`" class="font-semibold underline shrink-0">
@@ -110,8 +111,8 @@
                         class="w-full h-full object-cover"
                       />
                     </div>
-                    <div v-else-if="media.type === 'video'" class="w-12 h-12 rounded-sm bg-violet-100 flex items-center justify-center">
-                      <svg class="h-6 w-6 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div v-else-if="media.type === 'video'" class="w-12 h-12 rounded-sm bg-violet-100 dark:bg-violet-500/15 flex items-center justify-center">
+                      <svg class="h-6 w-6 text-violet-600 dark:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                       </svg>
                     </div>
@@ -140,7 +141,7 @@
                     </svg>
                     Éditer
                   </Link>
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-500/15 text-green-800 dark:text-green-200">
                     <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                     </svg>
@@ -191,10 +192,11 @@
 
 <script setup>
 import { ref } from 'vue';
-import { Link } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import MediaUploader from '@/Components/MediaUploader.vue';
 import AddToAlbumModal from '@/Components/AddToAlbumModal.vue';
+import { formatFileSize } from '@/utils/format';
 
 const recentUploads = ref([]);
 // Tous les IDs uploadés dans la session (sans le plafond d'affichage de 10) :
@@ -221,15 +223,6 @@ const handleAlbumDone = ({ albumId, albumName, count, isNew }) => {
       ? `Album « ${albumName} » créé avec ${count} média${count > 1 ? 's' : ''}.`
       : `${count} média${count > 1 ? 's' : ''} ajouté${count > 1 ? 's' : ''} à « ${albumName} ».`,
   };
-};
-
-const formatFileSize = (bytes) => {
-  if (!bytes) return '0 Bytes';
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
 };
 
 const formatMediaType = (type) => {

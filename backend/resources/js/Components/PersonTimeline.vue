@@ -46,7 +46,7 @@
             />
             <div class="min-w-0 flex-1">
               <p class="text-xs font-medium text-brand-600">
-                {{ formatDate(item.date) }}<span v-if="item.end_date && item.end_date !== item.date"> → {{ formatDate(item.end_date) }}</span>
+                {{ formatEventDate(item.date) }}<span v-if="item.end_date && item.end_date !== item.date"> → {{ formatEventDate(item.end_date) }}</span>
               </p>
               <p class="text-sm font-semibold text-surface-900">
                 <Link v-if="item.type === 'album'" :href="`/albums/${item.id}`" class="hover:text-brand-700">{{ item.name }}</Link>
@@ -71,7 +71,7 @@
               class="w-14 h-14 rounded-lg object-cover shrink-0 border border-surface-200"
             />
             <div class="min-w-0 flex-1">
-              <p class="text-xs font-medium text-brand-600">{{ formatDate(item.date) }}<span v-if="item.end_date"> → {{ formatDate(item.end_date) }}</span></p>
+              <p class="text-xs font-medium text-brand-600">{{ formatEventDate(item.date) }}<span v-if="item.end_date"> → {{ formatEventDate(item.end_date) }}</span></p>
               <p class="text-sm font-semibold text-surface-900">
                 <Link v-if="item.related" :href="`/people/${item.related.id}`" class="hover:text-brand-700">{{ item.title }}</Link>
                 <span v-else>{{ item.title }}</span>
@@ -85,7 +85,7 @@
               <button @click="openEdit(item)" class="text-surface-400 hover:text-brand-600" title="Modifier">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
               </button>
-              <button @click="removeEvent(item)" class="text-surface-400 hover:text-red-500" title="Supprimer">
+              <button @click="removeEvent(item)" class="text-surface-400 hover:text-red-500 dark:hover:text-red-400" title="Supprimer">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M4 7h16" /></svg>
               </button>
             </div>
@@ -113,6 +113,10 @@ import { Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import LifeEventFormModal from '@/Components/LifeEventFormModal.vue';
 import FullscreenSlideshow from '@/Components/FullscreenSlideshow.vue';
+import { useToast } from '@/Composables/useToast';
+import { formatLongDate } from '@/utils/format';
+
+const toast = useToast();
 
 const props = defineProps({
   personId: { type: String, required: true },
@@ -214,7 +218,7 @@ const removeEvent = async (item) => {
     await axios.delete(`/life-events/${item.life_event_id}`);
     load();
   } catch (e) {
-    alert(e.response?.data?.message || 'Erreur');
+    toast.error(e.response?.data?.message || 'Impossible de supprimer ce moment.');
   }
 };
 
@@ -235,7 +239,7 @@ const diaporamaSlides = computed(() => items.value.map((it, i) => {
     label: it.title,
     card: {
       icon: kindIcon(it.kind),
-      date: formatDate(it.date),
+      date: formatEventDate(it.date),
       title: it.title,
       place: it.place,
       description: it.description,
@@ -251,12 +255,10 @@ const LABELS = { birth: 'Naissance', death: 'Décès', marriage: 'Mariage', chil
 const kindIcon = (k) => ICONS[k] || '★';
 const kindLabel = (k) => LABELS[k] || 'Moment';
 
-const formatDate = (d) => {
-  if (!d) return '';
-  const date = new Date(d);
-  if (isNaN(date)) return d;
-  return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-};
+// Wrapper autour du formatteur partagé : le formatteur renvoie '' pour une
+// date invalide, ici on conserve l'ancien comportement (afficher la string
+// brute, ex. « vers 1950 »).
+const formatEventDate = (d) => formatLongDate(d) || d || '';
 
 onMounted(load);
 </script>

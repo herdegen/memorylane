@@ -1,4 +1,5 @@
 <template>
+  <Head :title="media.title || media.original_name" />
   <AppLayout>
     <div class="py-12">
       <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
@@ -190,7 +191,7 @@
               </div>
 
               <div v-else>
-                <div v-if="detectError" class="mb-3 text-sm text-red-600">
+                <div v-if="detectError" class="mb-3 text-sm text-red-600 dark:text-red-400">
                   {{ detectError }}
                 </div>
                 <button
@@ -267,7 +268,7 @@
 
                 <button
                   @click="deleteMedia"
-                  class="w-full inline-flex items-center justify-center px-4 py-2 border border-red-300 rounded-lg text-sm font-medium text-red-700 bg-white hover:bg-red-50 transition"
+                  class="w-full inline-flex items-center justify-center px-4 py-2 border border-red-300 dark:border-red-500/40 rounded-lg text-sm font-medium text-red-700 dark:text-red-300 bg-white hover:bg-red-50 dark:hover:bg-red-500/10 transition"
                 >
                   <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -285,7 +286,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { router, Link } from '@inertiajs/vue3';
+import { Head, router, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import TagInput from '@/Components/TagInput.vue';
 import PersonInput from '@/Components/PersonInput.vue';
@@ -298,7 +299,11 @@ import VisionLabels from '@/Components/VisionLabels.vue';
 import VideoPlayer from '@/Components/VideoPlayer.vue';
 import VideoClipEditor from '@/Components/VideoClipEditor.vue';
 import { useFaceDetection } from '@/composables/useFaceDetection';
+import { useToast } from '@/Composables/useToast';
+import { formatFileSize, formatDuration } from '@/utils/format';
 import axios from 'axios';
+
+const toast = useToast();
 
 const props = defineProps({
   media: {
@@ -431,26 +436,7 @@ const deleteMedia = async () => {
     await axios.delete(`/media/${props.media.id}`);
     router.visit('/media');
   } catch (error) {
-    alert('Erreur lors de la suppression: ' + (error.response?.data?.message || error.message));
+    toast.error(error.response?.data?.message || 'Erreur lors de la suppression.');
   }
-};
-
-const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-};
-
-const formatDuration = (seconds) => {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
-
-  if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  }
-  return `${minutes}:${secs.toString().padStart(2, '0')}`;
 };
 </script>

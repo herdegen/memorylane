@@ -26,7 +26,7 @@
             <span class="text-xs font-semibold text-surface-500 uppercase tracking-wide">Clip {{ index + 1 }}</span>
             <button
               type="button"
-              class="text-xs text-red-600 hover:text-red-800"
+              class="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
               @click="removeSegment(index)"
             >
               Supprimer
@@ -71,7 +71,7 @@
             </div>
           </div>
 
-          <p v-if="segmentError(seg)" class="mt-2 text-xs text-red-600">{{ segmentError(seg) }}</p>
+          <p v-if="segmentError(seg)" class="mt-2 text-xs text-red-600 dark:text-red-400">{{ segmentError(seg) }}</p>
         </div>
       </div>
 
@@ -83,7 +83,7 @@
         ＋ Ajouter un segment
       </button>
 
-      <div v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</div>
+      <div v-if="error" class="mt-3 text-sm text-red-600 dark:text-red-400">{{ error }}</div>
 
       <button
         type="button"

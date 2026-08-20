@@ -75,7 +75,7 @@
                   <Link href="/profile" class="dropdown-item" @click="showDropdown = false">Mon Profil</Link>
                   <Link href="/profile/edit" class="dropdown-item" @click="showDropdown = false">Paramètres</Link>
                   <hr class="dropdown-divider" />
-                  <Link href="/logout" method="post" as="button" class="dropdown-item w-full text-left text-red-600 hover:bg-red-50 hover:text-red-700">
+                  <Link href="/logout" method="post" as="button" class="dropdown-item w-full text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-300">
                     Déconnexion
                   </Link>
                 </div>
@@ -139,7 +139,7 @@
               </a>
               <Link href="/logout" method="post" as="button"
                 class="block w-full text-left pl-3 pr-4 py-2.5 border-l-4 border-transparent text-base font-medium
-                       text-red-600 hover:bg-red-50 hover:border-red-300 rounded-r-lg transition-all">
+                       text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:border-red-300 dark:hover:border-red-500/40 rounded-r-lg transition-all">
                 Déconnexion
               </Link>
             </div>
@@ -154,6 +154,8 @@
     <main>
       <slot />
     </main>
+
+    <ToastContainer />
   </div>
 </template>
 
@@ -163,6 +165,7 @@ import { Link } from '@inertiajs/vue3';
 import NavLink from '@/Components/NavLink.vue';
 import MobileNavLink from '@/Components/MobileNavLink.vue';
 import SearchBar from '@/Components/SearchBar.vue';
+import ToastContainer from '@/Components/ToastContainer.vue';
 import { IconSettings, IconChevron, IconMenu, IconTheme } from '@/Components/Icons';
 import { useAuth } from '@/Composables/useAuth';
 import { useTheme } from '@/Composables/useTheme';

@@ -1,4 +1,5 @@
 <template>
+  <Head title="Albums" />
   <AppLayout>
     <div class="py-12">
       <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
@@ -77,7 +78,7 @@
 
 <script setup>
 import { ref } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AlbumCard from '@/Components/AlbumCard.vue';
 import AlbumFormModal from '@/Components/AlbumFormModal.vue';

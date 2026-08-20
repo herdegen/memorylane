@@ -1,4 +1,5 @@
 <template>
+  <Head title="Tags" />
   <AppLayout>
     <div class="py-12">
       <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
@@ -103,7 +104,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { useForm, router, Link, usePage } from '@inertiajs/vue3';
+import { Head, useForm, router, Link, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FormField from '@/Components/Forms/FormField.vue';
 import FormError from '@/Components/Forms/FormError.vue';
@@ -163,6 +164,6 @@ const deleteTag = (tag) => {
 }
 
 .btn-icon-danger {
-  @apply text-red-600 hover:text-red-800 transition;
+  @apply text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 transition;
 }
 </style>

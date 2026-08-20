@@ -141,8 +141,8 @@ defineEmits(['dismiss']);
 
 const alertClasses = computed(() => {
   const classes = {
-    error: 'bg-red-50 border border-red-200',
-    success: 'bg-green-50 border border-green-200',
+    error: 'bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30',
+    success: 'bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30',
     warning: 'bg-brand-50 border border-brand-200',
     info: 'bg-brand-50 border border-brand-200',
   };
@@ -151,8 +151,8 @@ const alertClasses = computed(() => {
 
 const textClasses = computed(() => {
   const classes = {
-    error: 'text-red-800',
-    success: 'text-green-800',
+    error: 'text-red-800 dark:text-red-200',
+    success: 'text-green-800 dark:text-green-200',
     warning: 'text-brand-800',
     info: 'text-brand-800',
   };
@@ -161,8 +161,8 @@ const textClasses = computed(() => {
 
 const buttonClasses = computed(() => {
   const classes = {
-    error: 'text-red-500 hover:bg-red-100 focus:ring-red-600 focus:ring-offset-red-50',
-    success: 'text-green-500 hover:bg-green-100 focus:ring-green-600 focus:ring-offset-green-50',
+    error: 'text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 focus:ring-red-600 focus:ring-offset-red-50',
+    success: 'text-green-500 hover:bg-green-100 dark:hover:bg-green-500/20 focus:ring-green-600 focus:ring-offset-green-50',
     warning: 'text-brand-500 hover:bg-brand-100 focus:ring-brand-600 focus:ring-offset-brand-50',
     info: 'text-brand-500 hover:bg-brand-100 focus:ring-brand-600 focus:ring-offset-brand-50',
   };

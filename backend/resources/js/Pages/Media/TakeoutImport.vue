@@ -1,4 +1,5 @@
 <template>
+  <Head title="Import Google Takeout" />
   <AppLayout>
     <div class="py-12">
       <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
@@ -55,8 +56,8 @@
               />
             </label>
 
-            <p v-if="form.errors.archives" class="text-sm text-red-600">{{ form.errors.archives }}</p>
-            <p v-for="(err, key) in fileErrors" :key="key" class="text-sm text-red-600">{{ err }}</p>
+            <p v-if="form.errors.archives" class="text-sm text-red-600 dark:text-red-400">{{ form.errors.archives }}</p>
+            <p v-for="(err, key) in fileErrors" :key="key" class="text-sm text-red-600 dark:text-red-400">{{ err }}</p>
 
             <div v-if="form.progress" class="w-full bg-surface-100 rounded-full h-2 overflow-hidden">
               <div
@@ -84,7 +85,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import { Head, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
 const form = useForm({

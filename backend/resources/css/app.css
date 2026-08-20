@@ -117,6 +117,10 @@
   /* Bordure par défaut (compat v4 : *,::before… → var(--color-gray-200)) */
   --color-gray-200: #3a332a;
 
+  /* Couleurs sémantiques éclaircies (lisibles sur fond sombre) */
+  --color-success: var(--color-green-400);
+  --color-danger:  var(--color-red-400);
+
   /* Ombres chaudes → plus profondes sur fond sombre */
   --shadow-warm-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-warm-md: 0 4px 12px rgba(0, 0, 0, 0.45);
@@ -202,15 +206,15 @@
   .action-card-icon {
     @apply p-3 rounded-xl;
   }
-  .action-card-icon--brand  { @apply bg-brand-100 text-brand-700; }
-  .action-card-icon--teal   { @apply bg-teal-100 text-teal-700; }
-  .action-card-icon--rose   { @apply bg-rose-100 text-rose-700; }
-  .action-card-icon--violet { @apply bg-violet-100 text-violet-700; }
+  .action-card-icon--brand  { @apply bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300; }
+  .action-card-icon--teal   { @apply bg-teal-100 text-teal-700 dark:bg-teal-500/15 dark:text-teal-300; }
+  .action-card-icon--rose   { @apply bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300; }
+  .action-card-icon--violet { @apply bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300; }
   /* Rétrocompatibilité */
-  .action-card-icon--indigo { @apply bg-brand-100 text-brand-700; }
-  .action-card-icon--green  { @apply bg-teal-100 text-teal-700; }
-  .action-card-icon--blue   { @apply bg-rose-100 text-rose-700; }
-  .action-card-icon--purple { @apply bg-violet-100 text-violet-700; }
+  .action-card-icon--indigo { @apply bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300; }
+  .action-card-icon--green  { @apply bg-teal-100 text-teal-700 dark:bg-teal-500/15 dark:text-teal-300; }
+  .action-card-icon--blue   { @apply bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300; }
+  .action-card-icon--purple { @apply bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300; }
 
   .action-card-text {
     @apply ml-4;
@@ -268,7 +272,8 @@
 
   .btn-admin {
     @apply inline-flex items-center px-3 py-2 text-sm font-medium
-           text-brand-700 bg-brand-100 rounded-lg hover:bg-brand-200 transition;
+           text-brand-700 bg-brand-100 rounded-lg hover:bg-brand-200 transition
+           dark:bg-brand-500/15 dark:text-brand-300 dark:hover:bg-brand-500/25;
   }
 
   .btn-ghost {

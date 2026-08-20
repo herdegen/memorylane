@@ -1,7 +1,8 @@
 <template>
   <div
     class="relative group aspect-square rounded-lg overflow-hidden bg-surface-100 cursor-pointer transition-transform duration-200 hover:scale-105 hover:shadow-warm-lg"
-    @click="$emit('click', media)"
+    :class="{ 'ring-2 ring-brand-500 ring-offset-2': selectable && isSelected }"
+    @click="$emit('click', media, $event)"
   >
     <!-- Image Thumbnail -->
     <img
@@ -117,7 +118,7 @@
     <div
       v-if="selectable"
       class="absolute top-2 right-2 z-10"
-      @click.stop="$emit('toggle-selection', media)"
+      @click.stop="$emit('toggle-selection', media, $event)"
     >
       <div
         :class="[
@@ -148,7 +149,7 @@
     <div class="absolute top-2 left-2">
       <span
         v-if="media.type === 'video' && media.duration"
-        class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-violet-100 text-violet-700"
+        class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-violet-100 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300"
       >
         {{ formattedDuration }}
       </span>
@@ -158,6 +159,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import { formatDuration, formatRelativeDate } from '@/utils/format';
 
 const props = defineProps({
   media: {
@@ -196,41 +198,7 @@ const fileExtension = computed(() => {
   return parts.length > 1 ? parts.pop().toUpperCase() : '';
 });
 
-const formattedDate = computed(() => {
-  const dateString = props.media.taken_at || props.media.uploaded_at;
-  if (!dateString) return '';
+const formattedDate = computed(() => formatRelativeDate(props.media.taken_at || props.media.uploaded_at));
 
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffTime = Math.abs(now - date);
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) {
-    return "Aujourd'hui";
-  } else if (diffDays === 1) {
-    return 'Hier';
-  } else if (diffDays < 7) {
-    return `Il y a ${diffDays} jours`;
-  } else {
-    return date.toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  }
-});
-
-const formattedDuration = computed(() => {
-  const seconds = props.media.duration;
-  if (!seconds) return '';
-
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
-
-  if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  }
-  return `${minutes}:${secs.toString().padStart(2, '0')}`;
-});
+const formattedDuration = computed(() => formatDuration(props.media.duration));
 </script>

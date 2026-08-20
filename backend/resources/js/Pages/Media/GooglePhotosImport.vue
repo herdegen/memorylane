@@ -1,4 +1,5 @@
 <template>
+  <Head title="Import Google Photos" />
   <AppLayout>
     <div class="py-12">
       <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
@@ -78,7 +79,7 @@
             </p>
           </div>
 
-          <div v-if="selectionDone" class="flex items-center gap-2 text-teal-700">
+          <div v-if="selectionDone" class="flex items-center gap-2 text-teal-700 dark:text-teal-300">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
             </svg>
@@ -150,7 +151,7 @@
 
             <!-- Échec : le job d'import s'est arrêté en erreur -->
             <div v-else-if="importFailed" class="flex items-center gap-2 mb-4">
-              <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
               </svg>
               <span class="text-sm text-surface-700">
@@ -161,7 +162,7 @@
 
             <!-- Terminé -->
             <div v-else class="flex items-center gap-2 mb-4">
-              <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
               </svg>
               <span class="text-sm text-surface-700">
@@ -191,7 +192,7 @@
 
 <script setup>
 import { ref, onBeforeUnmount } from 'vue';
-import { useForm, Link } from '@inertiajs/vue3';
+import { Head, useForm, Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FormError from '@/Components/Forms/FormError.vue';

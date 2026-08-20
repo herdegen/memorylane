@@ -1,4 +1,5 @@
 <template>
+  <Head title="Accueil" />
   <AppLayout>
     <div class="page-container">
       <div class="page-content space-y-8">
@@ -154,7 +155,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { Link, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import MediaCard from '@/Components/MediaCard.vue';
 import { useAuth } from '@/Composables/useAuth';

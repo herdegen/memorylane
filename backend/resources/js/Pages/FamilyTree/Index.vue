@@ -1,4 +1,5 @@
 <template>
+  <Head title="Arbre généalogique" />
   <AppLayout title="Arbre genealogique">
     <div class="h-[calc(100vh-4rem)] flex relative">
       <!-- Backdrop (mobile, tiroir ouvert) -->
@@ -79,11 +80,11 @@
             <h3 class="font-semibold text-surface-900 leading-tight">{{ personLabel(selectedPerson.data) }}</h3>
           </div>
           <p v-if="selectedPerson.data.birth_date" class="text-sm text-surface-500 mt-1">
-            Naissance : {{ formatDate(selectedPerson.data.birth_date) }}
+            Naissance : {{ formatLongDate(selectedPerson.data.birth_date) }}
             <span v-if="selectedPerson.data.birth_place"> — {{ selectedPerson.data.birth_place }}</span>
           </p>
           <p v-if="selectedPerson.data.death_date" class="text-sm text-surface-500">
-            Décès : {{ formatDate(selectedPerson.data.death_date) }}
+            Décès : {{ formatLongDate(selectedPerson.data.death_date) }}
           </p>
           <Link
             :href="`/people/${selectedPerson.id}`"
@@ -188,13 +189,14 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-import { Link, usePage } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import axios from 'axios';
 import * as f3 from 'family-chart';
 import 'family-chart/styles/family-chart.css';
 import { personLabel } from '@/utils/personName';
 import { searchPeople } from '@/utils/personSearch';
+import { formatLongDate } from '@/utils/format';
 
 const chartRef = ref(null);
 const treeNodes = ref([]);      // données brutes (format backend) pour la sidebar
@@ -338,16 +340,6 @@ function recenter() {
   } else {
     chart.updateTree({ tree_position: 'fit' });
   }
-}
-
-function formatDate(dateString) {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
 }
 
 onMounted(async () => {

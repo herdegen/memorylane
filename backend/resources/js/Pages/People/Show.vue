@@ -1,4 +1,5 @@
 <template>
+  <Head :title="personLabel(person)" />
   <AppLayout>
     <div class="py-12">
       <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
@@ -55,8 +56,8 @@
                     {{ personLabel(person) }}
                   </h1>
                   <p v-if="person.birth_date" class="text-sm text-surface-500 mt-1">
-                    {{ formatDate(person.birth_date) }}
-                    {{ person.death_date ? ' - ' + formatDate(person.death_date) : '' }}
+                    {{ formatLongDate(person.birth_date) }}
+                    {{ person.death_date ? ' - ' + formatLongDate(person.death_date) : '' }}
                   </p>
                   <p class="text-sm text-surface-500 mt-2">
                     {{ person.media_count || 0 }} {{ (person.media_count || 0) === 1 ? 'média' : 'médias' }}
@@ -88,7 +89,7 @@
                   </button>
                   <button
                     @click="deletePerson"
-                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50"
+                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-white border border-red-300 dark:border-red-500/40 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10"
                   >
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -245,7 +246,7 @@
                 <button
                   v-if="person.avatar_media_id"
                   @click="removeAvatar"
-                  class="px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50"
+                  class="px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-white border border-red-300 dark:border-red-500/40 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10"
                 >
                   Supprimer l'avatar
                 </button>
@@ -267,7 +268,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { Link, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import MediaCard from '@/Components/MediaCard.vue';
@@ -275,6 +276,10 @@ import PersonFormModal from '@/Components/PersonFormModal.vue';
 import FamilyPanel from '@/Components/FamilyPanel.vue';
 import PersonTimeline from '@/Components/PersonTimeline.vue';
 import { personLabel } from '@/utils/personName';
+import { formatLongDate } from '@/utils/format';
+import { useToast } from '@/Composables/useToast';
+
+const toast = useToast();
 
 const props = defineProps({
   person: {
@@ -344,7 +349,7 @@ const setAvatar = async (mediaId) => {
     showAvatarPicker.value = false;
     router.reload();
   } catch (error) {
-    alert('Erreur: ' + (error.response?.data?.message || error.message));
+    toast.error(error.response?.data?.message || "Erreur lors du changement d'avatar.");
   }
 };
 
@@ -357,7 +362,7 @@ const removeAvatar = async () => {
     showAvatarPicker.value = false;
     router.reload();
   } catch (error) {
-    alert('Erreur: ' + (error.response?.data?.message || error.message));
+    toast.error(error.response?.data?.message || "Erreur lors de la suppression de l'avatar.");
   }
 };
 
@@ -378,17 +383,7 @@ const deletePerson = async () => {
     await axios.delete(`/people/${props.person.id}`);
     router.visit('/people');
   } catch (error) {
-    alert('Erreur: ' + (error.response?.data?.message || error.message));
+    toast.error(error.response?.data?.message || 'Erreur lors de la suppression de la personne.');
   }
-};
-
-const formatDate = (dateString) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
 };
 </script>
