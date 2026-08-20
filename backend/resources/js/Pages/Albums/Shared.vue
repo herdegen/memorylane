@@ -43,8 +43,8 @@
             >
               <!-- Photo/Video Thumbnail -->
               <img
-                v-if="getThumbnailUrl(media)"
-                :src="getThumbnailUrl(media)"
+                v-if="thumbnailUrl(media)"
+                :src="thumbnailUrl(media)"
                 :alt="media.original_name"
                 class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
                 loading="lazy"
@@ -156,6 +156,7 @@
 import { ref } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import { usePhotoSwipe } from '@/composables/usePhotoSwipe';
+import { thumbnailUrl } from '@/utils/media';
 
 const props = defineProps({
   album: {
@@ -168,18 +169,6 @@ const props = defineProps({
 const lightboxMedia = ref(null);
 
 const { open: openPhoto } = usePhotoSwipe(() => props.album.media || []);
-
-const getThumbnailUrl = (media) => {
-  if (media.conversions && media.conversions.length > 0) {
-    const thumbnail = media.conversions.find(
-      (conv) => conv.conversion_name === 'small' || conv.conversion_name === 'thumbnail'
-    );
-    if (thumbnail && thumbnail.url) {
-      return thumbnail.url;
-    }
-  }
-  return media.url || null;
-};
 
 const openLightbox = (media) => {
   if (media.type === 'photo') {

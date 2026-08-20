@@ -4,7 +4,7 @@
       class="fixed inset-0 z-50 overflow-y-auto"
       role="dialog"
       aria-modal="true"
-      :aria-labelledby="labelledby"
+      :aria-labelledby="title ? titleId : labelledby"
     >
       <!-- Backdrop -->
       <div class="fixed inset-0 bg-surface-900/50 transition-opacity" @click="$emit('close')"></div>
@@ -17,7 +17,21 @@
           :class="[maxWidthClass, panelClass]"
           @click.stop
         >
+          <!-- En-tête standard (aria-labelledby câblé automatiquement) -->
+          <div v-if="title" class="bg-white px-6 py-4 border-b border-surface-200 flex items-center justify-between">
+            <h3 :id="titleId" class="text-lg font-semibold text-surface-900">
+              {{ title }}
+            </h3>
+            <!-- Contenu additionnel à droite du titre (compteur…) -->
+            <slot name="header-extra" />
+          </div>
+
           <slot />
+
+          <!-- Pied standard (boutons d'action) -->
+          <div v-if="$slots.footer" class="bg-surface-50 px-6 py-4 flex justify-end gap-3">
+            <slot name="footer" />
+          </div>
         </div>
       </div>
     </div>
@@ -29,6 +43,9 @@
 // l'app, pas une par instance) : seule la modale du dessus réagit à Échap,
 // et le verrou de scroll n'est rendu qu'à la fermeture de la dernière.
 const openModals = [];
+
+// Compteur module pour générer un id de titre unique par instance.
+let titleUid = 0;
 </script>
 
 <script setup>
@@ -49,7 +66,12 @@ const props = defineProps({
     type: [String, Array, Object],
     default: '',
   },
-  // Id de l'élément qui sert de titre (aria-labelledby).
+  // Titre : rend l'en-tête standard (h3 + bordure) et câble aria-labelledby.
+  title: {
+    type: String,
+    default: undefined,
+  },
+  // Id d'un titre custom (aria-labelledby) quand on ne passe pas `title`.
   labelledby: {
     type: String,
     default: undefined,
@@ -57,6 +79,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close']);
+
+const titleId = `base-modal-title-${++titleUid}`;
 
 const maxWidthClass = computed(() => ({
   md: 'max-w-md',

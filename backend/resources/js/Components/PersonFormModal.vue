@@ -1,13 +1,6 @@
 <template>
-  <BaseModal labelledby="person-form-title" @close="$emit('close')">
-    <!-- Header -->
-    <div class="bg-white px-6 py-4 border-b border-surface-200">
-      <h3 id="person-form-title" class="text-lg font-semibold text-surface-900">
-        {{ person ? 'Modifier la personne' : 'Nouvelle personne' }}
-      </h3>
-    </div>
-
-    <!-- Form -->
+  <BaseModal :title="person ? 'Modifier la personne' : 'Nouvelle personne'" @close="$emit('close')">
+    <!-- Formulaire -->
     <form @submit.prevent="submit" class="px-6 py-4 space-y-4">
       <div class="grid grid-cols-2 gap-4">
         <div>
@@ -108,13 +101,9 @@
       </div>
     </form>
 
-    <!-- Footer -->
-    <div class="bg-surface-50 px-6 py-4 flex justify-end gap-3">
-      <button
-        type="button"
-        class="px-4 py-2 text-sm font-medium text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50"
-        @click="$emit('close')"
-      >
+    <!-- Pied de page -->
+    <template #footer>
+      <button type="button" class="btn-secondary" @click="$emit('close')">
         Annuler
       </button>
       <button
@@ -125,7 +114,7 @@
       >
         {{ submitting ? 'Enregistrement...' : (person ? 'Enregistrer' : 'Créer') }}
       </button>
-    </div>
+    </template>
   </BaseModal>
 </template>
 

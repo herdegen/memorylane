@@ -1,69 +1,71 @@
 <template>
-  <BaseModal panel-class="p-6" labelledby="life-event-form-title" @close="$emit('close')">
-    <h3 id="life-event-form-title" class="text-lg font-semibold text-surface-900 mb-4">
-      {{ event ? 'Modifier le moment' : 'Ajouter un moment' }}
-    </h3>
-
-    <form @submit.prevent="save" class="space-y-3">
-      <div>
-        <label class="block text-sm font-medium text-surface-700 mb-1">Type</label>
-        <select v-model="form.type" class="form-input">
-          <option v-for="t in types" :key="t.value" :value="t.value">{{ t.label }}</option>
-        </select>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-surface-700 mb-1">Titre *</label>
-        <input v-model="form.title" type="text" class="form-input" placeholder="ex. Boulanger chez ..." />
-      </div>
-
-      <div class="grid grid-cols-2 gap-3">
+  <BaseModal :title="event ? 'Modifier le moment' : 'Ajouter un moment'" @close="$emit('close')">
+    <!-- Corps (le padding vit ici : l'en-tête standard reste bord à bord) -->
+    <div class="p-6">
+      <form @submit.prevent="save" class="space-y-3">
         <div>
-          <label class="block text-sm font-medium text-surface-700 mb-1">Date *</label>
-          <input v-model="form.event_date" type="date" class="form-input" />
+          <label class="block text-sm font-medium text-surface-700 mb-1">Type</label>
+          <select v-model="form.type" class="form-input">
+            <option v-for="t in types" :key="t.value" :value="t.value">{{ t.label }}</option>
+          </select>
         </div>
+
         <div>
-          <label class="block text-sm font-medium text-surface-700 mb-1">Fin (optionnel)</label>
-          <input v-model="form.end_date" type="date" class="form-input" />
+          <label class="block text-sm font-medium text-surface-700 mb-1">Titre *</label>
+          <input v-model="form.title" type="text" class="form-input" placeholder="ex. Boulanger chez ..." />
         </div>
-      </div>
 
-      <div>
-        <label class="block text-sm font-medium text-surface-700 mb-1">Lieu</label>
-        <input v-model="form.place" type="text" class="form-input" placeholder="Ville, pays..." />
-      </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-surface-700 mb-1">Date *</label>
+            <input v-model="form.event_date" type="date" class="form-input" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-surface-700 mb-1">Fin (optionnel)</label>
+            <input v-model="form.end_date" type="date" class="form-input" />
+          </div>
+        </div>
 
-      <div>
-        <label class="block text-sm font-medium text-surface-700 mb-1">Description</label>
-        <textarea v-model="form.description" rows="3" class="form-input"></textarea>
-      </div>
+        <div>
+          <label class="block text-sm font-medium text-surface-700 mb-1">Lieu</label>
+          <input v-model="form.place" type="text" class="form-input" placeholder="Ville, pays..." />
+        </div>
 
-      <!-- Photo d'illustration (parmi les photos de la personne) -->
-      <div v-if="photoOptions.length > 0">
-        <label class="block text-sm font-medium text-surface-700 mb-1">Photo (optionnel)</label>
-        <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-          <button
-            v-for="opt in photoOptions"
-            :key="opt.media.id"
-            type="button"
-            @click="form.media_id = form.media_id === opt.media.id ? null : opt.media.id"
-            class="w-14 h-14 rounded-lg overflow-hidden border-2 transition"
-            :class="form.media_id === opt.media.id ? 'border-brand-500' : 'border-transparent hover:border-surface-300'"
-          >
-            <img :src="opt.media.thumbnail_url || opt.media.url" class="w-full h-full object-cover" />
+        <div>
+          <label class="block text-sm font-medium text-surface-700 mb-1">Description</label>
+          <textarea v-model="form.description" rows="3" class="form-input"></textarea>
+        </div>
+
+        <!-- Photo d'illustration (parmi les photos de la personne) -->
+        <div v-if="photoOptions.length > 0">
+          <label class="block text-sm font-medium text-surface-700 mb-1">Photo (optionnel)</label>
+          <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+            <button
+              v-for="opt in photoOptions"
+              :key="opt.media.id"
+              type="button"
+              @click="form.media_id = form.media_id === opt.media.id ? null : opt.media.id"
+              class="w-14 h-14 rounded-lg overflow-hidden border-2 transition"
+              :class="form.media_id === opt.media.id ? 'border-brand-500' : 'border-transparent hover:border-surface-300'"
+            >
+              <img :src="opt.media.thumbnail_url || opt.media.url" class="w-full h-full object-cover" />
+            </button>
+          </div>
+        </div>
+
+        <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+
+        <!-- Boutons laissés dans le <form> : le bouton type="submit" dépend du
+             submit natif du formulaire (déplacé en slot footer, il ne le
+             déclencherait plus). -->
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" @click="$emit('close')" class="btn-secondary">Annuler</button>
+          <button type="submit" :disabled="saving || !form.title.trim() || !form.event_date" class="btn-primary disabled:opacity-50">
+            {{ saving ? 'Enregistrement…' : 'Enregistrer' }}
           </button>
         </div>
-      </div>
-
-      <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
-
-      <div class="flex justify-end gap-2 pt-2">
-        <button type="button" @click="$emit('close')" class="btn-secondary">Annuler</button>
-        <button type="submit" :disabled="saving || !form.title.trim() || !form.event_date" class="btn-primary disabled:opacity-50">
-          {{ saving ? 'Enregistrement…' : 'Enregistrer' }}
-        </button>
-      </div>
-    </form>
+      </form>
+    </div>
   </BaseModal>
 </template>
 

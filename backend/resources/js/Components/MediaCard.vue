@@ -160,6 +160,7 @@
 <script setup>
 import { computed } from 'vue';
 import { formatDuration, formatRelativeDate } from '@/utils/format';
+import { thumbnailUrl as mediaThumbnailUrl } from '@/utils/media';
 
 const props = defineProps({
   media: {
@@ -178,19 +179,7 @@ const props = defineProps({
 
 const emit = defineEmits(['click', 'toggle-selection']);
 
-const thumbnailUrl = computed(() => {
-  // Try to get the small or thumbnail conversion
-  if (props.media.conversions && props.media.conversions.length > 0) {
-    const thumbnail = props.media.conversions.find(
-      (conv) => conv.conversion_name === 'small' || conv.conversion_name === 'thumbnail'
-    );
-    if (thumbnail && thumbnail.url) {
-      return thumbnail.url;
-    }
-  }
-  // Fallback to original URL if available
-  return props.media.url || null;
-});
+const thumbnailUrl = computed(() => mediaThumbnailUrl(props.media));
 
 const fileExtension = computed(() => {
   if (!props.media.original_name) return '';

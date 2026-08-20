@@ -1,13 +1,6 @@
 <template>
-  <BaseModal labelledby="album-form-title" @close="$emit('close')">
-    <!-- Header -->
-    <div class="bg-white px-6 py-4 border-b border-surface-200">
-      <h3 id="album-form-title" class="text-lg font-semibold text-surface-900">
-        {{ album ? 'Modifier l\'album' : 'Créer un album' }}
-      </h3>
-    </div>
-
-    <!-- Form -->
+  <BaseModal :title="album ? 'Modifier l\'album' : 'Créer un album'" @close="$emit('close')">
+    <!-- Formulaire -->
     <form @submit.prevent="submit" class="px-6 py-4 space-y-4">
       <FormField
         v-model="form.name"
@@ -114,13 +107,9 @@
       </div>
     </form>
 
-    <!-- Footer -->
-    <div class="bg-surface-50 px-6 py-4 flex justify-end gap-3">
-      <button
-        type="button"
-        class="px-4 py-2 text-sm font-medium text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
-        @click="$emit('close')"
-      >
+    <!-- Pied de page -->
+    <template #footer>
+      <button type="button" class="btn-secondary" @click="$emit('close')">
         Annuler
       </button>
       <FormButton
@@ -130,7 +119,7 @@
         :loading="form.processing"
         @click="submit"
       />
-    </div>
+    </template>
   </BaseModal>
 </template>
 

@@ -1,7 +1,6 @@
 <template>
-  <BaseModal max-width="md" labelledby="bulk-date-title" @close="$emit('close')">
+  <BaseModal max-width="md" :title="`Modifier la date de ${count} média${count > 1 ? 's' : ''}`" @close="$emit('close')">
     <div class="p-6">
-      <h3 id="bulk-date-title" class="card-title mb-1">Modifier la date de {{ count }} média{{ count > 1 ? 's' : '' }}</h3>
       <p class="text-sm text-surface-500 mb-4">
         La date de prise de vue sélectionnée remplacera celle de tous les médias choisis.
       </p>
@@ -18,7 +17,8 @@
       <p v-if="errorMessage" class="mt-3 text-sm text-red-600 dark:text-red-400">{{ errorMessage }}</p>
     </div>
 
-    <div class="flex justify-end gap-2 px-6 py-4 bg-surface-50 border-t border-surface-100">
+    <!-- Pied de page -->
+    <template #footer>
       <button @click="$emit('close')" type="button" class="btn-secondary">Annuler</button>
       <button
         @click="$emit('apply', takenAt)"
@@ -28,7 +28,7 @@
       >
         {{ saving ? 'Application…' : 'Appliquer la date' }}
       </button>
-    </div>
+    </template>
   </BaseModal>
 </template>
 

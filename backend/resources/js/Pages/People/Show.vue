@@ -213,54 +213,40 @@
         />
 
         <!-- Avatar Picker Modal -->
-        <div
+        <BaseModal
           v-if="showAvatarPicker"
-          class="fixed inset-0 z-50 overflow-y-auto"
-          role="dialog"
-          aria-modal="true"
+          title="Choisir un avatar"
+          max-width="2xl"
+          @close="showAvatarPicker = false"
         >
-          <div
-            class="fixed inset-0 bg-surface-500/75 transition-opacity"
-            @click="showAvatarPicker = false"
-          ></div>
-          <div class="flex min-h-full items-center justify-center p-4">
-            <div class="relative bg-white rounded-lg shadow-xl w-full max-w-2xl" @click.stop>
-              <div class="px-6 py-4 border-b border-surface-200">
-                <h3 class="text-lg font-semibold text-surface-900">Choisir un avatar</h3>
-              </div>
-              <div class="p-6 grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 max-h-96 overflow-y-auto">
-                <button
-                  v-for="item in photoMedia"
-                  :key="item.id"
-                  @click="setAvatar(item.id)"
-                  class="aspect-square rounded-lg overflow-hidden border-2 hover:border-brand-500 transition-colors"
-                  :class="person.avatar_media_id === item.id ? 'border-brand-500 ring-2 ring-brand-300' : 'border-surface-200'"
-                >
-                  <img
-                    :src="item.conversions?.find(c => c.conversion_name === 'thumbnail')?.url || item.url"
-                    class="w-full h-full object-cover"
-                  />
-                </button>
-              </div>
-              <div class="px-6 py-4 bg-surface-50 flex justify-between">
-                <button
-                  v-if="person.avatar_media_id"
-                  @click="removeAvatar"
-                  class="px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-white border border-red-300 dark:border-red-500/40 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10"
-                >
-                  Supprimer l'avatar
-                </button>
-                <div v-else></div>
-                <button
-                  @click="showAvatarPicker = false"
-                  class="px-4 py-2 text-sm font-medium text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50"
-                >
-                  Fermer
-                </button>
-              </div>
-            </div>
+          <div class="p-6 grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 max-h-96 overflow-y-auto">
+            <button
+              v-for="item in photoMedia"
+              :key="item.id"
+              @click="setAvatar(item.id)"
+              class="aspect-square rounded-lg overflow-hidden border-2 hover:border-brand-500 transition-colors"
+              :class="person.avatar_media_id === item.id ? 'border-brand-500 ring-2 ring-brand-300' : 'border-surface-200'"
+            >
+              <img
+                :src="item.conversions?.find(c => c.conversion_name === 'thumbnail')?.url || item.url"
+                class="w-full h-full object-cover"
+              />
+            </button>
           </div>
-        </div>
+          <template #footer>
+            <!-- mr-auto : pousse l'action destructive à gauche du pied justify-end -->
+            <button
+              v-if="person.avatar_media_id"
+              @click="removeAvatar"
+              class="mr-auto px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-white border border-red-300 dark:border-red-500/40 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10"
+            >
+              Supprimer l'avatar
+            </button>
+            <button @click="showAvatarPicker = false" class="btn-secondary">
+              Fermer
+            </button>
+          </template>
+        </BaseModal>
       </div>
     </div>
   </AppLayout>
@@ -271,6 +257,7 @@ import { ref, computed } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import BaseModal from '@/Components/BaseModal.vue';
 import MediaCard from '@/Components/MediaCard.vue';
 import PersonFormModal from '@/Components/PersonFormModal.vue';
 import FamilyPanel from '@/Components/FamilyPanel.vue';

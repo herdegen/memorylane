@@ -1,16 +1,13 @@
 <template>
-  <BaseModal panel-class="max-h-[85vh] flex flex-col" labelledby="add-to-album-title" @close="$emit('close')">
-    <!-- Header -->
-    <div class="bg-white px-6 py-4 border-b border-surface-200 flex items-center justify-between">
-      <h3 id="add-to-album-title" class="text-lg font-semibold text-surface-900">
-        Ajouter à un album
-      </h3>
+  <BaseModal panel-class="max-h-[85vh] flex flex-col" title="Ajouter à un album" @close="$emit('close')">
+    <!-- Compteur à droite du titre -->
+    <template #header-extra>
       <span class="text-sm text-surface-500">
         {{ mediaIds.length }} média{{ mediaIds.length > 1 ? 's' : '' }}
       </span>
-    </div>
+    </template>
 
-    <!-- Body -->
+    <!-- Corps -->
     <div class="flex-1 overflow-y-auto p-6 space-y-5">
       <!-- Mode toggle -->
       <div class="flex rounded-lg bg-surface-100 p-1 text-sm font-medium">
@@ -81,13 +78,9 @@
       <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
     </div>
 
-    <!-- Footer -->
-    <div class="bg-surface-50 px-6 py-4 flex justify-end gap-3 border-t border-surface-200">
-      <button
-        type="button"
-        class="px-4 py-2 text-sm font-medium text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50"
-        @click="$emit('close')"
-      >
+    <!-- Pied de page -->
+    <template #footer>
+      <button type="button" class="btn-secondary" @click="$emit('close')">
         Annuler
       </button>
       <button
@@ -102,7 +95,7 @@
         </svg>
         {{ mode === 'new' ? 'Créer l\'album' : 'Ajouter' }}
       </button>
-    </div>
+    </template>
   </BaseModal>
 </template>
 

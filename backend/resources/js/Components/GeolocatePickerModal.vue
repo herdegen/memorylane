@@ -1,7 +1,6 @@
 <template>
-  <BaseModal max-width="2xl" labelledby="geolocate-picker-title" @close="$emit('close')">
+  <BaseModal max-width="2xl" :title="title" @close="$emit('close')">
     <div class="p-6">
-      <h3 id="geolocate-picker-title" class="card-title mb-1">{{ title }}</h3>
       <p class="text-sm text-surface-500 mb-4">{{ description }}</p>
 
       <!-- Recherche d'adresse -->
@@ -44,7 +43,8 @@
       <p v-if="errorMessage" class="mt-2 text-sm text-red-600 dark:text-red-400">{{ errorMessage }}</p>
     </div>
 
-    <div class="flex justify-end gap-2 px-6 py-4 bg-surface-50 border-t border-surface-100">
+    <!-- Pied de page -->
+    <template #footer>
       <button @click="$emit('close')" type="button" class="btn-secondary">Annuler</button>
       <button
         @click="$emit('apply', { latitude: coords.lat, longitude: coords.lng })"
@@ -54,7 +54,7 @@
       >
         {{ saving ? 'Application…' : applyLabel }}
       </button>
-    </div>
+    </template>
   </BaseModal>
 </template>
 

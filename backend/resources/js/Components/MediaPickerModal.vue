@@ -1,14 +1,11 @@
 <template>
-  <BaseModal max-width="4xl" panel-class="max-h-[80vh] flex flex-col" labelledby="media-picker-title" @close="$emit('close')">
-    <!-- Header -->
-    <div class="bg-white px-6 py-4 border-b border-surface-200 flex items-center justify-between">
-      <h3 id="media-picker-title" class="text-lg font-semibold text-surface-900">
-        Ajouter des médias
-      </h3>
+  <BaseModal max-width="4xl" panel-class="max-h-[80vh] flex flex-col" title="Ajouter des médias" @close="$emit('close')">
+    <!-- Compteur à droite du titre -->
+    <template #header-extra>
       <span class="text-sm text-surface-500">
         {{ selectedIds.length }} sélectionné(s)
       </span>
-    </div>
+    </template>
 
     <!-- Loading -->
     <div v-if="loading" class="flex-1 flex items-center justify-center py-12">
@@ -70,7 +67,7 @@
           <!-- Thumbnail -->
           <img
             v-if="media.type === 'photo' || media.type === 'video'"
-            :src="getThumbnailUrl(media)"
+            :src="thumbnailUrl(media)"
             :alt="media.original_name"
             class="w-full h-full object-cover"
             loading="lazy"
@@ -164,13 +161,9 @@
       {{ errorMessage }}
     </div>
 
-    <!-- Footer -->
-    <div class="bg-surface-50 px-6 py-4 flex justify-end gap-3 border-t border-surface-200">
-      <button
-        type="button"
-        class="px-4 py-2 text-sm font-medium text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
-        @click="$emit('close')"
-      >
+    <!-- Pied de page -->
+    <template #footer>
+      <button type="button" class="btn-secondary" @click="$emit('close')">
         Annuler
       </button>
       <button
@@ -201,7 +194,7 @@
         </svg>
         Ajouter {{ selectedIds.length }} média(s)
       </button>
-    </div>
+    </template>
   </BaseModal>
 </template>
 
@@ -210,6 +203,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useIntersectionObserver } from '@vueuse/core';
 import axios from 'axios';
 import BaseModal from '@/Components/BaseModal.vue';
+import { thumbnailUrl } from '@/utils/media';
 
 const props = defineProps({
   albumId: {
@@ -301,18 +295,6 @@ const toggleSelection = (id) => {
   } else {
     selectedIds.value.splice(index, 1);
   }
-};
-
-const getThumbnailUrl = (media) => {
-  if (media.conversions && media.conversions.length > 0) {
-    const thumbnail = media.conversions.find(
-      (conv) => conv.conversion_name === 'small' || conv.conversion_name === 'thumbnail'
-    );
-    if (thumbnail && thumbnail.url) {
-      return thumbnail.url;
-    }
-  }
-  return media.url || '';
 };
 
 const confirm = async () => {

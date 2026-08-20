@@ -162,13 +162,13 @@
 
           <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             <MediaCard
-              v-for="media in album.media"
+              v-for="(media, index) in album.media"
               :key="media.id"
               :media="media"
               :selectable="selectionMode"
               :is-selected="isSelected(media.id)"
-              @click="handleMediaClick(media)"
-              @toggle-selection="toggleSelection(media)"
+              @click="(m, event) => handleMediaClick(media, index, event)"
+              @toggle-selection="(m, event) => applySelection(media, index, event)"
             />
           </div>
         </div>
@@ -312,6 +312,7 @@ const toggleSelectionMode = () => {
   selectionMode.value = !selectionMode.value;
   if (!selectionMode.value) {
     selectedMediaIds.value = [];
+    lastSelectedIndex.value = null;
   }
 };
 
@@ -341,13 +342,28 @@ const removableSelectedIds = computed(() => {
 
 const isSelected = (id) => selectedMediaIds.value.includes(id);
 
-const toggleSelection = (media) => {
-  const index = selectedMediaIds.value.indexOf(media.id);
-  if (index === -1) {
-    selectedMediaIds.value.push(media.id);
+// Ancre de la dernière sélection, pour la sélection de plage au shift+clic
+// (même comportement que la galerie).
+const lastSelectedIndex = ref(null);
+
+// Applique la sélection : shift+clic depuis une ancre = ajoute toute la
+// plage (dans l'ordre affiché) ; sinon bascule l'élément.
+const applySelection = (media, index, event) => {
+  if (event?.shiftKey && lastSelectedIndex.value !== null) {
+    const [start, end] = lastSelectedIndex.value < index
+      ? [lastSelectedIndex.value, index]
+      : [index, lastSelectedIndex.value];
+    const rangeIds = albumMedia.value.slice(start, end + 1).map((m) => m.id);
+    selectedMediaIds.value = Array.from(new Set([...selectedMediaIds.value, ...rangeIds]));
   } else {
-    selectedMediaIds.value.splice(index, 1);
+    const position = selectedMediaIds.value.indexOf(media.id);
+    if (position === -1) {
+      selectedMediaIds.value.push(media.id);
+    } else {
+      selectedMediaIds.value.splice(position, 1);
+    }
   }
+  lastSelectedIndex.value = index;
 };
 
 const editSelected = () => {
@@ -369,9 +385,9 @@ const setAsCover = async () => {
 
 // En mode sélection, le clic sur la tuile coche/décoche (comme la galerie) ;
 // sinon il ouvre la visionneuse (ou la fiche pour les non-photos).
-const handleMediaClick = (media) => {
+const handleMediaClick = (media, index, event) => {
   if (selectionMode.value) {
-    toggleSelection(media);
+    applySelection(media, index, event);
     return;
   }
   if (media.type !== 'photo' || !openLightbox(media)) {
