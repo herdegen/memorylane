@@ -138,9 +138,7 @@ class MediaController extends Controller
      */
     public function update(Request $request, Media $media)
     {
-        if ($media->user_id !== $this->getCurrentUserId()) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
+        Gate::authorize('update', $media);
 
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
@@ -202,16 +200,12 @@ class MediaController extends Controller
             ->where('user_id', $request->user()->id)
             ->pluck('id');
 
-        foreach ($ownedIds as $mediaId) {
-            \App\Models\MediaMetadata::updateOrCreate(
-                ['media_id' => $mediaId],
-                [
-                    'latitude' => $validated['latitude'],
-                    'longitude' => $validated['longitude'],
-                    'altitude' => $validated['altitude'] ?? null,
-                ]
-            );
-        }
+        $this->mediaService->bulkSetGeolocation(
+            $ownedIds,
+            (float) $validated['latitude'],
+            (float) $validated['longitude'],
+            isset($validated['altitude']) ? (float) $validated['altitude'] : null,
+        );
 
         return response()->json([
             'message' => "Position appliquée à {$ownedIds->count()} média(s)",
@@ -225,12 +219,7 @@ class MediaController extends Controller
      */
     public function destroy(Media $media)
     {
-        // Authorization check (temporary until auth is implemented)
-        if ($media->user_id !== $this->getCurrentUserId()) {
-            return response()->json([
-                'error' => 'Unauthorized'
-            ], 403);
-        }
+        Gate::authorize('delete', $media);
 
         try {
             $this->mediaService->deleteMedia($media);
@@ -252,9 +241,7 @@ class MediaController extends Controller
      */
     public function storeClips(Request $request, Media $media)
     {
-        if ($media->user_id !== $this->getCurrentUserId()) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
+        Gate::authorize('update', $media);
 
         if ($media->type !== 'video') {
             return response()->json(['error' => 'Seules les vidéos peuvent être découpées.'], 422);

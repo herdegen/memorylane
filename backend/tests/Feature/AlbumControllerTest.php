@@ -238,6 +238,79 @@ class AlbumControllerTest extends TestCase
         ]);
     }
 
+    /**
+     * Un doublon d'UUID dans media_order (double événement de drag) ne doit
+     * pas faire échouer l'upsert groupé (Postgres refuse de toucher deux fois
+     * la même ligne dans une seule commande).
+     */
+    public function test_reorder_tolere_les_doublons_dans_la_liste(): void
+    {
+        $album = Album::factory()->create(['user_id' => $this->user->id]);
+        $media = Media::factory()->count(2)->create(['user_id' => $this->user->id]);
+        foreach ($media as $i => $m) {
+            $album->media()->attach($m->id, ['order' => $i]);
+        }
+
+        $response = $this->actingAs($this->user)->putJson("/albums/{$album->id}/media/reorder", [
+            'media_order' => [$media[1]->id, $media[1]->id, $media[0]->id],
+        ]);
+
+        $response->assertStatus(200);
+
+        $this->assertDatabaseHas('album_media', [
+            'album_id' => $album->id,
+            'media_id' => $media[1]->id,
+            'order' => 0,
+        ]);
+        $this->assertDatabaseHas('album_media', [
+            'album_id' => $album->id,
+            'media_id' => $media[0]->id,
+            'order' => 1,
+        ]);
+    }
+
+    /**
+     * Attacher le média privé d'un tiers à son propre album est refusé :
+     * sinon l'attache ouvrirait la lecture du média via la branche « albums
+     * accessibles » de Media::scopeAccessibleBy (auto-octroi d'accès).
+     */
+    public function test_cannot_add_someone_elses_media_to_own_album(): void
+    {
+        $album = Album::factory()->create(['user_id' => $this->user->id]);
+        $foreignMedia = Media::factory()->create(['user_id' => $this->otherUser->id]);
+
+        $response = $this->actingAs($this->user)->postJson("/albums/{$album->id}/media", [
+            'media_ids' => [$foreignMedia->id],
+        ]);
+
+        $response->assertStatus(403);
+
+        $this->assertDatabaseMissing('album_media', [
+            'album_id' => $album->id,
+            'media_id' => $foreignMedia->id,
+        ]);
+    }
+
+    /**
+     * Même garde à la création d'un album « à partir d'une sélection ».
+     */
+    public function test_cannot_create_album_with_someone_elses_media(): void
+    {
+        $foreignMedia = Media::factory()->create(['user_id' => $this->otherUser->id]);
+
+        $response = $this->actingAs($this->user)->postJson('/albums', [
+            'name' => 'Album pirate',
+            'media_ids' => [$foreignMedia->id],
+        ]);
+
+        $response->assertStatus(403);
+
+        $this->assertDatabaseMissing('albums', [
+            'user_id' => $this->user->id,
+            'name' => 'Album pirate',
+        ]);
+    }
+
     // --- Sharing ---
 
     public function test_can_generate_share_token(): void

@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\MediaService;
 use App\Services\SmartAlbumService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
@@ -75,12 +76,16 @@ class AlbumController extends Controller
         $validated = $request->validate($this->albumRules() + [
             // Création « album à partir d'une sélection » : IDs de médias à
             // attacher directement (galerie ou fin d'upload). Optionnel.
-            'media_ids' => 'nullable|array',
-            'media_ids.*' => 'exists:media,id',
+            'media_ids' => 'nullable|array|max:5000',
+            'media_ids.*' => 'uuid',
         ]);
 
         $mediaIds = $validated['media_ids'] ?? [];
         unset($validated['media_ids']);
+
+        if ($mediaIds !== []) {
+            $this->ensureMediaAccessible($mediaIds);
+        }
 
         $album = Album::create([
             ...$validated,
@@ -151,9 +156,7 @@ class AlbumController extends Controller
 
     public function update(Request $request, Album $album)
     {
-        if ($album->user_id !== auth()->id()) {
-            abort(403);
-        }
+        Gate::authorize('update', $album);
 
         $validated = $request->validate($this->albumRules());
 
@@ -174,9 +177,7 @@ class AlbumController extends Controller
 
     public function destroy(Request $request, Album $album)
     {
-        if ($album->user_id !== auth()->id()) {
-            abort(403);
-        }
+        Gate::authorize('delete', $album);
 
         $album->delete();
 
@@ -192,20 +193,38 @@ class AlbumController extends Controller
 
     public function addMedia(Request $request, Album $album)
     {
-        if ($album->user_id !== auth()->id()) {
-            abort(403);
-        }
+        Gate::authorize('manageMedia', $album);
 
         $validated = $request->validate([
-            'media_ids' => 'required|array',
-            'media_ids.*' => 'exists:media,id',
+            'media_ids' => 'required|array|max:5000',
+            'media_ids.*' => 'uuid',
         ]);
+
+        $this->ensureMediaAccessible($validated['media_ids']);
 
         $this->attachMediaToAlbum($album, $validated['media_ids']);
 
         return response()->json([
             'message' => 'Medias ajoutes a l\'album',
         ]);
+    }
+
+    /**
+     * Vérifie que TOUS les médias demandés sont accessibles à l'appelant.
+     * Sans ce garde, attacher l'UUID du média privé d'un tiers à son propre
+     * album s'en ouvrirait la lecture (Media::scopeAccessibleBy considère
+     * accessibles les médias des albums accessibles). Couvre aussi les IDs
+     * inexistants (non accessibles par définition).
+     */
+    protected function ensureMediaAccessible(array $mediaIds): void
+    {
+        $ids = array_values(array_unique($mediaIds));
+
+        $accessibleCount = Media::accessibleBy(auth()->user())
+            ->whereIn('id', $ids)
+            ->count();
+
+        abort_unless($accessibleCount === count($ids), 403, 'Certains médias sélectionnés ne vous sont pas accessibles.');
     }
 
     /**
@@ -219,10 +238,18 @@ class AlbumController extends Controller
     {
         $maxOrder = $album->media()->max('album_media.order') ?? -1;
 
-        foreach ($mediaIds as $index => $mediaId) {
-            if (!$album->media()->where('media_id', $mediaId)->exists()) {
-                $album->media()->attach($mediaId, ['order' => $maxOrder + $index + 1]);
-            }
+        // 2 requêtes au lieu de 2 par média : les présents en une passe,
+        // l'attache groupée en une seule insertion.
+        $existing = $album->media()->whereIn('media.id', $mediaIds)->pluck('media.id')->all();
+
+        $order = $maxOrder;
+        $toAttach = collect(array_unique($mediaIds))
+            ->diff($existing)
+            ->mapWithKeys(fn ($mediaId) => [$mediaId => ['order' => ++$order]])
+            ->all();
+
+        if ($toAttach !== []) {
+            $album->media()->attach($toAttach);
         }
 
         if (!$album->cover_media_id && count($mediaIds) > 0) {
@@ -233,8 +260,8 @@ class AlbumController extends Controller
     public function removeMedia(Request $request, Album $album)
     {
         $validated = $request->validate([
-            'media_ids' => 'required|array',
-            'media_ids.*' => 'exists:media,id',
+            'media_ids' => 'required|array|max:5000',
+            'media_ids.*' => 'uuid',
         ]);
 
         $userId = auth()->id();
@@ -267,17 +294,37 @@ class AlbumController extends Controller
 
     public function reorderMedia(Request $request, Album $album)
     {
-        if ($album->user_id !== auth()->id()) {
-            abort(403);
-        }
+        Gate::authorize('manageMedia', $album);
 
         $validated = $request->validate([
-            'media_order' => 'required|array',
-            'media_order.*' => 'exists:media,id',
+            'media_order' => 'required|array|max:5000',
+            'media_order.*' => 'uuid',
         ]);
 
-        foreach ($validated['media_order'] as $order => $mediaId) {
-            $album->media()->updateExistingPivot($mediaId, ['order' => $order]);
+        // Un seul upsert au lieu d'un UPDATE par média (la PK (album_id,
+        // media_id) sert de cible ON CONFLICT). Les IDs étrangers à l'album
+        // sont ignorés plutôt que d'être insérés.
+        $albumMediaIds = $album->media()->pluck('media.id')->all();
+        $now = now();
+
+        $rows = collect($validated['media_order'])
+            ->intersect($albumMediaIds)
+            // unique() : un doublon d'UUID ferait toucher deux fois la même
+            // ligne dans un seul upsert, ce que Postgres refuse (21000).
+            ->unique()
+            ->values()
+            ->map(fn ($mediaId, $order) => [
+                'album_id' => $album->id,
+                'media_id' => $mediaId,
+                'order' => $order,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ])
+            ->all();
+
+        if ($rows !== []) {
+            DB::table('album_media')
+                ->upsert($rows, ['album_id', 'media_id'], ['order', 'updated_at']);
         }
 
         return response()->json([
@@ -287,9 +334,7 @@ class AlbumController extends Controller
 
     public function generateShareToken(Request $request, Album $album)
     {
-        if ($album->user_id !== auth()->id()) {
-            abort(403);
-        }
+        Gate::authorize('update', $album);
 
         $token = $album->generateShareToken();
 
@@ -302,9 +347,7 @@ class AlbumController extends Controller
 
     public function revokeShareToken(Request $request, Album $album)
     {
-        if ($album->user_id !== auth()->id()) {
-            abort(403);
-        }
+        Gate::authorize('update', $album);
 
         $album->revokeShareToken();
 
@@ -388,9 +431,7 @@ class AlbumController extends Controller
      */
     public function setCover(Request $request, Album $album)
     {
-        if ($album->user_id !== auth()->id()) {
-            abort(403);
-        }
+        Gate::authorize('manageMedia', $album);
 
         $validated = $request->validate([
             'media_id' => ['required', 'uuid', 'exists:media,id'],
@@ -417,9 +458,7 @@ class AlbumController extends Controller
      */
     public function geolocate(Request $request, Album $album)
     {
-        if ($album->user_id !== auth()->id()) {
-            abort(403);
-        }
+        Gate::authorize('manageMedia', $album);
 
         $validated = $request->validate([
             'latitude' => ['required', 'numeric', 'between:-90,90'],
@@ -428,12 +467,11 @@ class AlbumController extends Controller
 
         $mediaIds = $album->media()->pluck('media.id');
 
-        foreach ($mediaIds as $mediaId) {
-            \App\Models\MediaMetadata::updateOrCreate(
-                ['media_id' => $mediaId],
-                ['latitude' => $validated['latitude'], 'longitude' => $validated['longitude']],
-            );
-        }
+        $this->mediaService->bulkSetGeolocation(
+            $mediaIds,
+            (float) $validated['latitude'],
+            (float) $validated['longitude'],
+        );
 
         $count = $mediaIds->count();
 

@@ -74,14 +74,15 @@ class FilamentAdminTest extends TestCase
     }
 
     /**
-     * Test admin can view media create page.
+     * La page de création de média n'existe plus : un Media naît uniquement
+     * d'un upload (fichier S3 + jobs), pas d'une saisie manuelle en admin.
      */
-    public function test_admin_can_view_media_create_page(): void
+    public function test_media_create_page_is_gone(): void
     {
         $response = $this->actingAs($this->adminUser)
             ->get('/admin/media/create');
 
-        $response->assertStatus(200);
+        $response->assertStatus(404);
     }
 
     /**

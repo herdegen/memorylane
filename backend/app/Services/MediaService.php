@@ -354,6 +354,35 @@ class MediaService
     }
 
     /**
+     * Applique une position GPS à un lot de médias, par upserts groupés
+     * (media_id est unique dans media_metadata). L'altitude est TOUJOURS
+     * écrite : quand la nouvelle position ne la fournit pas, l'ancienne
+     * n'aurait plus de sens (elle décrivait d'autres coordonnées).
+     *
+     * @param iterable<int,string> $mediaIds
+     */
+    public function bulkSetGeolocation(iterable $mediaIds, float $latitude, float $longitude, ?float $altitude = null): void
+    {
+        $now = now();
+
+        collect($mediaIds)
+            ->map(fn ($mediaId) => [
+                'media_id' => $mediaId,
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+                'altitude' => $altitude,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ])
+            ->chunk(500)
+            ->each(fn ($rows) => \App\Models\MediaMetadata::upsert(
+                $rows->all(),
+                ['media_id'],
+                ['latitude', 'longitude', 'altitude', 'updated_at'],
+            ));
+    }
+
+    /**
      * Get a download URL for a media file.
      *
      * @param Media $media
