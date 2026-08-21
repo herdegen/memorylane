@@ -28,6 +28,7 @@
         </div>
       </div>
       <button
+        v-if="canRerun"
         @click="$emit('rerun')"
         class="text-xs text-brand-600 hover:text-brand-800 font-medium"
       >
@@ -49,6 +50,7 @@
         </div>
       </div>
       <button
+        v-if="canRerun"
         @click="$emit('rerun')"
         class="text-xs text-brand-600 hover:text-brand-800 font-medium"
       >
@@ -77,6 +79,11 @@ const props = defineProps({
   initialError: {
     type: String,
     default: null,
+  },
+  // La relance (wipe + re-détection) est réservée au propriétaire du média.
+  canRerun: {
+    type: Boolean,
+    default: true,
   },
 });
 

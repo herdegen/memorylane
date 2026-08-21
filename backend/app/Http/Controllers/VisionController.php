@@ -8,6 +8,7 @@ use App\Models\Media;
 use App\Services\Vision\FaceMatcher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -60,7 +61,7 @@ class VisionController extends Controller
      */
     public function storeFaces(Request $request, Media $media): JsonResponse
     {
-        $this->authorizeMedia($media);
+        $this->authorizeMediaOwner($media);
 
         // Photos ET vidéos : pour une vidéo, la détection tourne sur l'image
         // extraite (frame-poster) servie via la conversion medium.
@@ -180,10 +181,13 @@ class VisionController extends Controller
     {
         $this->authorizeMedia($detectedFace->media);
 
+        // Corpus des visages labellisés du PROPRIÉTAIRE du média (pas du
+        // viewer) : un membre du foyer obtient les mêmes suggestions que le
+        // propriétaire (même comportement que l'auto-match admin).
         $candidates = $this->faceMatcher->rankedCandidates(
             $detectedFace,
             FaceMatcher::MATCH_THRESHOLD,
-            auth()->id(),
+            $detectedFace->media->user_id,
         );
 
         return response()->json([
@@ -251,7 +255,8 @@ class VisionController extends Controller
     {
         $this->authorizeMedia($detectedFace->media);
 
-        $best = $this->faceMatcher->autoMatch($detectedFace, auth()->id());
+        // Même corpus que suggest : les visages labellisés du propriétaire.
+        $best = $this->faceMatcher->autoMatch($detectedFace, $detectedFace->media->user_id);
 
         if (! $best) {
             return response()->json(['matched' => false]);
@@ -298,7 +303,7 @@ class VisionController extends Controller
      */
     public function reanalyze(Media $media): JsonResponse
     {
-        $this->authorizeMedia($media);
+        $this->authorizeMediaOwner($media);
 
         if ($media->type !== 'photo') {
             return response()->json(['message' => 'Only photos can be analyzed'], 422);
@@ -343,12 +348,23 @@ class VisionController extends Controller
     }
 
     /**
-     * Ensure the authenticated user owns the media.
+     * Identification collaborative (phase 2c foyers) : tout compte pouvant
+     * VOIR le média (propriétaire, album partagé, foyer) peut participer —
+     * lecture des visages ET association/correction. La re-détection
+     * destructive (storeFaces/reanalyze) reste réservée au propriétaire,
+     * cf. authorizeMediaOwner.
      */
     private function authorizeMedia(Media $media): void
     {
-        if ($media->user_id !== auth()->id()) {
-            abort(403);
-        }
+        Gate::authorize('view', $media);
+    }
+
+    /**
+     * Opérations destructives (wipe + re-détection) : propriétaire seul,
+     * pour qu'un visiteur ne puisse pas effacer les visages ajoutés à la main.
+     */
+    private function authorizeMediaOwner(Media $media): void
+    {
+        Gate::authorize('update', $media);
     }
 }

@@ -176,7 +176,7 @@
 
             <!-- Détection de visages (100% navigateur, face-api.js) -->
             <div
-              v-if="supportsFaces && (detecting || detectError || notScanned)"
+              v-if="supportsFaces && isOwner && (detecting || detectError || notScanned)"
               class="bg-white rounded-lg shadow-xs p-4"
             >
               <div v-if="detecting" class="flex items-center gap-3">
@@ -217,6 +217,7 @@
               :initial-status="media.metadata?.vision_status"
               :initial-faces-count="media.metadata?.vision_faces_count || 0"
               :initial-error="media.metadata?.vision_error"
+              :can-rerun="isOwner"
               @rerun="runDetection"
             />
 
@@ -286,7 +287,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { Head, router, Link } from '@inertiajs/vue3';
+import { Head, router, Link, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import TagInput from '@/Components/TagInput.vue';
 import PersonInput from '@/Components/PersonInput.vue';
@@ -313,6 +314,11 @@ const props = defineProps({
 });
 
 const selectedFace = ref(null);
+
+// Propriétaire du média : seul lui peut (re)lancer la détection destructive
+// (wipe + recreate). L'identification des visages, elle, est collaborative
+// (tout compte qui voit le média — foyer, album partagé).
+const isOwner = computed(() => props.media.user_id === usePage().props.auth?.user?.id);
 
 // Référence au lecteur vidéo (pour capturer le temps courant dans l'éditeur de découpe).
 const playerRef = ref(null);
