@@ -73,6 +73,7 @@
                   <Link href="/profile" class="dropdown-item" @click="showDropdown = false">Mon profil</Link>
                   <Link href="/households" class="dropdown-item" @click="showDropdown = false">Foyers</Link>
                   <Link href="/tags" class="dropdown-item" @click="showDropdown = false">Tags</Link>
+                  <Link href="/guide" class="dropdown-item" @click="showDropdown = false">Guide d'utilisation</Link>
                   <hr class="dropdown-divider" />
                   <Link href="/logout" method="post" as="button" class="dropdown-item w-full text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-300">
                     Déconnexion
@@ -130,6 +131,7 @@
               <MobileNavLink href="/profile">Mon profil</MobileNavLink>
               <MobileNavLink href="/households" :active="$page.component.startsWith('Households/')">Foyers</MobileNavLink>
               <MobileNavLink href="/tags" :active="$page.component.startsWith('Tags/')">Tags</MobileNavLink>
+              <MobileNavLink href="/guide" :active="$page.component === 'Guide'">Guide d'utilisation</MobileNavLink>
               <a v-if="isAdmin" href="/admin"
                 class="block pl-3 pr-4 py-2.5 border-l-4 border-transparent text-base font-medium
                        text-brand-700 hover:bg-brand-50 hover:border-brand-300 rounded-r-lg transition-all">

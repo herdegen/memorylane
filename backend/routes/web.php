@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FamilyTreeController;
 use App\Http\Controllers\GedcomImportController;
 use App\Http\Controllers\GooglePhotosController;
+use App\Http\Controllers\GuideController;
 use App\Http\Controllers\LifeEventController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\HouseholdController;
@@ -46,8 +47,13 @@ Route::middleware('auth')->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/dashboard/hide-guide', [DashboardController::class, 'hideGuide'])->name('dashboard.hideGuide');
-    // Guide de prise en main (lié depuis le bloc « Bien démarrer »)
-    Route::get('/guide', fn () => \Inertia\Inertia::render('Guide'))->name('guide');
+    // Guide d'utilisation (bloc « Bien démarrer » + menu avatar) ; les
+    // captures illustratives sont servies authentifiées (photos de famille).
+    Route::get('/guide', [GuideController::class, 'show'])->name('guide');
+    // URL SANS extension : nginx sert les extensions d'images en statique
+    // depuis public/ (location ~* \.webp$) et court-circuiterait Laravel.
+    Route::get('/guide/images/{name}', [GuideController::class, 'image'])
+        ->where('name', '[a-z0-9-]+')->name('guide.image');
 
     // Recherche unifiée
     Route::get('/search', [SearchController::class, 'index'])->name('search');
