@@ -81,7 +81,7 @@
                   href="/media"
                   class="text-brand-600 hover:text-brand-700 text-sm font-medium"
                 >
-                  Voir la galerie →
+                  Voir mes photos →
                 </Link>
               </div>
             </div>

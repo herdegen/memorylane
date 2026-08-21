@@ -1,12 +1,12 @@
 <template>
-  <Head title="Galerie" />
+  <Head title="Mes photos" />
   <AppLayout>
     <div class="py-12">
       <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
         <!-- Page Header -->
         <div class="mb-6 flex items-center justify-between">
           <div>
-            <h1 class="text-display text-4xl text-surface-900">Galerie</h1>
+            <h1 class="text-display text-4xl text-surface-900">Mes photos</h1>
             <p class="mt-2 text-surface-600">
               Parcourez vos photos, vidéos et documents
             </p>

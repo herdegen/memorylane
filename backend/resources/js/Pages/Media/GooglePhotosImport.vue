@@ -182,7 +182,7 @@
               />
             </div>
 
-            <Link href="/media" class="btn-secondary btn-sm">Voir la galerie</Link>
+            <Link href="/media" class="btn-secondary btn-sm">Voir mes photos</Link>
           </div>
         </div>
       </div>

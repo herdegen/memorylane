@@ -23,11 +23,10 @@
 
             <div class="hidden sm:ml-8 sm:flex sm:space-x-1">
               <NavLink href="/dashboard" :active="$page.component === 'Dashboard'">Accueil</NavLink>
-              <NavLink href="/media" :active="$page.component.startsWith('Media/')">Galerie</NavLink>
+              <NavLink href="/media" :active="$page.component.startsWith('Media/')">Mes photos</NavLink>
               <NavLink href="/media/upload" :active="$page.component === 'Media/Upload'">Télécharger</NavLink>
               <NavLink href="/tags" :active="$page.component.startsWith('Tags/')">Tags</NavLink>
               <NavLink href="/albums" :active="$page.component.startsWith('Albums/')">Albums</NavLink>
-              <NavLink href="/households" :active="$page.component.startsWith('Households/')">Foyers</NavLink>
               <NavLink href="/people" :active="$page.component.startsWith('People/')">Personnes</NavLink>
               <NavLink href="/family-tree" :active="$page.component.startsWith('FamilyTree/')">Arbre</NavLink>
               <NavLink href="/map" :active="$page.component.startsWith('Map/')">Carte</NavLink>
@@ -73,6 +72,7 @@
                     <p class="text-sm font-semibold text-surface-900 truncate">{{ user.email }}</p>
                   </div>
                   <Link href="/profile" class="dropdown-item" @click="showDropdown = false">Mon Profil</Link>
+                  <Link href="/households" class="dropdown-item" @click="showDropdown = false">Foyers</Link>
                   <Link href="/profile/edit" class="dropdown-item" @click="showDropdown = false">Paramètres</Link>
                   <hr class="dropdown-divider" />
                   <Link href="/logout" method="post" as="button" class="dropdown-item w-full text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-300">
@@ -109,11 +109,10 @@
       <div v-show="showMobileMenu" class="sm:hidden border-t border-surface-100 bg-surface-50">
         <div class="py-2 space-y-0.5 px-3">
           <MobileNavLink href="/dashboard" :active="$page.component === 'Dashboard'">Accueil</MobileNavLink>
-          <MobileNavLink href="/media" :active="$page.component.startsWith('Media/')">Galerie</MobileNavLink>
+          <MobileNavLink href="/media" :active="$page.component.startsWith('Media/')">Mes photos</MobileNavLink>
           <MobileNavLink href="/media/upload" :active="$page.component === 'Media/Upload'">Télécharger</MobileNavLink>
           <MobileNavLink href="/tags" :active="$page.component.startsWith('Tags/')">Tags</MobileNavLink>
           <MobileNavLink href="/albums" :active="$page.component.startsWith('Albums/')">Albums</MobileNavLink>
-          <MobileNavLink href="/households" :active="$page.component.startsWith('Households/')">Foyers</MobileNavLink>
           <MobileNavLink href="/people" :active="$page.component.startsWith('People/')">Personnes</MobileNavLink>
           <MobileNavLink href="/family-tree" :active="$page.component.startsWith('FamilyTree/')">Arbre</MobileNavLink>
           <MobileNavLink href="/map" :active="$page.component.startsWith('Map/')">Carte</MobileNavLink>
@@ -131,6 +130,7 @@
             </div>
             <div class="space-y-0.5">
               <MobileNavLink href="/profile">Mon Profil</MobileNavLink>
+              <MobileNavLink href="/households" :active="$page.component.startsWith('Households/')">Foyers</MobileNavLink>
               <MobileNavLink href="/profile/edit">Paramètres</MobileNavLink>
               <a v-if="isAdmin" href="/admin"
                 class="block pl-3 pr-4 py-2.5 border-l-4 border-transparent text-base font-medium

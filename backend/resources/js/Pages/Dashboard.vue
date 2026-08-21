@@ -91,7 +91,7 @@
                   </svg>
                 </div>
                 <div>
-                  <h3 class="font-semibold text-surface-900">Galerie</h3>
+                  <h3 class="font-semibold text-surface-900">Mes photos</h3>
                   <p class="text-sm text-surface-500 mt-0.5">Tous vos médias</p>
                 </div>
               </div>

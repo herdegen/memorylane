@@ -112,7 +112,7 @@
             </svg>
             <h3 class="mt-3 text-sm font-medium text-surface-900">Aucune photo partagée</h3>
             <p class="mt-1 text-sm text-surface-500">
-              Depuis la <Link href="/media" class="text-brand-600 dark:text-brand-400 font-medium hover:underline">galerie</Link>,
+              Depuis <Link href="/media" class="text-brand-600 dark:text-brand-400 font-medium hover:underline">Mes photos</Link>,
               sélectionnez des médias puis « Foyer » pour les partager ici.
             </p>
           </div>
