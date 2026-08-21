@@ -211,6 +211,27 @@
             >
               {{ noLabel }}
             </button>
+            <!-- Visage : deux formulations pour écarter — personne de fond
+                 (inconnue / hors famille) ou fausse détection. Même effet :
+                 le visage est rejeté définitivement. -->
+            <template v-if="uiKind === 'face'">
+              <button
+                type="button"
+                class="btn-secondary"
+                :disabled="sending"
+                @click="answer('no')"
+              >
+                Personne inconnue / hors famille
+              </button>
+              <button
+                type="button"
+                class="btn-secondary"
+                :disabled="sending"
+                @click="answer('no')"
+              >
+                Ce n’est pas un visage
+              </button>
+            </template>
             <span class="flex-1"></span>
             <button
               type="button"
@@ -333,7 +354,6 @@ const noLabel = computed(() => ({
   parent_mother: 'Inconnue / pas de fiche',
   maiden_name: 'Identique à son nom',
   education: 'Pas d’études particulières',
-  face_identify: 'Ce n’est pas un visage',
 }[question.value?.type] || null));
 
 // ---- Payload et validité de la saisie courante ----
