@@ -1,108 +1,84 @@
 <template>
-  <div class="bg-white rounded-xl border border-surface-200 shadow-xs p-6 mb-6">
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="text-lg font-semibold text-surface-900">Sa vie</h3>
-      <div class="flex items-center gap-2">
-        <button
-          v-if="hasPlayable"
-          @click="playSlideshow"
-          class="inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-800"
-        >
-          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-          Diaporama
-        </button>
-        <button
-          v-if="canManage"
-          @click="openCreate"
-          class="text-sm font-medium text-brand-600 hover:text-brand-800"
-        >
-          + Ajouter un moment
-        </button>
-      </div>
+  <div class="pt-9 pb-2">
+    <div class="flex items-center justify-between mb-4 px-4 sm:px-8">
+      <h2 class="font-display text-2xl font-semibold text-surface-900">Sa vie</h2>
+      <button
+        v-if="canManage"
+        @click="openCreate"
+        class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-surface-300 text-sm font-medium text-surface-700 hover:bg-surface-50 transition"
+      >
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+        Ajouter un moment
+      </button>
     </div>
 
-    <div v-if="loading" class="text-sm text-surface-500">Chargement de la frise…</div>
+    <div v-if="loading" class="text-sm text-surface-500 px-4 sm:px-8">Chargement de la frise…</div>
 
-    <div v-else-if="items.length === 0" class="text-sm text-surface-500">
+    <div v-else-if="eventItems.length === 0" class="text-sm text-surface-500 px-4 sm:px-8">
       Aucun événement daté pour l'instant.
       <span v-if="canManage">Ajoutez un moment pour commencer la frise.</span>
     </div>
 
-    <!-- Frise verticale -->
-    <ol v-else class="relative border-l-2 border-surface-200 ml-3 space-y-5">
-      <li v-for="item in displayItems" :key="item._key" class="ml-6">
-        <!-- ===== Groupe de photos : une ligne par album ou par année ===== -->
-        <template v-if="item._group">
-          <span class="absolute -left-[13px] flex items-center justify-center w-6 h-6 rounded-full bg-white border-2 border-surface-200 text-xs">
-            {{ item.type === 'album' ? '📁' : '📷' }}
-          </span>
-          <div class="flex items-start gap-3 rounded-lg border border-surface-100 bg-surface-50 p-3">
-            <img
-              v-if="item.thumb"
-              :src="item.thumb"
-              class="w-14 h-14 rounded-lg object-cover shrink-0 border border-surface-200 cursor-pointer"
-              title="Lancer le diaporama"
-              @click="playSlideshow"
-            />
-            <div class="min-w-0 flex-1">
-              <p class="text-xs font-medium text-brand-600">
-                {{ formatEventDate(item.date) }}<span v-if="item.end_date && item.end_date !== item.date"> → {{ formatEventDate(item.end_date) }}</span>
-              </p>
-              <p class="text-sm font-semibold text-surface-900">
-                <Link v-if="item.type === 'album'" :href="`/albums/${item.id}`" class="hover:text-brand-700">{{ item.name }}</Link>
-                <span v-else>{{ item.year || 'Sans date' }}</span>
-              </p>
-              <p class="text-xs text-surface-500">{{ item.count }} photo{{ item.count > 1 ? 's' : '' }}</p>
+    <!-- Frise HORIZONTALE : rail + cartes photo, défilement latéral -->
+    <div v-else class="overflow-x-auto pb-4">
+      <div class="relative min-w-max px-4 sm:px-8 pt-2">
+        <!-- Rail (positionné au niveau des points, sous les cartes photo) -->
+        <div class="absolute left-0 right-0 top-[174px] h-0.5 bg-surface-200"></div>
+
+        <ol class="flex items-start gap-5">
+          <li v-for="item in eventItems" :key="item._key" class="relative w-[230px] shrink-0 flex flex-col items-center">
+            <!-- Carte photo (ou carte icône pour un moment sans média) -->
+            <div class="relative group w-[230px] h-[150px] rounded-xl overflow-hidden shadow-warm-md">
+              <img
+                v-if="thumb(item)"
+                :src="thumb(item)"
+                class="w-full h-full object-cover"
+                :class="{ 'cursor-pointer': item.media }"
+                @click="playSlideshow"
+              />
+              <div v-else class="w-full h-full flex items-center justify-center bg-brand-50 dark:bg-brand-500/10 text-4xl">
+                {{ kindIcon(item.kind) }}
+              </div>
+
+              <!-- Actions gestionnaire sur les moments (au survol) -->
+              <div v-if="canManage && item.life_event_id" class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button @click.stop="openEdit(item)" class="p-1.5 rounded-full bg-white/90 text-surface-600 hover:text-brand-600 shadow-sm" title="Modifier">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                </button>
+                <button @click.stop="removeEvent(item)" class="p-1.5 rounded-full bg-white/90 text-surface-600 hover:text-red-500 shadow-sm" title="Supprimer">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M4 7h16" /></svg>
+                </button>
+              </div>
             </div>
-          </div>
-        </template>
 
-        <!-- ===== Événement daté ===== -->
-        <template v-else>
-          <span
-            class="absolute -left-[13px] flex items-center justify-center w-6 h-6 rounded-full bg-white border-2 border-surface-200 text-xs"
-            :title="kindLabel(item.kind)"
-          >{{ kindIcon(item.kind) }}</span>
+            <!-- Point sur le rail -->
+            <div class="w-3.5 h-3.5 rounded-full bg-white border-[3px] border-brand-500 mt-[10px] mb-2.5" :title="kindLabel(item.kind)"></div>
 
-          <div class="flex items-start gap-3 rounded-lg border border-surface-100 bg-surface-50 p-3">
-            <img
-              v-if="thumb(item)"
-              :src="thumb(item)"
-              class="w-14 h-14 rounded-lg object-cover shrink-0 border border-surface-200"
-            />
-            <div class="min-w-0 flex-1">
-              <p class="text-xs font-medium text-brand-600">{{ formatEventDate(item.date) }}<span v-if="item.end_date"> → {{ formatEventDate(item.end_date) }}</span></p>
-              <p class="text-sm font-semibold text-surface-900">
-                <Link v-if="item.related" :href="`/people/${item.related.id}`" class="hover:text-brand-700">{{ item.title }}</Link>
-                <span v-else>{{ item.title }}</span>
+            <!-- Légende -->
+            <div class="flex flex-col items-center gap-0.5 text-center px-1">
+              <p class="text-xs font-semibold text-brand-600 dark:text-brand-400">
+                {{ formatEventDate(item.date) }}<span v-if="item.end_date"> → {{ formatEventDate(item.end_date) }}</span>
+              </p>
+              <p class="text-sm font-semibold text-surface-900 leading-snug">
+                <Link v-if="item.related" :href="`/people/${item.related.id}`" class="hover:text-brand-700">{{ kindIcon(item.kind) }} {{ item.title }}</Link>
+                <span v-else>{{ kindIcon(item.kind) }} {{ item.title }}</span>
               </p>
               <p v-if="item.place" class="text-xs text-surface-500">
                 {{ item.place }}<span v-if="item.latitude" title="Lieu géolocalisé"> 📍</span>
               </p>
-              <p v-if="item.description" class="text-sm text-surface-600 mt-1 whitespace-pre-wrap">{{ item.description }}</p>
-              <!-- Album lié au moment (galerie du baptême, du mariage…) -->
+              <p v-if="item.description" class="text-xs text-surface-500 line-clamp-2">{{ item.description }}</p>
               <Link
                 v-if="item.album"
                 :href="`/albums/${item.album.id}`"
-                class="mt-1 inline-flex items-center gap-1 text-xs font-medium text-brand-600 dark:text-brand-400 hover:underline"
+                class="inline-flex items-center gap-1 text-xs font-medium text-brand-600 dark:text-brand-400 hover:underline"
               >
                 📁 {{ item.album.name }}
               </Link>
             </div>
-
-            <!-- Actions gestionnaire sur les moments -->
-            <div v-if="canManage && item.life_event_id" class="flex flex-col gap-1 shrink-0">
-              <button @click="openEdit(item)" class="text-surface-400 hover:text-brand-600" title="Modifier">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-              </button>
-              <button @click="removeEvent(item)" class="text-surface-400 hover:text-red-500 dark:hover:text-red-400" title="Supprimer">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M4 7h16" /></svg>
-              </button>
-            </div>
-          </div>
-        </template>
-      </li>
-    </ol>
+          </li>
+        </ol>
+      </div>
+    </div>
 
     <LifeEventFormModal
       v-if="showModal"
@@ -142,69 +118,20 @@ const diaporama = ref(null);
 const photoItems = computed(() => items.value.filter(i => i.kind === 'photo' && i.media));
 const hasPlayable = computed(() => items.value.length > 0);
 
-// Frise regroupée : les événements datés restent des lignes individuelles ; les
-// photos sont collapsées en UNE ligne par album (accessible) puis par année.
-// Les `items` bruts restent utilisés tels quels par le diaporama et le
-// sélecteur de photo d'un moment.
-const eventItems = computed(() => items.value.filter(i => i.kind !== 'photo'));
-
-const photoGroups = computed(() => {
-  const albums = new Map(); // id -> groupe album
-  const years = new Map();  // année -> groupe année
-
-  const push = (map, key, base, photo) => {
-    if (!map.has(key)) map.set(key, { ...base, photos: [], dates: [] });
-    const g = map.get(key);
-    g.photos.push(photo);
-    if (photo.date) g.dates.push(photo.date);
-  };
-
-  for (const it of photoItems.value) {
-    if (it.albums && it.albums.length) {
-      for (const a of it.albums) {
-        push(albums, a.id, { type: 'album', id: a.id, name: a.name }, it);
-      }
-    } else {
-      const y = it.date ? it.date.slice(0, 4) : 'none';
-      push(years, y, { type: 'year', year: y === 'none' ? null : y }, it);
-    }
-  }
-
-  const finalize = (g) => {
-    const sorted = g.dates.slice().sort();
-    const first = g.photos[0]?.media;
-    return {
-      ...g,
-      count: g.photos.length,
-      date: sorted[0] || null,
-      end_date: sorted[sorted.length - 1] || null,
-      thumb: first?.thumbnail_url || first?.medium_url || null,
-    };
-  };
-
-  return [...albums.values(), ...years.values()].map(finalize);
-});
-
-// Événements + groupes photos, triés chronologiquement (comme la frise brute).
-const displayItems = computed(() => {
-  // _key : clé stable pour le v-for (la liste est retriée à chaque
-  // rechargement, une clé d'index provoquerait des réutilisations erronées).
-  const all = [
-    ...eventItems.value.map((e) => ({
+// La frise horizontale ne montre que les ÉVÉNEMENTS datés (auto + moments) :
+// les photos, elles, vivent dans les galeries de la fiche. Les `items` bruts
+// (photos comprises) restent utilisés par le diaporama et le sélecteur de
+// photo d'un moment.
+const eventItems = computed(() =>
+  items.value
+    .filter(i => i.kind !== 'photo')
+    .map((e) => ({
       ...e,
-      _group: false,
-      _sort: e.date || '',
-      _key: `event-${e.life_event_id ?? `${e.type}-${e.date}`}`,
-    })),
-    ...photoGroups.value.map((g) => ({
-      ...g,
-      _group: true,
-      _sort: g.date || '',
-      _key: `group-${g.type}-${g.type === 'album' ? g.id : (g.year ?? 'none')}`,
-    })),
-  ];
-  return all.sort((a, b) => (a._sort < b._sort ? -1 : a._sort > b._sort ? 1 : 0));
-});
+      // Clé stable pour le v-for (la liste est retriée à chaque rechargement).
+      _key: `event-${e.life_event_id ?? `${e.kind}-${e.date}`}`,
+    }))
+    .sort((a, b) => ((a.date || '') < (b.date || '') ? -1 : (a.date || '') > (b.date || '') ? 1 : 0))
+);
 
 const load = async () => {
   loading.value = true;
@@ -232,7 +159,12 @@ const removeEvent = async (item) => {
   }
 };
 
-const playSlideshow = () => diaporama.value?.open(0);
+const playSlideshow = () => {
+  if (hasPlayable.value) diaporama.value?.open(0);
+};
+
+// Le bouton « Diaporama de sa vie » vit dans l'en-tête de la fiche personne.
+defineExpose({ play: playSlideshow, hasPlayable });
 
 // Slides normalisés pour le diaporama unifié : les moments SANS média
 // deviennent des slides « carte » (texte : naissance d'un enfant, mariage…).
@@ -258,7 +190,7 @@ const diaporamaSlides = computed(() => items.value.map((it, i) => {
   };
 }));
 
-const thumb = (item) => item.media?.thumbnail_url || item.media?.medium_url || item.related?.avatar_url || null;
+const thumb = (item) => item.media?.medium_url || item.media?.thumbnail_url || item.related?.avatar_url || null;
 
 const ICONS = {
   birth: '🎂', death: '🕯️', marriage: '💍', child: '👶',
