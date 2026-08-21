@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
@@ -25,6 +26,7 @@ class ExampleTest extends TestCase
      */
     public function test_root_redirects_to_dashboard_when_authenticated(): void
     {
+        Http::fake(['nominis.cef.fr/*' => Http::response([])]);
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->get('/');
@@ -37,6 +39,7 @@ class ExampleTest extends TestCase
      */
     public function test_dashboard_is_accessible_when_authenticated(): void
     {
+        Http::fake(['nominis.cef.fr/*' => Http::response([])]);
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->get('/dashboard');

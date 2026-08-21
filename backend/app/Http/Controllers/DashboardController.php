@@ -112,6 +112,34 @@ class DashboardController extends Controller
             ]);
         }
 
+        // Fêtes des prénoms du jour (calendrier Nominis, cache local) :
+        // uniquement le jour J, pour les personnes vivantes dont le prénom
+        // correspond (accents/casse ignorés).
+        $names = app(\App\Services\NameDayService::class)->namesFor($today);
+        if ($names !== []) {
+            $celebrated = Person::whereNull('death_date')
+                ->with('avatar.conversions')
+                ->withMatchedFacesCount()
+                ->get()
+                ->filter(function (Person $person) use ($names) {
+                    $first = $person->first_name ?: strtok($person->name, ' ');
+                    return $first && in_array(\App\Services\NameDayService::normalize($first), $names, true);
+                });
+
+            foreach ($celebrated as $person) {
+                $first = $person->first_name ?: strtok($person->name, ' ');
+                $entries->push([
+                    'kind' => 'nameday',
+                    'emoji' => '🥳',
+                    'title' => $person->name,
+                    'sub' => "Bonne fête {$first} !",
+                    'days_until' => 0,
+                    'avatar_url' => $this->avatarUrl($person),
+                    'person_id' => $person->id,
+                ]);
+            }
+        }
+
         // Anniversaires de mariage / d'union.
         $unions = DB::table('person_relationships as r')
             ->join('people as p1', 'p1.id', '=', 'r.person1_id')

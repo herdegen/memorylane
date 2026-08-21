@@ -16,3 +16,6 @@ Schedule::command('memorylane:weekly-digest')->weeklyOn(0, '18:00');
 
 // Nettoyage des uploads multipart abandonnés (parts orphelines S3, issue #23)
 Schedule::command('memorylane:prune-upload-sessions')->dailyAt('03:30');
+
+// Fêtes des prénoms : précharge le cache Nominis pour les prochains jours.
+Schedule::command('memorylane:refresh-namedays')->dailyAt('00:10');

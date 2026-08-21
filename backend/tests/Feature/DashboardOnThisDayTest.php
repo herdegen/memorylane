@@ -6,6 +6,7 @@ use App\Models\Media;
 use App\Models\Person;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class DashboardOnThisDayTest extends TestCase
@@ -19,6 +20,11 @@ class DashboardOnThisDayTest extends TestCase
         parent::setUp();
 
         $this->user = User::factory()->create();
+
+        // Aucun appel réseau réel vers Nominis pendant les tests.
+        Http::fake([
+            'nominis.cef.fr/*' => Http::response(['response' => ['prenoms' => ['majeurs' => [], 'derives' => []]]]),
+        ]);
     }
 
     /**
@@ -177,5 +183,31 @@ class DashboardOnThisDayTest extends TestCase
         $other = User::factory()->create();
         $this->actingAs($other)->get('/dashboard')
             ->assertInertia(fn ($page) => $page->where('showGuide', true));
+    }
+
+    /**
+     * Fête des prénoms : une personne vivante dont le prénom est au
+     * calendrier du jour (accents ignorés) est célébrée.
+     */
+    public function test_fete_des_prenoms_du_jour(): void
+    {
+        // Cache préchargé (comme le ferait le cron) : pas d'appel réseau.
+        \Illuminate\Support\Facades\Cache::put(
+            sprintf('namedays:%02d-%02d', now()->month, now()->day),
+            ['jeremie'],
+            now()->addDay(),
+        );
+
+        Person::factory()->create([
+            'user_id' => $this->user->id,
+            'name' => 'Jeremie Dupont',
+            'first_name' => 'Jeremie',
+            'last_name' => 'Dupont',
+        ]);
+
+        $response = $this->actingAs($this->user)->get('/dashboard');
+
+        $celebrations = collect($response->viewData('page')['props']['celebrations']);
+        $this->assertTrue($celebrations->contains(fn ($c) => $c['kind'] === 'nameday' && $c['title'] === 'Jeremie Dupont'));
     }
 }
