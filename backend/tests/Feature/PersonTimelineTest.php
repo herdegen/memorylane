@@ -8,6 +8,7 @@ use App\Models\Media;
 use App\Models\Person;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class PersonTimelineTest extends TestCase
@@ -22,6 +23,13 @@ class PersonTimelineTest extends TestCase
         parent::setUp();
         $this->user = User::factory()->create(['role' => 'user']);
         $this->otherUser = User::factory()->create(['role' => 'user']);
+
+        // La frise géocode les lieux (Nominatim) et cherche une photo du
+        // lieu (Wikimedia) : aucun appel réseau réel pendant les tests.
+        Http::fake([
+            'nominatim.openstreetmap.org/*' => Http::response([]),
+            'commons.wikimedia.org/*' => Http::response([]),
+        ]);
     }
 
     public function test_show_returns_siblings(): void
@@ -233,5 +241,36 @@ class PersonTimelineTest extends TestCase
 
         $this->actingAs($this->user)->deleteJson("/life-events/{$event->id}")->assertOk();
         $this->assertDatabaseMissing('life_events', ['id' => $event->id]);
+    }
+
+    /**
+     * Récit de vie : les événements avec un lieu en texte sont géocodés et
+     * reçoivent une photo du lieu (services cachés — pré-remplis ici comme
+     * le ferait un passage précédent).
+     */
+    public function test_recit_de_vie_enrichit_lieux_et_photo(): void
+    {
+        \Illuminate\Support\Facades\Cache::put(
+            'geocode:' . md5(mb_strtolower('Croix, Nord')),
+            ['latitude' => 50.678, 'longitude' => 3.149],
+            now()->addDay(),
+        );
+        \Illuminate\Support\Facades\Cache::put(
+            sprintf('placephoto:%.4f,%.4f', 50.678, 3.149),
+            'https://upload.wikimedia.org/exemple.jpg',
+            now()->addDay(),
+        );
+
+        $person = Person::factory()->create([
+            'user_id' => $this->user->id,
+            'birth_date' => '1988-06-16',
+            'birth_place' => 'Croix, Nord',
+        ]);
+
+        $data = $this->actingAs($this->user)->getJson("/people/{$person->id}/timeline")->assertOk()->json();
+        $birth = collect($data)->firstWhere('kind', 'birth');
+
+        $this->assertEqualsWithDelta(50.678, $birth['latitude'], 0.001);
+        $this->assertSame('https://upload.wikimedia.org/exemple.jpg', $birth['place_photo_url']);
     }
 }

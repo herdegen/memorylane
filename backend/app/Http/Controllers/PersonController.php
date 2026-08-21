@@ -548,6 +548,35 @@ class PersonController extends Controller
             ->sortBy('date')
             ->values();
 
+        // Enrichissement « récit de vie » : coordonnées géocodées depuis le
+        // lieu en texte (naissance, mariage…) et photo du lieu (Wikimedia
+        // Commons) pour les événements datés. Les deux services cachent
+        // durablement : seul le tout premier affichage paie les appels.
+        // Exclusions : photos (elles ont leurs propres métadonnées) et
+        // naissances d'enfants (déplacer la carte n'y a pas de sens).
+        $geocoder = app(\App\Services\GeocodeService::class);
+        $placePhotos = app(\App\Services\PlacePhotoService::class);
+        $items = $items->map(function ($item) use ($geocoder, $placePhotos) {
+            if (in_array($item['kind'] ?? '', ['photo', 'child'], true)) {
+                return $item;
+            }
+            // Lieux GEDCOM du type « Croix, , , , » : virgules vides nettoyées.
+            if (! empty($item['place'])) {
+                $item['place'] = trim(preg_replace('/(\s*,\s*)+/', ', ', $item['place']), " \t,");
+            }
+            if (empty($item['latitude']) && ! empty($item['place'])) {
+                if ($coords = $geocoder->coordinatesFor($item['place'])) {
+                    $item['latitude'] = $coords['latitude'];
+                    $item['longitude'] = $coords['longitude'];
+                }
+            }
+            if (! empty($item['latitude']) && ! empty($item['longitude'])) {
+                $item['place_photo_url'] = $placePhotos->photoFor((float) $item['latitude'], (float) $item['longitude']);
+            }
+
+            return $item;
+        });
+
         return response()->json($items);
     }
 

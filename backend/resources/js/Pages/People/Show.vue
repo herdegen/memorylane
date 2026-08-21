@@ -136,7 +136,7 @@
     />
 
     <!-- ================= Sa vie (frise horizontale) ================= -->
-    <PersonTimeline ref="timelineRef" :person-id="person.id" :can-manage="canManage" />
+    <PersonTimeline ref="timelineRef" :person-id="person.id" :person-name="personLabel(person)" :can-manage="canManage" />
 
     <!-- ================= Galeries, séparées par album puis par année ================= -->
     <div v-if="media.length > 0" class="pt-9 pb-12">

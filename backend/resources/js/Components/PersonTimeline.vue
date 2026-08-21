@@ -89,7 +89,7 @@
       @saved="onSaved"
     />
 
-    <FullscreenSlideshow ref="diaporama" :slides="diaporamaSlides" :photo-duration="6000" />
+    <LifeStoryPlayer ref="storyPlayer" :events="storyEvents" :person-name="personName" />
   </div>
 </template>
 
@@ -98,7 +98,7 @@ import { ref, computed, onMounted } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import LifeEventFormModal from '@/Components/LifeEventFormModal.vue';
-import FullscreenSlideshow from '@/Components/FullscreenSlideshow.vue';
+import LifeStoryPlayer from '@/Components/LifeStoryPlayer.vue';
 import { useToast } from '@/Composables/useToast';
 import { formatLongDate } from '@/utils/format';
 
@@ -106,6 +106,7 @@ const toast = useToast();
 
 const props = defineProps({
   personId: { type: String, required: true },
+  personName: { type: String, default: '' },
   canManage: { type: Boolean, default: false },
 });
 
@@ -113,7 +114,7 @@ const items = ref([]);
 const loading = ref(true);
 const showModal = ref(false);
 const editing = ref(null);
-const diaporama = ref(null);
+const storyPlayer = ref(null);
 
 const photoItems = computed(() => items.value.filter(i => i.kind === 'photo' && i.media));
 const hasPlayable = computed(() => items.value.length > 0);
@@ -160,33 +161,33 @@ const removeEvent = async (item) => {
 };
 
 const playSlideshow = () => {
-  if (hasPlayable.value) diaporama.value?.open(0);
+  if (storyEvents.value.length) storyPlayer.value?.start();
 };
 
 // Le bouton « Diaporama de sa vie » vit dans l'en-tête de la fiche personne.
 defineExpose({ play: playSlideshow, hasPlayable });
 
-// Slides normalisés pour le diaporama unifié : les moments SANS média
-// deviennent des slides « carte » (texte : naissance d'un enfant, mariage…).
-const diaporamaSlides = computed(() => items.value.map((it, i) => {
-  if (it.media) {
-    return it.media.type === 'video'
-      ? { key: `s-${i}`, type: 'video', src: it.media.url, label: it.title }
-      : { key: `s-${i}`, type: 'photo', src: it.media.medium_url || it.media.url, label: it.title };
+// Chapitres du récit de vie : les événements datés, enrichis de leur icône,
+// de leur date lisible et de leur RAFALE de photos (l'illustration du moment
+// + les photos de la personne prises dans la fourchette de l'événement).
+const storyEvents = computed(() => eventItems.value.map((ev) => {
+  const from = ev.date || '';
+  const to = ev.end_date || ev.date || '';
+  const burst = [];
+  if (ev.media) burst.push(ev.media.medium_url || ev.media.url);
+  for (const p of photoItems.value) {
+    if (burst.length >= 6) break;
+    if (p.date && p.date >= from && p.date <= to) {
+      const src = p.media.medium_url || p.media.url;
+      if (src && !burst.includes(src)) burst.push(src);
+    }
   }
-
   return {
-    key: `s-${i}`,
-    type: 'card',
-    label: it.title,
-    card: {
-      icon: kindIcon(it.kind),
-      date: formatEventDate(it.date),
-      title: it.title,
-      place: it.place,
-      description: it.description,
-      avatarUrl: it.related?.avatar_url || null,
-    },
+    ...ev,
+    icon: kindIcon(ev.kind),
+    dateLabel: formatEventDate(ev.date),
+    // Une seule photo n'est pas une rafale : la carte-chapitre suffit.
+    burst: burst.length > 1 ? burst : [],
   };
 }));
 
