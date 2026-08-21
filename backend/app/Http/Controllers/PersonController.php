@@ -381,12 +381,28 @@ class PersonController extends Controller
             };
         })->values();
 
+        // Ancêtre commun = point le plus « haut » du chemin en générations
+        // (monter = parent, descendre = enfant, conjoint = même niveau). La
+        // vue finale de l'arbre se centre dessus : ses deux branches (vers
+        // moi et vers la personne) sont alors visibles en même temps.
+        $level = 0;
+        $best = 0;
+        $apexIndex = 0;
+        foreach ($path['edges'] as $i => $type) {
+            $level += $type === 'parent' ? 1 : ($type === 'child' ? -1 : 0);
+            if ($level > $best) {
+                $best = $level;
+                $apexIndex = $i + 1;
+            }
+        }
+
         return response()->json([
             'found' => true,
             'steps' => count($path['edges']),
             'relation_label' => $this->kinshipLabel($path['edges'], $person->gender),
             'path' => $orderedPath,
             'edge_labels' => $stepLabels,
+            'apex_index' => $apexIndex,
         ]);
     }
 

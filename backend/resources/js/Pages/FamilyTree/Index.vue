@@ -214,7 +214,10 @@
             </div>
             <div class="mt-2 flex items-center justify-between gap-3">
               <p class="text-xs text-surface-500 min-h-4">
-                <template v-if="kinshipStep > 0">… {{ kinship.edge_labels[kinshipStep - 1] }}</template>
+                <template v-if="kinshipApexView">
+                  Vue depuis {{ kinship.path[kinship.apex_index].name.split(' ')[0] }}, votre ancêtre commun — les deux branches sont en surbrillance.
+                </template>
+                <template v-else-if="kinshipStep > 0">… {{ kinship.edge_labels[kinshipStep - 1] }}</template>
                 <template v-else>Départ : votre fiche</template>
               </p>
               <div class="flex gap-2 shrink-0">
@@ -454,6 +457,24 @@ function scheduleKinshipHighlight() {
   kinshipHighlightTimers = [150, 800].map((ms) => setTimeout(applyKinshipHighlight, ms));
 }
 
+// Vue finale : recentrage sur l'ancêtre commun (apex du chemin) — l'arbre
+// montre alors ses DEUX branches (vers moi et vers la personne), toutes
+// deux en surbrillance. Quand l'apex est déjà l'extrémité (père direct,
+// enfant…), la marche se termine simplement sur la personne.
+const kinshipApexView = ref(false);
+
+function finishOnApex() {
+  const k = kinship.value;
+  if (!k?.found || !chart) return;
+  const apex = k.path[k.apex_index];
+  if (k.apex_index === k.path.length - 1 || !apex) return;
+  kinshipApexView.value = true;
+  if (rawById[apex.id]) selectedPerson.value = rawById[apex.id];
+  chart.updateMainId(apex.id);
+  chart.updateTree({ tree_position: 'main_to_middle' });
+  scheduleKinshipHighlight();
+}
+
 function focusKinshipStep() {
   const step = kinship.value?.path?.[kinshipStep.value];
   if (!step || !chart) return;
@@ -466,26 +487,33 @@ function focusKinshipStep() {
       kinshipStep.value += 1;
       focusKinshipStep();
     }, KINSHIP_STEP_MS);
+  } else {
+    kinshipTimer = setTimeout(finishOnApex, KINSHIP_STEP_MS);
   }
 }
 
 function startKinshipWalk() {
   clearTimeout(kinshipTimer);
+  kinshipApexView.value = false;
   kinshipStep.value = 0;
   focusKinshipStep();
 }
 
-// « Passer » : saute directement à la personne cible.
+// « Passer » : va directement à la vue d'ensemble (ancêtre commun, tout
+// le chemin en surbrillance) — ou à la personne si l'apex est l'extrémité.
 function finishKinshipWalk() {
   clearTimeout(kinshipTimer);
   kinshipStep.value = kinship.value.path.length - 1;
   focusKinshipStep();
+  clearTimeout(kinshipTimer);
+  finishOnApex();
 }
 
 function stopKinship() {
   clearTimeout(kinshipTimer);
   kinshipHighlightTimers.forEach(clearTimeout);
   clearKinshipHighlight();
+  kinshipApexView.value = false;
   kinship.value = null;
 }
 

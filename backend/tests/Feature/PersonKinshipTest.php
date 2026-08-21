@@ -52,6 +52,7 @@ class PersonKinshipTest extends TestCase
             ->assertJsonPath('found', true)
             ->assertJsonPath('steps', 1)
             ->assertJsonPath('relation_label', 'votre père')
+            ->assertJsonPath('apex_index', 1)
             ->assertJsonPath('path.0.id', $this->self->id)
             ->assertJsonPath('path.1.id', $father->id)
             ->assertJsonPath('edge_labels.0', 'son père');
@@ -118,5 +119,23 @@ class PersonKinshipTest extends TestCase
             ->assertJsonPath('relation_label', null);
         $this->assertGreaterThanOrEqual(6, $response->json('steps'));
         $this->assertCount($response->json('steps') + 1, $response->json('path'));
+    }
+
+    public function test_cousine_germaine_et_ancetre_commun(): void
+    {
+        $grandpa = Person::factory()->male()->create(['user_id' => $this->user->id]);
+        $father = Person::factory()->male()->create(['user_id' => $this->user->id, 'father_id' => $grandpa->id]);
+        $this->self->update(['father_id' => $father->id]);
+        $uncle = Person::factory()->male()->create(['user_id' => $this->user->id, 'father_id' => $grandpa->id]);
+        $cousin = Person::factory()->female()->create(['user_id' => $this->user->id, 'father_id' => $uncle->id]);
+
+        $response = $this->actingAs($this->user)->getJson("/people/{$cousin->id}/kinship");
+
+        $response->assertOk()
+            ->assertJsonPath('found', true)
+            ->assertJsonPath('relation_label', 'votre cousine germaine')
+            // L'ancêtre commun (grand-père) est le sommet du chemin.
+            ->assertJsonPath('apex_index', 2)
+            ->assertJsonPath('path.2.id', $grandpa->id);
     }
 }
