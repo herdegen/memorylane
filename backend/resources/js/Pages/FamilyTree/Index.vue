@@ -273,6 +273,12 @@ let rawById = {};
 // personne principale plutôt que cadré en entier (sinon cartes illisibles).
 const isMobile = () => window.matchMedia('(max-width: 767px)').matches;
 const MOBILE_TREE_SCALE = 0.8;   // niveau de zoom initial mobile (cartes lisibles)
+const DESKTOP_TREE_SCALE = 0.9;  // idem desktop : on démarre sur « moi », pas sur l'arbre entier
+
+// L'animation d'ouverture (déploiement des cartes) ne joue qu'une fois par
+// jour et par navigateur : ensuite l'arbre apparaît directement en place.
+const TREE_INTRO_KEY = 'tree_intro_date';
+const introPlayedToday = () => localStorage.getItem(TREE_INTRO_KEY) === new Date().toDateString();
 
 const filteredPeople = computed(() => {
   if (!searchQuery.value) return [];
@@ -345,8 +351,10 @@ function renderChart() {
   const mainId = initialMainId(raw);
   if (rawById[mainId]) selectedPerson.value = rawById[mainId];
 
+  const skipIntro = introPlayedToday();
+
   chart = f3.createChart('#ml-family-chart', data)
-    .setTransitionTime(700)
+    .setTransitionTime(skipIntro ? 0 : 700)
     .setCardXSpacing(300)
     .setCardYSpacing(190)
     .setOrientationVertical()
@@ -368,12 +376,21 @@ function renderChart() {
       }
     });
 
-  if (isMobile()) {
-    // Sur mobile, cadrer tout l'arbre rend les cartes minuscules : on démarre
-    // zoomé sur la personne principale (l'utilisateur connecté) à un niveau lisible.
-    chart.updateTree({ initial: false, tree_position: 'main_to_middle', scale: MOBILE_TREE_SCALE });
+  // Démarrage zoomé sur la personne principale (la fiche de l'utilisateur
+  // connecté) plutôt que sur l'arbre entier — « Vue d'ensemble » reste à un clic.
+  chart.updateTree({
+    initial: false,
+    tree_position: 'main_to_middle',
+    scale: isMobile() ? MOBILE_TREE_SCALE : DESKTOP_TREE_SCALE,
+  });
+
+  if (skipIntro) {
+    // Rendu instantané aujourd'hui : on réarme les transitions juste après,
+    // pour que les interactions (recentrage, marche du lien de parenté…)
+    // restent animées.
+    setTimeout(() => { if (chart) chart.setTransitionTime(700); }, 100);
   } else {
-    chart.updateTree({ initial: true });
+    localStorage.setItem(TREE_INTRO_KEY, new Date().toDateString());
   }
 }
 
