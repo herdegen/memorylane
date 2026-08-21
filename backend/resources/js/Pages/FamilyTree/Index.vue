@@ -420,12 +420,47 @@ async function loadKinship(personId) {
   }
 }
 
+// Surbrillance du chemin parcouru : cartes visitées (halo doré) + traits
+// entre personnes consécutives. Les liens family-chart portent en __data__
+// un id « personne1, personne2[, enfant] » : un segment (a,b) du chemin
+// matche le trait qui contient les deux ids. Réappliqué après la transition
+// (d3 recrée les éléments à chaque updateTree).
+function applyKinshipHighlight() {
+  const k = kinship.value;
+  if (!k?.found || !chartRef.value) return;
+  const visited = k.path.slice(0, kinshipStep.value + 1).map((p) => p.id);
+  const segments = visited.slice(1).map((id, i) => [visited[i], id]);
+
+  chartRef.value.querySelectorAll('.card[data-id]').forEach((el) => {
+    el.classList.toggle('kinship-glow', visited.includes(el.getAttribute('data-id')));
+  });
+  chartRef.value.querySelectorAll('path.link').forEach((el) => {
+    const linkId = el.__data__?.id || '';
+    el.classList.toggle('kinship-link', segments.some(([a, b]) => linkId.includes(a) && linkId.includes(b)));
+  });
+}
+
+function clearKinshipHighlight() {
+  if (!chartRef.value) return;
+  chartRef.value.querySelectorAll('.kinship-glow').forEach((el) => el.classList.remove('kinship-glow'));
+  chartRef.value.querySelectorAll('.kinship-link').forEach((el) => el.classList.remove('kinship-link'));
+}
+
+let kinshipHighlightTimers = [];
+
+function scheduleKinshipHighlight() {
+  kinshipHighlightTimers.forEach(clearTimeout);
+  // Pendant et après la transition (700 ms) : les éléments sont recréés.
+  kinshipHighlightTimers = [150, 800].map((ms) => setTimeout(applyKinshipHighlight, ms));
+}
+
 function focusKinshipStep() {
   const step = kinship.value?.path?.[kinshipStep.value];
   if (!step || !chart) return;
   if (rawById[step.id]) selectedPerson.value = rawById[step.id];
   chart.updateMainId(step.id);
   chart.updateTree({ tree_position: 'main_to_middle' });
+  scheduleKinshipHighlight();
   if (kinshipStep.value < kinship.value.path.length - 1) {
     kinshipTimer = setTimeout(() => {
       kinshipStep.value += 1;
@@ -449,6 +484,8 @@ function finishKinshipWalk() {
 
 function stopKinship() {
   clearTimeout(kinshipTimer);
+  kinshipHighlightTimers.forEach(clearTimeout);
+  clearKinshipHighlight();
   kinship.value = null;
 }
 
@@ -509,6 +546,18 @@ onBeforeUnmount(() => {
 .ml-tree .link { stroke: #d6d3d1; }
 /* Contour de la personne centrée → doré (accent brand) */
 .ml-tree .card-main-outline { stroke: var(--color-brand-500, #f59e0b); stroke-width: 2px; }
+
+/* Marche du lien de parenté : halo doré sur les cartes visitées + traits du
+   chemin en surbrillance (les liens ont un stroke inline → !important). */
+.ml-tree .card.kinship-glow {
+  box-shadow: 0 0 0 3px var(--color-brand-500, #f59e0b), 0 0 22px rgba(245, 158, 11, 0.55);
+  border-radius: 10px;
+}
+.ml-tree path.link.kinship-link {
+  stroke: var(--color-brand-500, #f59e0b) !important;
+  stroke-width: 3.5px !important;
+  filter: drop-shadow(0 0 3px rgba(245, 158, 11, 0.6));
+}
 /* Texte des cartes en pierre foncée quel que soit le genre */
 .ml-tree .card-inner .card-label,
 .ml-tree svg.main_svg text { fill: #292524; }
