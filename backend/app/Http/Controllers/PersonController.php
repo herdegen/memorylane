@@ -382,7 +382,7 @@ class PersonController extends Controller
         }
 
         // Moments libres
-        foreach ($person->lifeEvents()->with('media.conversions')->get() as $ev) {
+        foreach ($person->lifeEvents()->with(['media.conversions', 'album'])->get() as $ev) {
             $items[] = [
                 'date' => optional($ev->event_date)->format('Y-m-d'),
                 'end_date' => optional($ev->end_date)->format('Y-m-d'),
@@ -390,7 +390,14 @@ class PersonController extends Controller
                 'title' => $ev->title,
                 'description' => $ev->description,
                 'place' => $ev->place,
+                // Lieu géolocalisé (animation carte du diaporama à venir).
+                'latitude' => $ev->latitude,
+                'longitude' => $ev->longitude,
                 'media' => $ev->media ? $this->mediaPayload($ev->media) : null,
+                // Album lié, seulement s'il est accessible au visiteur.
+                'album' => $ev->album && $ev->album->isAccessibleBy(auth()->user())
+                    ? ['id' => $ev->album->id, 'name' => $ev->album->name]
+                    : null,
                 'life_event_id' => $ev->id,
             ];
         }

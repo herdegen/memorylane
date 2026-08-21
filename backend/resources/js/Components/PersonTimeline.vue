@@ -76,8 +76,18 @@
                 <Link v-if="item.related" :href="`/people/${item.related.id}`" class="hover:text-brand-700">{{ item.title }}</Link>
                 <span v-else>{{ item.title }}</span>
               </p>
-              <p v-if="item.place" class="text-xs text-surface-500">{{ item.place }}</p>
+              <p v-if="item.place" class="text-xs text-surface-500">
+                {{ item.place }}<span v-if="item.latitude" title="Lieu géolocalisé"> 📍</span>
+              </p>
               <p v-if="item.description" class="text-sm text-surface-600 mt-1 whitespace-pre-wrap">{{ item.description }}</p>
+              <!-- Album lié au moment (galerie du baptême, du mariage…) -->
+              <Link
+                v-if="item.album"
+                :href="`/albums/${item.album.id}`"
+                class="mt-1 inline-flex items-center gap-1 text-xs font-medium text-brand-600 dark:text-brand-400 hover:underline"
+              >
+                📁 {{ item.album.name }}
+              </Link>
             </div>
 
             <!-- Actions gestionnaire sur les moments -->
@@ -250,8 +260,21 @@ const diaporamaSlides = computed(() => items.value.map((it, i) => {
 
 const thumb = (item) => item.media?.thumbnail_url || item.media?.medium_url || item.related?.avatar_url || null;
 
-const ICONS = { birth: '🎂', death: '🕯️', marriage: '💍', child: '👶', job: '💼', education: '🎓', residence: '🏠', photo: '📷', moment: '★', custom: '★' };
-const LABELS = { birth: 'Naissance', death: 'Décès', marriage: 'Mariage', child: 'Enfant', job: 'Emploi', education: 'Études', residence: 'Résidence', photo: 'Photo', moment: 'Moment', custom: 'Moment' };
+const ICONS = {
+  birth: '🎂', death: '🕯️', marriage: '💍', child: '👶',
+  job: '💼', education: '🎓', residence: '🏠', photo: '📷',
+  // Fêtes (« sous-moments » définis, cf. LifeEventFormModal)
+  bapteme: '🕊️', communion: '🕊️', confirmation: '🕊️', mariage_religieux: '⛪',
+  mariage: '💍', fiancailles: '💍', anniversaire: '🎈', diplome: '🎓', fete: '🎉',
+  moment: '★', custom: '★',
+};
+const LABELS = {
+  birth: 'Naissance', death: 'Décès', marriage: 'Mariage', child: 'Enfant',
+  job: 'Emploi', education: 'Études', residence: 'Résidence', photo: 'Photo',
+  bapteme: 'Baptême', communion: 'Communion', confirmation: 'Confirmation', mariage_religieux: 'Mariage religieux',
+  mariage: 'Mariage', fiancailles: 'Fiançailles', anniversaire: 'Anniversaire', diplome: 'Remise de diplôme', fete: 'Fête',
+  moment: 'Moment', custom: 'Moment',
+};
 const kindIcon = (k) => ICONS[k] || '★';
 const kindLabel = (k) => LABELS[k] || 'Moment';
 

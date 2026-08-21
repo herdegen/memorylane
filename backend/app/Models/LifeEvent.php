@@ -16,9 +16,12 @@ class LifeEvent extends Model
         'title',
         'description',
         'place',
+        'latitude',
+        'longitude',
         'event_date',
         'end_date',
         'media_id',
+        'album_id',
     ];
 
     protected function casts(): array
@@ -26,6 +29,8 @@ class LifeEvent extends Model
         return [
             'event_date' => 'date',
             'end_date' => 'date',
+            'latitude' => 'float',
+            'longitude' => 'float',
         ];
     }
 
@@ -37,5 +42,13 @@ class LifeEvent extends Model
     public function media()
     {
         return $this->belongsTo(Media::class);
+    }
+
+    /**
+     * Album (galerie) illustrant le moment — ex. l'album du baptême.
+     */
+    public function album()
+    {
+        return $this->belongsTo(Album::class);
     }
 }

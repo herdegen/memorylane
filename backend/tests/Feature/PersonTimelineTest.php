@@ -115,6 +115,75 @@ class PersonTimelineTest extends TestCase
         ]);
     }
 
+    public function test_moment_avec_fete_album_et_position(): void
+    {
+        $person = Person::factory()->create(['user_id' => $this->user->id]);
+        $album = Album::factory()->create(['user_id' => $this->user->id]);
+
+        $this->actingAs($this->user)->postJson("/people/{$person->id}/events", [
+            'type' => 'bapteme',
+            'title' => 'Baptême de Camille',
+            'event_date' => '2019-06-02',
+            'place' => 'Église Saint-Pierre, Lyon',
+            'latitude' => 45.7578,
+            'longitude' => 4.832,
+            'album_id' => $album->id,
+        ])->assertStatus(201);
+
+        $this->assertDatabaseHas('life_events', [
+            'person_id' => $person->id,
+            'type' => 'bapteme',
+            'album_id' => $album->id,
+        ]);
+
+        // La frise expose l'album lié et la position (animation carte à venir).
+        $timeline = $this->actingAs($this->user)
+            ->getJson("/people/{$person->id}/timeline")
+            ->assertOk()
+            ->json();
+
+        $event = collect($timeline)->firstWhere('kind', 'bapteme');
+        $this->assertNotNull($event);
+        $this->assertSame($album->id, $event['album']['id']);
+        $this->assertEqualsWithDelta(45.7578, $event['latitude'], 0.0001);
+        $this->assertEqualsWithDelta(4.832, $event['longitude'], 0.0001);
+    }
+
+    public function test_moment_refuse_un_album_inaccessible(): void
+    {
+        $person = Person::factory()->create(['user_id' => $this->user->id]);
+        $foreignAlbum = Album::factory()->create(['user_id' => $this->otherUser->id, 'is_public' => false]);
+
+        $this->actingAs($this->user)->postJson("/people/{$person->id}/events", [
+            'type' => 'fete',
+            'title' => 'Fête pirate',
+            'event_date' => '2020-01-01',
+            'album_id' => $foreignAlbum->id,
+        ])->assertStatus(403);
+    }
+
+    public function test_moment_refuse_une_latitude_sans_longitude(): void
+    {
+        $person = Person::factory()->create(['user_id' => $this->user->id]);
+
+        $this->actingAs($this->user)->postJson("/people/{$person->id}/events", [
+            'title' => 'Moment boiteux',
+            'event_date' => '2020-01-01',
+            'latitude' => 45.0,
+        ])->assertStatus(422)->assertJsonValidationErrors(['longitude']);
+    }
+
+    public function test_moment_refuse_un_type_inconnu(): void
+    {
+        $person = Person::factory()->create(['user_id' => $this->user->id]);
+
+        $this->actingAs($this->user)->postJson("/people/{$person->id}/events", [
+            'type' => 'sous_moment_pirate',
+            'title' => 'Type invalide',
+            'event_date' => '2020-01-01',
+        ])->assertStatus(422)->assertJsonValidationErrors(['type']);
+    }
+
     public function test_moment_requires_title_and_date(): void
     {
         $person = Person::factory()->create(['user_id' => $this->user->id]);
