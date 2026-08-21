@@ -61,6 +61,14 @@
       "w": 1440,
       "h": 1350,
       "title": "Album v2 — héro carte"
+    },
+    {
+      "file": "FichePersonneV2.dc.html",
+      "x": 4180,
+      "y": 1720,
+      "w": 1440,
+      "h": 2160,
+      "title": "Fiche personne v2"
     }
   ],
   "annotations": [
@@ -77,6 +85,13 @@
       "y": 2240,
       "w": 460,
       "text": "Deux directions pour la page album : héro photo de couverture assombrie vs héro carte géolocalisée.\nCommun : titre en grand, retour à gauche du titre, actions flottantes (Diaporama, partage en icône, le reste dans le menu ⋯ — ouvert sur la variante photo), galerie mosaïque pleine largeur bord à bord."
+    },
+    {
+      "id": "personne-v2",
+      "x": 4180,
+      "y": 1620,
+      "w": 460,
+      "text": "Fiche personne v2 (proposition) : en-tête doux plein largeur (pas de héro photo — la fiche est dense), pattern album (retour à gauche, menu ⋯ à droite, montré ouvert), Famille en mini-arbre de cartes photo, « Sa vie » en frise HORIZONTALE orientée photos, galeries séparées par album puis par année."
     }
   ],
   "launch": {
