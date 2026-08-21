@@ -82,13 +82,14 @@
       </span>
     </div>
 
-    <!-- Hover Overlay with Info -->
+    <!-- Overlay de survol : uniquement les tags (nom de fichier et date
+         retirés à la demande de l'user — bruit visuel) -->
     <div
+      v-if="media.tags && media.tags.length > 0"
       class="absolute inset-0 bg-linear-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200"
     >
       <div class="absolute bottom-0 left-0 right-0 p-3 text-white">
-        <!-- Tags -->
-        <div v-if="media.tags && media.tags.length > 0" class="flex flex-wrap gap-1 mb-2">
+        <div class="flex flex-wrap gap-1">
           <span
             v-for="tag in media.tags.slice(0, 3)"
             :key="tag.id"
@@ -104,13 +105,6 @@
             +{{ media.tags.length - 3 }}
           </span>
         </div>
-
-        <p class="text-xs font-medium truncate">
-          {{ media.original_name }}
-        </p>
-        <p class="text-xs text-surface-300 mt-1">
-          {{ formattedDate }}
-        </p>
       </div>
     </div>
 
@@ -159,7 +153,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { formatDuration, formatRelativeDate } from '@/utils/format';
+import { formatDuration } from '@/utils/format';
 import { thumbnailUrl as mediaThumbnailUrl } from '@/utils/media';
 
 const props = defineProps({
@@ -186,8 +180,6 @@ const fileExtension = computed(() => {
   const parts = props.media.original_name.split('.');
   return parts.length > 1 ? parts.pop().toUpperCase() : '';
 });
-
-const formattedDate = computed(() => formatRelativeDate(props.media.taken_at || props.media.uploaded_at));
 
 const formattedDuration = computed(() => formatDuration(props.media.duration));
 </script>
