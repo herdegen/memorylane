@@ -342,6 +342,99 @@ class PersonController extends Controller
     }
 
     /**
+     * Lien de parenté entre la fiche « moi » du visiteur et cette personne :
+     * plus court chemin dans le graphe familial + libellés français (pour la
+     * marche animée dans l'arbre).
+     */
+    public function kinship(Request $request, Person $person)
+    {
+        $selfId = $request->user()->person_id;
+        abort_unless($selfId, 422, "Reliez d'abord votre compte à votre fiche (bouton « C'est moi »).");
+        abort_if($selfId === $person->id, 422, "C'est votre propre fiche.");
+
+        $path = app(\App\Services\GenealogyService::class)->pathBetween($selfId, $person->id);
+
+        if (! $path) {
+            return response()->json(['found' => false]);
+        }
+
+        $people = Person::whereIn('id', $path['ids'])
+            ->with('avatar.conversions')
+            ->withMatchedFacesCount()
+            ->get()
+            ->keyBy('id');
+
+        $orderedPath = collect($path['ids'])->map(fn ($id) => [
+            'id' => $id,
+            'name' => $people[$id]->name ?? '?',
+            'gender' => $people[$id]->gender ?? 'U',
+            'avatar_url' => isset($people[$id]) ? $this->resolveAvatarUrl($people[$id]) : null,
+        ])->values();
+
+        // Légende de chaque pas, genrée sur la personne d'ARRIVÉE du pas.
+        $stepLabels = collect($path['edges'])->map(function ($type, $i) use ($orderedPath) {
+            $gender = $orderedPath[$i + 1]['gender'];
+            return match ($type) {
+                'parent' => $gender === 'F' ? 'sa mère' : ($gender === 'M' ? 'son père' : 'son parent'),
+                'child' => $gender === 'F' ? 'sa fille' : ($gender === 'M' ? 'son fils' : 'son enfant'),
+                default => $gender === 'F' ? 'sa conjointe' : ($gender === 'M' ? 'son conjoint' : 'son conjoint'),
+            };
+        })->values();
+
+        return response()->json([
+            'found' => true,
+            'steps' => count($path['edges']),
+            'relation_label' => $this->kinshipLabel($path['edges'], $person->gender),
+            'path' => $orderedPath,
+            'edge_labels' => $stepLabels,
+        ]);
+    }
+
+    /**
+     * Nom français du lien pour les motifs courants (genré sur la cible),
+     * « par alliance » quand un unique pas conjoint encadre un motif connu.
+     * Null pour les chemins exotiques (le front affichera « lien en N pas »).
+     */
+    private function kinshipLabel(array $edges, ?string $gender): ?string
+    {
+        $f = $gender === 'F';
+        $direct = [
+            'parent' => $f ? 'votre mère' : 'votre père',
+            'parent.parent' => $f ? 'votre grand-mère' : 'votre grand-père',
+            'parent.parent.parent' => $f ? 'votre arrière-grand-mère' : 'votre arrière-grand-père',
+            'child' => $f ? 'votre fille' : 'votre fils',
+            'child.child' => $f ? 'votre petite-fille' : 'votre petit-fils',
+            'child.child.child' => $f ? 'votre arrière-petite-fille' : 'votre arrière-petit-fils',
+            'parent.child' => $f ? 'votre sœur' : 'votre frère',
+            'parent.child.child' => $f ? 'votre nièce' : 'votre neveu',
+            'parent.parent.child' => $f ? 'votre tante' : 'votre oncle',
+            'parent.parent.child.child' => $f ? 'votre cousine germaine' : 'votre cousin germain',
+            'spouse' => $f ? 'votre conjointe' : 'votre conjoint',
+            'spouse.parent' => $f ? 'votre belle-mère' : 'votre beau-père',
+            'parent.child.spouse' => $f ? 'votre belle-sœur' : 'votre beau-frère',
+            'spouse.parent.child' => $f ? 'votre belle-sœur' : 'votre beau-frère',
+            'child.spouse' => $f ? 'votre belle-fille' : 'votre gendre',
+        ];
+
+        $key = implode('.', $edges);
+        if (isset($direct[$key])) {
+            return $direct[$key];
+        }
+
+        // Un unique pas « conjoint » en tête ou en queue : motif connu par alliance.
+        if (count($edges) > 1 && ! in_array('spouse', array_slice($edges, 1, -1), true)) {
+            foreach ([['start', array_slice($edges, 1)], ['end', array_slice($edges, 0, -1)]] as [$where, $rest]) {
+                $edge = $where === 'start' ? $edges[0] : end($edges);
+                if ($edge === 'spouse' && isset($direct[implode('.', $rest)])) {
+                    return $direct[implode('.', $rest)] . ' par alliance';
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Frise de vie : fusion d'événements auto-déduits (naissance, mariages,
      * naissances des enfants, décès), des moments libres (life_events) et de
      * toutes les photos datées de la personne, triés par date croissante.

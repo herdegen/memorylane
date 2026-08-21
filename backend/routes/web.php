@@ -216,6 +216,8 @@ Route::middleware('auth')->group(function () {
 
         // Frise de vie + moments
         Route::get('/{person}/timeline', [PersonController::class, 'timeline'])->name('timeline');
+        // Lien de parenté avec la fiche « moi » du visiteur (marche dans l'arbre)
+        Route::get('/{person}/kinship', [PersonController::class, 'kinship'])->name('kinship');
         Route::post('/{person}/events', [LifeEventController::class, 'store'])->name('events.store');
     });
 

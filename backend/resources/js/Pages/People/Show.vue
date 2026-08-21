@@ -5,6 +5,17 @@
     <div class="relative bg-linear-to-br from-brand-100 via-page to-page border-b border-surface-200">
       <!-- Actions flottantes -->
       <div class="absolute top-4 right-4 sm:top-5 sm:right-8 z-20 flex items-center gap-2.5">
+        <Link
+          v-if="viewerPersonId && viewerPersonId !== person.id"
+          :href="`/family-tree?kinship=${person.id}`"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur text-sm font-semibold text-surface-900 shadow-warm-md hover:bg-white transition"
+          title="Voir notre lien de parenté dans l'arbre"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+          </svg>
+          Lien de parenté
+        </Link>
         <button
           @click="playLifeSlideshow"
           class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur text-sm font-semibold text-surface-900 shadow-warm-md hover:bg-white transition"
@@ -251,7 +262,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import BaseModal from '@/Components/BaseModal.vue';
@@ -307,6 +318,9 @@ const props = defineProps({
     default: false,
   },
 });
+
+// Fiche « moi » du visiteur : conditionne le bouton « Lien de parenté ».
+const viewerPersonId = computed(() => usePage().props.auth?.user?.person_id ?? null);
 
 const toggleSelf = () => {
   router.post(`/people/${props.person.id}/set-self`, {}, { preserveScroll: true });

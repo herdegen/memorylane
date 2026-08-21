@@ -175,6 +175,64 @@
           class="f3 ml-tree w-full h-full"
         ></div>
 
+        <!-- Marche du lien de parenté (arrivée via « Lien de parenté » d'une fiche) -->
+        <div
+          v-if="kinship"
+          class="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 w-[min(92%,560px)] bg-white/95 backdrop-blur border border-surface-200 rounded-2xl shadow-warm-lg px-5 py-4"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-xs font-semibold uppercase tracking-widest text-brand-700">Lien de parenté</p>
+              <p class="text-sm font-semibold text-surface-900 mt-0.5">
+                <template v-if="kinship.found">
+                  {{ kinship.path[kinship.path.length - 1].name }} est
+                  {{ kinship.relation_label || `relié·e à vous en ${kinship.steps} lien${kinship.steps > 1 ? 's' : ''}` }}
+                </template>
+                <template v-else>Aucun lien de parenté trouvé dans l'arbre.</template>
+              </p>
+            </div>
+            <button @click="stopKinship" class="text-surface-400 hover:text-surface-600 shrink-0" aria-label="Fermer">
+              <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+
+          <template v-if="kinship.found">
+            <!-- Fil du chemin : la personne courante est mise en avant -->
+            <div class="mt-3 flex items-center gap-1 flex-wrap text-xs">
+              <template v-for="(p, i) in kinship.path" :key="p.id">
+                <span
+                  class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full transition-all"
+                  :class="i === kinshipStep
+                    ? 'bg-brand-600 text-white font-semibold'
+                    : i < kinshipStep ? 'bg-brand-100 dark:bg-brand-500/15 text-brand-800 dark:text-brand-300' : 'bg-surface-100 text-surface-500'"
+                >
+                  <img v-if="p.avatar_url" :src="p.avatar_url" class="w-4.5 h-4.5 rounded-full object-cover" />
+                  {{ i === 0 ? 'Vous' : p.name.split(' ')[0] }}
+                </span>
+                <svg v-if="i < kinship.path.length - 1" class="w-3 h-3 text-surface-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
+              </template>
+            </div>
+            <div class="mt-2 flex items-center justify-between gap-3">
+              <p class="text-xs text-surface-500 min-h-4">
+                <template v-if="kinshipStep > 0">… {{ kinship.edge_labels[kinshipStep - 1] }}</template>
+                <template v-else>Départ : votre fiche</template>
+              </p>
+              <div class="flex gap-2 shrink-0">
+                <button
+                  v-if="kinshipStep < kinship.path.length - 1"
+                  @click="finishKinshipWalk"
+                  class="text-xs font-medium text-surface-500 hover:text-surface-700"
+                >Passer</button>
+                <button
+                  v-else
+                  @click="startKinshipWalk"
+                  class="text-xs font-medium text-brand-700 dark:text-brand-400 hover:underline"
+                >Rejouer</button>
+              </div>
+            </div>
+          </template>
+        </div>
+
         <!-- Loading -->
         <div v-if="loading" class="absolute inset-0 flex items-center justify-center bg-white/75 dark:bg-surface-50/75">
           <svg class="animate-spin h-8 w-8 text-brand-600" fill="none" viewBox="0 0 24 24">
@@ -342,6 +400,58 @@ function recenter() {
   }
 }
 
+// ---- Marche du lien de parenté (?kinship=<personId>) ----------------------
+// Arrivée depuis le bouton « Lien de parenté » d'une fiche : on charge le
+// plus court chemin moi → personne, puis l'arbre « marche » de carte en
+// carte (updateMainId + transition 700 ms) avec la légende de chaque pas.
+const kinship = ref(null);
+const kinshipStep = ref(0);
+let kinshipTimer = null;
+
+const KINSHIP_STEP_MS = 1900;
+
+async function loadKinship(personId) {
+  try {
+    const { data } = await axios.get(`/people/${personId}/kinship`);
+    kinship.value = data;
+    if (data.found) startKinshipWalk();
+  } catch (e) {
+    console.error('Lien de parenté indisponible :', e);
+  }
+}
+
+function focusKinshipStep() {
+  const step = kinship.value?.path?.[kinshipStep.value];
+  if (!step || !chart) return;
+  if (rawById[step.id]) selectedPerson.value = rawById[step.id];
+  chart.updateMainId(step.id);
+  chart.updateTree({ tree_position: 'main_to_middle' });
+  if (kinshipStep.value < kinship.value.path.length - 1) {
+    kinshipTimer = setTimeout(() => {
+      kinshipStep.value += 1;
+      focusKinshipStep();
+    }, KINSHIP_STEP_MS);
+  }
+}
+
+function startKinshipWalk() {
+  clearTimeout(kinshipTimer);
+  kinshipStep.value = 0;
+  focusKinshipStep();
+}
+
+// « Passer » : saute directement à la personne cible.
+function finishKinshipWalk() {
+  clearTimeout(kinshipTimer);
+  kinshipStep.value = kinship.value.path.length - 1;
+  focusKinshipStep();
+}
+
+function stopKinship() {
+  clearTimeout(kinshipTimer);
+  kinship.value = null;
+}
+
 onMounted(async () => {
   try {
     const response = await axios.get('/family-tree/data');
@@ -355,9 +465,13 @@ onMounted(async () => {
   // Attendre que v-show révèle le conteneur avant de monter le graphe
   await new Promise(r => requestAnimationFrame(r));
   renderChart();
+
+  const kinshipTarget = new URLSearchParams(window.location.search).get('kinship');
+  if (kinshipTarget) loadKinship(kinshipTarget);
 });
 
 onBeforeUnmount(() => {
+  clearTimeout(kinshipTimer);
   chart = null;
 });
 </script>
