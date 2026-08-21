@@ -1,0 +1,139 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: Figtree, system-ui, sans-serif; background: #faf7f1; color: #44403c; }
+    a { color: #b45309; text-decoration: none; } a:hover { color: #92400e; }
+  </style>
+</helmet>
+<div style="width: 1440px; display: flex; flex-direction: column">
+
+  <!-- Nav -->
+  <div style="height: 64px; background: #ffffff; border-bottom: 1px solid #e7e5e4; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; box-sizing: border-box">
+    <div style="display: flex; align-items: center; gap: 32px">
+      <div style="display: flex; align-items: center; gap: 8px">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: #fef3c7; display: flex; align-items: center; justify-content: center">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="3"></rect><circle cx="12" cy="10.5" r="3.5"></circle><path d="M3 16l4-4 3 3 4-5 4 6"></path></svg>
+        </div>
+        <div style="font-family: 'Playfair Display', Georgia, serif; font-weight: 600; font-size: 18px; color: #1c1917">MemoryLane</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 500; height: 64px">
+        <div style="padding: 22px 4px 20px; border-bottom: 2px solid transparent; color: #78716c">Accueil</div>
+        <div style="padding: 22px 4px 20px; border-bottom: 2px solid transparent; color: #78716c">Mes photos</div>
+        <div style="padding: 22px 4px 20px; border-bottom: 2px solid transparent; color: #78716c">Télécharger</div>
+        <div style="padding: 22px 4px 20px; border-bottom: 2px solid #f59e0b; color: #1c1917">Albums</div>
+        <div style="padding: 22px 4px 20px; border-bottom: 2px solid transparent; color: #78716c">Personnes</div>
+        <div style="padding: 22px 4px 20px; border-bottom: 2px solid transparent; color: #78716c">Arbre</div>
+        <div style="padding: 22px 4px 20px; border-bottom: 2px solid transparent; color: #78716c">Carte</div>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px">
+      <div style="display: flex; align-items: center; gap: 8px; width: 250px; padding: 7px 12px; border: 1px solid #d6d3d1; border-radius: 999px; color: #a8a29e; font-size: 13px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        Rechercher…
+      </div>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#78716c" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+      <div style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 8px; background: #fef3c7; color: #b45309; font-size: 14px; font-weight: 500">Admin</div>
+      <div style="display: flex; align-items: center; gap: 8px">
+        <div style="width: 28px; height: 28px; border-radius: 999px; background: #fef3c7; color: #b45309; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center">M</div>
+        <div style="font-size: 14px; font-weight: 500; color: #44403c">Matthieu Herdegen</div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a8a29e" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenu pleine largeur -->
+  <div style="padding: 36px 32px 60px; display: flex; flex-direction: column; gap: 22px; box-sizing: border-box">
+
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 16px">
+      <div>
+        <div style="font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: 40px; color: #1c1917">Albums</div>
+        <div style="font-size: 14px; color: #78716c; margin-top: 6px">14 albums — les souvenirs, rangés par histoire</div>
+      </div>
+      <div style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 8px; background: #d97706; color: #ffffff; font-size: 14px; font-weight: 600">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M12 6v12m6-6H6"></path></svg>
+        Nouvel album
+      </div>
+    </div>
+
+    <!-- Filtres -->
+    <div style="display: flex; gap: 8px; flex-wrap: wrap">
+      <div style="padding: 7px 16px; border-radius: 999px; background: #d97706; color: #ffffff; font-size: 13px; font-weight: 600">Tous</div>
+      <div style="padding: 7px 16px; border-radius: 999px; background: #ffffff; border: 1px solid #d6d3d1; color: #57534e; font-size: 13px; font-weight: 500">Les miens</div>
+      <div style="padding: 7px 16px; border-radius: 999px; background: #ffffff; border: 1px solid #d6d3d1; color: #57534e; font-size: 13px; font-weight: 500">Partagés avec moi</div>
+      <div style="padding: 7px 16px; border-radius: 999px; background: #ffffff; border: 1px solid #d6d3d1; color: #57534e; font-size: 13px; font-weight: 500">Publics</div>
+      <div style="padding: 7px 16px; border-radius: 999px; background: #ffffff; border: 1px solid #d6d3d1; color: #57534e; font-size: 13px; font-weight: 500">Intelligents</div>
+    </div>
+
+    <!-- Grille : album vedette (dernier modifié) en 2x2, couvertures plein cadre,
+         cartouche givré (même langage que l'arbre familial) -->
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: 210px; gap: 16px">
+
+      <!-- Vedette -->
+      <div style="position: relative; grid-column: span 2; grid-row: span 2; border-radius: 16px; overflow: hidden; background: linear-gradient(160deg, #aebfcf, #6e8ba3); box-shadow: 0 4px 12px rgba(28, 25, 23, 0.12)">
+        <div style="position: absolute; top: 14px; left: 14px; padding: 4px 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.92); color: #1c1917; font-size: 12px; font-weight: 700">Dernier album</div>
+        <div style="position: absolute; top: 14px; right: 14px; display: flex; gap: 6px">
+          <div style="padding: 3px 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.9); color: #57534e; font-size: 11px; font-weight: 600">Privé</div>
+        </div>
+        <div style="position: absolute; left: 12px; right: 12px; bottom: 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(6px); padding: 16px 18px; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px">
+          <div>
+            <div style="font-family: 'Playfair Display', Georgia, serif; font-size: 26px; font-weight: 600; color: #1c1917">Bretagne Août 2009</div>
+            <div style="font-size: 13px; color: #57534e; margin-top: 2px">28 médias · Saint-Malo · mis à jour hier</div>
+          </div>
+          <div style="display: flex; gap: 4px">
+            <div style="width: 44px; height: 44px; border-radius: 8px; background: linear-gradient(155deg, #cdd8c2, #93a882)"></div>
+            <div style="width: 44px; height: 44px; border-radius: 8px; background: linear-gradient(155deg, #d9c8a9, #a8927a)"></div>
+            <div style="width: 44px; height: 44px; border-radius: 8px; background: rgba(28, 25, 23, 0.5); display: flex; align-items: center; justify-content: center; color: #ffffff; font-size: 12px; font-weight: 600">+26</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cartes standard -->
+      <sc-for list="{{albums}}" as="a" hint-placeholder-count="6">
+        <div style="position: relative; border-radius: 16px; overflow: hidden; background: {{a.bg}}; box-shadow: 0 1px 2px rgba(28, 25, 23, 0.06)">
+          <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 5px">
+            <sc-if value="{{a.smart}}" hint-placeholder-val="{{false}}">
+              <div style="padding: 2px 9px; border-radius: 999px; background: rgba(237, 233, 254, 0.95); color: #6d28d9; font-size: 11px; font-weight: 600">✦ Auto</div>
+            </sc-if>
+            <div style="padding: 2px 9px; border-radius: 999px; background: {{a.badgeBg}}; color: {{a.badgeColor}}; font-size: 11px; font-weight: 600">{{a.badge}}</div>
+          </div>
+          <div style="position: absolute; left: 8px; right: 8px; bottom: 8px; border-radius: 10px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(6px); padding: 10px 14px">
+            <div style="font-family: 'Playfair Display', Georgia, serif; font-size: 17px; font-weight: 600; color: #1c1917; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{a.name}}</div>
+            <div style="font-size: 12px; color: #57534e; margin-top: 1px">{{a.sub}}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview": {"width": 1440, "height": 1120}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const grad = (a, b) => 'linear-gradient(160deg, ' + a + ', ' + b + ')';
+    const priv = { badge: 'Privé', badgeBg: 'rgba(245, 245, 244, 0.95)', badgeColor: '#57534e' };
+    const pub = { badge: 'Public', badgeBg: 'rgba(204, 251, 241, 0.95)', badgeColor: '#0f766e' };
+    const shared = { badge: 'Partagé', badgeBg: 'rgba(254, 243, 199, 0.95)', badgeColor: '#b45309' };
+    return {
+      albums: [
+        { name: 'Mariage Matthieu & Marion', sub: '156 médias · partagé par vous', bg: grad('#e0d3be', '#b09a72'), smart: false, ...shared },
+        { name: 'Cousinade Mai 2024', sub: '36 médias', bg: grad('#cdd8c2', '#93a882'), smart: false, ...pub },
+        { name: 'Jules — première année', sub: '84 médias · album intelligent', bg: grad('#c7ccd4', '#8b95a5'), smart: true, ...priv },
+        { name: 'Noël 2025', sub: '22 médias', bg: grad('#d6c2c2', '#a08080'), smart: false, ...priv },
+        { name: 'Vacances Dournay', sub: '61 médias · partagé par Christine', bg: grad('#bcccd2', '#7d9aa5'), smart: false, ...shared },
+        { name: 'Archives argentiques', sub: '203 médias', bg: grad('#d0c6b4', '#9a8d75'), smart: false, ...priv },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>
