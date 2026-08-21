@@ -12,21 +12,12 @@ use Inertia\Inertia;
 class ProfileController extends Controller
 {
     /**
-     * Display the user's profile.
+     * Page unique du compte : consultation et modification fusionnées
+     * (l'ancienne route /profile/edit redirige ici).
      */
     public function show()
     {
         return Inertia::render('Profile/Show', [
-            'user' => Auth::user(),
-        ]);
-    }
-
-    /**
-     * Display the profile edit form.
-     */
-    public function edit()
-    {
-        return Inertia::render('Profile/Edit', [
             'user' => Auth::user(),
         ]);
     }

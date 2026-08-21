@@ -33,7 +33,8 @@ class ProfileControllerTest extends TestCase
     public function test_can_view_and_edit_profile_pages(): void
     {
         $this->actingAs($this->user)->get('/profile')->assertStatus(200);
-        $this->actingAs($this->user)->get('/profile/edit')->assertStatus(200);
+        // Page unique : l'ancienne page « Paramètres » redirige vers /profile.
+        $this->actingAs($this->user)->get('/profile/edit')->assertRedirect('/profile');
     }
 
     public function test_can_update_name_and_email(): void

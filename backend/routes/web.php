@@ -67,10 +67,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/takeout', [TakeoutImportController::class, 'index'])->name('takeout.index');
     Route::post('/takeout', [TakeoutImportController::class, 'store'])->name('takeout.store');
 
-    // Profile routes
+    // Profile routes — page unique (consultation + modification fusionnées)
     Route::prefix('profile')->name('profile.')->group(function () {
         Route::get('/', [ProfileController::class, 'show'])->name('show');
-        Route::get('/edit', [ProfileController::class, 'edit'])->name('edit');
+        // Ancienne page « Paramètres » : redirige vers la page unique.
+        Route::redirect('/edit', '/profile')->name('edit');
         Route::put('/', [ProfileController::class, 'update'])->name('update');
         Route::put('/password', [ProfileController::class, 'updatePassword'])->name('password');
     });

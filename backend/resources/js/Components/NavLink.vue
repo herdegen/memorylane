@@ -2,7 +2,7 @@
   <Link
     :href="href"
     :class="classes"
-    class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-hidden"
+    class="inline-flex items-center whitespace-nowrap px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-hidden"
   >
     <slot />
   </Link>
