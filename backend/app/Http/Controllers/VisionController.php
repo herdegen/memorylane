@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Jobs\AnalyzeMediaWithVision;
 use App\Models\DetectedFace;
 use App\Models\Media;
+use App\Services\Vision\FaceCropService;
 use App\Services\Vision\FaceMatcher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,7 +15,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class VisionController extends Controller
 {
-    public function __construct(private FaceMatcher $faceMatcher)
+    public function __construct(private FaceMatcher $faceMatcher, private FaceCropService $faceCrops)
     {
     }
 
@@ -244,6 +245,23 @@ class VisionController extends Controller
         $detectedFace->load('person');
 
         return response()->json($detectedFace);
+    }
+
+    /**
+     * Recadrage carré d'UN visage détecté (vignette des quêtes « qui est-ce ? »).
+     * Autorisé à quiconque peut voir le média, comme les autres lectures visage.
+     */
+    public function faceCrop(DetectedFace $detectedFace)
+    {
+        $this->authorizeMedia($detectedFace->media);
+
+        $blob = $this->faceCrops->cropJpeg($detectedFace);
+        abort_unless($blob, 404);
+
+        return response($blob, 200, [
+            'Content-Type' => 'image/jpeg',
+            'Cache-Control' => 'private, max-age=86400',
+        ]);
     }
 
     /**

@@ -8,6 +8,7 @@ use App\Models\PersonRelationship;
 use App\Models\Media;
 use App\Services\GenealogyService;
 use App\Services\MediaService;
+use App\Services\Vision\FaceCropService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -19,10 +20,13 @@ class PersonController extends Controller
 
     protected GenealogyService $genealogy;
 
-    public function __construct(MediaService $mediaService, GenealogyService $genealogy)
+    protected FaceCropService $faceCrops;
+
+    public function __construct(MediaService $mediaService, GenealogyService $genealogy, FaceCropService $faceCrops)
     {
         $this->mediaService = $mediaService;
         $this->genealogy = $genealogy;
+        $this->faceCrops = $faceCrops;
     }
 
     public function index(Request $request)
@@ -926,41 +930,8 @@ class PersonController extends Controller
 
         abort_unless($face && $face->media, 404);
 
-        $media = $face->media;
-        $conversion = $media->conversions->firstWhere('conversion_name', 'medium')
-            ?? $media->conversions->firstWhere('conversion_name', 'large');
-        $path = $conversion->file_path ?? $media->file_path;
-
-        $disk = config('filesystems.default');
-        abort_unless(Storage::disk($disk)->exists($path), 404);
-
-        $box = $face->bounding_box;
-
-        try {
-            $img = new \Imagick();
-            $img->readImageBlob(Storage::disk($disk)->get($path));
-
-            $w = $img->getImageWidth();
-            $h = $img->getImageHeight();
-
-            // Carré centré sur le visage, avec une marge autour (× 1.6).
-            $bw = ($box['width'] / 100) * $w;
-            $bh = ($box['height'] / 100) * $h;
-            $cx = ($box['x'] / 100) * $w + $bw / 2;
-            $cy = ($box['y'] / 100) * $h + $bh / 2;
-            $side = (int) min(max($bw, $bh) * 1.6, $w, $h);
-            $left = (int) max(0, min($cx - $side / 2, $w - $side));
-            $top = (int) max(0, min($cy - $side / 2, $h - $side));
-
-            $img->cropImage($side, $side, $left, $top);
-            $img->resizeImage(256, 256, \Imagick::FILTER_LANCZOS, 1);
-            $img->setImageFormat('jpeg');
-            $img->setImageCompressionQuality(85);
-            $blob = $img->getImageBlob();
-            $img->clear();
-        } catch (\Throwable $e) {
-            abort(404);
-        }
+        $blob = $this->faceCrops->cropJpeg($face);
+        abort_unless($blob, 404);
 
         return response($blob, 200, [
             'Content-Type' => 'image/jpeg',

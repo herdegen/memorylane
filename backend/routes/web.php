@@ -11,6 +11,7 @@ use App\Http\Controllers\MediaController;
 use App\Http\Controllers\HouseholdController;
 use App\Http\Controllers\PersonController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\QuestController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ShareTargetController;
 use App\Http\Controllers\TakeoutImportController;
@@ -184,12 +185,19 @@ Route::middleware('auth')->group(function () {
         Route::post('/faces/{detectedFace}/dismiss', [VisionController::class, 'dismissFace'])->name('dismissFace');
         Route::post('/faces/{detectedFace}/reset', [VisionController::class, 'resetFace'])->name('resetFace');
         Route::get('/faces/{detectedFace}/suggest', [VisionController::class, 'suggest'])->name('suggest');
+        Route::get('/faces/{detectedFace}/crop', [VisionController::class, 'faceCrop'])->name('faceCrop');
         Route::post('/faces/{detectedFace}/auto-match', [VisionController::class, 'autoMatch'])->name('autoMatch');
         Route::get('/pending', [VisionController::class, 'pending'])->name('pending');
         Route::get('/batch', fn () => Inertia::render('Vision/Batch'))->name('batch');
         Route::get('/media/{media}/labels', [VisionController::class, 'labels'])->name('labels');
         Route::post('/media/{media}/analyze', [VisionController::class, 'reanalyze'])->name('reanalyze');
         Route::get('/media/{media}/status', [VisionController::class, 'status'])->name('status');
+    });
+
+    // Gamification « quêtes » : complétion des données depuis le Dashboard
+    Route::prefix('quests')->name('quests.')->group(function () {
+        Route::get('/next', [QuestController::class, 'next'])->name('next');
+        Route::post('/answer', [QuestController::class, 'answer'])->name('answer');
     });
 
     // People routes

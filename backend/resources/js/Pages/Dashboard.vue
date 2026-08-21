@@ -126,6 +126,9 @@
           </div>
         </div>
 
+        <!-- ============ Quêtes : complétez la mémoire familiale ============ -->
+        <QuestCard />
+
         <!-- ============ Bien démarrer (masquable par personne) ============ -->
         <div
           v-if="guideVisible"
@@ -232,6 +235,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FullscreenSlideshow from '@/Components/FullscreenSlideshow.vue';
+import QuestCard from '@/Components/QuestCard.vue';
 import { useAuth } from '@/Composables/useAuth';
 import { thumbnailUrl } from '@/utils/media';
 
