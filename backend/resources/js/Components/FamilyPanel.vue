@@ -17,18 +17,20 @@
           <div v-if="slot === 'father' ? father : mother" class="relative group">
             <Link
               :href="`/people/${(slot === 'father' ? father : mother).id}`"
-              class="flex flex-col items-center gap-2 w-36 p-3.5 bg-white border border-surface-200 rounded-xl shadow-warm-sm hover:border-brand-300 hover:shadow-warm-md transition"
+              class="relative block w-36 aspect-[3/4] rounded-xl overflow-hidden bg-brand-100 shadow-warm-sm hover:shadow-warm-md hover:scale-[1.02] transition"
             >
               <img
                 v-if="(slot === 'father' ? father : mother).avatar_url"
                 :src="(slot === 'father' ? father : mother).avatar_url"
-                class="w-20 h-20 rounded-[14px] object-cover"
+                class="absolute inset-0 w-full h-full object-cover"
               />
-              <div v-else class="w-20 h-20 rounded-[14px] bg-brand-100 text-brand-700 flex items-center justify-center text-2xl font-bold">
+              <div v-else class="absolute inset-0 flex items-center justify-center text-4xl font-bold text-brand-700">
                 {{ (slot === 'father' ? father : mother).name.charAt(0).toUpperCase() }}
               </div>
-              <span class="text-sm font-semibold text-surface-900 text-center leading-tight">{{ personLabel(slot === 'father' ? father : mother) }}</span>
-              <span class="text-xs text-surface-400">{{ lifeYears(slot === 'father' ? father : mother) }}</span>
+              <div class="absolute inset-x-1.5 bottom-1.5 rounded-lg bg-white/80 backdrop-blur-sm px-2 py-1.5 text-center">
+                <p class="text-[13px] font-semibold text-surface-900 leading-tight line-clamp-2">{{ personLabel(slot === 'father' ? father : mother) }}</p>
+                <p class="text-[11px] text-surface-600">{{ lifeYears(slot === 'father' ? father : mother) || (slot === 'father' ? 'père' : 'mère') }}</p>
+              </div>
             </Link>
             <button
               v-if="canManage"
@@ -44,7 +46,7 @@
             v-else-if="canManage"
             type="button"
             @click="toggleAdding(slot)"
-            class="flex flex-col items-center justify-center gap-2 w-36 p-3.5 border-2 border-dashed rounded-xl transition"
+            class="flex flex-col items-center justify-center gap-2 w-36 aspect-[3/4] border-2 border-dashed rounded-xl transition"
             :class="adding === slot ? 'border-brand-400 text-brand-600 bg-brand-50/50' : 'border-surface-300 text-surface-400 hover:border-brand-300 hover:text-brand-600'"
           >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
@@ -73,24 +75,28 @@
           v-for="sibling in siblings"
           :key="sibling.id"
           :href="`/people/${sibling.id}`"
-          class="flex flex-col items-center gap-2 w-32 p-3 bg-white border border-surface-200 rounded-xl shadow-warm-sm opacity-80 hover:opacity-100 hover:border-brand-300 transition"
+          class="relative block w-32 aspect-[3/4] rounded-xl overflow-hidden bg-surface-100 shadow-warm-sm opacity-85 hover:opacity-100 hover:shadow-warm-md hover:scale-[1.02] transition self-center"
         >
-          <img v-if="sibling.avatar_url" :src="sibling.avatar_url" class="w-16 h-16 rounded-[12px] object-cover" />
-          <div v-else class="w-16 h-16 rounded-[12px] bg-surface-100 text-surface-500 flex items-center justify-center text-xl font-bold">
+          <img v-if="sibling.avatar_url" :src="sibling.avatar_url" class="absolute inset-0 w-full h-full object-cover" />
+          <div v-else class="absolute inset-0 flex items-center justify-center text-3xl font-bold text-surface-400">
             {{ sibling.name.charAt(0).toUpperCase() }}
           </div>
-          <span class="text-sm font-medium text-surface-900 text-center leading-tight">{{ personLabel(sibling) }}</span>
-          <span class="text-xs text-surface-400">{{ lifeYears(sibling) || 'frère / sœur' }}</span>
+          <div class="absolute inset-x-1.5 bottom-1.5 rounded-lg bg-white/80 backdrop-blur-sm px-2 py-1.5 text-center">
+            <p class="text-[13px] font-medium text-surface-900 leading-tight line-clamp-2">{{ personLabel(sibling) }}</p>
+            <p class="text-[11px] text-surface-600">{{ siblingSub(sibling) }}</p>
+          </div>
         </Link>
 
         <!-- La personne, mise en avant -->
-        <div class="flex flex-col items-center gap-2 w-40 p-4 bg-brand-50 dark:bg-brand-500/10 border-2 border-brand-500 rounded-xl shadow-warm-md">
-          <img v-if="person.avatar_url" :src="person.avatar_url" class="w-24 h-24 rounded-2xl object-cover" />
-          <div v-else class="w-24 h-24 rounded-2xl bg-brand-100 text-brand-700 flex items-center justify-center text-3xl font-bold">
+        <div class="relative w-40 aspect-[3/4] rounded-xl overflow-hidden bg-brand-100 ring-2 ring-brand-500 shadow-warm-md">
+          <img v-if="person.avatar_url" :src="person.avatar_url" class="absolute inset-0 w-full h-full object-cover" />
+          <div v-else class="absolute inset-0 flex items-center justify-center text-5xl font-bold text-brand-700">
             {{ person.name.charAt(0).toUpperCase() }}
           </div>
-          <span class="text-[15px] font-bold text-surface-900 text-center leading-tight">{{ personLabel(person) }}</span>
-          <span class="text-xs text-brand-700 dark:text-brand-400">{{ lifeYears(person) }}</span>
+          <div class="absolute inset-x-1.5 bottom-1.5 rounded-lg bg-white/85 backdrop-blur-sm px-2 py-1.5 text-center">
+            <p class="text-sm font-bold text-surface-900 leading-tight line-clamp-2">{{ personLabel(person) }}</p>
+            <p class="text-[11px] font-medium text-brand-700">{{ lifeYears(person) }}</p>
+          </div>
         </div>
 
         <div v-if="spouses.length > 0 || canManage" class="self-center text-surface-300 text-xl px-1">⸺</div>
@@ -98,14 +104,16 @@
         <div v-for="spouse in spouses" :key="spouse.id" class="relative group">
           <Link
             :href="`/people/${spouse.id}`"
-            class="flex flex-col items-center gap-2 w-36 p-3.5 bg-white border border-surface-200 rounded-xl shadow-warm-sm hover:border-brand-300 hover:shadow-warm-md transition"
+            class="relative block w-36 aspect-[3/4] rounded-xl overflow-hidden bg-brand-100 shadow-warm-sm hover:shadow-warm-md hover:scale-[1.02] transition"
           >
-            <img v-if="spouse.avatar_url" :src="spouse.avatar_url" class="w-20 h-20 rounded-[14px] object-cover" />
-            <div v-else class="w-20 h-20 rounded-[14px] bg-brand-100 text-brand-700 flex items-center justify-center text-2xl font-bold">
+            <img v-if="spouse.avatar_url" :src="spouse.avatar_url" class="absolute inset-0 w-full h-full object-cover" />
+            <div v-else class="absolute inset-0 flex items-center justify-center text-4xl font-bold text-brand-700">
               {{ spouse.name.charAt(0).toUpperCase() }}
             </div>
-            <span class="text-sm font-semibold text-surface-900 text-center leading-tight">{{ personLabel(spouse) }}</span>
-            <span class="text-xs text-surface-400">{{ spouseLabel(spouse) }}</span>
+            <div class="absolute inset-x-1.5 bottom-1.5 rounded-lg bg-white/80 backdrop-blur-sm px-2 py-1.5 text-center">
+              <p class="text-[13px] font-semibold text-surface-900 leading-tight line-clamp-2">{{ personLabel(spouse) }}</p>
+              <p class="text-[11px] text-surface-600">{{ spouseLabel(spouse) }}</p>
+            </div>
           </Link>
           <button
             v-if="canManage"
@@ -122,7 +130,7 @@
           v-if="canManage && spouses.length === 0"
           type="button"
           @click="toggleAdding('spouse')"
-          class="flex flex-col items-center justify-center gap-2 w-36 p-3.5 border-2 border-dashed rounded-xl transition"
+          class="flex flex-col items-center justify-center gap-2 w-36 aspect-[3/4] border-2 border-dashed rounded-xl transition"
           :class="adding === 'spouse' ? 'border-brand-400 text-brand-600 bg-brand-50/50' : 'border-surface-300 text-surface-400 hover:border-brand-300 hover:text-brand-600'"
         >
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
@@ -160,20 +168,22 @@
           v-for="child in children"
           :key="child.id"
           :href="`/people/${child.id}`"
-          class="flex flex-col items-center gap-2 w-36 p-3.5 bg-white border border-surface-200 rounded-xl shadow-warm-sm hover:border-brand-300 hover:shadow-warm-md transition"
+          class="relative block w-36 aspect-[3/4] rounded-xl overflow-hidden bg-brand-100 shadow-warm-sm hover:shadow-warm-md hover:scale-[1.02] transition"
         >
-          <img v-if="child.avatar_url" :src="child.avatar_url" class="w-20 h-20 rounded-[14px] object-cover" />
-          <div v-else class="w-20 h-20 rounded-[14px] bg-brand-100 text-brand-700 flex items-center justify-center text-2xl font-bold">
+          <img v-if="child.avatar_url" :src="child.avatar_url" class="absolute inset-0 w-full h-full object-cover" />
+          <div v-else class="absolute inset-0 flex items-center justify-center text-4xl font-bold text-brand-700">
             {{ child.name.charAt(0).toUpperCase() }}
           </div>
-          <span class="text-sm font-semibold text-surface-900 text-center leading-tight">{{ personLabel(child) }}</span>
-          <span class="text-xs text-surface-400">{{ lifeYears(child) }}</span>
+          <div class="absolute inset-x-1.5 bottom-1.5 rounded-lg bg-white/80 backdrop-blur-sm px-2 py-1.5 text-center">
+            <p class="text-[13px] font-semibold text-surface-900 leading-tight line-clamp-2">{{ personLabel(child) }}</p>
+            <p class="text-[11px] text-surface-600">{{ lifeYears(child) }}</p>
+          </div>
         </Link>
         <button
           v-if="canManage"
           type="button"
           @click="toggleAdding('child')"
-          class="flex flex-col items-center justify-center gap-2 w-36 p-3.5 border-2 border-dashed rounded-xl transition"
+          class="flex flex-col items-center justify-center gap-2 w-36 aspect-[3/4] border-2 border-dashed rounded-xl transition"
           :class="adding === 'child' ? 'border-brand-400 text-brand-600 bg-brand-50/50' : 'border-surface-300 text-surface-400 hover:border-brand-300 hover:text-brand-600'"
         >
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
@@ -273,6 +283,13 @@ const lifeYears = (p) => {
 };
 
 const spouseLabel = (spouse) => lifeYears(spouse) || 'conjoint(e)';
+
+// « 1994 · frère » — années + lien de fratrie selon le genre.
+const siblingSub = (s) => {
+  const relation = s.gender === 'F' ? 'sœur' : s.gender === 'M' ? 'frère' : 'fratrie';
+  const years = lifeYears(s);
+  return years ? `${years} · ${relation}` : relation;
+};
 
 const excludeSpouseIds = computed(() => {
   return [props.person.id, ...props.spouses.map(s => s.id)];
