@@ -160,8 +160,9 @@
               </button>
             </div>
 
-            <!-- Album de destination (choisi avant l'upload) -->
-            <div class="pt-3 border-t border-surface-100 text-left">
+            <!-- Album de destination (choisi avant l'upload ; masqué quand
+                 l'album cible est imposé par le parent) -->
+            <div v-if="!targetAlbumId" class="pt-3 border-t border-surface-100 text-left">
               <label class="block text-sm font-medium text-surface-700 mb-2">
                 Album de destination
               </label>
@@ -310,6 +311,15 @@ import { formatFileSize } from '@/utils/format';
 // `album-attached` : { albumId, albumName, count, isNew } — pour un retour parent.
 const emit = defineEmits(['upload-complete', 'album-attached']);
 
+const props = defineProps({
+  // Album cible imposé (ex. modale « Ajouter des médias » d'un album) :
+  // masque le choix de destination et rattache automatiquement après upload.
+  targetAlbumId: {
+    type: String,
+    default: null,
+  },
+});
+
 // Album de destination choisi AVANT l'upload (rattaché une fois tout monté).
 const albumModeOptions = [
   { value: 'none', label: 'Aucun' },
@@ -330,6 +340,7 @@ const canUpload = computed(() => {
 });
 
 onMounted(async () => {
+  if (props.targetAlbumId) return; // destination imposée, rien à charger
   loadingAlbums.value = true;
   try {
     ownedAlbums.value = await fetchOwnedAlbums();
@@ -340,9 +351,22 @@ onMounted(async () => {
   }
 });
 
-// Rattache les médias tout juste uploadés à l'album choisi (créé si « nouveau »).
+// Rattache les médias tout juste uploadés à l'album choisi (créé si « nouveau »),
+// ou directement à l'album cible quand il est imposé par le parent.
 const attachToChosenAlbum = async (mediaIds) => {
-  if (albumMode.value === 'none' || mediaIds.length === 0) return;
+  if (mediaIds.length === 0) return;
+
+  if (props.targetAlbumId) {
+    try {
+      await addMediaToAlbum(props.targetAlbumId, mediaIds);
+      emit('album-attached', { albumId: props.targetAlbumId, albumName: '', count: mediaIds.length, isNew: false });
+    } catch (e) {
+      error.value = "Fichiers téléchargés, mais l'ajout à l'album a échoué.";
+    }
+    return;
+  }
+
+  if (albumMode.value === 'none') return;
   try {
     if (albumMode.value === 'new') {
       const album = await createAlbumWithMedia(newAlbumName.value.trim(), mediaIds);

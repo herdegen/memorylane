@@ -2,13 +2,46 @@
   <BaseModal max-width="4xl" panel-class="max-h-[80vh] flex flex-col" title="Ajouter des médias" @close="$emit('close')">
     <!-- Compteur à droite du titre -->
     <template #header-extra>
-      <span class="text-sm text-surface-500">
+      <span v-if="mode === 'pick'" class="text-sm text-surface-500">
         {{ selectedIds.length }} sélectionné(s)
       </span>
     </template>
 
+    <!-- Choisir dans l'existant / téléverser de nouveaux fichiers -->
+    <div class="px-6 pt-5">
+      <div class="flex rounded-lg bg-surface-100 p-1 text-sm font-medium">
+        <button
+          type="button"
+          class="flex-1 rounded-md px-3 py-1.5 transition"
+          :class="mode === 'pick' ? 'bg-white text-surface-900 shadow-xs' : 'text-surface-500 hover:text-surface-700'"
+          @click="mode = 'pick'"
+        >
+          Mes photos
+        </button>
+        <button
+          type="button"
+          class="flex-1 rounded-md px-3 py-1.5 transition"
+          :class="mode === 'upload' ? 'bg-white text-surface-900 shadow-xs' : 'text-surface-500 hover:text-surface-700'"
+          @click="mode = 'upload'"
+        >
+          Téléverser
+        </button>
+      </div>
+    </div>
+
+    <!-- Téléversement direct dans l'album -->
+    <div v-if="mode === 'upload'" class="flex-1 overflow-y-auto p-6">
+      <p v-if="uploadedCount > 0" class="mb-4 text-sm text-teal-700 dark:text-teal-300">
+        {{ uploadedCount }} média(s) ajouté(s) à l'album.
+      </p>
+      <MediaUploader
+        :target-album-id="albumId"
+        @album-attached="handleUploadedToAlbum"
+      />
+    </div>
+
     <!-- Loading -->
-    <div v-if="loading" class="flex-1 flex items-center justify-center py-12">
+    <div v-else-if="loading" class="flex-1 flex items-center justify-center py-12">
       <svg
         class="animate-spin h-8 w-8 text-brand-600"
         fill="none"
@@ -164,9 +197,10 @@
     <!-- Pied de page -->
     <template #footer>
       <button type="button" class="btn-secondary" @click="$emit('close')">
-        Annuler
+        {{ mode === 'upload' ? 'Fermer' : 'Annuler' }}
       </button>
       <button
+        v-if="mode === 'pick'"
         type="button"
         class="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed"
         :disabled="selectedIds.length === 0 || submitting"
@@ -203,6 +237,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useIntersectionObserver } from '@vueuse/core';
 import axios from 'axios';
 import BaseModal from '@/Components/BaseModal.vue';
+import MediaUploader from '@/Components/MediaUploader.vue';
 import { thumbnailUrl } from '@/utils/media';
 
 const props = defineProps({
@@ -217,6 +252,18 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close', 'added']);
+
+// 'pick' = choisir dans les médias existants ; 'upload' = téléverser de
+// nouveaux fichiers directement dans l'album.
+const mode = ref('pick');
+const uploadedCount = ref(0);
+
+// Upload terminé et rattaché à l'album : on prévient le parent (rafraîchit
+// la galerie derrière la modale) et on affiche le cumul.
+const handleUploadedToAlbum = ({ count }) => {
+  uploadedCount.value += count;
+  emit('added');
+};
 
 const loading = ref(true);
 const loadingMore = ref(false);
