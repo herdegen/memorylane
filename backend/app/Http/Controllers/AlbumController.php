@@ -145,6 +145,20 @@ class AlbumController extends Controller
         $album->share_url = $album->getShareUrl();
         $album->is_owner = $album->user_id === auth()->id();
 
+        // Position du héro (fond carte) : barycentre des médias géolocalisés.
+        $location = \App\Models\MediaMetadata::whereIn('media_id', $album->media->pluck('id'))
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->selectRaw('avg(latitude) as latitude, avg(longitude) as longitude, count(*) as located_count')
+            ->first();
+        $album->hero_location = ($location && (int) $location->located_count > 0)
+            ? [
+                'latitude' => (float) $location->latitude,
+                'longitude' => (float) $location->longitude,
+                'count' => (int) $location->located_count,
+            ]
+            : null;
+
         if ($request->wantsJson()) {
             return response()->json($album);
         }

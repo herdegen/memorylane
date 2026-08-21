@@ -1,7 +1,10 @@
 <template>
   <div
-    class="relative group aspect-square rounded-lg overflow-hidden bg-surface-100 cursor-pointer transition-transform duration-200 hover:scale-105 hover:shadow-warm-lg"
-    :class="{ 'ring-2 ring-brand-500 ring-offset-2': selectable && isSelected }"
+    class="relative group overflow-hidden bg-surface-100 cursor-pointer transition-transform duration-200"
+    :class="[
+      fill ? 'w-full h-full rounded-xs' : 'aspect-square rounded-lg hover:scale-105 hover:shadow-warm-lg',
+      { 'ring-2 ring-brand-500 ring-offset-2': selectable && isSelected },
+    ]"
     @click="$emit('click', media, $event)"
   >
     <!-- Image Thumbnail -->
@@ -169,11 +172,25 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  // Mode mosaïque : la tuile remplit sa cellule de grille (spans variables)
+  // au lieu d'être carrée ; coins quasi droits, pas de zoom au survol.
+  fill: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits(['click', 'toggle-selection']);
 
-const thumbnailUrl = computed(() => mediaThumbnailUrl(props.media));
+// En mosaïque (fill), les cellules 2x2 dépassent la conversion `small` :
+// on préfère `medium` pour rester net.
+const thumbnailUrl = computed(() => {
+  if (props.fill) {
+    const medium = props.media.conversions?.find((c) => c.conversion_name === 'medium');
+    if (medium?.url) return medium.url;
+  }
+  return mediaThumbnailUrl(props.media);
+});
 
 const fileExtension = computed(() => {
   if (!props.media.original_name) return '';
