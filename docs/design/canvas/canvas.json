@@ -1,0 +1,85 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1000,
+      "h": 2360,
+      "title": "Design system"
+    },
+    {
+      "file": "Accueil.dc.html",
+      "x": 1100,
+      "y": 0,
+      "w": 1440,
+      "h": 1030
+    },
+    {
+      "file": "MesPhotos.dc.html",
+      "x": 2640,
+      "y": 0,
+      "w": 1440,
+      "h": 1120,
+      "title": "Mes photos"
+    },
+    {
+      "file": "Album.dc.html",
+      "x": 1100,
+      "y": 1180,
+      "w": 1440,
+      "h": 1060
+    },
+    {
+      "file": "FicheMedia.dc.html",
+      "x": 2640,
+      "y": 1180,
+      "w": 1440,
+      "h": 1540,
+      "title": "Fiche média"
+    },
+    {
+      "file": "FichePersonne.dc.html",
+      "x": 4180,
+      "y": 0,
+      "w": 1440,
+      "h": 1560,
+      "title": "Fiche personne"
+    },
+    {
+      "file": "AlbumHeroPhoto.dc.html",
+      "x": 1100,
+      "y": 2340,
+      "w": 1440,
+      "h": 1350,
+      "title": "Album v2 — héro photo"
+    },
+    {
+      "file": "AlbumHeroCarte.dc.html",
+      "x": 2640,
+      "y": 2820,
+      "w": 1440,
+      "h": 1350,
+      "title": "Album v2 — héro carte"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "etat-des-lieux",
+      "x": 0,
+      "y": -160,
+      "w": 400,
+      "text": "Maquettes fidèles de l'app telle qu'elle est aujourd'hui (light). Le design system reprend les tokens réels de app.css.\nRetouchez ce qui vous plaît : on reportera ensuite en code, écran par écran."
+    },
+    {
+      "id": "album-v2",
+      "x": 1100,
+      "y": 2240,
+      "w": 460,
+      "text": "Deux directions pour la page album : héro photo de couverture assombrie vs héro carte géolocalisée.\nCommun : titre en grand, retour à gauche du titre, actions flottantes (Diaporama, partage en icône, le reste dans le menu ⋯ — ouvert sur la variante photo), galerie mosaïque pleine largeur bord à bord."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

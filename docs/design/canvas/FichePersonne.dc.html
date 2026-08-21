@@ -1,0 +1,181 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: Figtree, system-ui, sans-serif; background: #faf7f1; color: #44403c; }
+    a { color: #b45309; text-decoration: none; } a:hover { color: #92400e; }
+  </style>
+</helmet>
+<div style="width: 1440px; display: flex; flex-direction: column">
+
+  <!-- Nav -->
+  <div style="height: 64px; background: #ffffff; border-bottom: 1px solid #e7e5e4; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; box-sizing: border-box">
+    <div style="display: flex; align-items: center; gap: 32px">
+      <div style="display: flex; align-items: center; gap: 8px">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: #fef3c7; display: flex; align-items: center; justify-content: center">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="3"></rect><circle cx="12" cy="10.5" r="3.5"></circle><path d="M3 16l4-4 3 3 4-5 4 6"></path></svg>
+        </div>
+        <div style="font-family: 'Playfair Display', Georgia, serif; font-weight: 600; font-size: 18px; color: #1c1917">MemoryLane</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 500; height: 64px">
+        <div style="padding: 22px 4px 20px; border-bottom: 2px solid transparent; color: #78716c">Accueil</div>
+        <div style="padding: 22px 4px 20px; border-bottom: 2px solid transparent; color: #78716c">Mes photos</div>
+        <div style="padding: 22px 4px 20px; border-bottom: 2px solid transparent; color: #78716c">Télécharger</div>
+        <div style="padding: 22px 4px 20px; border-bottom: 2px solid transparent; color: #78716c">Albums</div>
+        <div style="padding: 22px 4px 20px; border-bottom: 2px solid #f59e0b; color: #1c1917">Personnes</div>
+        <div style="padding: 22px 4px 20px; border-bottom: 2px solid transparent; color: #78716c">Arbre</div>
+        <div style="padding: 22px 4px 20px; border-bottom: 2px solid transparent; color: #78716c">Carte</div>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px">
+      <div style="display: flex; align-items: center; gap: 8px; width: 250px; padding: 7px 12px; border: 1px solid #d6d3d1; border-radius: 999px; color: #a8a29e; font-size: 13px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        Rechercher…
+      </div>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#78716c" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+      <div style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 8px; background: #fef3c7; color: #b45309; font-size: 14px; font-weight: 500">Admin</div>
+      <div style="display: flex; align-items: center; gap: 8px">
+        <div style="width: 28px; height: 28px; border-radius: 999px; background: #fef3c7; color: #b45309; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center">M</div>
+        <div style="font-size: 14px; font-weight: 500; color: #44403c">Matthieu Herdegen</div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a8a29e" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenu -->
+  <div style="width: 1240px; margin: 0 auto; padding: 40px 0 60px; display: flex; flex-direction: column; gap: 24px; box-sizing: border-box">
+
+    <div style="display: flex; align-items: center; gap: 6px; font-size: 14px; color: #78716c">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
+      Retour aux personnes
+    </div>
+
+    <!-- Header personne -->
+    <div style="background: #ffffff; border-radius: 8px; box-shadow: 0 4px 12px rgba(28, 25, 23, 0.08); padding: 24px; display: flex; gap: 24px; align-items: flex-start">
+      <div style="width: 128px; height: 128px; border-radius: 999px; overflow: hidden; background: linear-gradient(150deg, #d9c8a9, #a8927a); flex-shrink: 0"></div>
+      <div style="flex: 1; display: flex; flex-direction: column; gap: 6px">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px">
+          <div style="display: flex; align-items: baseline; gap: 10px">
+            <span style="color: #a8a29e; font-size: 20px">♂</span>
+            <div style="font-family: 'Playfair Display', Georgia, serif; font-weight: 600; font-size: 26px; color: #1c1917">Matthieu Herdegen</div>
+          </div>
+          <div style="display: flex; gap: 8px">
+            <div style="display: inline-flex; align-items: center; padding: 8px 16px; border-radius: 8px; background: #fef3c7; border: 1px solid #fde68a; color: #b45309; font-size: 14px; font-weight: 500">C'est moi ✓</div>
+            <div style="display: inline-flex; align-items: center; padding: 8px 16px; border-radius: 8px; background: #ffffff; border: 1px solid #d6d3d1; color: #44403c; font-size: 14px; font-weight: 500">Modifier</div>
+            <div style="display: inline-flex; align-items: center; padding: 8px 16px; border-radius: 8px; background: #ffffff; border: 1px solid #fca5a5; color: #b91c1c; font-size: 14px; font-weight: 500">Supprimer</div>
+          </div>
+        </div>
+        <div style="font-size: 14px; color: #78716c">16 juin 1988</div>
+        <div style="font-size: 14px; color: #78716c">377 médias</div>
+      </div>
+    </div>
+
+    <!-- Famille -->
+    <div style="background: #ffffff; border: 1px solid #e7e5e4; border-radius: 12px; box-shadow: 0 1px 2px rgba(28, 25, 23, 0.06); padding: 24px; display: flex; flex-direction: column; gap: 16px">
+      <div style="font-size: 17px; font-weight: 600; color: #1c1917">Famille</div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <div style="font-size: 13px; font-weight: 500; color: #57534e">Père</div>
+          <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid #f5f5f4; border-radius: 8px; background: #fafaf9">
+            <div style="width: 32px; height: 32px; border-radius: 999px; background: linear-gradient(150deg, #c7ccd4, #8b95a5)"></div>
+            <div><div style="font-size: 14px; font-weight: 500; color: #1c1917">Vincent Herdegen</div><div style="font-size: 12px; color: #a8a29e">† 1998</div></div>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <div style="font-size: 13px; font-weight: 500; color: #57534e">Mère</div>
+          <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid #f5f5f4; border-radius: 8px; background: #fafaf9">
+            <div style="width: 32px; height: 32px; border-radius: 999px; background: linear-gradient(150deg, #d6c2c2, #a08080)"></div>
+            <div><div style="font-size: 14px; font-weight: 500; color: #1c1917">Christine Herdegen (Kormann)</div><div style="font-size: 12px; color: #a8a29e">1956</div></div>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <div style="font-size: 13px; font-weight: 500; color: #57534e">Conjoint(e)</div>
+          <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid #f5f5f4; border-radius: 8px; background: #fafaf9">
+            <div style="width: 32px; height: 32px; border-radius: 999px; background: linear-gradient(150deg, #d8c4ac, #a8846a)"></div>
+            <div><div style="font-size: 14px; font-weight: 500; color: #1c1917">Marion Herdegen</div><div style="font-size: 12px; color: #a8a29e">mariés en 2020</div></div>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <div style="font-size: 13px; font-weight: 500; color: #57534e">Enfants</div>
+          <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid #f5f5f4; border-radius: 8px; background: #fafaf9">
+            <div style="width: 32px; height: 32px; border-radius: 999px; background: linear-gradient(150deg, #b9c7ad, #7e9270)"></div>
+            <div><div style="font-size: 14px; font-weight: 500; color: #1c1917">Jules Herdegen</div><div style="font-size: 12px; color: #a8a29e">2023</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Frise « Sa vie » -->
+    <div style="background: #ffffff; border: 1px solid #e7e5e4; border-radius: 12px; box-shadow: 0 1px 2px rgba(28, 25, 23, 0.06); padding: 24px; display: flex; flex-direction: column; gap: 20px">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <div style="font-size: 17px; font-weight: 600; color: #1c1917">Sa vie</div>
+        <div style="display: flex; align-items: center; gap: 16px; font-size: 13px; font-weight: 500; color: #d97706">
+          <span style="display: inline-flex; align-items: center; gap: 6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg> Diaporama</span>
+          <span>+ Ajouter un moment</span>
+        </div>
+      </div>
+      <div style="border-left: 2px solid #e7e5e4; margin-left: 12px; display: flex; flex-direction: column; gap: 20px; padding-left: 24px">
+        <sc-for list="{{events}}" as="e" hint-placeholder-count="4">
+          <div style="position: relative">
+            <div style="position: absolute; left: -37px; top: 0; width: 24px; height: 24px; border-radius: 999px; background: #ffffff; border: 2px solid #e7e5e4; display: flex; align-items: center; justify-content: center; font-size: 11px">{{e.icon}}</div>
+            <div style="display: flex; gap: 12px; align-items: flex-start; padding: 12px; border: 1px solid #f5f5f4; border-radius: 8px; background: #fafaf9">
+              <sc-if value="{{e.thumb}}" hint-placeholder-val="{{false}}">
+                <div style="width: 56px; height: 56px; border-radius: 8px; background: {{e.thumbBg}}; flex-shrink: 0"></div>
+              </sc-if>
+              <div style="display: flex; flex-direction: column; gap: 2px">
+                <div style="font-size: 12px; font-weight: 500; color: #d97706">{{e.date}}</div>
+                <div style="font-size: 14px; font-weight: 600; color: #1c1917">{{e.title}}</div>
+                <div style="font-size: 12px; color: #78716c">{{e.place}}</div>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- Médias groupés -->
+    <div style="display: flex; flex-direction: column; gap: 16px">
+      <div style="font-size: 17px; font-weight: 600; color: #1c1917">Médias de Matthieu Herdegen</div>
+      <div style="display: flex; align-items: center; gap: 8px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"></path></svg>
+        <span style="font-size: 15px; font-weight: 600; color: #1c1917">Mariage Matthieu &amp; Marion 2020</span>
+        <span style="font-size: 13px; color: #a8a29e">112</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px">
+        <sc-for list="{{tiles}}" as="t" hint-placeholder-count="6">
+          <div style="aspect-ratio: 1 / 1; border-radius: 8px; overflow: hidden; background: {{t.bg}}"></div>
+        </sc-for>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview": {"width": 1440, "height": 1560}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const hues = [
+      ['#e0d3be', '#b09a72'], ['#d6c2c2', '#a08080'], ['#c2cfd6', '#7f97a3'],
+      ['#cdd8c2', '#93a882'], ['#d9c8a9', '#a8927a'], ['#c4bfd4', '#8c86a5'],
+    ];
+    return {
+      events: [
+        { icon: '🎂', date: '16 juin 1988', title: 'Naissance', place: 'Paris, France', thumb: false, thumbBg: '' },
+        { icon: '💍', date: '5 septembre 2020', title: 'Mariage avec Marion', place: 'Gournay-sur-Marne', thumb: true, thumbBg: 'linear-gradient(150deg, #e0d3be, #b09a72)' },
+        { icon: '👶', date: '12 mars 2023', title: 'Naissance de Jules', place: '', thumb: true, thumbBg: 'linear-gradient(150deg, #cdd8c2, #93a882)' },
+        { icon: '🎉', date: '18 mai 2024', title: 'Cousinade', place: 'Bretagne', thumb: false, thumbBg: '' },
+      ],
+      tiles: hues.map(([a, b]) => ({ bg: 'linear-gradient(155deg, ' + a + ', ' + b + ')' })),
+    };
+  }
+}
+</script>
+</body>
+</html>

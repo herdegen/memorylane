@@ -1,0 +1,262 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: Figtree, system-ui, sans-serif; background: #faf7f1; color: #44403c; }
+    a { color: #b45309; text-decoration: none; } a:hover { color: #92400e; }
+  </style>
+</helmet>
+<div style="width: 1000px; padding: 40px; box-sizing: border-box; display: flex; flex-direction: column; gap: 36px">
+
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <div style="font-family: 'Playfair Display', Georgia, serif; font-weight: 600; font-size: 34px; color: #1c1917">Design system MemoryLane</div>
+    <div style="font-size: 14px; color: #78716c">Tokens et composants tels qu'ils existent dans le code (resources/css/app.css + composants Vue).</div>
+  </div>
+
+  <!-- Palettes -->
+  <div style="display: flex; flex-direction: column; gap: 14px">
+    <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #a8a29e">Couleurs — brand (ambre doré)</div>
+    <div style="display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 8px">
+      <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 44px; border-radius: 8px; background: #fffbeb; border: 1px solid #e7e5e4"></div><div style="font-size: 10px; color: #78716c">50 fffbeb</div></div>
+      <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 44px; border-radius: 8px; background: #fef3c7"></div><div style="font-size: 10px; color: #78716c">100 fef3c7</div></div>
+      <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 44px; border-radius: 8px; background: #fde68a"></div><div style="font-size: 10px; color: #78716c">200 fde68a</div></div>
+      <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 44px; border-radius: 8px; background: #fcd34d"></div><div style="font-size: 10px; color: #78716c">300 fcd34d</div></div>
+      <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 44px; border-radius: 8px; background: #fbbf24"></div><div style="font-size: 10px; color: #78716c">400 fbbf24</div></div>
+      <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 44px; border-radius: 8px; background: #f59e0b"></div><div style="font-size: 10px; color: #78716c">500 f59e0b</div></div>
+      <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 44px; border-radius: 8px; background: #d97706"></div><div style="font-size: 10px; color: #78716c">600 d97706</div></div>
+      <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 44px; border-radius: 8px; background: #b45309"></div><div style="font-size: 10px; color: #78716c">700 b45309</div></div>
+      <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 44px; border-radius: 8px; background: #92400e"></div><div style="font-size: 10px; color: #78716c">800 92400e</div></div>
+      <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 44px; border-radius: 8px; background: #78350f"></div><div style="font-size: 10px; color: #78716c">900 78350f</div></div>
+    </div>
+    <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #a8a29e">Couleurs — surface (pierre chaude) + page</div>
+    <div style="display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 8px">
+      <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 44px; border-radius: 8px; background: #faf7f1; border: 1px dashed #d6d3d1"></div><div style="font-size: 10px; color: #78716c">page faf7f1</div></div>
+      <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 44px; border-radius: 8px; background: #fafaf9; border: 1px solid #e7e5e4"></div><div style="font-size: 10px; color: #78716c">50 fafaf9</div></div>
+      <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 44px; border-radius: 8px; background: #f5f5f4"></div><div style="font-size: 10px; color: #78716c">100 f5f5f4</div></div>
+      <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 44px; border-radius: 8px; background: #e7e5e4"></div><div style="font-size: 10px; color: #78716c">200 e7e5e4</div></div>
+      <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 44px; border-radius: 8px; background: #d6d3d1"></div><div style="font-size: 10px; color: #78716c">300 d6d3d1</div></div>
+      <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 44px; border-radius: 8px; background: #a8a29e"></div><div style="font-size: 10px; color: #78716c">400 a8a29e</div></div>
+      <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 44px; border-radius: 8px; background: #78716c"></div><div style="font-size: 10px; color: #78716c">500 78716c</div></div>
+      <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 44px; border-radius: 8px; background: #57534e"></div><div style="font-size: 10px; color: #78716c">600 57534e</div></div>
+      <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 44px; border-radius: 8px; background: #44403c"></div><div style="font-size: 10px; color: #78716c">700 44403c</div></div>
+      <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 44px; border-radius: 8px; background: #292524"></div><div style="font-size: 10px; color: #78716c">800 292524</div></div>
+      <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 44px; border-radius: 8px; background: #1c1917"></div><div style="font-size: 10px; color: #78716c">900 1c1917</div></div>
+    </div>
+    <div style="font-size: 12px; color: #78716c">Accents ponctuels (Tailwind) : teal = public/disponible · amber = partagé · violet = album auto / durée vidéo · rose = personnes · red = destructif. Dark mode : bascule <span style="font-family: monospace">[data-theme=dark]</span>, tokens surface/page inversés, brand inchangé.</div>
+  </div>
+
+  <!-- Typo -->
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #a8a29e">Typographie</div>
+    <div style="display: flex; align-items: baseline; gap: 24px">
+      <div style="font-family: 'Playfair Display', Georgia, serif; font-weight: 600; font-size: 40px; color: #1c1917">Playfair Display</div>
+      <div style="font-size: 13px; color: #78716c">display — titres de pages (h1 4xl), wordmark</div>
+    </div>
+    <div style="display: flex; align-items: baseline; gap: 24px">
+      <div style="font-size: 26px; font-weight: 600; color: #1c1917">Figtree</div>
+      <div style="font-size: 13px; color: #78716c">sans — tout le reste ; corps 14px surface-700, secondaire surface-500</div>
+    </div>
+    <div style="display: flex; gap: 20px; font-size: 12px; color: #78716c">
+      <span>Rayons : card 12px · modal 16px · contrôles 8px (rounded-lg)</span>
+      <span>Ombres « warm » teintées brun : sm 0 1 2 / md 0 4 12 / lg 0 12 32</span>
+    </div>
+  </div>
+
+  <!-- Boutons -->
+  <div style="display: flex; flex-direction: column; gap: 12px">
+    <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #a8a29e">Boutons</div>
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+      <div style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 8px; background: #d97706; color: #ffffff; font-size: 14px; font-weight: 600">btn-primary</div>
+      <div style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 8px; background: #ffffff; border: 1px solid #d6d3d1; color: #44403c; font-size: 14px; font-weight: 600">btn-secondary</div>
+      <div style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 8px; background: transparent; color: #57534e; font-size: 14px; font-weight: 600">btn-ghost</div>
+      <div style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 8px; background: #fef3c7; color: #b45309; font-size: 14px; font-weight: 500">btn-admin</div>
+      <div style="display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 8px; background: #ffffff; border: 1px solid #fca5a5; color: #b91c1c; font-size: 14px; font-weight: 500">destructif</div>
+      <div style="display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 6px; background: #d97706; color: #ffffff; font-size: 12px; font-weight: 600">btn-sm</div>
+    </div>
+  </div>
+
+  <!-- Badges -->
+  <div style="display: flex; flex-direction: column; gap: 12px">
+    <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #a8a29e">Badges &amp; pastilles</div>
+    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+      <div style="display: inline-flex; padding: 2px 10px; border-radius: 999px; background: #ccfbf1; color: #0f766e; font-size: 12px; font-weight: 500">Public</div>
+      <div style="display: inline-flex; padding: 2px 10px; border-radius: 999px; background: #fef3c7; color: #b45309; font-size: 12px; font-weight: 500">Partagé</div>
+      <div style="display: inline-flex; padding: 2px 10px; border-radius: 999px; background: #f5f5f4; color: #57534e; font-size: 12px; font-weight: 500">Privé</div>
+      <div style="display: inline-flex; padding: 2px 10px; border-radius: 999px; background: #ede9fe; color: #6d28d9; font-size: 12px; font-weight: 500">Auto</div>
+      <div style="display: inline-flex; padding: 4px 8px; border-radius: 6px; background: #ede9fe; color: #6d28d9; font-size: 12px; font-weight: 500">0:51</div>
+      <div style="display: inline-flex; padding: 2px 10px; border-radius: 999px; background: #fef3c7; color: #92400e; font-size: 12px; font-weight: 500">Photo</div>
+      <div style="display: inline-flex; padding: 2px 10px; border-radius: 999px; background: #fef3c7; color: #b45309; font-size: 12px; font-weight: 500">Créateur</div>
+    </div>
+  </div>
+
+  <!-- Champs -->
+  <div style="display: flex; gap: 24px">
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 8px">
+      <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #a8a29e">Formulaire</div>
+      <div style="font-size: 14px; font-weight: 500; color: #44403c">Nom de l'album</div>
+      <div style="padding: 10px 16px; border: 1px solid #d6d3d1; border-radius: 8px; background: #ffffff; font-size: 14px; color: #a8a29e">Ex : Vacances été 2024</div>
+      <div style="padding: 10px 16px; border: 1px solid #d97706; border-radius: 8px; background: #ffffff; font-size: 14px; color: #1c1917; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2)">focus : ring brand 20 %</div>
+    </div>
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 8px">
+      <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #a8a29e">Toast</div>
+      <div style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px; border-radius: 8px; background: #f0fdfa; border: 1px solid #99f6e4; color: #115e59; font-size: 14px; box-shadow: 0 12px 32px rgba(28, 25, 23, 0.14)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <span style="flex: 1">12 média(s) partagé(s) avec « Famille Herdegen »</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" opacity="0.6"><path stroke-linecap="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </div>
+      <div style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px; border-radius: 8px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; font-size: 14px; box-shadow: 0 12px 32px rgba(28, 25, 23, 0.14)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <span style="flex: 1">Impossible de retirer ces médias de l'album.</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" opacity="0.6"><path stroke-linecap="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cartes -->
+  <div style="display: flex; flex-direction: column; gap: 12px">
+    <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #a8a29e">Cartes</div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+      <div style="background: #ffffff; border: 1px solid #e7e5e4; border-radius: 12px; box-shadow: 0 1px 2px rgba(28, 25, 23, 0.06); padding: 24px; display: flex; align-items: flex-start; gap: 16px">
+        <div style="padding: 12px; border-radius: 12px; background: #fef3c7; color: #b45309">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12m0-12l-4 4m4-4l4 4"></path></svg>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <div style="font-size: 15px; font-weight: 600; color: #1c1917">action-card</div>
+          <div style="font-size: 13px; color: #78716c">icône teintée + titre + sous-titre</div>
+        </div>
+      </div>
+      <div style="background: #ffffff; border: 1px solid #e7e5e4; border-radius: 12px; box-shadow: 0 1px 2px rgba(28, 25, 23, 0.06); overflow: hidden">
+        <div style="aspect-ratio: 16 / 9; background: linear-gradient(135deg, #fffbeb, #f5f5f4); display: flex; align-items: center; justify-content: center; color: #fcd34d">
+          <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+        </div>
+        <div style="padding: 16px; display: flex; flex-direction: column; gap: 6px">
+          <div style="font-family: 'Playfair Display', Georgia, serif; font-size: 17px; font-weight: 600; color: #1c1917">AlbumCard</div>
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <span style="font-size: 12px; color: #78716c">28 médias</span>
+            <span style="display: inline-flex; padding: 2px 10px; border-radius: 999px; background: #f5f5f4; color: #57534e; font-size: 11px; font-weight: 500">Privé</span>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="position: relative; width: 132px; aspect-ratio: 1 / 1; border-radius: 8px; overflow: hidden; background: linear-gradient(160deg, #d9c8a9, #a8927a)">
+          <div style="position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border-radius: 6px; background: #d97706; border: 2px solid #d97706; display: flex; align-items: center; justify-content: center">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+          </div>
+          <div style="position: absolute; top: 8px; left: 8px; display: inline-flex; padding: 3px 7px; border-radius: 6px; background: #ede9fe; color: #6d28d9; font-size: 11px; font-weight: 500">0:51</div>
+        </div>
+        <div style="font-size: 12px; color: #78716c">MediaCard : tuile carrée, case de sélection, badge durée, ring brand quand cochée</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dark mode -->
+  <div style="display: flex; flex-direction: column; gap: 14px">
+    <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #a8a29e">Dark mode — tokens inversés ([data-theme=dark])</div>
+    <div style="border-radius: 16px; background: #17140f; padding: 24px; display: flex; flex-direction: column; gap: 20px">
+      <!-- Échelle surface inversée -->
+      <div style="display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 8px">
+        <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 36px; border-radius: 8px; background: #17140f; border: 1px dashed #3a332a"></div><div style="font-size: 10px; color: #a89f92">page 17140f</div></div>
+        <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 36px; border-radius: 8px; background: #211d17; border: 1px solid #3a332a"></div><div style="font-size: 10px; color: #a89f92">white 211d17</div></div>
+        <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 36px; border-radius: 8px; background: #2a251e"></div><div style="font-size: 10px; color: #a89f92">100 2a251e</div></div>
+        <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 36px; border-radius: 8px; background: #3a332a"></div><div style="font-size: 10px; color: #a89f92">200 3a332a</div></div>
+        <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 36px; border-radius: 8px; background: #4d453a"></div><div style="font-size: 10px; color: #a89f92">300 4d453a</div></div>
+        <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 36px; border-radius: 8px; background: #8a8175"></div><div style="font-size: 10px; color: #a89f92">400 8a8175</div></div>
+        <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 36px; border-radius: 8px; background: #a89f92"></div><div style="font-size: 10px; color: #a89f92">500 a89f92</div></div>
+        <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 36px; border-radius: 8px; background: #c6bdb0"></div><div style="font-size: 10px; color: #a89f92">600 c6bdb0</div></div>
+        <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 36px; border-radius: 8px; background: #ded7cb"></div><div style="font-size: 10px; color: #a89f92">700 ded7cb</div></div>
+        <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 36px; border-radius: 8px; background: #ece7de"></div><div style="font-size: 10px; color: #a89f92">800 ece7de</div></div>
+        <div style="display: flex; flex-direction: column; gap: 4px"><div style="height: 36px; border-radius: 8px; background: #f7f3ec"></div><div style="font-size: 10px; color: #a89f92">900 f7f3ec</div></div>
+      </div>
+      <!-- Composants sur fond sombre -->
+      <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+        <div style="display: inline-flex; align-items: center; padding: 8px 16px; border-radius: 8px; background: #d97706; color: #ffffff; font-size: 14px; font-weight: 600">btn-primary</div>
+        <div style="display: inline-flex; align-items: center; padding: 8px 16px; border-radius: 8px; background: #211d17; border: 1px solid #4d453a; color: #ded7cb; font-size: 14px; font-weight: 600">btn-secondaire</div>
+        <div style="display: inline-flex; padding: 2px 10px; border-radius: 999px; background: rgba(20, 184, 166, 0.15); color: #5eead4; font-size: 12px; font-weight: 500">Public</div>
+        <div style="display: inline-flex; padding: 2px 10px; border-radius: 999px; background: rgba(245, 158, 11, 0.15); color: #fcd34d; font-size: 12px; font-weight: 500">Partagé</div>
+        <div style="display: inline-flex; padding: 4px 8px; border-radius: 6px; background: rgba(139, 92, 246, 0.15); color: #c4b5fd; font-size: 12px; font-weight: 500">0:51</div>
+        <div style="display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 8px; color: #f87171; font-size: 13px; font-weight: 500">Supprimer</div>
+      </div>
+      <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px">
+        <div style="background: #211d17; border: 1px solid #3a332a; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45); padding: 20px; display: flex; flex-direction: column; gap: 10px">
+          <div style="font-size: 16px; font-weight: 600; color: #f7f3ec">Carte « papier » sombre</div>
+          <div style="font-size: 13px; color: #a89f92">bg-white devient #211d17, bordures #3a332a, texte courant #ded7cb — la palette brand (dorée) reste l'accent.</div>
+          <div style="padding: 9px 12px; border: 1px solid #4d453a; border-radius: 8px; background: #211d17; font-size: 13px; color: #8a8175">form-input sombre</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; gap: 8px">
+            <div style="flex: 1; aspect-ratio: 1 / 1; border-radius: 8px; background: linear-gradient(155deg, #6b6152, #423a2e)"></div>
+            <div style="flex: 1; aspect-ratio: 1 / 1; border-radius: 8px; background: linear-gradient(155deg, #52596b, #2e3542)"></div>
+            <div style="flex: 1; position: relative; aspect-ratio: 1 / 1; border-radius: 8px; background: linear-gradient(155deg, #5c6b52, #38422e); box-shadow: 0 0 0 2px #f59e0b">
+              <div style="position: absolute; top: 6px; right: 6px; width: 20px; height: 20px; border-radius: 6px; background: #d97706; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg></div>
+            </div>
+          </div>
+          <div style="font-size: 12px; color: #a89f92">Tuiles sur fond sombre (sélection ring brand)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale -->
+  <div style="display: flex; gap: 24px">
+    <div style="flex: 1.2; display: flex; flex-direction: column; gap: 12px">
+      <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #a8a29e">BaseModal (en-tête + pied standard)</div>
+      <div style="border-radius: 16px; background: #ffffff; box-shadow: 0 12px 32px rgba(28, 25, 23, 0.14); overflow: hidden; border: 1px solid #e7e5e4">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid #e7e5e4">
+          <div style="font-size: 17px; font-weight: 600; color: #1c1917">Partager avec un foyer</div>
+          <div style="font-size: 13px; color: #78716c">12 médias</div>
+        </div>
+        <div style="padding: 16px 24px; display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 1px solid #d97706; border-radius: 8px; background: #fffbeb">
+            <div style="width: 14px; height: 14px; border-radius: 999px; border: 4px solid #d97706"></div>
+            <div style="font-size: 14px; font-weight: 500; color: #1c1917">Famille Herdegen <span style="font-weight: 400; color: #78716c; font-size: 12px">· 5 membres</span></div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 1px solid #e7e5e4; border-radius: 8px">
+            <div style="width: 14px; height: 14px; border-radius: 999px; border: 2px solid #d6d3d1"></div>
+            <div style="font-size: 14px; font-weight: 500; color: #1c1917">Cousinade <span style="font-weight: 400; color: #78716c; font-size: 12px">· 12 membres</span></div>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 12px; padding: 16px 24px; background: #fafaf9">
+          <div style="margin-right: auto; display: inline-flex; align-items: center; padding: 8px 16px; border-radius: 8px; color: #57534e; font-size: 14px; font-weight: 600">Retirer du foyer</div>
+          <div style="display: inline-flex; align-items: center; padding: 8px 16px; border-radius: 8px; background: #ffffff; border: 1px solid #d6d3d1; color: #44403c; font-size: 14px; font-weight: 600">Annuler</div>
+          <div style="display: inline-flex; align-items: center; padding: 8px 16px; border-radius: 8px; background: #d97706; color: #ffffff; font-size: 14px; font-weight: 600">Partager</div>
+        </div>
+      </div>
+    </div>
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 12px">
+      <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #a8a29e">État vide normalisé</div>
+      <div style="text-align: center; padding: 48px 24px; background: #ffffff; border-radius: 8px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); display: flex; flex-direction: column; align-items: center; gap: 8px">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d6d3d1" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+        <div style="font-size: 15px; font-weight: 500; color: #1c1917">Aucune photo partagée</div>
+        <div style="font-size: 13px; color: #78716c">Depuis <a href="#">Mes photos</a>, sélectionnez des médias puis « Foyer ».</div>
+      </div>
+      <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #a8a29e">Dropdown avatar</div>
+      <div style="width: 208px; background: #ffffff; border: 1px solid #f5f5f4; border-radius: 12px; box-shadow: 0 12px 32px rgba(28, 25, 23, 0.14); padding: 4px 0">
+        <div style="padding: 10px 16px; border-bottom: 1px solid #f5f5f4">
+          <div style="font-size: 11px; font-weight: 500; color: #78716c">Connecté en tant que</div>
+          <div style="font-size: 13px; font-weight: 600; color: #1c1917">matthieu@…</div>
+        </div>
+        <div style="padding: 10px 16px; font-size: 13px; color: #44403c">Mon profil</div>
+        <div style="padding: 10px 16px; font-size: 13px; color: #44403c">Foyers</div>
+        <div style="padding: 10px 16px; font-size: 13px; color: #44403c">Tags</div>
+        <div style="border-top: 1px solid #f5f5f4; margin: 4px 0"></div>
+        <div style="padding: 10px 16px; font-size: 13px; color: #dc2626">Déconnexion</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview": {"width": 1000, "height": 2360}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
