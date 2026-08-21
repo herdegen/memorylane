@@ -1,0 +1,207 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: Figtree, system-ui, sans-serif; background: #faf7f1; color: #44403c; }
+    a { color: #b45309; text-decoration: none; } a:hover { color: #92400e; }
+  </style>
+</helmet>
+<div style="width: 1440px; display: flex; flex-direction: column">
+
+  <!-- Nav -->
+  <div style="height: 64px; background: #ffffff; border-bottom: 1px solid #e7e5e4; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; box-sizing: border-box">
+    <div style="display: flex; align-items: center; gap: 32px">
+      <div style="display: flex; align-items: center; gap: 8px">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: #fef3c7; display: flex; align-items: center; justify-content: center">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="3"></rect><circle cx="12" cy="10.5" r="3.5"></circle><path d="M3 16l4-4 3 3 4-5 4 6"></path></svg>
+        </div>
+        <div style="font-family: 'Playfair Display', Georgia, serif; font-weight: 600; font-size: 18px; color: #1c1917">MemoryLane</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 500; height: 64px">
+        <div style="padding: 22px 4px 20px; border-bottom: 2px solid #f59e0b; color: #1c1917">Accueil</div>
+        <div style="padding: 22px 4px 20px; border-bottom: 2px solid transparent; color: #78716c">Mes photos</div>
+        <div style="padding: 22px 4px 20px; border-bottom: 2px solid transparent; color: #78716c">Télécharger</div>
+        <div style="padding: 22px 4px 20px; border-bottom: 2px solid transparent; color: #78716c">Albums</div>
+        <div style="padding: 22px 4px 20px; border-bottom: 2px solid transparent; color: #78716c">Personnes</div>
+        <div style="padding: 22px 4px 20px; border-bottom: 2px solid transparent; color: #78716c">Arbre</div>
+        <div style="padding: 22px 4px 20px; border-bottom: 2px solid transparent; color: #78716c">Carte</div>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px">
+      <div style="display: flex; align-items: center; gap: 8px; width: 250px; padding: 7px 12px; border: 1px solid #d6d3d1; border-radius: 999px; color: #a8a29e; font-size: 13px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        Rechercher…
+      </div>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#78716c" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+      <div style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 8px; background: #fef3c7; color: #b45309; font-size: 14px; font-weight: 500">Admin</div>
+      <div style="display: flex; align-items: center; gap: 8px">
+        <div style="width: 28px; height: 28px; border-radius: 999px; background: #fef3c7; color: #b45309; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center">M</div>
+        <div style="font-size: 14px; font-weight: 500; color: #44403c">Matthieu Herdegen</div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a8a29e" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenu -->
+  <div style="width: 1240px; margin: 0 auto; padding: 36px 0 60px; display: flex; flex-direction: column; gap: 36px; box-sizing: border-box">
+
+    <!-- Salutation compacte (l'ancien gros héro disparaît au profit des souvenirs) -->
+    <div style="display: flex; align-items: baseline; justify-content: space-between">
+      <div style="font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: 38px; color: #1c1917">Bonjour, Matthieu.</div>
+      <div style="font-size: 14px; color: #a8a29e">vendredi 21 août 2026</div>
+    </div>
+
+    <!-- ============ 1. Souvenirs « Il y a N ans » ============ -->
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <div style="display: flex; align-items: center; justify-content: space-between">
+        <div style="font-size: 13px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #a8a29e">Vos souvenirs du jour</div>
+        <div style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px; background: #ffffff; border: 1px solid #d6d3d1; color: #44403c; font-size: 13px; font-weight: 500">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>
+          Revivre en diaporama
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: 16px">
+        <!-- Grande carte souvenir -->
+        <div style="position: relative; height: 320px; border-radius: 16px; overflow: hidden; background: linear-gradient(160deg, #aebfcf, #6e8ba3); box-shadow: 0 4px 12px rgba(28, 25, 23, 0.12)">
+          <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(23, 20, 15, 0.05) 40%, rgba(23, 20, 15, 0.6) 100%)"></div>
+          <div style="position: absolute; top: 14px; left: 14px; padding: 5px 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.92); color: #1c1917; font-size: 13px; font-weight: 700">Il y a 4 ans</div>
+          <div style="position: absolute; bottom: 14px; left: 16px; right: 16px; display: flex; align-items: flex-end; justify-content: space-between">
+            <div>
+              <div style="font-family: 'Playfair Display', Georgia, serif; font-size: 22px; font-weight: 600; color: #ffffff">21 août 2022</div>
+              <div style="font-size: 13px; color: rgba(255, 255, 255, 0.85)">8 photos — Bretagne</div>
+            </div>
+            <div style="display: flex; gap: 4px">
+              <div style="width: 44px; height: 44px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.85); background: linear-gradient(155deg, #cdd8c2, #93a882)"></div>
+              <div style="width: 44px; height: 44px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.85); background: linear-gradient(155deg, #d9c8a9, #a8927a)"></div>
+              <div style="width: 44px; height: 44px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.85); background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; color: #ffffff; font-size: 12px; font-weight: 600">+5</div>
+            </div>
+          </div>
+        </div>
+        <!-- Cartes années suivantes -->
+        <div style="position: relative; height: 320px; border-radius: 16px; overflow: hidden; background: linear-gradient(160deg, #d8c4ac, #a8846a); box-shadow: 0 4px 12px rgba(28, 25, 23, 0.12)">
+          <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(23, 20, 15, 0.05) 40%, rgba(23, 20, 15, 0.6) 100%)"></div>
+          <div style="position: absolute; top: 14px; left: 14px; padding: 5px 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.92); color: #1c1917; font-size: 13px; font-weight: 700">Il y a 6 ans</div>
+          <div style="position: absolute; bottom: 14px; left: 16px; right: 16px">
+            <div style="font-family: 'Playfair Display', Georgia, serif; font-size: 19px; font-weight: 600; color: #ffffff">21 août 2020</div>
+            <div style="font-size: 13px; color: rgba(255, 255, 255, 0.85)">3 photos</div>
+          </div>
+        </div>
+        <div style="position: relative; height: 320px; border-radius: 16px; overflow: hidden; background: linear-gradient(160deg, #b9c7ad, #7e9270); box-shadow: 0 4px 12px rgba(28, 25, 23, 0.12)">
+          <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(23, 20, 15, 0.05) 40%, rgba(23, 20, 15, 0.6) 100%)"></div>
+          <div style="position: absolute; top: 14px; left: 14px; padding: 5px 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.92); color: #1c1917; font-size: 13px; font-weight: 700">Il y a 17 ans</div>
+          <div style="position: absolute; bottom: 14px; left: 16px; right: 16px">
+            <div style="font-family: 'Playfair Display', Georgia, serif; font-size: 19px; font-weight: 600; color: #ffffff">21 août 2009</div>
+            <div style="font-size: 13px; color: rgba(255, 255, 255, 0.85)">12 photos — Saint-Malo</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 1bis. Fêtes & anniversaires ============ -->
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <div style="font-size: 13px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #a8a29e">Fêtes &amp; anniversaires</div>
+      <div style="display: flex; gap: 14px; flex-wrap: wrap">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 18px 12px 12px; background: #ffffff; border: 1px solid #e7e5e4; border-radius: 999px; box-shadow: 0 1px 2px rgba(28, 25, 23, 0.06)">
+          <div style="width: 44px; height: 44px; border-radius: 999px; background: linear-gradient(150deg, #c2cfd6, #7f97a3)"></div>
+          <div>
+            <div style="font-size: 14px; font-weight: 600; color: #1c1917">🎂 Julien Herdegen</div>
+            <div style="font-size: 12px; color: #78716c">32 ans aujourd'hui</div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 18px 12px 12px; background: #ffffff; border: 1px solid #e7e5e4; border-radius: 999px; box-shadow: 0 1px 2px rgba(28, 25, 23, 0.06)">
+          <div style="width: 44px; height: 44px; border-radius: 999px; background: linear-gradient(150deg, #e0d3be, #b09a72)"></div>
+          <div>
+            <div style="font-size: 14px; font-weight: 600; color: #1c1917">💍 Matthieu &amp; Marion</div>
+            <div style="font-size: 12px; color: #78716c">6 ans de mariage dans 15 jours</div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 18px 12px 12px; background: #ffffff; border: 1px dashed #d6d3d1; border-radius: 999px; opacity: 0.75">
+          <div style="width: 44px; height: 44px; border-radius: 999px; background: linear-gradient(150deg, #d6c2c2, #a08080)"></div>
+          <div>
+            <div style="font-size: 14px; font-weight: 600; color: #1c1917">🎂 Christine Herdegen</div>
+            <div style="font-size: 12px; color: #78716c">70 ans jeudi prochain</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 1ter. Personne du jour (REPLI quand aucun souvenir daté du jour) ============ -->
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <div style="font-size: 13px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #a8a29e">— Repli sans souvenir du jour : la personne du jour —</div>
+      <div style="display: flex; background: #ffffff; border: 1px solid #e7e5e4; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(28, 25, 23, 0.08)">
+        <div style="width: 300px; height: 240px; background: linear-gradient(150deg, #d6c2c2, #a08080); flex-shrink: 0"></div>
+        <div style="flex: 1; padding: 24px 28px; display: flex; flex-direction: column; gap: 8px; justify-content: center">
+          <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #b45309">Personne du jour</div>
+          <div style="font-family: 'Playfair Display', Georgia, serif; font-size: 28px; font-weight: 600; color: #1c1917">Pascale Le Goff</div>
+          <div style="font-size: 14px; color: #78716c">87 photos dans votre mémoire familiale — la plus ancienne date de 1994.</div>
+          <div style="display: flex; gap: 4px; margin-top: 6px">
+            <div style="width: 56px; height: 56px; border-radius: 8px; background: linear-gradient(155deg, #cdd8c2, #93a882)"></div>
+            <div style="width: 56px; height: 56px; border-radius: 8px; background: linear-gradient(155deg, #c7ccd4, #8b95a5)"></div>
+            <div style="width: 56px; height: 56px; border-radius: 8px; background: linear-gradient(155deg, #d9c8a9, #a8927a)"></div>
+            <div style="width: 56px; height: 56px; border-radius: 8px; background: linear-gradient(155deg, #bcccd2, #7d9aa5)"></div>
+          </div>
+          <div style="margin-top: 10px">
+            <div style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 8px; background: #d97706; color: #ffffff; font-size: 13px; font-weight: 600">Voir sa fiche</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 2. Bien démarrer (masquable par personne) ============ -->
+    <div style="position: relative; display: flex; align-items: center; gap: 24px; background: linear-gradient(135deg, #fffbeb, #ffffff 60%); border: 1px solid #fde68a; border-radius: 16px; padding: 22px 28px">
+      <div style="position: absolute; top: 12px; right: 12px; color: #a8a29e">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </div>
+      <div style="width: 52px; height: 52px; border-radius: 14px; background: #fef3c7; display: flex; align-items: center; justify-content: center; flex-shrink: 0">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+      </div>
+      <div style="flex: 1">
+        <div style="font-size: 16px; font-weight: 600; color: #1c1917">Bien démarrer avec MemoryLane</div>
+        <div style="font-size: 13px; color: #78716c; margin-top: 2px">Importer vos photos, créer des albums, identifier les visages, partager en foyer — le guide pas à pas pour la famille.</div>
+      </div>
+      <div style="display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 8px; background: #d97706; color: #ffffff; font-size: 13px; font-weight: 600; flex-shrink: 0">
+        Ouvrir le guide
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
+      </div>
+    </div>
+
+    <!-- ============ 3. Accès rapide (inchangé ; les « Fonctionnalités » partent dans l'admin) ============ -->
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <div style="font-size: 13px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #a8a29e">Accès rapide</div>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px">
+        <div style="background: #ffffff; border: 1px solid #e7e5e4; border-radius: 12px; box-shadow: 0 1px 2px rgba(28, 25, 23, 0.06); padding: 24px; display: flex; align-items: center; gap: 16px">
+          <div style="padding: 12px; border-radius: 12px; background: #fef3c7; color: #b45309"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12m0-12l-4 4m4-4l4 4"></path></svg></div>
+          <div><div style="font-size: 15px; font-weight: 600; color: #1c1917">Télécharger</div><div style="font-size: 13px; color: #78716c; margin-top: 2px">Ajouter des médias</div></div>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #e7e5e4; border-radius: 12px; box-shadow: 0 1px 2px rgba(28, 25, 23, 0.06); padding: 24px; display: flex; align-items: center; gap: 16px">
+          <div style="padding: 12px; border-radius: 12px; background: #ccfbf1; color: #0f766e"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg></div>
+          <div><div style="font-size: 15px; font-weight: 600; color: #1c1917">Mes photos</div><div style="font-size: 13px; color: #78716c; margin-top: 2px">Tous vos médias</div></div>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #e7e5e4; border-radius: 12px; box-shadow: 0 1px 2px rgba(28, 25, 23, 0.06); padding: 24px; display: flex; align-items: center; gap: 16px">
+          <div style="padding: 12px; border-radius: 12px; background: #ffe4e6; color: #be123c"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6-4a3 3 0 11-3-3"></path></svg></div>
+          <div><div style="font-size: 15px; font-weight: 600; color: #1c1917">Personnes</div><div style="font-size: 13px; color: #78716c; margin-top: 2px">Votre famille</div></div>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #e7e5e4; border-radius: 12px; box-shadow: 0 1px 2px rgba(28, 25, 23, 0.06); padding: 24px; display: flex; align-items: center; gap: 16px">
+          <div style="padding: 12px; border-radius: 12px; background: #ede9fe; color: #6d28d9"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v6m0 0l-4 4m4-4l4 4M6 21h4m4 0h4"></path></svg></div>
+          <div><div style="font-size: 15px; font-weight: 600; color: #1c1917">Arbre</div><div style="font-size: 13px; color: #78716c; margin-top: 2px">Généalogie</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview": {"width": 1440, "height": 1560}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

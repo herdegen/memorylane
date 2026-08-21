@@ -69,6 +69,14 @@
       "w": 1440,
       "h": 2160,
       "title": "Fiche personne v2"
+    },
+    {
+      "file": "AccueilV2.dc.html",
+      "x": 5720,
+      "y": 1720,
+      "w": 1440,
+      "h": 1560,
+      "title": "Accueil v2"
     }
   ],
   "annotations": [
@@ -92,6 +100,13 @@
       "y": 1620,
       "w": 460,
       "text": "Fiche personne v2 (proposition) : en-tête doux plein largeur (pas de héro photo — la fiche est dense), pattern album (retour à gauche, menu ⋯ à droite, montré ouvert), Famille en mini-arbre de cartes photo, « Sa vie » en frise HORIZONTALE orientée photos, galeries séparées par album puis par année."
+    },
+    {
+      "id": "accueil-v2",
+      "x": 5720,
+      "y": 1620,
+      "w": 460,
+      "text": "Accueil v2 : souvenirs « Il y a N ans » d'abord (grandes cartes photo), fêtes & anniversaires (naissances + mariages, aujourd'hui et à venir), personne du jour en REPLI quand aucun souvenir daté du jour, bloc Bien démarrer masquable par personne (le guide sera une page dédiée), accès rapide conservé. Les « Fonctionnalités » partent sur l'accueil de l'admin."
     }
   ],
   "launch": {
