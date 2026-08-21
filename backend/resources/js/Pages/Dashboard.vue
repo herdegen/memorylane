@@ -2,70 +2,161 @@
   <Head title="Accueil" />
   <AppLayout>
     <div class="page-container">
-      <div class="page-content space-y-8">
+      <div class="page-content space-y-9 px-4 sm:px-6 lg:px-8">
 
-        <!-- Hero / Welcome -->
-        <div class="relative bg-white rounded-2xl border border-surface-200 shadow-xs overflow-hidden">
-          <!-- Warm gradient background -->
-          <div class="absolute inset-0 bg-linear-to-br from-brand-50 via-white to-white pointer-events-none" />
-          <div class="relative p-8 sm:p-10">
-            <div class="flex flex-col sm:flex-row sm:items-center gap-6">
-              <div class="flex-1">
-                <p class="text-xs font-semibold uppercase tracking-widest text-brand-600 mb-2">Votre espace famille</p>
-                <h1 class="text-display text-4xl sm:text-5xl text-surface-900 mb-3 leading-tight">
-                  Bienvenue<span v-if="user">, {{ user.name.split(' ')[0] }}</span>.
-                </h1>
-                <p class="text-surface-500 text-lg max-w-xl">
-                  Tous vos souvenirs en famille — photos, vidéos, personnes et histoires — réunis en un seul endroit.
-                </p>
-              </div>
-              <!-- Decorative photo stack -->
-              <div class="hidden lg:block shrink-0">
-                <div class="relative w-36 h-36">
-                  <div class="absolute inset-0 rotate-6 rounded-xl bg-brand-200/60 shadow-xs" />
-                  <div class="absolute inset-0 rotate-3 rounded-xl bg-brand-100/80 shadow-xs" />
-                  <div class="absolute inset-0 rounded-xl bg-brand-50 border-2 border-brand-100 shadow-sm flex items-center justify-center">
-                    <svg class="w-14 h-14 text-brand-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
-                      <rect x="3" y="3" width="18" height="18" rx="3"/>
-                      <circle cx="12" cy="10.5" r="3.5"/>
-                      <path d="M3 16l4-4 3 3 4-5 4 6"/>
-                    </svg>
+        <!-- Salutation compacte -->
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <h1 class="font-display text-4xl font-bold text-surface-900">
+            Bonjour<span v-if="user">, {{ user.name.split(' ')[0] }}</span>.
+          </h1>
+          <span class="text-sm text-surface-400">{{ formattedToday }}</span>
+        </div>
+
+        <!-- ============ Souvenirs « Il y a N ans » ============ -->
+        <div v-if="onThisDay.length > 0" class="space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400">Vos souvenirs du jour</h2>
+            <button
+              @click="playMemories(0)"
+              class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-surface-300 text-sm font-medium text-surface-700 hover:bg-surface-50 transition"
+            >
+              <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+              Revivre en diaporama
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <button
+              v-for="(group, gi) in onThisDay"
+              :key="group.year"
+              type="button"
+              class="relative h-72 rounded-2xl overflow-hidden shadow-warm-md text-left group hover:shadow-warm-lg transition"
+              @click="playMemories(memoryOffset(gi))"
+            >
+              <img
+                v-if="coverUrl(group)"
+                :src="coverUrl(group)"
+                class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+              <div v-else class="absolute inset-0 bg-linear-to-br from-brand-200 to-surface-300"></div>
+              <div class="absolute inset-0 bg-linear-to-b from-black/10 via-transparent to-black/60"></div>
+              <span class="absolute top-3.5 left-3.5 px-3 py-1 rounded-full bg-white/90 text-surface-900 text-[13px] font-bold">
+                {{ group.years_ago === 1 ? 'Il y a 1 an' : `Il y a ${group.years_ago} ans` }}
+              </span>
+              <div class="absolute bottom-3.5 left-4 right-4 flex items-end justify-between gap-3">
+                <div>
+                  <div class="font-display text-xl font-semibold text-white">{{ group.year }}</div>
+                  <div class="text-[13px] text-white/85">{{ group.media.length }} photo{{ group.media.length > 1 ? 's' : '' }}</div>
+                </div>
+                <div class="hidden sm:flex gap-1">
+                  <div
+                    v-for="m in group.media.slice(1, 3)"
+                    :key="m.id"
+                    class="w-10 h-10 rounded-lg border-2 border-white/85 overflow-hidden bg-surface-300"
+                  >
+                    <img v-if="thumbnailUrl(m)" :src="thumbnailUrl(m)" class="w-full h-full object-cover" />
+                  </div>
+                  <div
+                    v-if="group.media.length > 3"
+                    class="w-10 h-10 rounded-lg border-2 border-white/85 bg-black/45 flex items-center justify-center text-white text-xs font-semibold"
+                  >
+                    +{{ group.media.length - 3 }}
                   </div>
                 </div>
               </div>
-            </div>
+            </button>
           </div>
         </div>
 
-        <!-- Ce jour-là -->
-        <div v-if="onThisDay.length > 0" class="bg-white rounded-2xl border border-surface-200 shadow-warm-sm p-6 sm:p-8">
-          <div class="flex items-center gap-3 mb-1">
-            <span class="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
-              <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </span>
-            <h2 class="font-display text-2xl font-semibold text-surface-900">Ce jour-là</h2>
-          </div>
-          <p class="text-surface-500 mb-6">Vos souvenirs d'un {{ formattedToday }}</p>
-
-          <div v-for="group in onThisDay" :key="group.year" class="mb-8 last:mb-0">
-            <h3 class="text-sm font-semibold text-brand-700 mb-3">
-              {{ group.years_ago === 1 ? 'Il y a 1 an' : `Il y a ${group.years_ago} ans` }}
-              <span class="font-normal text-surface-400">— {{ group.year }}</span>
-            </h3>
-            <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
-              <MediaCard
-                v-for="media in group.media"
-                :key="media.id"
-                :media="media"
-                @click="openMedia"
+        <!-- ============ Personne du jour (repli sans souvenir daté) ============ -->
+        <div v-else-if="personOfTheDay" class="space-y-4">
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400">La personne du jour</h2>
+          <div class="flex flex-col sm:flex-row bg-white border border-surface-200 rounded-2xl overflow-hidden shadow-warm-md">
+            <div class="sm:w-72 h-52 sm:h-auto bg-brand-100 shrink-0 flex items-center justify-center overflow-hidden">
+              <img
+                v-if="personOfTheDay.avatar_url || personOfTheDay.photos[0]"
+                :src="personOfTheDay.avatar_url || thumbnailUrl(personOfTheDay.photos[0])"
+                class="w-full h-full object-cover"
               />
+              <span v-else class="text-6xl font-bold text-brand-700">{{ personOfTheDay.name.charAt(0).toUpperCase() }}</span>
+            </div>
+            <div class="flex-1 p-6 sm:p-7 flex flex-col justify-center gap-2">
+              <div class="text-xs font-semibold uppercase tracking-widest text-brand-700">Personne du jour</div>
+              <div class="font-display text-3xl font-semibold text-surface-900">{{ personOfTheDay.name }}</div>
+              <p class="text-sm text-surface-500">
+                {{ personOfTheDay.media_count }} photo{{ personOfTheDay.media_count > 1 ? 's' : '' }} dans votre mémoire familiale<span v-if="personOfTheDay.oldest_year"> — la plus ancienne date de {{ personOfTheDay.oldest_year }}</span>.
+              </p>
+              <div v-if="personOfTheDay.photos.length" class="flex gap-1.5 mt-1.5">
+                <Link
+                  v-for="p in personOfTheDay.photos"
+                  :key="p.id"
+                  :href="`/media/${p.id}`"
+                  class="w-14 h-14 rounded-lg overflow-hidden bg-surface-100 hover:ring-2 hover:ring-brand-400 transition"
+                >
+                  <img v-if="thumbnailUrl(p)" :src="thumbnailUrl(p)" class="w-full h-full object-cover" />
+                </Link>
+              </div>
+              <div class="mt-3">
+                <Link :href="`/people/${personOfTheDay.id}`" class="btn-primary btn-sm">Voir sa fiche</Link>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Quick Actions -->
+        <!-- ============ Fêtes & anniversaires ============ -->
+        <div v-if="celebrations.length > 0" class="space-y-4">
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400">Fêtes &amp; anniversaires</h2>
+          <div class="flex flex-wrap gap-3">
+            <Link
+              v-for="(c, i) in celebrations"
+              :key="i"
+              :href="`/people/${c.person_id}`"
+              class="flex items-center gap-3 py-2.5 pl-3 pr-5 bg-white rounded-full shadow-warm-sm transition hover:shadow-warm-md"
+              :class="c.days_until === 0 ? 'border border-brand-300' : 'border border-dashed border-surface-300 opacity-80 hover:opacity-100'"
+            >
+              <div class="w-11 h-11 rounded-full overflow-hidden bg-brand-100 flex items-center justify-center shrink-0">
+                <img v-if="c.avatar_url" :src="c.avatar_url" class="w-full h-full object-cover" />
+                <span v-else class="text-lg">{{ c.emoji }}</span>
+              </div>
+              <div>
+                <div class="text-sm font-semibold text-surface-900">{{ c.emoji }} {{ c.title }}</div>
+                <div class="text-xs text-surface-500">{{ c.sub }}</div>
+              </div>
+            </Link>
+          </div>
+        </div>
+
+        <!-- ============ Bien démarrer (masquable par personne) ============ -->
+        <div
+          v-if="guideVisible"
+          class="relative flex flex-col sm:flex-row sm:items-center gap-5 bg-linear-to-br from-brand-50 to-white border border-brand-200 rounded-2xl px-6 sm:px-7 py-5"
+        >
+          <button
+            @click="hideGuide"
+            class="absolute top-3 right-3 text-surface-400 hover:text-surface-600 transition"
+            title="Ne plus afficher"
+            aria-label="Ne plus afficher"
+          >
+            <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+          <div class="w-13 h-13 rounded-xl bg-brand-100 flex items-center justify-center shrink-0">
+            <svg class="w-6.5 h-6.5 text-brand-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-base font-semibold text-surface-900">Bien démarrer avec MemoryLane</h2>
+            <p class="text-sm text-surface-500 mt-0.5">
+              Importer vos photos, créer des albums, identifier les visages, partager en foyer — le guide pas à pas pour la famille.
+            </p>
+          </div>
+          <Link href="/guide" class="btn-primary shrink-0">
+            Ouvrir le guide
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+          </Link>
+        </div>
+
+        <!-- ============ Accès rapide ============ -->
         <div>
           <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400 mb-4">Accès rapide</h2>
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -127,64 +218,86 @@
           </div>
         </div>
 
-        <!-- Features -->
-        <div class="bg-white rounded-2xl border border-surface-200 shadow-xs p-6 sm:p-8">
-          <h2 class="text-xl font-semibold text-surface-900 mb-6">Fonctionnalités disponibles</h2>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div v-for="feature in features" :key="feature.title" class="feature-item">
-              <div class="feature-icon" :class="feature.available ? 'feature-icon--available' : 'feature-icon--coming'">
-                <svg v-if="feature.available" class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <svg v-else class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div class="feature-content">
-                <h3>{{ feature.title }}</h3>
-                <p>{{ feature.description }}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
       </div>
     </div>
+
+    <!-- Diaporama des souvenirs -->
+    <FullscreenSlideshow ref="memoriesSlideshow" :slides="memorySlides" :photo-duration="6000" />
   </AppLayout>
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { Head, Link } from '@inertiajs/vue3';
+import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import MediaCard from '@/Components/MediaCard.vue';
+import FullscreenSlideshow from '@/Components/FullscreenSlideshow.vue';
 import { useAuth } from '@/Composables/useAuth';
+import { thumbnailUrl } from '@/utils/media';
 
 const { user } = useAuth();
 
-defineProps({
+const props = defineProps({
   onThisDay: {
     type: Array,
     default: () => [],
   },
+  celebrations: {
+    type: Array,
+    default: () => [],
+  },
+  personOfTheDay: {
+    type: Object,
+    default: null,
+  },
+  showGuide: {
+    type: Boolean,
+    default: true,
+  },
 });
 
 const formattedToday = computed(() =>
-  new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
+  new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 );
 
-const openMedia = (media) => {
-  router.visit(`/media/${media.id}`);
+// Couverture d'une carte souvenir : conversion medium de la 1re photo.
+const coverUrl = (group) => {
+  const first = group.media[0];
+  if (!first) return null;
+  return first.conversions?.find((c) => c.conversion_name === 'medium')?.url || thumbnailUrl(first);
 };
 
-const features = [
-  { title: 'Galerie Photos & Vidéos', description: 'Upload, organisation et visualisation de vos médias', available: true },
-  { title: 'Système de Tags', description: 'Organisez vos médias avec des tags personnalisés', available: true },
-  { title: 'Géolocalisation', description: 'Carte interactive avec vos photos géolocalisées', available: true },
-  { title: 'Extraction EXIF', description: 'Métadonnées automatiquement extraites de vos photos', available: true },
-  { title: 'Albums & Partage', description: 'Créez des albums et partagez-les', available: true },
-  { title: 'Arbre Généalogique', description: 'Visualisation et import GEDCOM', available: true },
-  { title: 'Vision IA', description: 'Détection de visages et labels automatiques', available: true },
-  { title: 'Reconnaissance Faciale', description: 'Identification automatique des personnes', available: false },
-];
+// ---- Diaporama des souvenirs (toutes années confondues) ----
+const memoriesSlideshow = ref(null);
+
+const memorySlides = computed(() =>
+  props.onThisDay.flatMap((group) =>
+    group.media.map((m) => ({
+      key: m.id,
+      type: m.type === 'video' ? 'video' : 'photo',
+      src: m.type === 'video'
+        ? (m.conversions?.find((c) => c.conversion_name === 'web')?.url || m.url)
+        : (m.conversions?.find((c) => c.conversion_name === 'medium')?.url || m.url),
+      label: group.years_ago === 1 ? 'Il y a 1 an' : `Il y a ${group.years_ago} ans`,
+    }))
+  )
+);
+
+// Index de la première slide d'un groupe (clic sur une carte année).
+const memoryOffset = (groupIndex) =>
+  props.onThisDay.slice(0, groupIndex).reduce((sum, g) => sum + g.media.length, 0);
+
+const playMemories = (index) => memoriesSlideshow.value?.open(index);
+
+// ---- Bloc « Bien démarrer » masquable (persisté par compte) ----
+const guideVisible = ref(props.showGuide);
+
+const hideGuide = async () => {
+  guideVisible.value = false;
+  try {
+    await axios.post('/dashboard/hide-guide');
+  } catch {
+    // Sans gravité : le bloc réapparaîtra à la prochaine visite.
+  }
+};
 </script>

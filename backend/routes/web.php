@@ -44,6 +44,9 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middl
 Route::middleware('auth')->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::post('/dashboard/hide-guide', [DashboardController::class, 'hideGuide'])->name('dashboard.hideGuide');
+    // Guide de prise en main (lié depuis le bloc « Bien démarrer »)
+    Route::get('/guide', fn () => \Inertia\Inertia::render('Guide'))->name('guide');
 
     // Recherche unifiée
     Route::get('/search', [SearchController::class, 'index'])->name('search');

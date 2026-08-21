@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Media;
+use App\Models\Person;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -94,5 +95,87 @@ class DashboardOnThisDayTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page->has('onThisDay', 0));
+    }
+
+    /**
+     * Fêtes & anniversaires : anniversaire du jour + à venir dans la fenêtre,
+     * anniversaire de mariage inclus, hors fenêtre exclu.
+     */
+    public function test_dashboard_celebrations_anniversaires_et_mariages(): void
+    {
+        $birthdayToday = Person::factory()->create([
+            'user_id' => $this->user->id,
+            'name' => 'Julien',
+            'birth_date' => now()->subYears(32)->toDateString(),
+        ]);
+        Person::factory()->create([
+            'user_id' => $this->user->id,
+            'name' => 'Trop Loin',
+            'birth_date' => now()->addDays(40)->subYears(20)->toDateString(),
+        ]);
+        $spouse1 = Person::factory()->create(['user_id' => $this->user->id, 'name' => 'Matthieu', 'birth_date' => null]);
+        $spouse2 = Person::factory()->create(['user_id' => $this->user->id, 'name' => 'Marion', 'birth_date' => null]);
+        \Illuminate\Support\Facades\DB::table('person_relationships')->insert([
+            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'person1_id' => $spouse1->id,
+            'person2_id' => $spouse2->id,
+            'type' => 'spouse',
+            'start_date' => now()->subYears(6)->addDays(3)->toDateString(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($this->user)->get('/dashboard');
+
+        $response->assertStatus(200);
+        $celebrations = collect($response->viewData('page')['props']['celebrations']);
+
+        $this->assertTrue($celebrations->contains(fn ($c) => $c['kind'] === 'birthday' && $c['title'] === 'Julien' && $c['days_until'] === 0));
+        $this->assertTrue($celebrations->contains(fn ($c) => $c['kind'] === 'wedding' && str_contains($c['title'], 'Marion')));
+        $this->assertFalse($celebrations->contains(fn ($c) => $c['title'] === 'Trop Loin'));
+    }
+
+    /**
+     * La personne du jour n'apparaît QUE sans souvenir daté du jour.
+     */
+    public function test_personne_du_jour_est_le_repli_sans_souvenir(): void
+    {
+        $person = Person::factory()->create(['user_id' => $this->user->id]);
+        $media = Media::factory()->create(['user_id' => $this->user->id, 'taken_at' => null]);
+        $person->media()->attach($media->id);
+
+        $response = $this->actingAs($this->user)->get('/dashboard');
+        $response->assertInertia(fn ($page) => $page
+            ->has('onThisDay', 0)
+            ->where('personOfTheDay.id', $person->id));
+
+        // Avec un souvenir du jour : pas de personne du jour.
+        Media::factory()->create([
+            'user_id' => $this->user->id,
+            'taken_at' => now()->subYears(2),
+        ]);
+        $response = $this->actingAs($this->user)->get('/dashboard');
+        $response->assertInertia(fn ($page) => $page
+            ->has('onThisDay', 1)
+            ->where('personOfTheDay', null));
+    }
+
+    /**
+     * Le bloc « Bien démarrer » se masque PAR COMPTE, définitivement.
+     */
+    public function test_masquer_le_guide_est_persiste_par_compte(): void
+    {
+        $this->actingAs($this->user)->get('/dashboard')
+            ->assertInertia(fn ($page) => $page->where('showGuide', true));
+
+        $this->actingAs($this->user)->postJson('/dashboard/hide-guide')->assertOk();
+
+        $this->actingAs($this->user)->get('/dashboard')
+            ->assertInertia(fn ($page) => $page->where('showGuide', false));
+
+        // Un autre compte n'est pas affecté.
+        $other = User::factory()->create();
+        $this->actingAs($other)->get('/dashboard')
+            ->assertInertia(fn ($page) => $page->where('showGuide', true));
     }
 }
