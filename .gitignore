@@ -31,3 +31,6 @@ auth.json
 
 # Dumps de base locaux (pré-upgrade, sauvegardes ponctuelles) — jamais en git
 /backups/
+
+# Claude Code — réglages locaux de session
+.claude/settings.local.json

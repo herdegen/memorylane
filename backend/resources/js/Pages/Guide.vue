@@ -280,7 +280,9 @@ const sections = [
     intro: 'L\'arbre se dessine tout seul à partir des fiches (parents, conjoints, enfants) et se visite comme un album.',
     image: 'arbre',
     points: [
-      { title: 'Navigation', text: 'Cliquez une personne pour recentrer l\'arbre sur elle ; zoomez, déplacez-vous librement.' },
+      { title: 'Navigation', text: 'Cliquez une personne pour recentrer l\'arbre sur elle ; zoomez, déplacez-vous librement. Sur mobile, un encart en bas donne accès à sa fiche.' },
+      { title: 'Le panneau détail', text: 'À gauche : état civil (naissance, décès, âge) et famille proche cliquable — parents, conjoints, enfants, fratrie.' },
+      { title: 'Édition rapide', text: 'Le crayon du panneau permet de compléter dates et lieux de naissance ou de décès sans quitter l\'arbre.' },
       { title: 'Lien de parenté animé', text: 'Depuis une fiche, le bouton « Lien de parenté » fait marcher l\'arbre de vous jusqu\'à elle, en surlignant le chemin.' },
     ],
     link: { href: '/family-tree', label: 'Ouvrir l\'Arbre' },

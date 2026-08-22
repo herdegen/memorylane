@@ -62,36 +62,168 @@
           </div>
         </div>
 
-        <!-- Selected person detail -->
-        <div v-if="selectedPerson" class="mt-4 p-4 bg-surface-50 rounded-lg border border-surface-100">
-          <div class="flex items-center gap-3 mb-2">
+        <!-- Selected person detail (desktop — sur mobile c'est l'encart bas qui joue ce rôle) -->
+        <div v-if="selectedPerson" class="mt-4 bg-surface-50 rounded-xl border border-surface-100 overflow-hidden max-md:hidden">
+          <!-- Entête : avatar + identité + bascule édition -->
+          <div class="flex items-start gap-3 p-4 pb-3">
             <img
               v-if="selectedPerson.data.avatar_url"
               :src="selectedPerson.data.avatar_url"
               :alt="personLabel(selectedPerson.data)"
-              class="w-14 h-14 rounded-full object-cover border border-surface-200 shrink-0"
+              class="w-16 h-16 rounded-xl object-cover border border-surface-200 shrink-0"
             />
             <div
               v-else
-              class="w-14 h-14 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-lg font-semibold shrink-0"
+              class="w-16 h-16 rounded-xl bg-brand-100 text-brand-700 flex items-center justify-center text-xl font-semibold shrink-0"
             >
               {{ (selectedPerson.data.name || '?').charAt(0).toUpperCase() }}
             </div>
-            <h3 class="font-semibold text-surface-900 leading-tight">{{ personLabel(selectedPerson.data) }}</h3>
+            <div class="min-w-0 flex-1">
+              <h3 class="font-semibold text-surface-900 leading-tight">{{ personLabel(selectedPerson.data) }}</h3>
+              <p class="text-xs text-surface-500 mt-0.5">
+                {{ [genderLabel(selectedPerson.data.gender), lifespanLabel(selectedPerson.data)].filter(Boolean).join(' · ') || '—' }}
+              </p>
+            </div>
+            <button
+              v-if="selectedPerson.can_edit"
+              @click="editing ? (editing = false) : startEdit()"
+              class="p-1.5 rounded-lg shrink-0 transition-colors"
+              :class="editing ? 'bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300' : 'text-surface-400 hover:text-surface-600 hover:bg-surface-100'"
+              :title="editing ? `Fermer l'édition` : 'Modifier les informations'"
+              :aria-pressed="editing"
+            >
+              <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
           </div>
-          <p v-if="selectedPerson.data.birth_date" class="text-sm text-surface-500 mt-1">
-            Naissance : {{ formatLongDate(selectedPerson.data.birth_date) }}
-            <span v-if="selectedPerson.data.birth_place"> — {{ selectedPerson.data.birth_place }}</span>
-          </p>
-          <p v-if="selectedPerson.data.death_date" class="text-sm text-surface-500">
-            Décès : {{ formatLongDate(selectedPerson.data.death_date) }}
-          </p>
-          <Link
-            :href="`/people/${selectedPerson.id}`"
-            class="mt-3 inline-flex items-center text-sm text-brand-600 hover:text-brand-800"
-          >
-            Voir la fiche complète &rarr;
-          </Link>
+
+          <!-- Mode lecture : état civil + famille (inspiration Geneanet) -->
+          <div v-if="!editing" class="px-4 pb-4">
+            <dl class="space-y-2 text-sm">
+              <div v-if="selectedPerson.data.birth_date || selectedPerson.data.birth_place">
+                <dt class="text-[11px] font-semibold uppercase tracking-wider text-surface-400">Naissance</dt>
+                <dd class="text-surface-700">
+                  {{ selectedPerson.data.birth_date ? formatLongDate(selectedPerson.data.birth_date) : 'Date inconnue' }}
+                  <span v-if="selectedPerson.data.birth_place" class="text-surface-500"> — {{ selectedPerson.data.birth_place }}</span>
+                </dd>
+              </div>
+              <div v-if="selectedPerson.data.death_date || selectedPerson.data.death_place">
+                <dt class="text-[11px] font-semibold uppercase tracking-wider text-surface-400">Décès</dt>
+                <dd class="text-surface-700">
+                  {{ selectedPerson.data.death_date ? formatLongDate(selectedPerson.data.death_date) : 'Date inconnue' }}
+                  <span v-if="selectedPerson.data.death_place" class="text-surface-500"> — {{ selectedPerson.data.death_place }}</span>
+                  <span v-if="ageLabel(selectedPerson.data)" class="text-surface-500"> ({{ ageLabel(selectedPerson.data) }})</span>
+                </dd>
+              </div>
+              <div v-if="selectedPerson.data.maiden_name">
+                <dt class="text-[11px] font-semibold uppercase tracking-wider text-surface-400">Nom de naissance</dt>
+                <dd class="text-surface-700">{{ selectedPerson.data.maiden_name }}</dd>
+              </div>
+            </dl>
+
+            <!-- Nudge de complétion : infos d'état civil manquantes -->
+            <button
+              v-if="selectedPerson.can_edit && missingInfoLabel"
+              @click="startEdit"
+              class="mt-3 w-full text-left text-xs text-brand-700 dark:text-brand-400 border border-dashed border-brand-300 dark:border-brand-500/40 rounded-lg px-3 py-2 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-colors"
+            >
+              + Compléter : {{ missingInfoLabel }}
+            </button>
+
+            <!-- Famille proche, cliquable pour naviguer dans l'arbre -->
+            <div v-for="group in familyGroups" :key="group.label" class="mt-3">
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-surface-400 mb-1">{{ group.label }}</p>
+              <button
+                v-for="member in group.people"
+                :key="member.id"
+                @click="centerOnPerson(member)"
+                class="w-full flex items-center gap-2 px-2 py-1.5 -mx-2 rounded-lg text-left hover:bg-surface-100 transition-colors"
+              >
+                <img
+                  v-if="member.data.avatar_url"
+                  :src="member.data.avatar_url"
+                  :alt="personLabel(member.data)"
+                  class="w-7 h-7 rounded-full object-cover border border-surface-200 shrink-0"
+                />
+                <div v-else class="w-7 h-7 rounded-full bg-surface-200 text-surface-500 flex items-center justify-center text-xs font-semibold shrink-0">
+                  {{ (member.data.name || '?').charAt(0).toUpperCase() }}
+                </div>
+                <span class="text-sm text-surface-700 truncate">{{ personLabel(member.data) }}</span>
+                <span v-if="member.data.birth_date" class="ml-auto text-xs text-surface-400 shrink-0">
+                  {{ member.data.birth_date.substring(0, 4) }}
+                </span>
+              </button>
+            </div>
+
+            <Link
+              :href="`/people/${selectedPerson.id}`"
+              class="mt-4 inline-flex items-center text-sm font-medium text-brand-600 hover:text-brand-800"
+            >
+              Voir la fiche complète &rarr;
+            </Link>
+          </div>
+
+          <!-- Mode édition rapide : état civil complet -->
+          <form v-else @submit.prevent="saveEdit" class="px-4 pb-4 space-y-3">
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-xs font-medium text-surface-500 mb-1">Prénom(s)</label>
+                <input v-model="editForm.first_name" type="text" required class="form-input !py-1.5 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-surface-500 mb-1">Nom</label>
+                <input v-model="editForm.last_name" type="text" class="form-input !py-1.5 text-sm" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-surface-500 mb-1">Nom de naissance</label>
+              <input v-model="editForm.maiden_name" type="text" placeholder="Si différent" class="form-input !py-1.5 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-surface-500 mb-1">Genre</label>
+              <select v-model="editForm.gender" class="form-input !py-1.5 text-sm">
+                <option value="U">Non spécifié</option>
+                <option value="M">Masculin</option>
+                <option value="F">Féminin</option>
+              </select>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-xs font-medium text-surface-500 mb-1">Naissance</label>
+                <input v-model="editForm.birth_date" type="date" class="form-input !py-1.5 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-surface-500 mb-1">Lieu de naissance</label>
+                <input v-model="editForm.birth_place" type="text" placeholder="Ville, pays" class="form-input !py-1.5 text-sm" />
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-xs font-medium text-surface-500 mb-1">Décès</label>
+                <input v-model="editForm.death_date" type="date" class="form-input !py-1.5 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-surface-500 mb-1">Lieu de décès</label>
+                <input v-model="editForm.death_place" type="text" placeholder="Ville, pays" class="form-input !py-1.5 text-sm" />
+              </div>
+            </div>
+            <p v-for="(msgs, field) in editErrors" :key="field" class="text-xs text-red-600 dark:text-red-400">
+              {{ Array.isArray(msgs) ? msgs[0] : msgs }}
+            </p>
+            <div class="flex items-center justify-end gap-2 pt-1">
+              <button type="button" @click="editing = false" class="px-3 py-1.5 text-sm text-surface-600 hover:text-surface-800">
+                Annuler
+              </button>
+              <button
+                type="submit"
+                :disabled="saving"
+                class="px-3.5 py-1.5 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50"
+              >
+                {{ saving ? 'Enregistrement…' : 'Enregistrer' }}
+              </button>
+            </div>
+          </form>
         </div>
 
         <!-- Stats -->
@@ -102,9 +234,8 @@
         </div>
 
         <p class="mt-4 text-xs text-surface-400 leading-relaxed">
-          <span class="max-md:hidden">Molette pour zoomer, glisser pour déplacer.</span>
-          <span class="md:hidden">Pincez pour zoomer, glissez à un doigt pour déplacer.</span>
-          Touchez une carte pour recentrer l'arbre sur cette personne.
+          <span class="max-md:hidden">Molette pour zoomer, glisser pour déplacer. Cliquez sur une carte pour afficher les détails de la personne ici.</span>
+          <span class="md:hidden">Pincez pour zoomer, glissez à un doigt pour déplacer. Touchez une personne pour ouvrir sa fiche.</span>
         </p>
       </div>
 
@@ -128,7 +259,8 @@
         <!-- Contrôles de vue : tout voir / recentrer -->
         <div
           v-show="!loading && treeNodes.length > 0"
-          class="absolute bottom-4 right-4 z-10 flex flex-col gap-2"
+          class="absolute bottom-4 right-4 z-10 flex flex-col gap-2 transition-all"
+          :class="{ 'max-md:bottom-28': mobileCardVisible }"
         >
           <button
             @click="fitAll"
@@ -174,6 +306,57 @@
           ref="chartRef"
           class="f3 ml-tree w-full h-full"
         ></div>
+
+        <!-- Encart bas (mobile) : aperçu de la personne touchée + accès à sa fiche -->
+        <Transition
+          enter-active-class="transition duration-200 ease-out"
+          enter-from-class="translate-y-full opacity-0"
+          enter-to-class="translate-y-0 opacity-100"
+          leave-active-class="transition duration-150 ease-in"
+          leave-from-class="translate-y-0 opacity-100"
+          leave-to-class="translate-y-full opacity-0"
+        >
+          <div
+            v-if="mobileCardVisible"
+            class="md:hidden absolute inset-x-3 bottom-3 z-20 bg-white/95 dark:bg-surface-100/95 backdrop-blur border border-surface-200 rounded-2xl shadow-warm-lg p-3"
+          >
+            <div class="flex items-center gap-3">
+              <img
+                v-if="selectedPerson.data.avatar_url"
+                :src="selectedPerson.data.avatar_url"
+                :alt="personLabel(selectedPerson.data)"
+                class="w-14 h-14 rounded-xl object-cover border border-surface-200 shrink-0"
+              />
+              <div
+                v-else
+                class="w-14 h-14 rounded-xl bg-brand-100 text-brand-700 flex items-center justify-center text-lg font-semibold shrink-0"
+              >
+                {{ (selectedPerson.data.name || '?').charAt(0).toUpperCase() }}
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="font-semibold text-surface-900 leading-tight truncate">{{ personLabel(selectedPerson.data) }}</p>
+                <p class="text-xs text-surface-500 mt-0.5 truncate">
+                  {{ [lifespanLabel(selectedPerson.data), selectedPerson.data.birth_place].filter(Boolean).join(' · ') || 'Aucune information' }}
+                </p>
+              </div>
+              <Link
+                :href="`/people/${selectedPerson.id}`"
+                class="shrink-0 inline-flex items-center rounded-full bg-brand-600 text-white text-sm font-medium px-3.5 py-2 hover:bg-brand-700"
+              >
+                Voir la fiche
+              </Link>
+              <button
+                @click="mobileCard = false"
+                class="shrink-0 p-1 text-surface-400 hover:text-surface-600"
+                aria-label="Fermer"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </Transition>
 
         <!-- Marche du lien de parenté (arrivée via « Lien de parenté » d'une fiche) -->
         <div
@@ -249,7 +432,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import axios from 'axios';
@@ -258,6 +441,9 @@ import 'family-chart/styles/family-chart.css';
 import { personLabel } from '@/utils/personName';
 import { searchPeople } from '@/utils/personSearch';
 import { formatLongDate } from '@/utils/format';
+import { useToast } from '@/Composables/useToast';
+
+const toast = useToast();
 
 const chartRef = ref(null);
 const treeNodes = ref([]);      // données brutes (format backend) pour la sidebar
@@ -265,6 +451,7 @@ const loading = ref(true);
 const searchQuery = ref('');
 const selectedPerson = ref(null);
 const drawerOpen = ref(false);   // tiroir sidebar (mobile)
+const mobileCard = ref(false);   // encart bas (mobile) sur la personne touchée
 
 let chart = null;
 let rawById = {};
@@ -272,8 +459,13 @@ let rawById = {};
 // Sous ce breakpoint (= md de Tailwind), on démarre l'arbre zoomé sur la
 // personne principale plutôt que cadré en entier (sinon cartes illisibles).
 const isMobile = () => window.matchMedia('(max-width: 767px)').matches;
-const MOBILE_TREE_SCALE = 0.8;   // niveau de zoom initial mobile (cartes lisibles)
+const MOBILE_TREE_SCALE = 1;     // niveau de zoom initial mobile (cartes + photos lisibles)
 const DESKTOP_TREE_SCALE = 0.9;  // idem desktop : on démarre sur « moi », pas sur l'arbre entier
+
+// Cartes mobiles : photo nettement plus grande, moins de texte à l'écran mais
+// lisible sans zoomer. Desktop : format d'origine.
+const MOBILE_CARD = { dim: { w: 240, h: 112, img_w: 96, img_h: 96, img_x: 0, img_y: 0 }, x: 270, y: 210 };
+const DESKTOP_CARD = { dim: { w: 280, h: 96, img_w: 80, img_h: 80, img_x: 0, img_y: 0 }, x: 300, y: 190 };
 
 // L'animation d'ouverture (déploiement des cartes) ne joue qu'une fois par
 // jour et par navigateur : ensuite l'arbre apparaît directement en place.
@@ -285,6 +477,144 @@ const filteredPeople = computed(() => {
   // Recherche insensible aux accents + tolérante aux fautes (helper partagé).
   return searchPeople(searchQuery.value, treeNodes.value, n => n.data.name).slice(0, 10);
 });
+
+// L'encart mobile ne s'affiche pas pendant la marche du lien de parenté
+// (elle sélectionne les personnes en boucle et a sa propre bannière basse).
+const mobileCardVisible = computed(() => mobileCard.value && !!selectedPerson.value && !kinship.value);
+
+// ---- Panneau détail : état civil & famille -------------------------------
+
+function genderLabel(g) {
+  return { M: 'Homme', F: 'Femme' }[g] || null;
+}
+
+// Âge révolu entre deux dates (naissance → décès ou aujourd'hui).
+function ageBetween(birth, end) {
+  const b = new Date(birth);
+  const e = end ? new Date(end) : new Date();
+  let age = e.getFullYear() - b.getFullYear();
+  const m = e.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && e.getDate() < b.getDate())) age--;
+  return age >= 0 ? age : null;
+}
+
+// « à 74 ans » (au décès) — null si la naissance manque.
+function ageLabel(d) {
+  if (!d.birth_date || !d.death_date) return null;
+  const age = ageBetween(d.birth_date, d.death_date);
+  return age === null ? null : `à ${age} ans`;
+}
+
+// Sous le nom : « 1950 – 2020 » ou « 74 ans » pour les vivants.
+function lifespanLabel(d) {
+  if (d.death_date) return yearSpan(d.birth_date, d.death_date);
+  if (d.birth_date) {
+    const age = ageBetween(d.birth_date, null);
+    return age === null ? d.birth_date.substring(0, 4) : `${age} ans`;
+  }
+  return null;
+}
+
+// Ce qui manque à l'état civil, pour le nudge « + Compléter » des éditeurs.
+const missingInfoLabel = computed(() => {
+  const d = selectedPerson.value?.data;
+  if (!d) return null;
+  const missing = [];
+  if (!d.birth_date) missing.push('date de naissance');
+  if (!d.birth_place) missing.push('lieu de naissance');
+  if (!d.gender || d.gender === 'U') missing.push('genre');
+  return missing.length ? missing.join(', ') : null;
+});
+
+// Famille proche de la personne sélectionnée (parents / conjoints / enfants /
+// fratrie), résolue depuis les données déjà chargées de l'arbre.
+const familyGroups = computed(() => {
+  const p = selectedPerson.value;
+  if (!p) return [];
+  const get = (id) => (id && rawById[id]) || null;
+  const parents = [get(p.rels.father), get(p.rels.mother)].filter(Boolean);
+  const spouses = (p.rels.spouses || []).map(get).filter(Boolean);
+  const children = (p.rels.children || []).map(get).filter(Boolean);
+  const siblings = treeNodes.value.filter(n =>
+    n.id !== p.id && (
+      (p.rels.father && n.rels.father === p.rels.father) ||
+      (p.rels.mother && n.rels.mother === p.rels.mother)
+    ));
+  return [
+    { label: 'Parents', people: parents },
+    { label: spouses.length > 1 ? 'Conjoints' : 'Conjoint·e', people: spouses },
+    { label: 'Enfants', people: children },
+    { label: 'Frères et sœurs', people: siblings },
+  ].filter(g => g.people.length);
+});
+
+// ---- Édition rapide (panneau desktop) ------------------------------------
+
+const editing = ref(false);
+const saving = ref(false);
+const editErrors = ref({});
+
+const editForm = reactive({
+  first_name: '', last_name: '', maiden_name: '', gender: 'U',
+  birth_date: '', birth_place: '', death_date: '', death_place: '',
+});
+
+// Changer de personne referme le formulaire (il pré-remplit l'ancienne fiche).
+watch(selectedPerson, () => { editing.value = false; editErrors.value = {}; });
+
+function startEdit() {
+  const d = selectedPerson.value.data;
+  // Fallback si prénom/nom séparés absents : même découpe que le backend
+  // (dernier mot = nom de famille).
+  const parts = (d.name || '').trim().split(/\s+/).filter(Boolean);
+  editForm.first_name = d.first_name || (parts.length > 1 ? parts.slice(0, -1).join(' ') : parts[0] || '');
+  editForm.last_name = d.last_name || (parts.length > 1 ? parts[parts.length - 1] : '');
+  editForm.maiden_name = d.maiden_name || '';
+  editForm.gender = d.gender || 'U';
+  editForm.birth_date = d.birth_date || '';
+  editForm.birth_place = d.birth_place || '';
+  editForm.death_date = d.death_date || '';
+  editForm.death_place = d.death_place || '';
+  editErrors.value = {};
+  editing.value = true;
+}
+
+async function saveEdit() {
+  const person = selectedPerson.value;
+  saving.value = true;
+  editErrors.value = {};
+  try {
+    const { data } = await axios.put(`/people/${person.id}`, { ...editForm });
+    // Mise à jour locale du nœud : nom recomposé par le serveur, dates gardées
+    // au format Y-m-d du formulaire (le serveur les renvoie en ISO complet).
+    Object.assign(person.data, {
+      name: data.person.name,
+      first_name: data.person.first_name,
+      last_name: data.person.last_name,
+      maiden_name: data.person.maiden_name,
+      gender: data.person.gender,
+      birth_date: editForm.birth_date || null,
+      birth_place: editForm.birth_place || null,
+      death_date: editForm.death_date || null,
+      death_place: editForm.death_place || null,
+    });
+    // Répercute nom + années sur les cartes de l'arbre.
+    if (chart) {
+      chart.updateData(toChartData(treeNodes.value));
+      chart.updateTree({});
+    }
+    editing.value = false;
+    toast.success('Informations mises à jour');
+  } catch (e) {
+    if (e.response?.status === 422) {
+      editErrors.value = e.response.data.errors || {};
+    } else {
+      toast.error(e.response?.data?.message || "Impossible d'enregistrer.");
+    }
+  } finally {
+    saving.value = false;
+  }
+}
 
 // Année de naissance – décès, pour la 2e ligne de carte
 function yearSpan(birth, death) {
@@ -352,11 +682,12 @@ function renderChart() {
   if (rawById[mainId]) selectedPerson.value = rawById[mainId];
 
   const skipIntro = introPlayedToday();
+  const card = isMobile() ? MOBILE_CARD : DESKTOP_CARD;
 
   chart = f3.createChart('#ml-family-chart', data)
     .setTransitionTime(skipIntro ? 0 : 700)
-    .setCardXSpacing(300)
-    .setCardYSpacing(190)
+    .setCardXSpacing(card.x)
+    .setCardYSpacing(card.y)
     .setOrientationVertical()
     .updateMainId(mainId);
 
@@ -366,7 +697,7 @@ function renderChart() {
     // imageRect : carte rectangulaire avec photo À GAUCHE et texte à droite
     // (nom + années), pour TOUS — silhouette si pas de photo. Cartes agrandies.
     .setStyle('imageRect')
-    .setCardDim({ w: 280, h: 96, img_w: 80, img_h: 80, img_x: 0, img_y: 0 })
+    .setCardDim(card.dim)
     .setOnCardClick((e, d) => {
       const id = d?.data?.id || d?.id;
       if (id && rawById[id]) selectedPerson.value = rawById[id];
@@ -374,6 +705,8 @@ function renderChart() {
         chart.updateMainId(id);
         chart.updateTree({ tree_position: 'main_to_middle' });
       }
+      // Sur mobile, le panneau latéral est fermé : l'encart bas donne accès à la fiche.
+      if (id && isMobile()) mobileCard.value = true;
     });
 
   // Démarrage zoomé sur la personne principale (la fiche de l'utilisateur
@@ -398,6 +731,7 @@ function centerOnPerson(person) {
   selectedPerson.value = rawById[person.id] || person;
   searchQuery.value = '';
   drawerOpen.value = false;   // referme le tiroir sur mobile après un choix
+  if (isMobile()) mobileCard.value = true;
   if (chart) {
     chart.updateMainId(person.id);
     chart.updateTree({ tree_position: 'main_to_middle' });
@@ -626,6 +960,12 @@ onBeforeUnmount(() => {
 .ml-tree .card-image-rect .card-label { line-height: 1.25; }
 .ml-tree .card-image-rect .card-label > div:first-child { font-weight: 600; font-size: 14px; }
 .ml-tree .card-image-rect .card-label > div:last-child { font-size: 12px; opacity: 0.8; }
+
+/* Mobile : cartes agrandies (photo 96px) → texte agrandi d'autant */
+@media (max-width: 767px) {
+  .ml-tree .card-image-rect .card-label > div:first-child { font-size: 16px; }
+  .ml-tree .card-image-rect .card-label > div:last-child { font-size: 13px; }
+}
 
 /* --- Dark mode --- */
 :root[data-theme='dark'] .ml-tree.f3,

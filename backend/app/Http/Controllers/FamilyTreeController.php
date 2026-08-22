@@ -87,16 +87,23 @@ class FamilyTreeController extends Controller
 
     private function buildNode(Person $person, array $spouseMap, array $childrenMap): array
     {
+        $user = auth()->user();
+
         return [
             'id' => $person->id,
+            // Édition rapide depuis le panneau de l'arbre : mêmes droits que la
+            // fiche (propriétaire ou admin).
+            'can_edit' => $user !== null && ($user->isAdmin() || $person->user_id === $user->id),
             'data' => [
                 'name' => $person->name,
+                'first_name' => $person->first_name,
                 'last_name' => $person->last_name,
                 'maiden_name' => $person->maiden_name,
                 'gender' => $person->gender,
                 'birth_date' => $person->birth_date?->format('Y-m-d'),
                 'death_date' => $person->death_date?->format('Y-m-d'),
                 'birth_place' => $person->birth_place,
+                'death_place' => $person->death_place,
                 'avatar_url' => $this->avatarUrl($person),
                 'slug' => $person->slug,
             ],

@@ -627,9 +627,9 @@ class PersonController extends Controller
 
     public function update(Request $request, Person $person)
     {
-        if ($person->user_id !== auth()->id()) {
-            abort(403);
-        }
+        // Aligné sur les autres actions (et sur le bouton « Modifier » de la
+        // fiche, déjà affiché aux admins) : propriétaire OU admin.
+        $this->authorizeManage($person);
 
         $validated = $this->normalizeNameFields($request->validate($this->personRules()));
 
