@@ -4,13 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Models\Person;
 use App\Services\MediaService;
+use App\Services\Vision\AvatarFacePositionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class FamilyTreeController extends Controller
 {
-    public function __construct(private MediaService $mediaService) {}
+    public function __construct(
+        private MediaService $mediaService,
+        private AvatarFacePositionService $avatarPositions,
+    ) {}
 
     public function index()
     {
@@ -28,8 +32,9 @@ class FamilyTreeController extends Controller
             ->get();
 
         [$spouseMap, $childrenMap] = $this->buildRelationMaps();
+        $facePositions = $this->avatarPositions->forPeople($people);
 
-        $nodes = $people->map(fn (Person $person) => $this->buildNode($person, $spouseMap, $childrenMap));
+        $nodes = $people->map(fn (Person $person) => $this->buildNode($person, $spouseMap, $childrenMap, $facePositions));
 
         return response()->json($nodes->values());
     }
@@ -48,8 +53,9 @@ class FamilyTreeController extends Controller
             ->get();
 
         [$spouseMap, $childrenMap] = $this->buildRelationMaps();
+        $facePositions = $this->avatarPositions->forPeople($people);
 
-        $nodes = $people->map(fn (Person $p) => $this->buildNode($p, $spouseMap, $childrenMap));
+        $nodes = $people->map(fn (Person $p) => $this->buildNode($p, $spouseMap, $childrenMap, $facePositions));
 
         return response()->json($nodes->values());
     }
@@ -85,7 +91,7 @@ class FamilyTreeController extends Controller
         return [$spouseMap, $childrenMap];
     }
 
-    private function buildNode(Person $person, array $spouseMap, array $childrenMap): array
+    private function buildNode(Person $person, array $spouseMap, array $childrenMap, array $facePositions = []): array
     {
         $user = auth()->user();
 
@@ -105,6 +111,9 @@ class FamilyTreeController extends Controller
                 'birth_place' => $person->birth_place,
                 'death_place' => $person->death_place,
                 'avatar_url' => $this->avatarUrl($person),
+                // object-position centré sur le visage (issue #51) — seulement
+                // pour les avatars « photo entière », null sinon.
+                'avatar_position' => $facePositions[$person->id] ?? null,
                 'slug' => $person->slug,
             ],
             'rels' => [

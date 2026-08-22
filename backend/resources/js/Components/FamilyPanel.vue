@@ -23,6 +23,7 @@
                 v-if="(slot === 'father' ? father : mother).avatar_url"
                 :src="(slot === 'father' ? father : mother).avatar_url"
                 class="absolute inset-0 w-full h-full object-cover"
+                :style="faceStyle(slot === 'father' ? father : mother)"
               />
               <div v-else class="absolute inset-0 flex items-center justify-center text-4xl font-bold text-brand-700">
                 {{ (slot === 'father' ? father : mother).name.charAt(0).toUpperCase() }}
@@ -77,7 +78,7 @@
           :href="`/people/${sibling.id}`"
           class="relative block w-32 aspect-[3/4] rounded-xl overflow-hidden bg-surface-100 shadow-warm-sm opacity-85 hover:opacity-100 hover:shadow-warm-md hover:scale-[1.02] transition self-center"
         >
-          <img v-if="sibling.avatar_url" :src="sibling.avatar_url" class="absolute inset-0 w-full h-full object-cover" />
+          <img v-if="sibling.avatar_url" :src="sibling.avatar_url" class="absolute inset-0 w-full h-full object-cover" :style="faceStyle(sibling)" />
           <div v-else class="absolute inset-0 flex items-center justify-center text-3xl font-bold text-surface-400">
             {{ sibling.name.charAt(0).toUpperCase() }}
           </div>
@@ -89,7 +90,7 @@
 
         <!-- La personne, mise en avant -->
         <div class="relative w-40 aspect-[3/4] rounded-xl overflow-hidden bg-brand-100 ring-2 ring-brand-500 shadow-warm-md">
-          <img v-if="person.avatar_url" :src="person.avatar_url" class="absolute inset-0 w-full h-full object-cover" />
+          <img v-if="person.avatar_url" :src="person.avatar_url" class="absolute inset-0 w-full h-full object-cover" :style="faceStyle(person)" />
           <div v-else class="absolute inset-0 flex items-center justify-center text-5xl font-bold text-brand-700">
             {{ person.name.charAt(0).toUpperCase() }}
           </div>
@@ -106,7 +107,7 @@
             :href="`/people/${spouse.id}`"
             class="relative block w-36 aspect-[3/4] rounded-xl overflow-hidden bg-brand-100 shadow-warm-sm hover:shadow-warm-md hover:scale-[1.02] transition"
           >
-            <img v-if="spouse.avatar_url" :src="spouse.avatar_url" class="absolute inset-0 w-full h-full object-cover" />
+            <img v-if="spouse.avatar_url" :src="spouse.avatar_url" class="absolute inset-0 w-full h-full object-cover" :style="faceStyle(spouse)" />
             <div v-else class="absolute inset-0 flex items-center justify-center text-4xl font-bold text-brand-700">
               {{ spouse.name.charAt(0).toUpperCase() }}
             </div>
@@ -170,7 +171,7 @@
           :href="`/people/${child.id}`"
           class="relative block w-36 aspect-[3/4] rounded-xl overflow-hidden bg-brand-100 shadow-warm-sm hover:shadow-warm-md hover:scale-[1.02] transition"
         >
-          <img v-if="child.avatar_url" :src="child.avatar_url" class="absolute inset-0 w-full h-full object-cover" />
+          <img v-if="child.avatar_url" :src="child.avatar_url" class="absolute inset-0 w-full h-full object-cover" :style="faceStyle(child)" />
           <div v-else class="absolute inset-0 flex items-center justify-center text-4xl font-bold text-brand-700">
             {{ child.name.charAt(0).toUpperCase() }}
           </div>
@@ -274,6 +275,10 @@ const toggleAdding = (what) => {
     coParentId.value = props.spouses.length === 1 ? props.spouses[0].id : '';
   }
 };
+
+// Cadrage intelligent (issue #51) : object-position centré sur le visage
+// quand le serveur l'a calculé (avatar « photo entière » + visage détecté).
+const faceStyle = (p) => (p?.avatar_position ? { objectPosition: p.avatar_position } : undefined);
 
 // « 1954 – 1998 » / « 1988 » — années de vie pour le sous-titre des cartes.
 const lifeYears = (p) => {

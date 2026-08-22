@@ -8,6 +8,7 @@ use App\Models\PersonRelationship;
 use App\Models\Media;
 use App\Services\GenealogyService;
 use App\Services\MediaService;
+use App\Services\Vision\AvatarFacePositionService;
 use App\Services\Vision\FaceCropService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,11 +23,14 @@ class PersonController extends Controller
 
     protected FaceCropService $faceCrops;
 
-    public function __construct(MediaService $mediaService, GenealogyService $genealogy, FaceCropService $faceCrops)
+    protected AvatarFacePositionService $avatarPositions;
+
+    public function __construct(MediaService $mediaService, GenealogyService $genealogy, FaceCropService $faceCrops, AvatarFacePositionService $avatarPositions)
     {
         $this->mediaService = $mediaService;
         $this->genealogy = $genealogy;
         $this->faceCrops = $faceCrops;
+        $this->avatarPositions = $avatarPositions;
     }
 
     public function index(Request $request)
@@ -203,6 +207,14 @@ class PersonController extends Controller
             $spouse->avatar_url = $this->resolveAvatarUrl($spouse);
             return $spouse;
         });
+
+        // Cadrage intelligent (issue #51) : object-position centré sur le
+        // visage pour les avatars « photo entière », calculé en un lot pour
+        // toutes les cartes du mini-arbre Famille.
+        $everyone = collect([$person, $father, $mother])->filter()
+            ->concat($siblings)->concat($children)->concat($spouses);
+        $facePositions = $this->avatarPositions->forPeople($everyone);
+        $everyone->each(fn ($p) => $p->avatar_position = $facePositions[$p->id] ?? null);
 
         // Médias de la personne visibles PAR LE VISITEUR uniquement (la galerie
         // reste privée : ne pas fuiter les photos privées via la fiche, surtout

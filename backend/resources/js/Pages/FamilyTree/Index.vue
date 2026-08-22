@@ -71,6 +71,7 @@
               :src="selectedPerson.data.avatar_url"
               :alt="personLabel(selectedPerson.data)"
               class="w-16 h-16 rounded-xl object-cover border border-surface-200 shrink-0"
+              :style="faceStyle(selectedPerson)"
             />
             <div
               v-else
@@ -145,6 +146,7 @@
                   :src="member.data.avatar_url"
                   :alt="personLabel(member.data)"
                   class="w-7 h-7 rounded-full object-cover border border-surface-200 shrink-0"
+                  :style="faceStyle(member)"
                 />
                 <div v-else class="w-7 h-7 rounded-full bg-surface-200 text-surface-500 flex items-center justify-center text-xs font-semibold shrink-0">
                   {{ (member.data.name || '?').charAt(0).toUpperCase() }}
@@ -326,6 +328,7 @@
                 :src="selectedPerson.data.avatar_url"
                 :alt="personLabel(selectedPerson.data)"
                 class="w-14 h-14 rounded-xl object-cover border border-surface-200 shrink-0"
+                :style="faceStyle(selectedPerson)"
               />
               <div
                 v-else
@@ -641,6 +644,9 @@ function toChartData(raw) {
       // Bug corrigé : l'avatar n'était pas transmis -> les photos ne
       // s'affichaient jamais sur les cartes.
       avatar_url: n.data.avatar_url || null,
+      // object-position centré sur le visage (issue #51), appliqué au DOM
+      // par l'observer applyFacePositions (family-chart ne le gère pas).
+      avatar_position: n.data.avatar_position || null,
     },
     rels: {
       parents: [n.rels.father, n.rels.mother].filter(id => id && known.has(id)),
@@ -752,6 +758,34 @@ function recenter() {
   } else {
     chart.updateTree({ tree_position: 'fit' });
   }
+}
+
+// ---- Cadrage intelligent des photos de cartes (issue #51) ------------------
+// family-chart recrée les cartes à chaque updateTree : un MutationObserver
+// réapplique l'object-position (centre du visage, calculé côté serveur pour
+// les avatars « photo entière ») sur l'<img> de chaque carte recréée.
+let faceObserver = null;
+
+function applyFacePositions() {
+  if (!chartRef.value) return;
+  chartRef.value.querySelectorAll('.card[data-id]').forEach((el) => {
+    const position = rawById[el.getAttribute('data-id')]?.data?.avatar_position;
+    const img = el.querySelector('img');
+    if (img && position) img.style.objectPosition = position;
+  });
+}
+
+function watchFacePositions() {
+  if (!chartRef.value || faceObserver) return;
+  faceObserver = new MutationObserver(applyFacePositions);
+  faceObserver.observe(chartRef.value, { childList: true, subtree: true });
+  applyFacePositions();
+}
+
+// Style inline pour les <img> Vue (panneau, encart mobile, chips famille).
+function faceStyle(node) {
+  const position = node?.data?.avatar_position;
+  return position ? { objectPosition: position } : undefined;
 }
 
 // ---- Marche du lien de parenté (?kinship=<personId>) ----------------------
@@ -881,6 +915,7 @@ onMounted(async () => {
   // Attendre que v-show révèle le conteneur avant de monter le graphe
   await new Promise(r => requestAnimationFrame(r));
   renderChart();
+  watchFacePositions();
 
   const kinshipTarget = new URLSearchParams(window.location.search).get('kinship');
   if (kinshipTarget) loadKinship(kinshipTarget);
@@ -888,6 +923,8 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   clearTimeout(kinshipTimer);
+  faceObserver?.disconnect();
+  faceObserver = null;
   chart = null;
 });
 </script>

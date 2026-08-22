@@ -147,7 +147,10 @@ class MediaService
             // Les vidéos sources découpées sont masquées de la galerie (leurs
             // clips les remplacent) ; elles restent accessibles depuis un clip.
             ->where('is_source', false)
-            ->orderBy('taken_at', 'desc')
+            // NULLS LAST : sous Postgres, DESC met les NULLs en premier — les
+            // médias « Sans date » doivent former la DERNIÈRE section de la
+            // galerie (en-têtes par année, issue #40).
+            ->orderByRaw('taken_at DESC NULLS LAST')
             ->orderBy('uploaded_at', 'desc');
 
         // Filter by type if provided

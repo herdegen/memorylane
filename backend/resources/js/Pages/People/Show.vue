@@ -78,6 +78,7 @@
               :src="person.avatar_url"
               :alt="person.name"
               class="w-full h-full object-cover"
+              :style="person.avatar_position ? { objectPosition: person.avatar_position } : undefined"
             />
             <span v-else class="text-5xl font-bold text-brand-700">
               {{ person.name.charAt(0).toUpperCase() }}
