@@ -54,6 +54,7 @@ class Media extends Model
         'file_path',
         'content_hash',
         'perceptual_hash',
+        'similar_group_id',
         'mime_type',
         'size',
         'width',
