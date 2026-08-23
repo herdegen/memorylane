@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Album;
 use App\Models\Media;
+use App\Models\Person;
 use App\Services\MediaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -110,6 +111,31 @@ class MapController extends Controller
             'media' => $media,
             'albums' => $albums,
         ]);
+    }
+
+    /**
+     * Couche « où vit la famille » : heatmap volontairement grossière des
+     * adresses de résidence. Coordonnées arrondies à 0,01° (~1 km) CÔTÉ
+     * SERVEUR — les coordonnées précises ne quittent jamais le backend — et
+     * agrégées par point arrondi (le poids = nombre de personnes), sans
+     * aucun identifiant. Toutes les adresses comptent, opt-in ou non :
+     * l'opt-in ne gouverne que l'affichage de l'adresse précise sur la fiche.
+     */
+    public function heatmap()
+    {
+        $points = Person::query()
+            ->whereNotNull('address_latitude')
+            ->whereNotNull('address_longitude')
+            ->get(['address_latitude', 'address_longitude'])
+            ->groupBy(fn ($p) => round((float) $p->address_latitude, 2) . ',' . round((float) $p->address_longitude, 2))
+            ->map(function ($group, $key) {
+                [$lat, $lng] = explode(',', $key);
+
+                return [(float) $lat, (float) $lng, $group->count()];
+            })
+            ->values();
+
+        return response()->json(['points' => $points]);
     }
 
     /**

@@ -33,7 +33,15 @@ class ProfileController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'pin_code' => ['nullable', 'string', 'max:6'],
+            'share_address_with_household' => ['nullable', 'boolean'],
         ]);
+
+        if ($request->has('share_address_with_household')) {
+            $validated['preferences'] = array_merge($user->preferences ?? [], [
+                'share_address_with_household' => (bool) $validated['share_address_with_household'],
+            ]);
+        }
+        unset($validated['share_address_with_household']);
 
         $user->update($validated);
 

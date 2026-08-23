@@ -55,6 +55,37 @@
                 help="Maximum 6 caractères"
               />
 
+              <div>
+                <button
+                  type="button"
+                  role="switch"
+                  :aria-checked="profileForm.share_address_with_household"
+                  @click="profileForm.share_address_with_household = !profileForm.share_address_with_household"
+                  class="w-full flex items-start justify-between gap-4 text-left"
+                >
+                  <span>
+                    <span class="block text-sm font-medium text-surface-700">Partager mon adresse avec mon foyer</span>
+                    <span class="block mt-1 text-xs text-surface-500">
+                      Les membres de vos foyers verront votre adresse sur votre fiche.
+                      Sans cela, seule une position approximative (~1 km) alimente la carte.
+                    </span>
+                  </span>
+                  <span
+                    :class="[
+                      'relative inline-flex h-5 w-9 shrink-0 mt-0.5 rounded-full transition-colors',
+                      profileForm.share_address_with_household ? 'bg-brand-600' : 'bg-surface-300'
+                    ]"
+                  >
+                    <span
+                      :class="[
+                        'absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform',
+                        profileForm.share_address_with_household ? 'translate-x-4.5' : 'translate-x-0.5'
+                      ]"
+                    ></span>
+                  </span>
+                </button>
+              </div>
+
               <div class="flex items-center gap-4">
                 <FormButton
                   type="submit"
@@ -144,6 +175,7 @@ const profileForm = useForm({
   name: props.user.name,
   email: props.user.email,
   pin_code: props.user.pin_code || '',
+  share_address_with_household: !!props.user.preferences?.share_address_with_household,
 });
 
 const passwordForm = useForm({

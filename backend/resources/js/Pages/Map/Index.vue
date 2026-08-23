@@ -76,6 +76,36 @@
           </div>
         </div>
 
+        <!-- Couches -->
+        <div class="mb-4">
+          <h3 class="font-semibold mb-2">Couches</h3>
+          <button
+            type="button"
+            role="switch"
+            :aria-checked="heatmapEnabled"
+            @click="toggleHeatmap"
+            class="w-full flex items-center justify-between px-3 py-2 border border-surface-300 rounded-lg hover:bg-surface-50 transition-colors"
+          >
+            <span class="text-sm text-surface-700">🔥 Où vit la famille</span>
+            <span
+              :class="[
+                'relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors',
+                heatmapEnabled ? 'bg-brand-600' : 'bg-surface-300'
+              ]"
+            >
+              <span
+                :class="[
+                  'absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform',
+                  heatmapEnabled ? 'translate-x-4.5' : 'translate-x-0.5'
+                ]"
+              ></span>
+            </span>
+          </button>
+          <p v-if="heatmapEnabled" class="mt-1 text-xs text-surface-500">
+            Positions approximatives (~1 km), jamais les adresses exactes.
+          </p>
+        </div>
+
         <!-- Media count -->
         <div class="mt-4 p-3 bg-brand-50 rounded-lg">
           <div class="text-sm text-surface-600">
@@ -120,6 +150,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import { formatDate } from '@/utils/format';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet.heat';
 import axios from 'axios';
 
 const props = defineProps({
@@ -134,6 +165,11 @@ const mapContainer = ref(null);
 let map = null;
 let markersLayer = null;
 let searchMarker = null;
+let heatLayer = null;
+
+// Couche « où vit la famille » (heatmap grossière des adresses)
+const heatmapEnabled = ref(false);
+let heatPoints = null; // cache : un seul fetch par visite
 
 // Data
 const geolocatedMedia = ref([]);
@@ -283,6 +319,46 @@ function updateMarkers() {
   if (bounds.length > 0) {
     map.fitBounds(bounds, { padding: [50, 50] });
   }
+}
+
+// Couche heatmap : les points arrivent déjà arrondis (~1 km) et anonymes
+// du serveur ; le grand radius accentue volontairement l'aspect « nuage ».
+async function toggleHeatmap() {
+  heatmapEnabled.value = !heatmapEnabled.value;
+
+  if (!heatmapEnabled.value) {
+    if (heatLayer) map.removeLayer(heatLayer);
+    return;
+  }
+
+  if (!heatPoints) {
+    try {
+      const response = await axios.get('/map/heatmap');
+      heatPoints = (response.data.points || []).map(([lat, lng, weight]) => [
+        Number(lat),
+        Number(lng),
+        Number(weight),
+      ]);
+    } catch (error) {
+      console.error('Failed to load heatmap:', error);
+      heatmapEnabled.value = false;
+      return;
+    }
+  }
+
+  // Réglé pour de FAIBLES densités (souvent 1 personne par ville, max 2-3) :
+  // - maxZoom bas : leaflet.heat divise l'intensité par 2^(maxZoom - zoom),
+  //   avec la valeur par défaut un point isolé est invisible au niveau France ;
+  // - max: 1.5 : 1 personne = tache orange bien visible, 2+ = rouge saturé ;
+  // - minOpacity garde le halo lisible sur les tuiles claires.
+  heatLayer ??= L.heatLayer(heatPoints, {
+    radius: 45,
+    blur: 25,
+    maxZoom: 6,
+    max: 1.5,
+    minOpacity: 0.35,
+  });
+  heatLayer.setLatLngs(heatPoints).addTo(map);
 }
 
 // Toggle tag filter

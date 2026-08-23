@@ -88,6 +88,23 @@
       </div>
 
       <div>
+        <label for="address" class="block text-sm font-medium text-surface-700 mb-1">
+          Adresse
+        </label>
+        <input
+          id="address"
+          v-model="form.address"
+          type="text"
+          class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+          placeholder="12 rue des Lilas, 93100 Montreuil"
+        />
+        <p class="mt-1 text-xs text-surface-500">
+          Visible uniquement par vous, les admins et votre foyer (si le partage est activé dans le profil).
+        </p>
+        <p v-if="errors.address" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ errors.address }}</p>
+      </div>
+
+      <div>
         <label for="notes" class="block text-sm font-medium text-surface-700 mb-1">
           Notes
         </label>
@@ -160,6 +177,9 @@ const form = reactive({
   gender: props.person?.gender || 'U',
   birth_date: props.person?.birth_date || '',
   death_date: props.person?.death_date || '',
+  // Absente des props pour un visiteur non autorisé, mais la modale n'est
+  // atteignable que via canManage (adresse alors visible côté serveur).
+  address: props.person?.address || '',
   notes: props.person?.notes || '',
 });
 

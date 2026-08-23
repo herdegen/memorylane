@@ -12,6 +12,17 @@ class EditPerson extends EditRecord
 {
     protected static string $resource = PersonResource::class;
 
+    /**
+     * Filament remplit le formulaire via attributesToArray(), qui exclut les
+     * champs $hidden : réinjecter l'adresse pour que le champ soit pré-rempli.
+     */
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        $data['address'] = $this->getRecord()->address;
+
+        return $data;
+    }
+
     protected function getHeaderActions(): array
     {
         return [

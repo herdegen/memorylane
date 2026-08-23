@@ -140,6 +140,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/media/{media}/geolocation', [MapController::class, 'removeGeolocation'])->name('removeGeolocation');
         Route::get('/search', [MapController::class, 'searchLocation'])->name('searchLocation');
         Route::get('/nearby', [MapController::class, 'getNearbyMedia'])->name('nearby');
+        Route::get('/heatmap', [MapController::class, 'heatmap'])->name('heatmap');
     });
 
     // Album routes

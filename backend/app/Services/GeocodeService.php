@@ -15,6 +15,9 @@ class GeocodeService
 {
     private const ENDPOINT = 'https://nominatim.openstreetmap.org/search';
 
+    /** API Adresse de l'État (BAN) : adresses françaises, sans clé, rapide. */
+    private const BAN_ENDPOINT = 'https://api-adresse.data.gouv.fr/search/';
+
     /** Un vrai résultat ne bouge plus ; un échec est retenté après 7 jours. */
     private const HIT_TTL_DAYS = 365;
     private const MISS_TTL_DAYS = 7;
@@ -49,6 +52,69 @@ class GeocodeService
         );
 
         return $result;
+    }
+
+    /**
+     * Géocode une adresse postale française via la BAN (adresse.data.gouv.fr).
+     * Renvoie aussi la ville, utile en affichage de repli. Même politique de
+     * cache que coordinatesFor ; pas de throttle (la BAN tolère ~50 req/s).
+     *
+     * @return array{latitude: float, longitude: float, city: ?string}|null
+     */
+    public function addressFor(?string $address): ?array
+    {
+        $address = trim((string) $address);
+        if ($address === '' || mb_strlen($address) < 3) {
+            return null;
+        }
+
+        $key = 'geocode:ban:' . md5(mb_strtolower($address));
+
+        $cached = Cache::get($key);
+        if ($cached !== null) {
+            return $cached === 'miss' ? null : $cached;
+        }
+
+        $result = $this->fetchBan($address);
+        Cache::put(
+            $key,
+            $result ?? 'miss',
+            now()->addDays($result ? self::HIT_TTL_DAYS : self::MISS_TTL_DAYS),
+        );
+
+        return $result;
+    }
+
+    /**
+     * @return array{latitude: float, longitude: float, city: ?string}|null
+     */
+    private function fetchBan(string $address): ?array
+    {
+        try {
+            $response = Http::withHeaders([
+                'User-Agent' => 'MemoryLane/1.3.0 (family media hub)',
+            ])->timeout(6)->get(self::BAN_ENDPOINT, [
+                'q' => $address,
+                'limit' => 1,
+            ]);
+
+            $feature = $response->ok() ? ($response->json('features')[0] ?? null) : null;
+            // GeoJSON : coordinates = [longitude, latitude].
+            $coords = $feature['geometry']['coordinates'] ?? null;
+            if (! is_array($coords) || count($coords) < 2) {
+                return null;
+            }
+
+            return [
+                'latitude' => (float) $coords[1],
+                'longitude' => (float) $coords[0],
+                'city' => $feature['properties']['city'] ?? null,
+            ];
+        } catch (\Throwable $e) {
+            Log::warning('GeocodeService: échec BAN', ['address' => $address, 'error' => $e->getMessage()]);
+
+            return null;
+        }
     }
 
     /**

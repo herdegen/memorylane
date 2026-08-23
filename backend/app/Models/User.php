@@ -96,4 +96,21 @@ class User extends Authenticatable implements FilamentUser
     {
         return $this->householdIdsCache ??= $this->households()->pluck('households.id')->all();
     }
+
+    /**
+     * Les deux utilisateurs partagent-ils au moins un foyer ?
+     */
+    public function sharesHouseholdWith(User $other): bool
+    {
+        return array_intersect($this->householdIds(), $other->householdIds()) !== [];
+    }
+
+    /**
+     * L'utilisateur a-t-il choisi de partager son adresse avec son foyer ?
+     * (option du profil, stockée dans preferences ; défaut : non)
+     */
+    public function sharesAddressWithHousehold(): bool
+    {
+        return (bool) ($this->preferences['share_address_with_household'] ?? false);
+    }
 }

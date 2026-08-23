@@ -36,12 +36,26 @@ class Person extends Model
         'birth_place',
         'death_date',
         'death_place',
+        'address',
         'avatar_media_id',
         'notes',
         'father_id',
         'mother_id',
         'gender',
         'gedcom_id',
+    ];
+
+    /**
+     * L'adresse est confidentielle : les fiches sont lisibles par tout compte
+     * connecté et Person est sérialisé partout (index, arbre, fratries…).
+     * Masquée par défaut, elle n'est rendue visible (makeVisible) que sur la
+     * fiche, pour le propriétaire/admin ou le foyer avec opt-in.
+     */
+    protected $hidden = [
+        'address',
+        'address_city',
+        'address_latitude',
+        'address_longitude',
     ];
 
     protected function casts(): array
@@ -61,6 +75,18 @@ class Person extends Model
         static::saving(function ($person) {
             if ($person->first_name || $person->last_name) {
                 $person->name = trim($person->first_name . ' ' . $person->last_name);
+            }
+
+            // Géocodage BAN de l'adresse de résidence (couvre front, Filament
+            // et tinker). Résultat caché côté service : pas d'appel réseau
+            // répété pour une même adresse.
+            if ($person->isDirty('address')) {
+                $geo = $person->address
+                    ? app(\App\Services\GeocodeService::class)->addressFor($person->address)
+                    : null;
+                $person->address_city = $geo['city'] ?? null;
+                $person->address_latitude = $geo['latitude'] ?? null;
+                $person->address_longitude = $geo['longitude'] ?? null;
             }
         });
 

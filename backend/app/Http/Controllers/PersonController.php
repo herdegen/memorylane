@@ -6,6 +6,7 @@ use App\Models\Album;
 use App\Models\Person;
 use App\Models\PersonRelationship;
 use App\Models\Media;
+use App\Models\User;
 use App\Services\GenealogyService;
 use App\Services\MediaService;
 use App\Services\Vision\AvatarFacePositionService;
@@ -119,6 +120,7 @@ class PersonController extends Controller
             'birth_place' => 'nullable|string|max:255',
             'death_date' => 'nullable|date|after_or_equal:birth_date',
             'death_place' => 'nullable|string|max:255',
+            'address' => 'nullable|string|max:255',
             'avatar_media_id' => 'nullable|exists:media,id',
             'notes' => 'nullable|string|max:2000',
             'father_id' => 'nullable|exists:people,id',
@@ -154,6 +156,12 @@ class PersonController extends Controller
         $person->loadCount(array_merge(['media'], self::matchedFacesCount()));
 
         $person->avatar_url = $this->resolveAvatarUrl($person);
+
+        // L'adresse ($hidden par défaut) n'apparaît dans la réponse que si le
+        // visiteur y a droit — le front se contente de tester sa présence.
+        if ($this->canSeeAddress($person)) {
+            $person->makeVisible(['address', 'address_city']);
+        }
 
         // Père / mère avec miniature (avatar_url) pour la navigation.
         $father = $this->hydrateAvatar($person->father);
@@ -868,6 +876,31 @@ class PersonController extends Controller
     private function authorizeManage(Person $person): void
     {
         abort_unless($this->canManage($person), 403);
+    }
+
+    /**
+     * Peut voir l'adresse de résidence (champ $hidden par défaut) : l'éditeur
+     * de la fiche (propriétaire/admin), ou un co-membre de foyer si
+     * l'utilisateur lié à cette personne a activé « partager mon adresse avec
+     * mon foyer » dans son profil. Une personne sans compte n'a pas d'option :
+     * son adresse reste visible du seul éditeur/admin.
+     */
+    private function canSeeAddress(Person $person): bool
+    {
+        if ($this->canManage($person)) {
+            return true;
+        }
+
+        $viewer = auth()->user();
+        if ($viewer === null) {
+            return false;
+        }
+
+        $linkedUser = User::where('person_id', $person->id)->first();
+
+        return $linkedUser !== null
+            && $linkedUser->sharesAddressWithHousehold()
+            && $linkedUser->sharesHouseholdWith($viewer);
     }
 
     /**

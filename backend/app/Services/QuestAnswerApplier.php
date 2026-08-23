@@ -41,9 +41,26 @@ class QuestAnswerApplier
             Gate::forUser($user)->authorize('view', $subject->media);
         } elseif ($subject instanceof Media) {
             abort_unless($subject->user_id === $user->id, 403);
+        } elseif ($type === QuestType::Address) {
+            // L'adresse est sensible : réservée au propriétaire de la fiche,
+            // aux admins, et au foyer de la personne (miroir de la génération
+            // dans QuestService::detectHouseholdAddressGaps).
+            abort_unless($this->canFillAddress($user, $subject), 403);
         }
-        // Person : fiches lisibles par tout compte connecté ; le remplissage
-        // de champs vides est ouvert à tous, tracé dans quest_answers.
+        // Autres questions Person : fiches lisibles par tout compte connecté ;
+        // le remplissage de champs vides est ouvert à tous, tracé dans
+        // quest_answers.
+    }
+
+    private function canFillAddress(User $user, Person $person): bool
+    {
+        if ($user->isAdmin() || $person->user_id === $user->id || $user->person_id === $person->id) {
+            return true;
+        }
+
+        $linkedUser = User::where('person_id', $person->id)->first();
+
+        return $linkedUser !== null && $linkedUser->sharesHouseholdWith($user);
     }
 
     /**
@@ -70,6 +87,8 @@ class QuestAnswerApplier
             QuestType::DeathPlace => $subject->update(['death_place' => $payload['value']]),
             QuestType::Gender => $subject->update(['gender' => $payload['value']]),
             QuestType::MaidenName => $subject->update(['maiden_name' => $payload['value']]),
+            // Le hook saving de Person géocode l'adresse (BAN) au passage.
+            QuestType::Address => $subject->update(['address' => $payload['value']]),
             QuestType::ParentFather => $this->applyParent($subject, $payload['parent_id'], 'father'),
             QuestType::ParentMother => $this->applyParent($subject, $payload['parent_id'], 'mother'),
             QuestType::MaritalStatus => $this->applyMarital($subject, $payload),

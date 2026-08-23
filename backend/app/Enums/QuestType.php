@@ -27,6 +27,7 @@ enum QuestType: string
     case Job = 'job';
     case Education = 'education';
     case Residence = 'residence';
+    case Address = 'address';               // adresse actuelle, foyer uniquement
     case FaceIdentify = 'face_identify';
     case MediaDate = 'media_date';
     case MediaGeo = 'media_geo';
@@ -81,7 +82,7 @@ enum QuestType: string
             self::BirthDate => ['value' => 'required|date|before:tomorrow'],
             self::DeathDateOld => ['value' => 'required|date|before:tomorrow'],
             self::DeathStatus => ['death_date' => 'nullable|date|before:tomorrow'],
-            self::BirthPlace, self::DeathPlace, self::MaidenName => ['value' => 'required|string|max:255'],
+            self::BirthPlace, self::DeathPlace, self::MaidenName, self::Address => ['value' => 'required|string|max:255'],
             self::Gender => ['value' => 'required|in:M,F'],
             self::ParentFather, self::ParentMother => ['parent_id' => 'required|uuid|exists:people,id'],
             self::MaritalStatus => [

@@ -49,6 +49,7 @@ class QuestService
         'media_geo' => 3,
         'death_status' => 3,
         'marital_status' => 3,
+        'address' => 3,
     ];
 
     public function __construct(
@@ -109,6 +110,7 @@ class QuestService
             QuestType::Job => ! $subject->lifeEvents()->where('type', 'job')->exists(),
             QuestType::Education => ! $subject->lifeEvents()->whereIn('type', ['education', 'diplome'])->exists(),
             QuestType::Residence => ! $subject->lifeEvents()->where('type', 'residence')->exists(),
+            QuestType::Address => $subject->address === null,
             QuestType::FaceIdentify => $subject->status === 'unmatched' && $subject->media !== null,
             QuestType::MediaDate => $subject->taken_at === null,
             QuestType::MediaGeo => $subject->metadata()->whereNotNull('latitude')->doesntExist(),
@@ -128,6 +130,7 @@ class QuestService
 
             $candidates = array_merge(
                 $this->detectPersonGaps($circle),
+                $this->detectHouseholdAddressGaps($user),
                 $this->detectFaceGaps($user),
                 $this->detectMediaGaps($user),
             );
@@ -259,6 +262,32 @@ class QuestService
         }
 
         return $candidates;
+    }
+
+    /**
+     * Adresses manquantes DANS LE FOYER uniquement : sa propre fiche et
+     * celles liées aux co-membres de ses foyers (users.person_id). Pas le
+     * cercle généalogique entier — l'adresse est une donnée sensible, on ne
+     * la demande qu'aux proches qui la connaissent (miroir de la matrice
+     * d'autorisations de QuestAnswerApplier).
+     */
+    private function detectHouseholdAddressGaps(User $user): array
+    {
+        $memberUserIds = DB::table('household_user')
+            ->whereIn('household_id', $user->householdIds())
+            ->pluck('user_id')
+            ->push($user->id)
+            ->unique();
+
+        $personIds = User::whereIn('id', $memberUserIds)
+            ->whereNotNull('person_id')
+            ->pluck('person_id');
+
+        return Person::whereIn('id', $personIds)
+            ->whereNull('address')
+            ->pluck('id')
+            ->map(fn ($id) => ['type' => QuestType::Address->value, 'subject_id' => $id, 'distance' => 1])
+            ->all();
     }
 
     /** Visages non identifiés sur des photos que l'utilisateur peut voir. */
@@ -450,6 +479,7 @@ class QuestService
             QuestType::Job => "Quel métier {$name} a-t-{$il} exercé ?",
             QuestType::Education => "Où {$name} a-t-{$il} étudié (école, diplôme…) ?",
             QuestType::Residence => "Où {$name} a-t-{$il} habité ?",
+            QuestType::Address => "Quelle est l'adresse actuelle de {$name} ?",
             default => $name,
         };
     }

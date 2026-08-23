@@ -74,6 +74,11 @@ class PersonResource extends Resource
                 TextInput::make('death_place')
                     ->maxLength(255)
                     ->label('Lieu de décès'),
+                TextInput::make('address')
+                    ->maxLength(255)
+                    ->label('Adresse')
+                    ->placeholder('12 rue des Lilas, 93100 Montreuil')
+                    ->helperText('Géocodée automatiquement (BAN). Visible uniquement du propriétaire, des admins et du foyer si la personne a activé le partage.'),
                 Select::make('father_id')
                     ->relationship('father', 'name')
                     ->searchable()
