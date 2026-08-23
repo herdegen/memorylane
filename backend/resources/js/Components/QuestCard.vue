@@ -17,15 +17,27 @@
         :key="question.key"
         class="flex flex-col sm:flex-row gap-5 bg-white border border-surface-200 rounded-2xl shadow-warm-md px-6 py-5"
       >
-        <!-- Visuel : avatar / visage / photo -->
+        <!-- Visuel : avatar / visage / photo (cliquable si une photo entière existe) -->
         <div class="shrink-0 flex sm:block justify-center">
-          <div
+          <component
+            :is="fullPhotoUrl ? 'button' : 'div'"
             v-if="visualUrl"
-            class="rounded-xl overflow-hidden bg-surface-100"
-            :class="isMediaQuestion ? 'w-44 h-44' : 'w-24 h-24'"
+            :type="fullPhotoUrl ? 'button' : undefined"
+            class="relative block rounded-xl overflow-hidden bg-surface-100 group"
+            :class="[isMediaQuestion ? 'w-44 h-44' : 'w-24 h-24', fullPhotoUrl ? 'cursor-zoom-in' : '']"
+            :aria-label="fullPhotoUrl ? 'Voir la photo en grand' : undefined"
+            @click="fullPhotoUrl && (showLightbox = true)"
           >
             <img :src="visualUrl" class="w-full h-full object-cover" />
-          </div>
+            <span
+              v-if="fullPhotoUrl"
+              class="absolute bottom-1.5 right-1.5 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center opacity-80 group-hover:opacity-100 transition"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 8v6m-3-3h6m5 0a8 8 0 11-16 0 8 8 0 0116 0z" />
+              </svg>
+            </span>
+          </component>
           <div
             v-else-if="question.person"
             class="w-24 h-24 rounded-xl bg-brand-100 flex items-center justify-center text-3xl font-bold text-brand-700"
@@ -46,6 +58,14 @@
             >
               Voir sa fiche<span v-if="question.person.birth_year"> — né·e en {{ question.person.birth_year }}</span>
             </Link>
+            <button
+              v-if="fullPhotoUrl"
+              type="button"
+              class="text-xs text-surface-400 hover:text-brand-700 hover:underline"
+              @click="showLightbox = true"
+            >
+              Voir la photo entière pour mieux distinguer les détails
+            </button>
           </div>
 
           <!-- Saisie par famille d'UI -->
@@ -99,11 +119,13 @@
                 :label="question.type === 'parent_father' ? 'Père' : 'Mère'"
                 :current-person="pickedPerson"
                 :exclude-ids="[question.person?.id].filter(Boolean)"
+                allow-create
+                :create-defaults="{ gender: question.type === 'parent_father' ? 'M' : 'F' }"
                 @select="pickedPerson = $event"
                 @remove="pickedPerson = null"
               />
               <p class="text-xs text-surface-400 mt-1.5">
-                Seules les personnes ayant déjà une fiche sont proposées.
+                Choisissez une personne existante, ou créez sa fiche directement depuis la recherche.
               </p>
             </div>
 
@@ -118,6 +140,7 @@
                   label="Avec qui ?"
                   :current-person="pickedPerson"
                   :exclude-ids="[question.person?.id].filter(Boolean)"
+                  allow-create
                   @select="pickedPerson = $event"
                   @remove="pickedPerson = null"
                 />
@@ -174,6 +197,7 @@
                 <RelationshipPicker
                   label="Ou choisir quelqu'un d'autre"
                   :current-person="null"
+                  allow-create
                   @select="answerPerson($event.id)"
                 />
               </div>
@@ -263,6 +287,45 @@
       </div>
     </Transition>
 
+    <!-- Visionneuse plein écran : la photo entière, avec le visage encadré
+         pour « Qui est-ce ? » (bounding_box en % de l'image). -->
+    <Teleport to="body">
+      <div
+        v-if="showLightbox && fullPhotoUrl"
+        class="fixed inset-0 z-[1100] bg-black/90 flex items-center justify-center p-4 cursor-zoom-out"
+        @click="showLightbox = false"
+      >
+        <button
+          type="button"
+          class="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition"
+          aria-label="Fermer"
+          @click.stop="showLightbox = false"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        <div class="relative inline-block max-w-full" @click.stop>
+          <img
+            :src="fullPhotoUrl"
+            class="max-w-full max-h-[85vh] rounded-lg shadow-2xl select-none"
+            alt=""
+          />
+          <div
+            v-if="faceBoxStyle"
+            class="absolute border-2 border-brand-400 rounded-md shadow-[0_0_0_9999px_rgba(0,0,0,0.35)] pointer-events-none"
+            :style="faceBoxStyle"
+          ></div>
+          <div
+            v-if="question?.media?.title"
+            class="absolute -bottom-8 left-0 right-0 text-center text-sm text-white/80 truncate"
+          >
+            {{ question.media.title }}
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <!-- Sélecteur de lieu (photo sans géolocalisation) -->
     <GeolocatePickerModal
       v-if="showGeoPicker"
@@ -275,7 +338,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import RelationshipPicker from '@/Components/RelationshipPicker.vue';
@@ -295,6 +358,7 @@ const pickedPerson = ref(null);
 const deceased = ref(false);
 const maritalYes = ref(false);
 const showGeoPicker = ref(false);
+const showLightbox = ref(false);
 
 const currentYear = new Date().getFullYear();
 
@@ -304,6 +368,7 @@ const resetForm = () => {
   deceased.value = false;
   maritalYes.value = false;
   showGeoPicker.value = false;
+  showLightbox.value = false;
 };
 
 watch(question, resetForm);
@@ -338,6 +403,28 @@ const visualUrl = computed(() => {
   if (!q) return null;
   return q.face?.crop_url || q.media?.image_url || q.person?.avatar_url || null;
 });
+
+// Photo entière pour la visionneuse : questions photo et « Qui est-ce ? ».
+const fullPhotoUrl = computed(() => {
+  const q = question.value;
+  return q?.face?.image_url || q?.media?.full_url || null;
+});
+
+// Cadre autour du visage dans la visionneuse (bounding_box en % de l'image).
+const faceBoxStyle = computed(() => {
+  const box = question.value?.face?.bounding_box;
+  if (!box || !showLightbox.value) return null;
+  return {
+    left: `${box.x}%`,
+    top: `${box.y}%`,
+    width: `${box.width}%`,
+    height: `${box.height}%`,
+  };
+});
+
+const onKeydown = (e) => {
+  if (e.key === 'Escape' && showLightbox.value) showLightbox.value = false;
+};
 
 const textPlaceholder = computed(() => ({
   birth_place: 'Ville, pays…',
@@ -446,7 +533,11 @@ const applyGeo = ({ latitude, longitude }) => {
   answer('answered', { latitude, longitude });
 };
 
-onMounted(load);
+onMounted(() => {
+  load();
+  window.addEventListener('keydown', onKeydown);
+});
+onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 </script>
 
 <style scoped>

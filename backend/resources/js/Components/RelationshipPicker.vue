@@ -27,8 +27,8 @@
 
       <!-- Results dropdown -->
       <div
-        v-if="showResults && results.length > 0"
-        class="absolute z-10 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-40 overflow-auto"
+        v-if="showResults && (results.length > 0 || canCreate)"
+        class="absolute z-10 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-48 overflow-auto"
       >
         <button
           v-for="person in results"
@@ -41,9 +41,23 @@
             ({{ person.birth_date.substring(0, 4) }})
           </span>
         </button>
+
+        <!-- Création à la volée : quand la personne n'a pas encore de fiche -->
+        <button
+          v-if="canCreate"
+          type="button"
+          :disabled="creating"
+          @click="createPerson"
+          class="w-full text-left px-3 py-2 text-sm font-medium text-brand-600 hover:bg-brand-50 border-t border-surface-100 flex items-center gap-1.5"
+        >
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          {{ creating ? 'Création…' : `Créer la fiche « ${query.trim()} »` }}
+        </button>
       </div>
 
-      <p v-if="showResults && query.length >= 2 && results.length === 0" class="text-xs text-surface-400 mt-1">
+      <p v-if="showResults && query.length >= 2 && results.length === 0 && !allowCreate" class="text-xs text-surface-400 mt-1">
         Aucune personne trouvée
       </p>
     </div>
@@ -51,24 +65,52 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import { personLabel } from '@/utils/personName';
 import { searchPeople } from '@/utils/personSearch';
+import { useToast } from '@/Composables/useToast';
 
 const props = defineProps({
   label: { type: String, required: true },
   currentPerson: { type: Object, default: null },
   excludeIds: { type: Array, default: () => [] },
   placeholder: { type: String, default: 'Rechercher une personne...' },
+  // Propose « Créer la fiche » quand la personne cherchée n'existe pas encore.
+  allowCreate: { type: Boolean, default: false },
+  // Champs pré-remplis à la création (ex. gender: 'M' pour un père).
+  createDefaults: { type: Object, default: () => ({}) },
 });
 
 const emit = defineEmits(['select', 'remove']);
 
+const toast = useToast();
+
 const query = ref('');
 const results = ref([]);
 const showResults = ref(false);
+const creating = ref(false);
+
+const canCreate = computed(() => props.allowCreate && query.value.trim().length >= 2);
+
+async function createPerson() {
+  if (creating.value) return;
+  creating.value = true;
+  try {
+    const { data } = await axios.post('/people', {
+      name: query.value.trim(),
+      ...props.createDefaults,
+    }, { headers: { Accept: 'application/json' } });
+    // La nouvelle fiche rejoint le cache local pour les recherches suivantes.
+    if (allPeople.value !== null) allPeople.value.push(data.person);
+    selectPerson(data.person);
+  } catch (error) {
+    toast.error(error.response?.data?.message || 'Impossible de créer la fiche.');
+  } finally {
+    creating.value = false;
+  }
+}
 
 // La liste complète est chargée UNE fois (comme PersonInput), le filtrage est
 // local — avant : un GET /people complet à chaque frappe.

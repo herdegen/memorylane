@@ -433,6 +433,7 @@ class QuestService
             $question['media'] = [
                 'id' => $subject->id,
                 'image_url' => url("/vision/media/{$subject->id}/image?conversion=medium"),
+                'full_url' => url("/vision/media/{$subject->id}/image?conversion=large"),
                 'title' => $subject->title,
             ];
         } elseif ($subject instanceof DetectedFace) {
@@ -441,6 +442,9 @@ class QuestService
                 'id' => $subject->id,
                 'crop_url' => url("/vision/faces/{$subject->id}/crop"),
                 'media_id' => $subject->media_id,
+                // Photo entière + cadre (%) pour situer le visage dans son contexte.
+                'image_url' => url("/vision/media/{$subject->media_id}/image?conversion=large"),
+                'bounding_box' => $subject->bounding_box,
                 'suggestions' => array_slice($this->faceMatcher->rankedCandidates(
                     $subject,
                     FaceMatcher::MATCH_THRESHOLD,
