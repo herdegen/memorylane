@@ -60,12 +60,7 @@
 
         @if ($byAuthor)
             <p style="font-size:16px; line-height:1.65; margin:0 0 16px;">
-                C’est {{ $inviterFirstName }}.
-                @if ($repliesToAuthor)
-                    {{ $tv('Je t’écris depuis mon adresse perso', 'Je vous écris depuis mon adresse personnelle') }}, parce que ce message est un peu particulier :
-                @else
-                    Ce message est un peu particulier :
-                @endif
+                C’est {{ $inviterFirstName }}. Ce message est un peu particulier :
                 depuis plusieurs mois, je construis moi-même, sur mon temps libre, un site pour notre famille.
                 Il s’appelle <strong>MemoryLane</strong>, et j’aimerais beaucoup que {{ $tv('tu en fasses partie', 'vous en fassiez partie') }}.
             </p>
