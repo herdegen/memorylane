@@ -57,6 +57,28 @@ class InvitationService
     }
 
     /**
+     * Cercle que rejoindra l'invité : le cercle d'amis commun à la fiche et
+     * à la personne qui invite ; sinon le foyer d'accueil si elle voit la
+     * famille ; sinon son cercle courant.
+     */
+    private function householdFor(User $inviter, Person $person): ?string
+    {
+        $sharedFriends = array_values(array_intersect(
+            $person->circles()->pluck('households.id')->all(),
+            $inviter->friendCircleIds(),
+        ));
+        if ($sharedFriends !== []) {
+            return $sharedFriends[0];
+        }
+
+        if ($inviter->canSeeFamilyDirectory()) {
+            return Household::welcome()?->id ?? $inviter->currentCircle()?->id;
+        }
+
+        return $inviter->currentCircle()?->id;
+    }
+
+    /**
      * Fiche sans date de naissance (fréquent dans un GEDCOM) : on la devine
      * ancienne si un parent, un conjoint ou un enfant l'est.
      */
@@ -128,17 +150,11 @@ class InvitationService
             throw ValidationException::withMessages(['email' => 'Une invitation est déjà en cours pour cette adresse.']);
         }
 
-        // Seul un admin choisit le foyer. Un membre fait entrer l'invité dans
-        // le foyer d'accueil s'il en fait partie, sinon dans son cercle
-        // courant (un ami n'invite pas dans le cercle familial).
-        if ($inviter->isAdmin() && array_key_exists('household_id', $options)) {
-            $householdId = $options['household_id'];
-        } else {
-            $welcome = Household::welcome();
-            $householdId = $welcome && ($inviter->isAdmin() || $welcome->isMember($inviter))
-                ? $welcome->id
-                : $inviter->currentCircle()?->id;
-        }
+        // Seul un admin choisit le foyer ; sinon il se déduit de la fiche et
+        // de la personne qui invite (un ami n'invite pas dans la famille).
+        $householdId = $inviter->isAdmin() && array_key_exists('household_id', $options)
+            ? $options['household_id']
+            : $this->householdFor($inviter, $person);
 
         return Invitation::create([
             'email' => $email,
