@@ -28,6 +28,17 @@
           </div>
         </div>
 
+        <!-- Souvenir connu seulement à l'année / au mois : on choisit une date
+             dans la période, la précision dit ce qui sera affiché. -->
+        <div>
+          <label class="block text-sm font-medium text-surface-700 mb-1">Précision de la date</label>
+          <select v-model="form.date_precision" class="form-input">
+            <option value="day">Jour exact</option>
+            <option value="month">Mois seulement</option>
+            <option value="year">Année seulement</option>
+          </select>
+        </div>
+
         <div>
           <label class="block text-sm font-medium text-surface-700 mb-1">Lieu</label>
           <div class="flex gap-2">
@@ -84,6 +95,32 @@
           </div>
         </div>
 
+        <!-- Galerie du moment : plusieurs photos, dans l'ordre des clics
+             (le numéro indique la place dans la rafale du récit). -->
+        <div v-if="photoOptions.length > 0">
+          <label class="block text-sm font-medium text-surface-700 mb-1">
+            Galerie du moment (optionnel)
+            <span v-if="form.photos.length" class="font-normal text-surface-500">— {{ form.photos.length }} photo{{ form.photos.length > 1 ? 's' : '' }}, dans l'ordre des clics</span>
+          </label>
+          <div class="flex flex-wrap gap-2 max-h-40 overflow-y-auto">
+            <button
+              v-for="opt in photoOptions"
+              :key="'g-' + opt.media.id"
+              type="button"
+              @click="toggleGalleryPhoto(opt.media.id)"
+              class="relative w-14 h-14 rounded-lg overflow-hidden border-2 transition"
+              :class="galleryIndex(opt.media.id) >= 0 ? 'border-brand-500' : 'border-transparent hover:border-surface-300'"
+              :title="opt.title || ''"
+            >
+              <img :src="opt.media.thumbnail_url || opt.media.url" class="w-full h-full object-cover" />
+              <span
+                v-if="galleryIndex(opt.media.id) >= 0"
+                class="absolute top-0.5 left-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-brand-600 text-white text-[11px] font-semibold flex items-center justify-center"
+              >{{ galleryIndex(opt.media.id) + 1 }}</span>
+            </button>
+          </div>
+        </div>
+
         <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
 
         <!-- Boutons laissés dans le <form> : le bouton type="submit" dépend du
@@ -135,6 +172,14 @@ const typeGroups = [
       { value: 'job', label: 'Emploi' },
       { value: 'education', label: 'Études' },
       { value: 'residence', label: 'Résidence' },
+      { value: 'voyage', label: 'Voyage' },
+    ],
+  },
+  {
+    label: 'Parcours & distinctions',
+    types: [
+      { value: 'military', label: 'Parcours militaire' },
+      { value: 'distinction', label: 'Décoration / distinction' },
     ],
   },
   {
@@ -169,11 +214,13 @@ const form = reactive({
   title: props.event?.title || '',
   event_date: props.event?.date || '',
   end_date: props.event?.end_date || '',
+  date_precision: props.event?.date_precision || 'day',
   place: props.event?.place || '',
   latitude: props.event?.latitude ?? null,
   longitude: props.event?.longitude ?? null,
   description: props.event?.description || '',
   media_id: props.event?.media?.id || null,
+  photos: (props.event?.photos || []).map((p) => p.id),
   album_id: props.event?.album?.id || null,
 });
 
@@ -203,6 +250,14 @@ const clearCoordinates = () => {
   form.longitude = null;
 };
 
+// Galerie : un clic ajoute en fin de liste, un second clic retire.
+const galleryIndex = (id) => form.photos.indexOf(id);
+const toggleGalleryPhoto = (id) => {
+  const i = galleryIndex(id);
+  if (i >= 0) form.photos.splice(i, 1);
+  else form.photos.push(id);
+};
+
 const saving = ref(false);
 const error = ref('');
 
@@ -214,11 +269,13 @@ const save = async () => {
     title: form.title.trim(),
     event_date: form.event_date,
     end_date: form.end_date || null,
+    date_precision: form.date_precision,
     place: form.place || null,
     latitude: form.latitude,
     longitude: form.longitude,
     description: form.description || null,
     media_id: form.media_id || null,
+    photos: form.photos,
     album_id: form.album_id || null,
   };
   try {

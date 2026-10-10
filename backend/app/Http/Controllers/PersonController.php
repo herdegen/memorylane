@@ -515,10 +515,16 @@ class PersonController extends Controller
         }
 
         // Moments libres
-        foreach ($person->lifeEvents()->with(['media.conversions', 'album'])->get() as $ev) {
+        $lifeEvents = $person->lifeEvents()->with([
+            'media.conversions',
+            'album',
+            'photos' => fn ($q) => $q->accessibleBy(auth()->user())->where('type', 'photo')->with('conversions'),
+        ])->get();
+        foreach ($lifeEvents as $ev) {
             $items[] = [
                 'date' => optional($ev->event_date)->format('Y-m-d'),
                 'end_date' => optional($ev->end_date)->format('Y-m-d'),
+                'date_precision' => $ev->date_precision ?? 'day',
                 'kind' => $ev->type,
                 'title' => $ev->title,
                 'description' => $ev->description,
@@ -527,9 +533,12 @@ class PersonController extends Controller
                 'latitude' => $ev->latitude,
                 'longitude' => $ev->longitude,
                 'media' => $ev->media ? $this->mediaPayload($ev->media) : null,
-                // Album lié, seulement s'il est accessible au visiteur.
+                // Galerie du moment (photos rattachées directement).
+                'photos' => $ev->photos->take(self::ALBUM_MEDIA_LIMIT)->map(fn (Media $m) => $this->mediaPayload($m))->values()->all(),
+                // Album lié (avec ses photos : la galerie du moment, pour la
+                // rafale du récit de vie), seulement s'il est accessible au visiteur.
                 'album' => $ev->album && $ev->album->isAccessibleBy(auth()->user())
-                    ? ['id' => $ev->album->id, 'name' => $ev->album->name]
+                    ? $this->albumPayload($ev->album)
                     : null,
                 'life_event_id' => $ev->id,
             ];
@@ -578,9 +587,13 @@ class PersonController extends Controller
         // durablement : seul le tout premier affichage paie les appels.
         // Exclusions : photos (elles ont leurs propres métadonnées) et
         // naissances d'enfants (déplacer la carte n'y a pas de sens).
+        // Les appels externes (Nominatim, Wikipédia, Commons) sont lents et
+        // en série : ici on ne lit QUE le cache. Ce qui manque part dans un
+        // job (`place_pending`), et le front recharge la frise peu après.
         $geocoder = app(\App\Services\GeocodeService::class);
         $placePhotos = app(\App\Services\PlacePhotoService::class);
-        $items = $items->map(function ($item) use ($geocoder, $placePhotos) {
+        $pending = [];
+        $items = $items->map(function ($item) use ($geocoder, $placePhotos, &$pending) {
             if (in_array($item['kind'] ?? '', ['photo', 'child'], true)) {
                 return $item;
             }
@@ -589,17 +602,33 @@ class PersonController extends Controller
                 $item['place'] = trim(preg_replace('/(\s*,\s*)+/', ', ', $item['place']), " \t,");
             }
             if (empty($item['latitude']) && ! empty($item['place'])) {
+                if (! $geocoder->isResolved($item['place'])) {
+                    $item['place_pending'] = true;
+                    $pending[] = ['place' => $item['place'], 'latitude' => null, 'longitude' => null];
+
+                    return $item;
+                }
                 if ($coords = $geocoder->coordinatesFor($item['place'])) {
                     $item['latitude'] = $coords['latitude'];
                     $item['longitude'] = $coords['longitude'];
                 }
             }
             if (! empty($item['latitude']) && ! empty($item['longitude'])) {
-                $item['place_photo_url'] = $placePhotos->photoFor((float) $item['latitude'], (float) $item['longitude']);
+                $lat = (float) $item['latitude'];
+                $lng = (float) $item['longitude'];
+                if (! $placePhotos->isResolved($lat, $lng, $item['place'] ?? null)) {
+                    $item['place_pending'] = true;
+                    $pending[] = ['place' => $item['place'] ?? null, 'latitude' => $lat, 'longitude' => $lng];
+
+                    return $item;
+                }
+                $item['place_photo_url'] = $placePhotos->photoFor($lat, $lng, $item['place'] ?? null);
             }
 
             return $item;
         });
+
+        \App\Jobs\EnrichTimelinePlaces::dispatchOnce(array_values(array_unique($pending, SORT_REGULAR)));
 
         return response()->json($items);
     }
@@ -626,6 +655,29 @@ class PersonController extends Controller
         ];
     }
 
+    /** Nombre maximal de photos d'album embarquées dans un moment de la frise. */
+    private const ALBUM_MEDIA_LIMIT = 12;
+
+    /**
+     * Album lié à un moment : identité + ses premières photos accessibles au
+     * visiteur (ordre chronologique de l'album).
+     */
+    private function albumPayload(Album $album): array
+    {
+        $media = $album->media()
+            ->accessibleBy(auth()->user())
+            ->where('type', 'photo')
+            ->with('conversions')
+            ->limit(self::ALBUM_MEDIA_LIMIT)
+            ->get();
+
+        return [
+            'id' => $album->id,
+            'name' => $album->name,
+            'media' => $media->map(fn (Media $m) => $this->mediaPayload($m))->values()->all(),
+        ];
+    }
+
     private function mediaPayload(Media $media): array
     {
         $media->loadMissing('conversions');
@@ -638,6 +690,7 @@ class PersonController extends Controller
             'id' => $media->id,
             'type' => $media->type,
             'original_name' => $media->original_name,
+            'title' => $media->title,
             'taken_at' => optional($media->taken_at)->toIso8601String(),
             'url' => $this->mediaService->fileUrl($media),
             'thumbnail_url' => $thumb ? $this->mediaService->fileUrl($media, $thumb->conversion_name) : null,

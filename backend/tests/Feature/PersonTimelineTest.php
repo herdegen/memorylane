@@ -29,6 +29,7 @@ class PersonTimelineTest extends TestCase
         Http::fake([
             'nominatim.openstreetmap.org/*' => Http::response([]),
             'commons.wikimedia.org/*' => Http::response([]),
+            'fr.wikipedia.org/*' => Http::response([], 404),
         ]);
     }
 
@@ -127,6 +128,9 @@ class PersonTimelineTest extends TestCase
     {
         $person = Person::factory()->create(['user_id' => $this->user->id]);
         $album = Album::factory()->create(['user_id' => $this->user->id]);
+        // La galerie du moment = les photos de l'album lié (rafale du récit).
+        $photo = Media::factory()->photo()->create(['user_id' => $this->user->id]);
+        $album->media()->attach($photo->id);
 
         $this->actingAs($this->user)->postJson("/people/{$person->id}/events", [
             'type' => 'bapteme',
@@ -153,8 +157,87 @@ class PersonTimelineTest extends TestCase
         $event = collect($timeline)->firstWhere('kind', 'bapteme');
         $this->assertNotNull($event);
         $this->assertSame($album->id, $event['album']['id']);
+        $this->assertSame([$photo->id], array_column($event['album']['media'], 'id'));
         $this->assertEqualsWithDelta(45.7578, $event['latitude'], 0.0001);
         $this->assertEqualsWithDelta(4.832, $event['longitude'], 0.0001);
+    }
+
+    public function test_moment_parcours_militaire_distinction_et_voyage(): void
+    {
+        $person = Person::factory()->create(['user_id' => $this->user->id]);
+
+        foreach (['military', 'distinction', 'voyage'] as $type) {
+            $this->actingAs($this->user)->postJson("/people/{$person->id}/events", [
+                'type' => $type,
+                'title' => "Moment {$type}",
+                'event_date' => '1918-06-13',
+            ])->assertStatus(201);
+        }
+
+        $kinds = collect($this->actingAs($this->user)->getJson("/people/{$person->id}/timeline")->json())
+            ->pluck('kind')->all();
+        // (la factory peut aussi donner une naissance : on ne vérifie que nos moments)
+        $this->assertSame([], array_diff(['military', 'distinction', 'voyage'], $kinds));
+    }
+
+    public function test_moment_conserve_la_precision_de_date(): void
+    {
+        $person = Person::factory()->create(['user_id' => $this->user->id]);
+
+        $this->actingAs($this->user)->postJson("/people/{$person->id}/events", [
+            'title' => 'Chantier en Égypte',
+            'event_date' => '1950-01-01',
+            'date_precision' => 'year',
+        ])->assertStatus(201);
+
+        // Sans précision fournie : jour exact (comportement historique).
+        $this->actingAs($this->user)->postJson("/people/{$person->id}/events", [
+            'title' => 'Date exacte',
+            'event_date' => '1951-03-04',
+        ])->assertStatus(201);
+
+        $timeline = collect($this->actingAs($this->user)->getJson("/people/{$person->id}/timeline")->json());
+        $this->assertSame('year', $timeline->firstWhere('title', 'Chantier en Égypte')['date_precision']);
+        $this->assertSame('day', $timeline->firstWhere('title', 'Date exacte')['date_precision']);
+
+        $this->actingAs($this->user)->postJson("/people/{$person->id}/events", [
+            'title' => 'Précision inconnue',
+            'event_date' => '1952-01-01',
+            'date_precision' => 'siecle',
+        ])->assertStatus(422)->assertJsonValidationErrors(['date_precision']);
+    }
+
+    public function test_galerie_du_moment_ordonnee_et_modifiable(): void
+    {
+        $person = Person::factory()->create(['user_id' => $this->user->id]);
+        [$a, $b, $c] = Media::factory()->count(3)->photo()->create(['user_id' => $this->user->id]);
+
+        $id = $this->actingAs($this->user)->postJson("/people/{$person->id}/events", [
+            'title' => 'Voyage', 'event_date' => '1954-02-21', 'photos' => [$b->id, $a->id],
+        ])->assertStatus(201)->json('event.id');
+
+        $event = LifeEvent::findOrFail($id);
+        $this->assertSame([$b->id, $a->id], $event->photos->pluck('id')->all(), 'ordre envoyé conservé');
+
+        // Mise à jour : nouvel ordre, une photo retirée, une ajoutée.
+        $this->actingAs($this->user)->putJson("/life-events/{$id}", [
+            'title' => 'Voyage', 'event_date' => '1954-02-21', 'photos' => [$c->id, $b->id],
+        ])->assertOk();
+        $this->assertSame([$c->id, $b->id], $event->fresh()->photos->pluck('id')->all());
+
+        // Sans le champ : la galerie n'est pas touchée.
+        $this->actingAs($this->user)->putJson("/life-events/{$id}", ['title' => 'Voyage en Asie', 'event_date' => '1954-02-21'])->assertOk();
+        $this->assertCount(2, $event->fresh()->photos);
+
+        // La frise expose la galerie dans l'ordre.
+        $timeline = $this->actingAs($this->user)->getJson("/people/{$person->id}/timeline")->json();
+        $this->assertSame([$c->id, $b->id], array_column(collect($timeline)->firstWhere('life_event_id', $id)['photos'], 'id'));
+
+        // Une photo d'un autre compte (privée) est refusée.
+        $foreign = Media::factory()->photo()->create(['user_id' => $this->otherUser->id]);
+        $this->actingAs($this->user)->putJson("/life-events/{$id}", [
+            'title' => 'Voyage', 'event_date' => '1954-02-21', 'photos' => [$foreign->id],
+        ])->assertStatus(403);
     }
 
     public function test_moment_refuse_un_album_inaccessible(): void
@@ -248,6 +331,46 @@ class PersonTimelineTest extends TestCase
      * reçoivent une photo du lieu (services cachés — pré-remplis ici comme
      * le ferait un passage précédent).
      */
+    public function test_lieu_non_resolu_repond_tout_de_suite_et_part_en_job(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+        $person = Person::factory()->create([
+            'user_id' => $this->user->id,
+            'birth_date' => '1988-06-16',
+            'birth_place' => 'Croix, Nord',
+        ]);
+
+        $data = $this->actingAs($this->user)->getJson("/people/{$person->id}/timeline")->assertOk()->json();
+        $birth = collect($data)->firstWhere('kind', 'birth');
+
+        // Aucun appel réseau pendant la requête : le lieu est marqué en attente.
+        $this->assertTrue($birth['place_pending']);
+        $this->assertArrayNotHasKey('place_photo_url', $birth);
+        Http::assertNothingSent();
+        \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\EnrichTimelinePlaces::class, 1);
+
+        // Deuxième affichage dans la foulée : pas de second job (verrou).
+        $this->actingAs($this->user)->getJson("/people/{$person->id}/timeline")->assertOk();
+        \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\EnrichTimelinePlaces::class, 1);
+
+        // Le job résout (ici : géocodage déjà en cache, Wikipédia et Commons
+        // répondent vide → raté mémorisé) ; la frise suivante n'attend plus rien.
+        \Illuminate\Support\Facades\Cache::put(
+            'geocode:' . md5(mb_strtolower('Croix, Nord')),
+            ['latitude' => 50.678, 'longitude' => 3.149],
+            now()->addDay(),
+        );
+        (new \App\Jobs\EnrichTimelinePlaces([['place' => 'Croix, Nord', 'latitude' => null, 'longitude' => null]]))
+            ->handle(app(\App\Services\GeocodeService::class), app(\App\Services\PlacePhotoService::class));
+        Http::assertSentCount(2);
+
+        $birth = collect($this->actingAs($this->user)->getJson("/people/{$person->id}/timeline")->json())->firstWhere('kind', 'birth');
+        $this->assertArrayNotHasKey('place_pending', $birth);
+        $this->assertEqualsWithDelta(50.678, $birth['latitude'], 0.001);
+        $this->assertArrayHasKey('place_photo_url', $birth);
+        $this->assertNull($birth['place_photo_url']);
+    }
+
     public function test_recit_de_vie_enrichit_lieux_et_photo(): void
     {
         \Illuminate\Support\Facades\Cache::put(
@@ -260,6 +383,8 @@ class PersonTimelineTest extends TestCase
             'https://upload.wikimedia.org/exemple.jpg',
             now()->addDay(),
         );
+        // Article Wikipédia déjà tenté (sans image) : rien ne reste à résoudre.
+        \Illuminate\Support\Facades\Cache::put('placephoto:wp:' . md5('croix'), 'miss', now()->addDay());
 
         $person = Person::factory()->create([
             'user_id' => $this->user->id,
@@ -272,5 +397,31 @@ class PersonTimelineTest extends TestCase
 
         $this->assertEqualsWithDelta(50.678, $birth['latitude'], 0.001);
         $this->assertSame('https://upload.wikimedia.org/exemple.jpg', $birth['place_photo_url']);
+    }
+
+    public function test_photo_du_lieu_passe_par_l_article_wikipedia_de_la_localite(): void
+    {
+        \Illuminate\Support\Facades\Cache::put(
+            'geocode:' . md5(mb_strtolower('Agonac, Dordogne, France')),
+            ['latitude' => 45.293, 'longitude' => 0.754],
+            now()->addDay(),
+        );
+        // Résultat Wikipédia déjà en cache (la résolution elle-même est
+        // testée dans PlacePhotoServiceTest) : la frise doit le préférer à
+        // la géo-recherche Commons.
+        \Illuminate\Support\Facades\Cache::put(
+            'placephoto:wp:' . md5('agonac'),
+            'https://upload.wikimedia.org/eglise-agonac.jpg',
+            now()->addDay(),
+        );
+
+        $person = Person::factory()->create([
+            'user_id' => $this->user->id,
+            'death_date' => '1972-05-05',
+            'death_place' => 'Agonac, Dordogne, France',
+        ]);
+
+        $data = $this->actingAs($this->user)->getJson("/people/{$person->id}/timeline")->assertOk()->json();
+        $this->assertSame('https://upload.wikimedia.org/eglise-agonac.jpg', collect($data)->firstWhere('kind', 'death')['place_photo_url']);
     }
 }

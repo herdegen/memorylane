@@ -20,6 +20,7 @@ class LifeEvent extends Model
         'longitude',
         'event_date',
         'end_date',
+        'date_precision',
         'media_id',
         'album_id',
     ];
@@ -42,6 +43,18 @@ class LifeEvent extends Model
     public function media()
     {
         return $this->belongsTo(Media::class);
+    }
+
+    /**
+     * Galerie du moment : plusieurs photos, dans l'ordre choisi (la rafale du
+     * récit de vie les déroule). Indépendante de l'illustration `media_id`.
+     */
+    public function photos()
+    {
+        return $this->belongsToMany(Media::class, 'life_event_media')
+            ->withPivot('order')
+            ->withTimestamps()
+            ->orderBy('life_event_media.order');
     }
 
     /**

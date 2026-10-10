@@ -274,6 +274,7 @@ import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import BaseModal from '@/Components/BaseModal.vue';
 import MediaCard from '@/Components/MediaCard.vue';
+import { usePhotoSwipe } from '@/composables/usePhotoSwipe';
 import PersonFormModal from '@/Components/PersonFormModal.vue';
 import FamilyPanel from '@/Components/FamilyPanel.vue';
 import PersonTimeline from '@/Components/PersonTimeline.vue';
@@ -393,8 +394,17 @@ const removeAvatar = async () => {
   }
 };
 
+// Photos et vidéos s'ouvrent dans la visionneuse (bouton « i » vers la
+// fiche) ; les documents vont directement sur leur page.
+const { open: openLightbox } = usePhotoSwipe(() => props.media, {
+  watchSource: () => props.media,
+  detailLink: true,
+});
+
 const goToMedia = (media) => {
-  router.visit(`/media/${media.id}`);
+  if (!openLightbox(media)) {
+    router.visit(`/media/${media.id}`);
+  }
 };
 
 const handlePersonUpdated = () => {

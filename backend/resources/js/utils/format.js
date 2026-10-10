@@ -41,6 +41,14 @@ export function formatLongDate(dateString) {
   return localized(dateString, { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+// Date à précision variable (moments de vie dont on ne connaît que l'année ou
+// le mois) : 'year' → « 1950 », 'month' → « mars 1953 », sinon date longue.
+export function formatPartialDate(dateString, precision = 'day') {
+  if (precision === 'year') return localized(dateString, { year: 'numeric' });
+  if (precision === 'month') return localized(dateString, { month: 'long', year: 'numeric' });
+  return formatLongDate(dateString);
+}
+
 // Date + heure : « 3 juin 2024, 14:05 ».
 export function formatDateTime(dateString) {
   return localized(dateString, {

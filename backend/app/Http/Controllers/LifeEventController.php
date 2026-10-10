@@ -19,9 +19,11 @@ class LifeEventController extends Controller
      * Types de moments : liste FERMÉE (« sous-moments » définis) pour que le
      * diaporama puisse s'appuyer dessus (icônes, mise en scène par type).
      */
-    private const TYPES = [
+    public const TYPES = [
         // Moments de vie
-        'moment', 'job', 'education', 'residence',
+        'moment', 'job', 'education', 'residence', 'voyage',
+        // Parcours & distinctions
+        'military', 'distinction',
         // Fêtes religieuses
         'bapteme', 'communion', 'confirmation', 'mariage_religieux',
         // Fêtes & célébrations
@@ -34,10 +36,13 @@ class LifeEventController extends Controller
         $this->authorizeManage($person);
 
         $data = $this->validated($request);
+        $photos = $data['photos'] ?? null;
+        unset($data['photos']);
         $data['person_id'] = $person->id;
         $data['user_id'] = auth()->id();
 
         $event = LifeEvent::create($data);
+        $this->syncPhotos($event, $photos);
 
         return response()->json(['message' => 'Moment ajouté', 'event' => $event], 201);
     }
@@ -46,7 +51,12 @@ class LifeEventController extends Controller
     {
         $this->authorizeManage($lifeEvent->person);
 
-        $lifeEvent->update($this->validated($request));
+        $data = $this->validated($request);
+        $photos = $data['photos'] ?? null;
+        unset($data['photos']);
+
+        $lifeEvent->update($data);
+        $this->syncPhotos($lifeEvent, $photos);
 
         return response()->json(['message' => 'Moment mis à jour', 'event' => $lifeEvent->fresh()]);
     }
@@ -71,9 +81,22 @@ class LifeEventController extends Controller
             'longitude' => 'nullable|numeric|between:-180,180|required_with:latitude',
             'event_date' => 'required|date',
             'end_date' => 'nullable|date|after_or_equal:event_date',
+            // Ce qu'on affiche de la date : jour exact, mois seul ou année seule.
+            'date_precision' => ['nullable', Rule::in(['day', 'month', 'year'])],
             'media_id' => 'nullable|uuid|exists:media,id',
             'album_id' => 'nullable|uuid|exists:albums,id',
+            // Galerie du moment : plusieurs photos, dans l'ordre envoyé.
+            'photos' => 'nullable|array|max:24',
+            'photos.*' => 'uuid|distinct|exists:media,id',
         ]);
+
+        // Toutes les photos de la galerie doivent être accessibles au visiteur.
+        if (! empty($validated['photos'])) {
+            $accessible = Media::accessibleBy(auth()->user())
+                ->whereIn('id', $validated['photos'])
+                ->count();
+            abort_unless($accessible === count($validated['photos']), 403);
+        }
 
         // Le média illustrant le moment doit être accessible au visiteur.
         if (! empty($validated['media_id'])) {
@@ -92,8 +115,26 @@ class LifeEventController extends Controller
         }
 
         $validated['type'] = $validated['type'] ?? 'moment';
+        $validated['date_precision'] = $validated['date_precision'] ?? 'day';
 
         return $validated;
+    }
+
+    /**
+     * Remplace la galerie du moment (null = champ absent : on ne touche à rien).
+     *
+     * @param  list<string>|null  $photos  ids de médias, dans l'ordre d'affichage
+     */
+    private function syncPhotos(LifeEvent $event, ?array $photos): void
+    {
+        if ($photos === null) {
+            return;
+        }
+        $pivot = [];
+        foreach (array_values($photos) as $i => $id) {
+            $pivot[$id] = ['order' => $i];
+        }
+        $event->photos()->sync($pivot);
     }
 
     /**

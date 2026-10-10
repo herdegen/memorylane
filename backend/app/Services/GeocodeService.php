@@ -26,6 +26,17 @@ class GeocodeService
     private static float $lastFetchAt = 0.0;
 
     /**
+     * Vrai si le lieu a déjà été résolu (hit ou raté) : coordinatesFor() ne
+     * fera alors aucun appel réseau.
+     */
+    public function isResolved(?string $place): bool
+    {
+        $place = trim((string) $place);
+
+        return mb_strlen($place) < 3 || Cache::has('geocode:' . md5(mb_strtolower($place)));
+    }
+
+    /**
      * Coordonnées d'un lieu, ou null si introuvable / source injoignable.
      *
      * @return array{latitude: float, longitude: float}|null
