@@ -20,6 +20,10 @@
       >
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-xl font-semibold text-surface-900">Arbre généalogique</h2>
+          <div class="inline-flex rounded-full border border-surface-200 p-0.5 text-xs font-semibold max-md:hidden">
+            <span class="px-3 py-1 rounded-full bg-brand-100 text-brand-800 dark:bg-brand-500/20 dark:text-brand-200">Arbre</span>
+            <Link href="/network" class="px-3 py-1 rounded-full text-surface-600 hover:text-surface-900">Réseau</Link>
+          </div>
           <button
             @click="drawerOpen = false"
             class="md:hidden -mr-1 p-1 text-surface-500 hover:text-surface-800"

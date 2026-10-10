@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Réseau — mobile</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap">
+<style>
+body{margin:0;font-family:Figtree,system-ui,sans-serif;background:#faf7f1;color:#44403c}
+a{color:#0f766e;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; display: flex; flex-direction: column; background: #faf7f1; position: relative; overflow: hidden">
+
+  <!-- En-tête -->
+  <div style="padding: 16px 16px 10px; display: flex; flex-direction: column; gap: 12px; background: #ffffff; border-bottom: 1px solid #e7e5e4">
+    <div style="display: flex; align-items: center; justify-content: space-between">
+      <h1 style="margin: 0; font-family: 'Playfair Display', Georgia, serif; font-size: 26px; color: #1c1917">Réseau</h1>
+      <button type="button" style="display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 10px 0 4px; border-radius: 999px; border: 1px solid #5eead4; background: #ccfbf1; font-size: 13px; font-weight: 600; color: #1c1917">
+        <div style="width: 28px; height: 28px; border-radius: 999px; background: #0d9488; color: #ffffff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center">CL</div>
+        Copains de Lyon
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#78716c" stroke-width="2.6" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+      </button>
+    </div>
+    <div style="display: flex; gap: 6px; overflow-x: auto">
+      <sc-for list="{{filters}}" as="f" hint-placeholder-count="5">
+        <button type="button" onClick="{{f.pick}}" aria-pressed="{{f.pressed}}" style="{{f.style}}">{{f.label}}</button>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- Graphe égo -->
+  <div style="position: relative; flex: 1">
+    <div style="position: absolute; left: 0; top: 0; width: 390px; height: 470px">
+      <div style="position: absolute; left: 55px; top: 70px; width: 280px; height: 280px; border-radius: 999px; border: 1px dashed #e7e5e4"></div>
+      <sc-for list="{{edges}}" as="e" hint-placeholder-count="12">
+        <div style="{{e.style}}"></div>
+      </sc-for>
+      <sc-for list="{{nodes}}" as="n" hint-placeholder-count="12">
+        <button type="button" onClick="{{n.pick}}" aria-label="{{n.name}}" style="{{n.style}}">{{n.initials}}</button>
+        <div style="{{n.labelStyle}}">{{n.name}}</div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- Feuille du bas -->
+  <div style="position: absolute; left: 0; right: 0; bottom: 72px; background: #ffffff; border-radius: 22px 22px 0 0; box-shadow: 0 -12px 30px -14px rgba(68,45,20,.3); padding: 10px 16px 16px; display: flex; flex-direction: column; gap: 12px">
+    <div style="width: 40px; height: 4px; border-radius: 999px; background: #d6d3d1; align-self: center"></div>
+    <div style="display: flex; align-items: center; gap: 12px">
+      <div style="width: 48px; height: 48px; border-radius: 999px; background: {{sel.color}}; color: #ffffff; font-weight: 700; display: flex; align-items: center; justify-content: center">{{sel.initials}}</div>
+      <div style="flex: 1">
+        <div style="font-size: 18px; font-weight: 700; color: #1c1917">{{sel.name}}</div>
+        <div style="font-size: 13px; color: #57534e">{{sel.meta}}</div>
+      </div>
+      <a href="FicheAmi.dc.html" aria-label="Voir la fiche" style="width: 44px; height: 44px; border-radius: 999px; background: #0f766e; display: flex; align-items: center; justify-content: center">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.4" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+      </a>
+    </div>
+    <div style="font-size: 14px; color: #1c1917; background: #f0fdfa; border-radius: 12px; padding: 10px 12px; line-height: 1.4">{{sel.story}}</div>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; border-radius: 10px; overflow: hidden">
+      <div style="aspect-ratio: 1; background: #d6d3d1"></div><div style="aspect-ratio: 1; background: #e7e5e4"></div><div style="aspect-ratio: 1; background: #d6d3d1"></div><div style="aspect-ratio: 1; background: #e7e5e4; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #57534e">+{{sel.more}}</div>
+    </div>
+  </div>
+
+  <!-- Barre d'onglets -->
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 72px; background: #ffffff; border-top: 1px solid #e7e5e4; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); font-size: 11px; font-weight: 600">
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #78716c"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1z"></path></svg>Accueil</div>
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #78716c"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"></rect><path d="M3 16l5-5 4 4 3-3 6 6"></path></svg>Photos</div>
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #78716c"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"></rect><path d="M7 3h10"></path></svg>Albums</div>
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #0f766e"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="5" r="2.5"></circle><circle cx="5" cy="17" r="2.5"></circle><circle cx="19" cy="15" r="2.5"></circle><path d="M10.8 7.2 6.2 14.8M14.2 6.3l3.9 6.6M7.5 17h9"></path></svg>Réseau</div>
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #78716c"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="10" r="3"></circle><path d="M12 21s-7-6.2-7-11a7 7 0 0114 0c0 4.8-7 11-7 11z"></path></svg>Carte</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(p){ super(p); this.state = { sel: 'lea', group: 'all' }; }
+  renderVals() {
+    const G = { lycee: ['Lycée', '#2563eb'], fac: ['Fac', '#7c3aed'], voile: ['Voile', '#0f766e'], boulot: ['Boulot', '#c2410c'] };
+    const P = [
+      ['julien','Julien','lycee',48,'Même classe de seconde, puis colocs en 2011.'],['thomas','Thomas','lycee',62,'Voisin de palier depuis le collège.'],['camille','Camille','lycee',30,''],
+      ['lea','Léa','fac',80,"Amphi de droit, 1re année — elle m'a prêté ses notes."],['ines','Inès','fac',34,'Rencontrée par Léa à une soirée.'],['maxime','Maxime','fac',20,''],
+      ['antoine','Antoine','voile',30,'Moniteur au stage de voile d’Annecy.'],['pauline','Pauline','voile',44,''],['margaux','Margaux','voile',18,''],
+      ['elodie','Élodie','boulot',33,'Première réunion d’équipe, elle a tout organisé.'],['nicolas','Nicolas','boulot',28,''],['karim','Karim','boulot',10,''],
+    ];
+    const cx = 195, cy = 210;
+    const grp = this.state.group;
+    const shown = P.filter(p => grp === 'all' || p[2] === grp);
+    const nodes = [], edges = [];
+    shown.forEach((p, i) => {
+      const ang = (i / shown.length) * Math.PI * 2 - Math.PI / 2;
+      const dist = 140 - Math.min(40, p[3] / 2.5);
+      const x = Math.round(cx + Math.cos(ang) * dist), y = Math.round(cy + Math.sin(ang) * dist);
+      const r = Math.round(14 + Math.sqrt(p[3]) * 1.3);
+      const isSel = p[0] === this.state.sel;
+      const col = G[p[2]][1];
+      const h = Math.max(1, Math.min(6, Math.round(p[3] / 12)));
+      const len = Math.sqrt((x-cx)*(x-cx) + (y-cy)*(y-cy));
+      edges.push({ style: 'position:absolute;left:' + cx + 'px;top:' + (cy - h/2) + 'px;width:' + Math.round(len) + 'px;height:' + h + 'px;border-radius:4px;background:' + (isSel ? col : '#e7e5e4') + ';transform:rotate(' + (Math.atan2(y-cy, x-cx) * 180 / Math.PI).toFixed(1) + 'deg);transform-origin:0 50%;' });
+      nodes.push({ name: p[1], initials: p[1].slice(0, 2), pick: () => this.setState({ sel: p[0] }),
+        style: 'position:absolute;left:' + (x - r) + 'px;top:' + (y - r) + 'px;width:' + (2*r) + 'px;height:' + (2*r) + 'px;border-radius:999px;border:2px solid #ffffff;padding:0;background:' + col + ';color:#ffffff;font-size:11px;font-weight:700;box-shadow:' + (isSel ? '0 0 0 3px ' + col : '0 2px 6px -2px rgba(0,0,0,.25)') + ';',
+        labelStyle: 'position:absolute;left:' + (x - 40) + 'px;top:' + (y + r + 2) + 'px;width:80px;text-align:center;font-size:11px;font-weight:600;color:#1c1917;pointer-events:none;' });
+    });
+    nodes.push({ name: '', initials: 'Moi', pick: () => {}, style: 'position:absolute;left:' + (cx - 28) + 'px;top:' + (cy - 28) + 'px;width:56px;height:56px;border-radius:999px;border:3px solid #ffffff;padding:0;background:#44403c;color:#ffffff;font-size:13px;font-weight:700;box-shadow:0 6px 16px -6px rgba(0,0,0,.4);', labelStyle: 'display:none;' });
+    const s = P.find(p => p[0] === this.state.sel) || P[3];
+    const filters = [['all', 'Tous'], ['lycee', 'Lycée'], ['fac', 'Fac'], ['voile', 'Voile'], ['boulot', 'Boulot']].map(([k, l]) => ({
+      label: l, pressed: grp === k ? 'true' : 'false', pick: () => this.setState({ group: k }),
+      style: 'flex:none;height:34px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;border:1px solid ' + (grp === k ? '#0d9488' : '#e7e5e4') + ';background:' + (grp === k ? '#ccfbf1' : '#ffffff') + ';color:' + (grp === k ? '#115e59' : '#57534e') + ';',
+    }));
+    return { nodes: nodes, edges: edges, filters: filters,
+      sel: { name: s[1], initials: s[1].slice(0, 2), color: G[s[2]][1], meta: G[s[2]][0] + ' · ' + s[3] + ' photos ensemble',
+        story: s[4] || 'Pas encore raconté — touchez pour écrire comment vous vous êtes connus.', more: Math.max(0, s[3] - 3) } };
+  }
+}
+</script>
+</body>
+</html>

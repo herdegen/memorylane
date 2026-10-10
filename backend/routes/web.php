@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FamilyTreeController;
 use App\Http\Controllers\GedcomImportController;
+use App\Http\Controllers\NetworkController;
 use App\Http\Controllers\GooglePhotosController;
 use App\Http\Controllers\GuideController;
 use App\Http\Controllers\LifeEventController;
@@ -272,6 +273,13 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
     // Édition / suppression d'un moment de vie
     Route::put('/life-events/{lifeEvent}', [LifeEventController::class, 'update'])->name('life-events.update');
     Route::delete('/life-events/{lifeEvent}', [LifeEventController::class, 'destroy'])->name('life-events.destroy');
+
+    // Réseau : personnes reliées par les photos (calculé sur les médias visibles)
+    Route::prefix('network')->name('network.')->group(function () {
+        Route::get('/', [NetworkController::class, 'index'])->name('index');
+        Route::get('/data', [NetworkController::class, 'data'])->name('data');
+        Route::get('/together', [NetworkController::class, 'together'])->name('together');
+    });
 
     // Family Tree routes
     Route::prefix('family-tree')->name('family-tree.')->group(function () {

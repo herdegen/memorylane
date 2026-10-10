@@ -27,7 +27,7 @@
               <NavLink href="/media/upload" :active="$page.component === 'Media/Upload'">Télécharger</NavLink>
               <NavLink href="/albums" :active="$page.component.startsWith('Albums/')">Albums</NavLink>
               <NavLink href="/people" :active="$page.component.startsWith('People/')">Personnes</NavLink>
-              <NavLink href="/family-tree" :active="$page.component.startsWith('FamilyTree/')">Arbre</NavLink>
+              <NavLink href="/family-tree" :active="$page.component.startsWith('FamilyTree/') || $page.component.startsWith('Network/')">Arbre</NavLink>
               <NavLink href="/map" :active="$page.component.startsWith('Map/')">Carte</NavLink>
             </div>
           </div>
@@ -114,6 +114,7 @@
           <MobileNavLink href="/albums" :active="$page.component.startsWith('Albums/')">Albums</MobileNavLink>
           <MobileNavLink href="/people" :active="$page.component.startsWith('People/')">Personnes</MobileNavLink>
           <MobileNavLink href="/family-tree" :active="$page.component.startsWith('FamilyTree/')">Arbre</MobileNavLink>
+          <MobileNavLink href="/network" :active="$page.component.startsWith('Network/')">Réseau</MobileNavLink>
           <MobileNavLink href="/map" :active="$page.component.startsWith('Map/')">Carte</MobileNavLink>
         </div>
         <div class="pt-3 pb-4 border-t border-surface-200 mx-3">
