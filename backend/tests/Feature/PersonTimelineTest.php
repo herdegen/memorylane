@@ -284,11 +284,22 @@ class PersonTimelineTest extends TestCase
         ])->assertStatus(422)->assertJsonValidationErrors(['title', 'event_date']);
     }
 
-    public function test_non_owner_non_admin_cannot_create_moment(): void
+    public function test_family_member_can_add_moment_to_someone_elses_person(): void
     {
         $person = Person::factory()->create(['user_id' => $this->otherUser->id]);
 
         $this->actingAs($this->user)->postJson("/people/{$person->id}/events", [
+            'title' => 'X',
+            'event_date' => '2020-01-01',
+        ])->assertSuccessful();
+    }
+
+    public function test_tablet_account_cannot_create_moment(): void
+    {
+        $person = Person::factory()->create(['user_id' => $this->otherUser->id]);
+        $tablet = \App\Models\User::factory()->create(['simple_mode' => true]);
+
+        $this->actingAs($tablet)->postJson("/people/{$person->id}/events", [
             'title' => 'X',
             'event_date' => '2020-01-01',
         ])->assertStatus(403);

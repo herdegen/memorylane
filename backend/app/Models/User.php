@@ -78,6 +78,16 @@ class User extends Authenticatable implements FilamentUser
         return $this->role === 'admin';
     }
 
+    /**
+     * L'arbre est éditable par tous les membres de la famille (historique
+     * PersonChange pour annuler) : ni les invités temporaires, ni les
+     * tablettes en mode grand-parent.
+     */
+    public function canEditFamilyTree(): bool
+    {
+        return ! $this->isGuest() && ! $this->simple_mode;
+    }
+
     public function isGuest(): bool
     {
         return $this->guest_expires_at !== null;

@@ -126,8 +126,8 @@ class FamilyTreeController extends Controller
         return [
             'id' => $person->id,
             // Édition rapide depuis le panneau de l'arbre : mêmes droits que la
-            // fiche (propriétaire ou admin).
-            'can_edit' => $user !== null && ($user->isAdmin() || $person->user_id === $user->id),
+            // fiche (tout membre de la famille, hors invités et tablettes).
+            'can_edit' => (bool) $user?->canEditFamilyTree(),
             'data' => [
                 'name' => $person->name,
                 'first_name' => $person->first_name,

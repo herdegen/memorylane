@@ -384,4 +384,35 @@ class FilamentAdminTest extends TestCase
         $response->assertStatus(200)
             ->assertSee('Admin Personne');
     }
+
+    public function test_admin_can_view_invitations_and_tree_history(): void
+    {
+        \Illuminate\Support\Facades\Mail::fake();
+        $person = Person::factory()->create(['user_id' => $this->adminUser->id, 'name' => 'Élodie Test', 'death_date' => null, 'birth_date' => '1990-01-01']);
+        $invitation = app(\App\Services\InvitationService::class)->invite($this->adminUser, 'elodie@example.fr', $person);
+
+        $this->actingAs($this->adminUser)->get('/admin/invitations')
+            ->assertStatus(200)
+            ->assertSee('elodie@example.fr');
+        $this->actingAs($this->adminUser)->get('/admin/invitations/create')->assertStatus(200);
+        $this->actingAs($this->adminUser)->get(route('invitations.preview', $invitation))
+            ->assertStatus(200)
+            ->assertSee('Créer mon accès');
+
+        $this->actingAs($this->adminUser)->putJson("/people/{$person->id}", ['first_name' => 'Élodie', 'last_name' => 'Durand']);
+        $this->actingAs($this->adminUser)->get('/admin/person-changes')
+            ->assertStatus(200)
+            ->assertSee('Fiche modifiée');
+    }
+
+    public function test_non_admin_cannot_preview_invitation_mail(): void
+    {
+        \Illuminate\Support\Facades\Mail::fake();
+        $person = Person::factory()->create(['user_id' => $this->adminUser->id, 'death_date' => null, 'birth_date' => '1990-01-01']);
+        $invitation = app(\App\Services\InvitationService::class)->invite($this->adminUser, 'x@example.fr', $person);
+
+        $this->actingAs(User::factory()->create(['role' => 'user']))
+            ->get(route('invitations.preview', $invitation))
+            ->assertStatus(403);
+    }
 }

@@ -245,15 +245,16 @@ class PersonControllerTest extends TestCase
         ]);
     }
 
-    public function test_cannot_update_other_users_person(): void
+    public function test_can_update_person_created_by_someone_else(): void
     {
         $person = Person::factory()->create(['user_id' => $this->otherUser->id]);
 
         $response = $this->actingAs($this->user)->putJson("/people/{$person->id}", [
-            'name' => 'Hacked',
+            'name' => 'Jeanne Martin',
         ]);
 
-        $response->assertStatus(403);
+        $response->assertOk();
+        $this->assertSame('Jeanne Martin', $person->fresh()->name);
     }
 
     public function test_can_delete_person(): void
@@ -336,17 +337,23 @@ class PersonControllerTest extends TestCase
         ]);
     }
 
-    public function test_cannot_attach_other_users_person_to_media(): void
+    public function test_can_tag_a_shared_person_on_own_media_but_not_on_others_media(): void
     {
         $person = Person::factory()->create(['user_id' => $this->otherUser->id]);
         $media = Media::factory()->create(['user_id' => $this->user->id]);
 
-        $response = $this->actingAs($this->user)->postJson('/people/attach', [
+        // Fiches communes à la famille : on tague qui on veut sur SES médias…
+        $this->actingAs($this->user)->postJson('/people/attach', [
             'media_id' => $media->id,
             'person_id' => $person->id,
-        ]);
+        ])->assertOk();
 
-        $response->assertStatus(403);
+        // … mais pas sur les médias des autres.
+        $othersMedia = Media::factory()->create(['user_id' => $this->otherUser->id]);
+        $this->actingAs($this->user)->postJson('/people/attach', [
+            'media_id' => $othersMedia->id,
+            'person_id' => $person->id,
+        ])->assertStatus(403);
     }
 
     public function test_cannot_attach_person_to_other_users_media(): void

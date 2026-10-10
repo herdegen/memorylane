@@ -35,7 +35,7 @@
             </svg>
           </button>
           <div v-show="showActionsMenu" class="dropdown top-full w-56">
-            <button @click="menuAction(toggleSelf)" class="dropdown-item w-full text-left flex items-center gap-2.5">
+            <button v-if="canSetSelf || isSelf" @click="menuAction(toggleSelf)" class="dropdown-item w-full text-left flex items-center gap-2.5">
               <svg class="w-4 h-4" :class="isSelf ? 'text-brand-600' : 'text-surface-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
               {{ isSelf ? "C'est moi ✓ (retirer)" : "C'est moi" }}
             </button>
@@ -47,7 +47,7 @@
               <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
               Choisir un avatar
             </button>
-            <template v-if="canManage">
+            <template v-if="canDelete">
               <hr class="dropdown-divider" />
               <button @click="menuAction(deletePerson)" class="dropdown-item w-full text-left flex items-center gap-2.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -127,6 +127,24 @@
           <p v-if="person.notes" class="mt-2 text-sm text-surface-600 whitespace-pre-wrap max-w-2xl">
             {{ person.notes }}
           </p>
+          <!-- Compte MemoryLane : présent, invitation en cours, ou bouton d'invitation -->
+          <div v-if="account.hasAccount" class="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            Sur MemoryLane
+          </div>
+          <div v-else-if="account.pendingInvitation" class="mt-3 inline-flex items-center gap-1.5 text-xs text-surface-500">
+            <svg class="w-4 h-4 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+            Invitation à MemoryLane envoyée{{ account.pendingInvitation.inviter ? ' par ' + account.pendingInvitation.inviter : '' }}{{ account.pendingInvitation.sent_at ? ' le ' + formatLongDate(account.pendingInvitation.sent_at) : '' }}
+          </div>
+          <button
+            v-else-if="account.canInvite"
+            type="button"
+            @click="showInviteModal = true"
+            class="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold shadow-warm-sm transition"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+            Inviter sur MemoryLane
+          </button>
         </div>
       </div>
     </div>
@@ -220,15 +238,22 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
         <h3 class="mt-4 text-lg font-medium text-surface-900">
-          {{ canManage ? 'Aucun média' : 'Aucune photo partagée avec vous' }}
+          {{ canDelete ? 'Aucun média' : 'Aucune photo partagée avec vous' }}
         </h3>
         <p class="mt-2 text-surface-500">
-          {{ canManage
+          {{ canDelete
             ? "Cette personne n'apparaît sur aucun média pour le moment."
             : "Les photos de cette personne ne vous sont pas accessibles. Elles apparaîtront ici lorsqu'elles seront partagées avec vous." }}
         </p>
       </div>
     </div>
+
+    <InviteToMemoryLaneModal
+      v-if="showInviteModal"
+      :person="person"
+      @close="showInviteModal = false"
+      @sent="onInvited"
+    />
 
     <!-- Edit Modal -->
     <PersonFormModal
@@ -289,6 +314,7 @@ import FamilyPanel from '@/Components/FamilyPanel.vue';
 import HowWeMetPanel from '@/Components/HowWeMetPanel.vue';
 import { useCircle } from '@/Composables/useCircle';
 import PersonTimeline from '@/Components/PersonTimeline.vue';
+import InviteToMemoryLaneModal from '@/Components/InviteToMemoryLaneModal.vue';
 import { personLabel } from '@/utils/personName';
 import { formatLongDate } from '@/utils/format';
 import { useToast } from '@/Composables/useToast';
@@ -337,7 +363,27 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  // Créateur de la fiche ou admin : suppression, « c'est moi ».
+  canDelete: {
+    type: Boolean,
+    default: false,
+  },
+  canSetSelf: {
+    type: Boolean,
+    default: false,
+  },
+  account: {
+    type: Object,
+    default: () => ({ hasAccount: false, pendingInvitation: null, canInvite: false }),
+  },
 });
+
+const showInviteModal = ref(false);
+const onInvited = () => {
+  showInviteModal.value = false;
+  toast.success('Invitation envoyée !');
+  router.reload({ only: ['account'] });
+};
 
 // Fiche « moi » du visiteur : conditionne le bouton « Lien de parenté ».
 const viewerPersonId = computed(() => usePage().props.auth?.user?.person_id ?? null);

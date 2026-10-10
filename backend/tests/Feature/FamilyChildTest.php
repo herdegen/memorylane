@@ -87,12 +87,25 @@ class FamilyChildTest extends TestCase
         $this->assertDatabaseHas('people', ['id' => $child->id, 'father_id' => $father->id]);
     }
 
-    public function test_non_owner_non_admin_forbidden(): void
+    public function test_family_member_can_link_people_created_by_others(): void
     {
         $father = Person::factory()->male()->create(['user_id' => $this->otherUser->id]);
         $child = Person::factory()->create(['user_id' => $this->otherUser->id]);
 
         $this->actingAs($this->user)
+            ->postJson("/people/{$father->id}/child", ['child_id' => $child->id])
+            ->assertOk();
+
+        $this->assertSame($father->id, $child->fresh()->father_id);
+    }
+
+    public function test_guest_account_cannot_link_people(): void
+    {
+        $father = Person::factory()->male()->create(['user_id' => $this->otherUser->id]);
+        $child = Person::factory()->create(['user_id' => $this->otherUser->id]);
+        $guest = \App\Models\User::factory()->create(['guest_expires_at' => now()->addDay(), 'guest_person_id' => $father->id]);
+
+        $this->actingAs($guest)
             ->postJson("/people/{$father->id}/child", ['child_id' => $child->id])
             ->assertStatus(403);
     }

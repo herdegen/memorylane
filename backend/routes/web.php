@@ -12,6 +12,7 @@ use App\Http\Controllers\GuideController;
 use App\Http\Controllers\LifeEventController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\HouseholdController;
+use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\PersonController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PushController;
@@ -49,6 +50,14 @@ Route::get('/invite/{user}/{person}', [AuthController::class, 'loginAsGuest'])
     ->name('invite.guest');
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
+
+// Invitation reçue par mail : page « Créer mon accès » (jeton à usage unique)
+Route::get('/bienvenue/{token}', [InvitationController::class, 'show'])
+    ->middleware('throttle:30,1')
+    ->name('invitations.show');
+Route::post('/bienvenue/{token}', [InvitationController::class, 'accept'])
+    ->middleware('throttle:10,1')
+    ->name('invitations.accept');
 
 // Mode grand-parent : lien tablette sans mot de passe (tablet:create)
 Route::get('/tablette/{token}', [AuthController::class, 'loginWithTabletLink'])
@@ -272,6 +281,8 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::post('/{person}/parent', [PersonController::class, 'setParent'])->name('setParent');
         Route::delete('/{person}/parent', [PersonController::class, 'removeParent'])->name('removeParent');
         Route::post('/{person}/set-self', [PersonController::class, 'setSelf'])->name('setSelf');
+        // Inviter ce proche à créer son accès (mail + lien /bienvenue)
+        Route::post('/{person}/invite', [InvitationController::class, 'store'])->name('invite');
         Route::post('/{person}/spouse', [PersonController::class, 'addSpouse'])->name('addSpouse');
         Route::delete('/{person}/spouse', [PersonController::class, 'removeSpouse'])->name('removeSpouse');
         Route::post('/{person}/child', [PersonController::class, 'addChild'])->name('addChild');
@@ -297,6 +308,11 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::get('/data', [NetworkController::class, 'data'])->name('data');
         Route::get('/together', [NetworkController::class, 'together'])->name('together');
     });
+
+    // Aperçu navigateur du mail d'invitation (back-office)
+    Route::get('/invitations/{invitation}/apercu', fn (\App\Models\Invitation $invitation) => new \App\Mail\InvitationMail($invitation, $invitation->url() ?? route('login')))
+        ->middleware('admin')
+        ->name('invitations.preview');
 
     // Family Tree routes
     Route::prefix('family-tree')->name('family-tree.')->group(function () {

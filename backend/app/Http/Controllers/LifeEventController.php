@@ -63,7 +63,13 @@ class LifeEventController extends Controller
 
     public function destroy(LifeEvent $lifeEvent)
     {
-        $this->authorizeManage($lifeEvent->person);
+        // Ajouter/modifier un moment : tout membre. Le supprimer (sans
+        // historique) : son auteur, le créateur de la fiche ou un admin.
+        $user = auth()->user();
+        abort_unless(
+            $user !== null && ($user->isAdmin() || $lifeEvent->user_id === $user->id || $lifeEvent->person?->user_id === $user->id),
+            403
+        );
 
         $lifeEvent->delete();
 
@@ -142,7 +148,6 @@ class LifeEventController extends Controller
      */
     private function authorizeManage(Person $person): void
     {
-        $user = auth()->user();
-        abort_unless($user !== null && ($user->isAdmin() || $person->user_id === $user->id), 403);
+        abort_unless((bool) auth()->user()?->canEditFamilyTree(), 403);
     }
 }

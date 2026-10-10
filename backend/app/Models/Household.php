@@ -23,6 +23,7 @@ class Household extends Model
         'name',
         'kind',
         'created_by',
+        'is_default',
     ];
 
     public function isFriends(): bool
@@ -38,6 +39,30 @@ class Household extends Model
         return $this->belongsToMany(Person::class, 'household_person')
             ->withPivot('added_by')
             ->withTimestamps();
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'is_default' => 'boolean',
+        ];
+    }
+
+    /**
+     * Foyer d'accueil : rejoint automatiquement par toute personne invitée.
+     */
+    public static function welcome(): ?self
+    {
+        return static::where('is_default', true)->first();
+    }
+
+    /**
+     * Désigne ce foyer comme foyer d'accueil (un seul à la fois).
+     */
+    public function makeWelcome(): void
+    {
+        static::where('is_default', true)->whereKeyNot($this->id)->update(['is_default' => false]);
+        $this->forceFill(['is_default' => true])->save();
     }
 
     /**

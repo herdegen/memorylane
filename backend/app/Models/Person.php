@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Observers\PersonObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -9,6 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 use Laravel\Scout\Searchable;
 
+#[ObservedBy(PersonObserver::class)]
 class Person extends Model
 {
     use HasFactory, HasUuids, Searchable, SoftDeletes;

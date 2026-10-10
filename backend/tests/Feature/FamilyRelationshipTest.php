@@ -135,7 +135,7 @@ class FamilyRelationshipTest extends TestCase
         ]);
     }
 
-    public function test_cannot_set_parent_on_other_users_person(): void
+    public function test_can_set_parent_on_person_created_by_someone_else(): void
     {
         $otherUser = User::factory()->create();
         $parent = Person::factory()->create(['user_id' => $this->user->id]);
@@ -146,7 +146,8 @@ class FamilyRelationshipTest extends TestCase
             'parent_type' => 'father',
         ]);
 
-        $response->assertStatus(403);
+        $response->assertOk();
+        $this->assertSame($parent->id, $child->fresh()->father_id);
     }
 
     public function test_tree_data_is_public_to_connected_users(): void

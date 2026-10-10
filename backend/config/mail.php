@@ -49,6 +49,19 @@ return [
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
 
+        // Gmail personnel de l'admin : réservé aux invitations qu'il envoie
+        // lui-même (le destinataire reconnaît l'expéditeur, les réponses
+        // arrivent dans sa boîte). Mot de passe d'application Google requis.
+        'gmail' => [
+            'transport' => 'smtp',
+            'scheme' => 'smtp',
+            'host' => 'smtp.gmail.com',
+            'port' => 587,
+            'username' => env('GMAIL_USERNAME'),
+            'password' => env('GMAIL_APP_PASSWORD'),
+            'timeout' => 30,
+        ],
+
         'ses' => [
             'transport' => 'ses',
         ],
@@ -111,6 +124,24 @@ return [
     'from' => [
         'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
         'name' => env('MAIL_FROM_NAME', 'Example'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Invitations (MemoryLane)
+    |--------------------------------------------------------------------------
+    |
+    | Expéditeur des invitations envoyées par un admin : son Gmail personnel
+    | si le mot de passe d'application est renseigné, sinon le mailer par
+    | défaut. Contact affiché dans le mail (téléphone facultatif).
+    |
+    */
+
+    'invitations' => [
+        'admin_mailer' => env('GMAIL_APP_PASSWORD') ? 'gmail' : null,
+        'admin_from_address' => env('GMAIL_USERNAME'),
+        'admin_from_name' => env('INVITATION_FROM_NAME', 'MemoryLane'),
+        'contact_phone' => env('INVITATION_CONTACT_PHONE'),
     ],
 
 ];

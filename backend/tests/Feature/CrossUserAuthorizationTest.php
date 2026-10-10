@@ -69,7 +69,7 @@ class CrossUserAuthorizationTest extends TestCase
         $this->assertDatabaseMissing('media_metadata', ['media_id' => $media->id]);
     }
 
-    public function test_cannot_update_or_delete_someone_elses_life_event(): void
+    public function test_member_can_edit_but_not_delete_someone_elses_life_event(): void
     {
         $person = Person::factory()->create(['user_id' => $this->owner->id]);
         $event = LifeEvent::create([
@@ -79,15 +79,17 @@ class CrossUserAuthorizationTest extends TestCase
             'event_date' => '1990-01-01',
         ]);
 
+        // Arbre ouvert en écriture à la famille : modifier oui…
         $this->actingAs($this->intruder)
-            ->putJson("/life-events/{$event->id}", ['title' => 'Piraté'])
-            ->assertStatus(403);
+            ->putJson("/life-events/{$event->id}", ['title' => 'Naissance à Lille', 'event_date' => '1990-01-01'])
+            ->assertOk();
 
+        // … supprimer (sans historique) non : auteur, créateur de la fiche ou admin.
         $this->actingAs($this->intruder)
             ->deleteJson("/life-events/{$event->id}")
             ->assertStatus(403);
 
-        $this->assertDatabaseHas('life_events', ['id' => $event->id, 'title' => 'Naissance']);
+        $this->assertDatabaseHas('life_events', ['id' => $event->id, 'title' => 'Naissance à Lille']);
     }
 
     public function test_admin_can_manage_life_events_of_others(): void

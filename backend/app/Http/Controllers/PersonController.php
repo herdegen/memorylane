@@ -4,16 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Rules\VisiblePerson;
 use App\Models\Album;
+use App\Models\Invitation;
 use App\Models\Person;
 use App\Models\PersonRelationship;
 use App\Models\Media;
 use App\Models\User;
 use App\Services\GenealogyService;
+use App\Services\InvitationService;
 use App\Services\MediaService;
 use App\Services\Vision\AvatarFacePositionService;
 use App\Services\Vision\FaceCropService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
@@ -281,6 +284,9 @@ class PersonController extends Controller
             'siblings' => $siblings,
             'isSelf' => auth()->user()->person_id === $person->id,
             'canManage' => $this->canManage($person),
+            'canDelete' => $this->isOwnerOrAdmin($person),
+            'canSetSelf' => $this->isOwnerOrAdmin($person),
+            'account' => $this->accountPayload($person),
         ]);
     }
 
@@ -461,6 +467,7 @@ class PersonController extends Controller
     public function timeline(Person $person)
     {
         $items = [];
+        $viewer = auth()->user();
 
         if ($person->birth_date) {
             $items[] = $this->autoEvent('birth', $person->birth_date, 'Naissance', $person->birth_place);
@@ -524,6 +531,7 @@ class PersonController extends Controller
                     ? $this->albumPayload($ev->album)
                     : null,
                 'life_event_id' => $ev->id,
+                'can_delete' => $viewer->isAdmin() || $ev->user_id === $viewer->id || $person->user_id === $viewer->id,
             ];
         }
 
@@ -683,11 +691,22 @@ class PersonController extends Controller
 
     public function update(Request $request, Person $person)
     {
-        // Aligné sur les autres actions (et sur le bouton « Modifier » de la
-        // fiche, déjà affiché aux admins) : propriétaire OU admin.
+        // Fiches ouvertes en écriture à tous les membres (historique pour
+        // annuler, cf. PersonObserver).
         $this->authorizeManage($person);
 
         $validated = $this->normalizeNameFields($request->validate($this->personRules()));
+
+        // L'adresse est confidentielle : un membre qui ne la voit pas ne peut
+        // ni la lire ni l'effacer (le formulaire l'enverrait vide).
+        if (! $this->canSeeAddress($person)) {
+            unset($validated['address']);
+        }
+
+        // Photo de profil : uniquement une photo que le visiteur peut voir.
+        if (! empty($validated['avatar_media_id']) && $validated['avatar_media_id'] !== $person->avatar_media_id) {
+            Gate::authorize('view', Media::findOrFail($validated['avatar_media_id']));
+        }
 
         $person->update($validated);
 
@@ -703,9 +722,8 @@ class PersonController extends Controller
 
     public function destroy(Request $request, Person $person)
     {
-        if ($person->user_id !== auth()->id()) {
-            abort(403);
-        }
+        // Suppression réservée au créateur de la fiche et aux admins.
+        abort_unless($this->isOwnerOrAdmin($person), 403);
 
         $person->delete();
 
@@ -729,9 +747,8 @@ class PersonController extends Controller
         $media = Media::findOrFail($validated['media_id']);
         $person = Person::findOrFail($validated['person_id']);
 
-        if ($media->user_id !== auth()->id() || $person->user_id !== auth()->id()) {
-            abort(403);
-        }
+        // Le média doit être à soi ; les fiches sont communes à la famille.
+        abort_unless($media->user_id === auth()->id(), 403);
 
         if (!$media->people()->where('person_id', $person->id)->exists()) {
             $media->people()->attach($person->id);
@@ -752,9 +769,8 @@ class PersonController extends Controller
         $media = Media::findOrFail($validated['media_id']);
         $person = Person::findOrFail($validated['person_id']);
 
-        if ($media->user_id !== auth()->id() || $person->user_id !== auth()->id()) {
-            abort(403);
-        }
+        // Le média doit être à soi ; les fiches sont communes à la famille.
+        abort_unless($media->user_id === auth()->id(), 403);
 
         $media->people()->detach($person->id);
 
@@ -847,9 +863,11 @@ class PersonController extends Controller
         $ids = [$person->id, $validated['spouse_id']];
         sort($ids);
 
+        // Modèle par modèle : déclenche l'historique (PersonRelationshipObserver).
         PersonRelationship::where('person1_id', $ids[0])
             ->where('person2_id', $ids[1])
-            ->delete();
+            ->get()
+            ->each->delete();
 
         return response()->json(['message' => 'Relation supprimee']);
     }
@@ -898,11 +916,19 @@ class PersonController extends Controller
     }
 
     /**
-     * Peut gérer/éditer cette fiche : un admin, ou le créateur (propriétaire).
-     * (Le cas « la personne elle-même via un compte connecté » reste à modéliser,
-     * cf. issue #20.)
+     * Peut éditer cette fiche et ses liens : tout membre de la famille
+     * (hors invités et tablettes), chaque modification étant journalisée.
      */
     private function canManage(Person $person): bool
+    {
+        return (bool) auth()->user()?->canEditFamilyTree();
+    }
+
+    /**
+     * Droits « forts » (suppression, adresse, « c'est moi ») : le créateur de
+     * la fiche ou un admin.
+     */
+    private function isOwnerOrAdmin(Person $person): bool
     {
         $user = auth()->user();
 
@@ -915,6 +941,32 @@ class PersonController extends Controller
     }
 
     /**
+     * Compte MemoryLane de la personne : en a-t-elle un, une invitation
+     * est-elle en cours, le visiteur peut-il l'inviter ?
+     */
+    private function accountPayload(Person $person): array
+    {
+        $viewer = auth()->user();
+        $hasAccount = User::where('person_id', $person->id)->exists();
+        $pending = $hasAccount ? null : Invitation::open()
+            ->where('person_id', $person->id)
+            ->with('inviter:id,name')
+            ->latest()
+            ->first();
+
+        return [
+            'hasAccount' => $hasAccount,
+            'pendingInvitation' => $pending ? [
+                'sent_at' => $pending->sent_at?->toIso8601String(),
+                'inviter' => $pending->inviter?->name,
+            ] : null,
+            'canInvite' => ! $hasAccount && ! $pending
+                && $viewer?->canEditFamilyTree()
+                && app(InvitationService::class)->personIneligibility($person) === null,
+        ];
+    }
+
+    /**
      * Peut voir l'adresse de résidence (champ $hidden par défaut) : l'éditeur
      * de la fiche (propriétaire/admin), ou un co-membre de foyer si
      * l'utilisateur lié à cette personne a activé « partager mon adresse avec
@@ -923,7 +975,7 @@ class PersonController extends Controller
      */
     private function canSeeAddress(Person $person): bool
     {
-        if ($this->canManage($person)) {
+        if ($this->isOwnerOrAdmin($person)) {
             return true;
         }
 
