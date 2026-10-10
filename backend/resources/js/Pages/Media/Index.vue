@@ -499,7 +499,7 @@ const debouncedSearch = () => {
 };
 
 // Visionneuse PhotoSwipe sur la galerie (reconstruite quand la liste grandit
-// via le scroll infini) ; la légende propose « Ouvrir la fiche ».
+// via le scroll infini) ; bouton « i » vers la fiche.
 const { open: openPhoto } = usePhotoSwipe(() => mediaItems.value, {
   watchSource: () => mediaItems.value,
   detailLink: true,
@@ -507,8 +507,8 @@ const { open: openPhoto } = usePhotoSwipe(() => mediaItems.value, {
 
 const handleMediaClick = (media) => {
   // Quand une sélection est en cours, MediaGrid gère les clics (sélection).
-  // Sinon : photo → visionneuse ; vidéo/document → page média (lecteur, infos).
-  if (media.type !== 'photo' || !openPhoto(media)) {
+  // Sinon : photo/vidéo → visionneuse ; document → page média.
+  if (!openPhoto(media)) {
     router.visit(route('media.show', media.id));
   }
 };

@@ -442,13 +442,13 @@ const setAsCover = async () => {
 };
 
 // En mode sélection, le clic sur la tuile coche/décoche (comme la galerie) ;
-// sinon il ouvre la visionneuse (ou la fiche pour les non-photos).
+// sinon il ouvre la visionneuse (photos et vidéos) ou la fiche (documents).
 const handleMediaClick = (media, index, event) => {
   if (selectionMode.value) {
     applySelection(media, index, event);
     return;
   }
-  if (media.type !== 'photo' || !openLightbox(media)) {
+  if (!openLightbox(media)) {
     router.visit(`/media/${media.id}`);
   }
 };
@@ -496,6 +496,7 @@ const deleteAlbum = async () => {
 // Visionneuse partagée (reconstruite quand la liste de médias change)
 const { open: openLightbox } = usePhotoSwipe(() => albumMedia.value, {
   watchSource: () => props.album.media,
+  detailLink: true,
 });
 
 // Slides du diaporama : médias jouables normalisés (poids fort aux visages).

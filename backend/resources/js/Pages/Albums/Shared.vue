@@ -124,36 +124,10 @@
         </div>
       </div>
     </main>
-
-    <!-- Lecteur vidéo en surimpression (les photos passent par PhotoSwipe ;
-         pas de page média pour un visiteur anonyme) -->
-    <div
-      v-if="lightboxMedia"
-      class="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
-      @click="closeLightbox"
-    >
-      <button
-        class="absolute top-4 right-4 text-white hover:text-surface-300"
-        @click="closeLightbox"
-      >
-        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-
-      <video
-        :src="lightboxMedia.url"
-        controls
-        autoplay
-        class="max-w-full max-h-full"
-        @click.stop
-      />
-    </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import { usePhotoSwipe } from '@/composables/usePhotoSwipe';
 import { thumbnailUrl } from '@/utils/media';
@@ -165,20 +139,7 @@ const props = defineProps({
   },
 });
 
-// Vidéo en cours de lecture dans la surimpression (photos → PhotoSwipe)
-const lightboxMedia = ref(null);
-
-const { open: openPhoto } = usePhotoSwipe(() => props.album.media || []);
-
-const openLightbox = (media) => {
-  if (media.type === 'photo') {
-    openPhoto(media);
-  } else if (media.type === 'video') {
-    lightboxMedia.value = media;
-  }
-};
-
-const closeLightbox = () => {
-  lightboxMedia.value = null;
-};
+// Photos et vidéos s'ouvrent dans PhotoSwipe (pas de page média pour un
+// visiteur anonyme, donc pas de bouton « i »).
+const { open: openLightbox } = usePhotoSwipe(() => props.album.media || []);
 </script>

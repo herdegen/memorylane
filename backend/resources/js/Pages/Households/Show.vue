@@ -139,12 +139,16 @@ const props = defineProps({
   media: { type: Array, default: () => [] },
 });
 
-// Visionneuse partagée : photos en lightbox, le reste ouvre la fiche média
-// (accessible aux membres via la branche foyer de MediaPolicy::view).
-const { open: openLightbox } = usePhotoSwipe(() => props.media);
+// Visionneuse partagée : photos et vidéos en lightbox (bouton « i » vers la
+// fiche, accessible aux membres via la branche foyer de MediaPolicy::view) ;
+// les documents ouvrent directement la fiche.
+const { open: openLightbox } = usePhotoSwipe(() => props.media, {
+  watchSource: () => props.media,
+  detailLink: true,
+});
 
 const handleMediaClick = (item) => {
-  if (item.type !== 'photo' || !openLightbox(item)) {
+  if (!openLightbox(item)) {
     router.visit(`/media/${item.id}`);
   }
 };

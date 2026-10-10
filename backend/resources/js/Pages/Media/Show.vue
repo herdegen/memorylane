@@ -3,17 +3,19 @@
   <AppLayout>
     <div class="py-12">
       <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-        <!-- Back button -->
+        <!-- Retour : vers la page d'où l'on vient (fiche personne, album,
+             galerie…), repli « Mes photos » en accès direct -->
         <div class="mb-6">
-          <Link
-            href="/media"
+          <a
+            :href="back.href"
             class="inline-flex items-center text-sm text-surface-600 hover:text-surface-900 transition"
+            @click.prevent="goBack"
           >
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
-            Retour à mes photos
-          </Link>
+            {{ back.label }}
+          </a>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -302,9 +304,21 @@ import VideoClipEditor from '@/Components/VideoClipEditor.vue';
 import { useFaceDetection } from '@/composables/useFaceDetection';
 import { useToast } from '@/Composables/useToast';
 import { formatFileSize, formatDuration } from '@/utils/format';
+import { backTarget } from '@/utils/navigation';
 import axios from 'axios';
 
 const toast = useToast();
+
+// Bouton « Retour » : page précédente dans l'app (history.back() restaure
+// le scroll de la galerie), sinon la galerie « Mes photos ».
+const back = backTarget('/media', 'Retour à mes photos');
+const goBack = () => {
+  if (back.useHistory && window.history.length > 1) {
+    window.history.back();
+  } else {
+    router.visit(back.href);
+  }
+};
 
 const props = defineProps({
   media: {
