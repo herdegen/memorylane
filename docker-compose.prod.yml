@@ -39,9 +39,29 @@ services:
     labels:
       traefik.enable: "true"
       traefik.docker.network: "traefik-proxy"
+      # Ancien domaine : reste servi (liens déjà envoyés : invité signé, tablette…)
       traefik.http.routers.memorylane.entrypoints: "websecure"
       traefik.http.routers.memorylane.rule: "Host(`memorylane.maxibestof.com`)"
       traefik.http.routers.memorylane.tls.certresolver: "le"
+      traefik.http.routers.memorylane.service: "memorylane"
+      # Domaine principal
+      traefik.http.routers.memorylane-fr.entrypoints: "websecure"
+      traefik.http.routers.memorylane-fr.rule: "Host(`memory-lane.fr`)"
+      traefik.http.routers.memorylane-fr.tls.certresolver: "le"
+      traefik.http.routers.memorylane-fr.service: "memorylane"
+      # www → domaine nu ; http → https
+      traefik.http.routers.memorylane-www.entrypoints: "websecure"
+      traefik.http.routers.memorylane-www.rule: "Host(`www.memory-lane.fr`)"
+      traefik.http.routers.memorylane-www.tls.certresolver: "le"
+      traefik.http.routers.memorylane-www.middlewares: "memorylane-canonical"
+      traefik.http.routers.memorylane-www.service: "memorylane"
+      traefik.http.routers.memorylane-http.entrypoints: "web"
+      traefik.http.routers.memorylane-http.rule: "Host(`memory-lane.fr`) || Host(`www.memory-lane.fr`)"
+      traefik.http.routers.memorylane-http.middlewares: "memorylane-canonical"
+      traefik.http.routers.memorylane-http.service: "memorylane"
+      traefik.http.middlewares.memorylane-canonical.redirectregex.regex: "^https?://(?:www\\.)?memory-lane\\.fr/?(.*)"
+      traefik.http.middlewares.memorylane-canonical.redirectregex.replacement: "https://memory-lane.fr/$${1}"
+      traefik.http.middlewares.memorylane-canonical.redirectregex.permanent: "true"
       traefik.http.services.memorylane.loadbalancer.server.port: "80"
       traefik.http.services.memorylane.loadbalancer.passhostheader: "true"
 
