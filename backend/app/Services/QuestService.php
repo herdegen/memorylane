@@ -6,6 +6,7 @@ use App\Enums\QuestType;
 use App\Models\DetectedFace;
 use App\Models\Media;
 use App\Models\Person;
+use App\Models\PersonLink;
 use App\Models\QuestAnswer;
 use App\Models\User;
 use App\Services\Vision\FaceMatcher;
@@ -43,6 +44,7 @@ class QuestService
     /** Poids relatifs des types (les plus gratifiants d'abord). */
     private const WEIGHTS = [
         'face_identify' => 5,
+        'how_met' => 5,
         'birth_date' => 4,
         'gender' => 4,
         'media_date' => 3,
@@ -55,6 +57,7 @@ class QuestService
     public function __construct(
         private GenealogyService $genealogy,
         private FaceMatcher $faceMatcher,
+        private NetworkService $network,
     ) {
     }
 
@@ -69,7 +72,7 @@ class QuestService
             $type = QuestType::from($candidate['type']);
             $subject = $type->subjectClass()::find($candidate['subject_id']);
 
-            if ($subject && $this->gapExists($type, $subject)) {
+            if ($subject && $this->gapExists($type, $subject, $user)) {
                 return $this->present($user, $type, $subject);
             }
         }
@@ -95,9 +98,13 @@ class QuestService
      * Le manque visé par la question existe-t-il toujours ? Partagé entre la
      * présentation (next) et l'application (QuestAnswerApplier, anti-course).
      */
-    public function gapExists(QuestType $type, Model $subject): bool
+    public function gapExists(QuestType $type, Model $subject, ?User $user = null): bool
     {
         return match ($type) {
+            // Propre au compte : sa version du récit manque encore.
+            QuestType::HowMet => $user?->person_id !== null
+                && $user->person_id !== $subject->id
+                && ! PersonLink::forPair($user->person_id, $subject->id)->where('created_by', $user->id)->exists(),
             QuestType::BirthDate => $subject->birth_date === null,
             QuestType::BirthPlace => $subject->birth_place === null,
             QuestType::DeathStatus, QuestType::DeathDateOld => $subject->death_date === null,
@@ -132,12 +139,28 @@ class QuestService
             $inContext = Person::inContext($user)->whereIn('people.id', array_keys($circle))->pluck('people.id')->flip();
             $circle = array_intersect_key($circle, $inContext->all());
 
-            $candidates = array_merge(
-                $this->detectPersonGaps($circle),
-                $this->detectHouseholdAddressGaps($user),
-                $this->detectFaceGaps($user),
-                $this->detectMediaGaps($user),
-            );
+            if ($user->mode() === \App\Models\Household::KIND_FRIENDS) {
+                // Mode amis : pas de généalogie (parents, unions, décès…) ni
+                // d'adresse ; on garde la date de naissance (anniversaires),
+                // visages, photos, et « comment as-tu connu X ? ».
+                $personGaps = array_values(array_filter(
+                    $this->detectPersonGaps($this->friendsCircle($user)),
+                    fn ($c) => ! QuestType::from($c['type'])->genealogical(),
+                ));
+                $candidates = array_merge(
+                    $personGaps,
+                    $this->detectHowMetGaps($user),
+                    $this->detectFaceGaps($user),
+                    $this->detectMediaGaps($user),
+                );
+            } else {
+                $candidates = array_merge(
+                    $this->detectPersonGaps($circle),
+                    $this->detectHouseholdAddressGaps($user),
+                    $this->detectFaceGaps($user),
+                    $this->detectMediaGaps($user),
+                );
+            }
 
             $candidates = $this->filterExcluded($user, $candidates);
 
@@ -296,6 +319,58 @@ class QuestService
             ->all();
     }
 
+    /**
+     * Cercle d'amis courant : ses fiches (sauf la sienne), distance 1.
+     *
+     * @return array<string,int>
+     */
+    private function friendsCircle(User $user): array
+    {
+        return Person::inContext($user)
+            ->when($user->person_id, fn ($q) => $q->where('people.id', '!=', $user->person_id))
+            ->limit(self::CIRCLE_MAX_SIZE)
+            ->pluck('people.id')
+            ->mapWithKeys(fn ($id) => [$id => 1])
+            ->all();
+    }
+
+    /**
+     * « Comment as-tu connu X ? » : les amis du cercle courant avec qui le
+     * compte apparaît sur des photos, sans récit de SA part.
+     */
+    private function detectHowMetGaps(User $user): array
+    {
+        if (! $user->person_id) {
+            return [];
+        }
+
+        $together = $this->network->coTagged($user, $user->person_id);
+        if ($together === []) {
+            return [];
+        }
+
+        $inContext = Person::inContext($user)->whereIn('people.id', array_keys($together))->pluck('people.id')->flip();
+
+        $told = PersonLink::where('created_by', $user->id)
+            ->where(fn ($q) => $q->where('person1_id', $user->person_id)->orWhere('person2_id', $user->person_id))
+            ->get(['person1_id', 'person2_id'])
+            ->map(fn ($l) => $l->person1_id === $user->person_id ? $l->person2_id : $l->person1_id)
+            ->flip();
+
+        $candidates = [];
+        foreach ($together as $id => [$n]) {
+            if (isset($inContext[$id]) && ! isset($told[$id])) {
+                // Les amis les plus photographiés avec soi d'abord.
+                $candidates[] = ['type' => QuestType::HowMet->value, 'subject_id' => $id, 'distance' => $n >= 10 ? 0 : 1];
+            }
+            if (count($candidates) >= self::DETECTOR_LIMIT) {
+                break;
+            }
+        }
+
+        return $candidates;
+    }
+
     /** Visages non identifiés sur des photos que l'utilisateur peut voir. */
     private function detectFaceGaps(User $user): array
     {
@@ -352,7 +427,9 @@ class QuestService
 
         $excluded = [];
         foreach ($answers as $a) {
-            $globallyExcluded = match ($a->answer_kind) {
+            $perUser = QuestType::from($a->question_type)->perUser();
+
+            $globallyExcluded = ! $perUser && match ($a->answer_kind) {
                 'answered' => true,
                 'no' => ($ttl = QuestType::from($a->question_type)->noAnswerTtlDays()) === null
                     || $a->created_at->gt(now()->subDays($ttl)),
@@ -360,6 +437,7 @@ class QuestService
             };
 
             $mineExcluded = $a->user_id === $user->id && match ($a->answer_kind) {
+                'answered' => $perUser,
                 'dont_know' => $a->created_at->gt(now()->subDays(self::DONT_KNOW_TTL_DAYS)),
                 'skipped' => $a->created_at->gt(now()->subDays(self::SKIPPED_TTL_DAYS)),
                 default => false,
@@ -432,6 +510,9 @@ class QuestService
         if ($subject instanceof Person) {
             $question['prompt'] = $this->personPrompt($type, $subject);
             $question['person'] = $this->personPayload($subject);
+            if ($type === QuestType::HowMet) {
+                $question['how_met'] = $this->howMetPayload($user, $subject);
+            }
         } elseif ($subject instanceof Media) {
             $question['prompt'] = $type === QuestType::MediaDate
                 ? 'Quand cette photo a-t-elle été prise ?'
@@ -451,6 +532,9 @@ class QuestService
                 // Photo entière + cadre (%) pour situer le visage dans son contexte.
                 'image_url' => url("/vision/media/{$subject->media_id}/image?conversion=large"),
                 'bounding_box' => $subject->bounding_box,
+                // « Sur cette photo avec Antoine et Pauline » : les personnes
+                // déjà identifiées (visibles) aident à reconnaître la suivante.
+                'with' => $subject->media->people()->visibleTo($user)->orderBy('name')->limit(4)->pluck('people.name'),
                 'suggestions' => array_slice($this->faceMatcher->rankedCandidates(
                     $subject,
                     FaceMatcher::MATCH_THRESHOLD,
@@ -491,8 +575,40 @@ class QuestService
             QuestType::Education => "Où {$name} a-t-{$il} étudié (école, diplôme…) ?",
             QuestType::Residence => "Où {$name} a-t-{$il} habité ?",
             QuestType::Address => "Quelle est l'adresse actuelle de {$name} ?",
+            QuestType::HowMet => "Comment as-tu connu {$name} ?",
             default => $name,
         };
+    }
+
+    /**
+     * Contexte de la question « comment as-tu connu X » : photos ensemble,
+     * première année, et suggestion « par … » = la personne la plus souvent
+     * photographiée à la fois avec soi et avec X.
+     */
+    private function howMetPayload(User $user, Person $friend): array
+    {
+        $mine = $this->network->coTagged($user, $user->person_id);
+        $theirs = $this->network->coTagged($user, $friend->id);
+
+        $best = null;
+        $bestScore = 0;
+        foreach ($theirs as $id => [$n]) {
+            if ($id === $user->person_id || ! isset($mine[$id])) {
+                continue;
+            }
+            $score = min($n, $mine[$id][0]);
+            if ($score > $bestScore) {
+                [$best, $bestScore] = [$id, $score];
+            }
+        }
+        $via = $best ? Person::visibleTo($user)->find($best, ['id', 'name']) : null;
+
+        return [
+            'photos' => $mine[$friend->id][0] ?? 0,
+            'since' => $mine[$friend->id][1] ?? null,
+            'via' => $via ? ['id' => $via->id, 'name' => $via->name] : null,
+            'contexts' => collect(PersonLink::CONTEXTS)->map(fn ($label, $key) => ['key' => $key, 'label' => $label])->values(),
+        ];
     }
 
     private function personPayload(Person $person): array

@@ -1,7 +1,7 @@
 <template>
   <div v-if="question || completedCount > 0" class="space-y-4">
     <div class="flex items-center justify-between">
-      <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400">Complétez la mémoire familiale</h2>
+      <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400">{{ isFriends ? 'Complétez vos souvenirs communs' : 'Complétez la mémoire familiale' }}</h2>
       <span
         v-if="completedCount > 0"
         class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-400 text-xs font-semibold"
@@ -179,8 +179,62 @@
               />
             </div>
 
+            <!-- Comment as-tu connu X ? (mode amis) -->
+            <div v-else-if="uiKind === 'how_met'" class="space-y-3 max-w-xl">
+              <p v-if="question.how_met.photos" class="text-sm text-surface-500">
+                {{ question.how_met.photos }} photo{{ question.how_met.photos > 1 ? 's' : '' }} ensemble<span v-if="question.how_met.since"> depuis {{ question.how_met.since }}</span>.
+              </p>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  v-if="question.how_met.via"
+                  type="button"
+                  class="h-10 px-4 rounded-full text-sm font-semibold border-2 transition-colors"
+                  :class="form.context === 'friend' && form.via_person_id === question.how_met.via.id
+                    ? 'border-brand-500 bg-brand-50 text-brand-800 dark:bg-brand-500/15 dark:text-brand-200'
+                    : 'border-surface-200 bg-white text-surface-700 hover:border-surface-300'"
+                  @click="pickContext('friend', question.how_met.via.id)"
+                >
+                  Par {{ question.how_met.via.name }}
+                </button>
+                <button
+                  v-for="c in question.how_met.contexts"
+                  :key="c.key"
+                  type="button"
+                  class="h-10 px-4 rounded-full text-sm font-semibold border transition-colors"
+                  :class="form.context === c.key && !(c.key === 'friend' && form.via_person_id)
+                    ? 'border-brand-500 bg-brand-50 text-brand-800 dark:bg-brand-500/15 dark:text-brand-200'
+                    : 'border-surface-200 bg-white text-surface-700 hover:border-surface-300'"
+                  @click="pickContext(c.key)"
+                >
+                  {{ c.label }}
+                </button>
+              </div>
+              <div class="flex flex-wrap gap-2.5">
+                <input
+                  v-model="form.story"
+                  type="text"
+                  maxlength="500"
+                  class="form-input flex-1 min-w-56"
+                  placeholder="Raconte en une phrase (facultatif)"
+                  aria-label="Raconte en une phrase (facultatif)"
+                />
+                <input
+                  v-model="form.year"
+                  type="number"
+                  class="form-input w-32"
+                  :min="1900"
+                  :max="currentYear"
+                  placeholder="Année ?"
+                  aria-label="Année de la rencontre (facultatif)"
+                />
+              </div>
+            </div>
+
             <!-- Qui est-ce ? (visage) -->
             <div v-else-if="uiKind === 'face'" class="space-y-3">
+              <p v-if="question.face.with?.length" class="text-sm text-surface-500">
+                Sur cette photo avec {{ joinNames(question.face.with) }}.
+              </p>
               <div v-if="question.face.suggestions.length" class="flex flex-wrap gap-2">
                 <button
                   v-for="s in question.face.suggestions"
@@ -344,8 +398,16 @@ import axios from 'axios';
 import RelationshipPicker from '@/Components/RelationshipPicker.vue';
 import GeolocatePickerModal from '@/Components/GeolocatePickerModal.vue';
 import { useToast } from '@/Composables/useToast';
+import { useCircle } from '@/Composables/useCircle';
 
 const toast = useToast();
+const { isFriends } = useCircle();
+
+const joinNames = (names) => (names.length > 1 ? `${names.slice(0, -1).join(', ')} et ${names[names.length - 1]}` : names[0]);
+
+const pickContext = (context, viaId = null) => {
+  form.value = { ...form.value, context, via_person_id: viaId };
+};
 
 const question = ref(null);
 const completedCount = ref(0);
@@ -392,6 +454,7 @@ const UI_KINDS = {
   residence: 'text_year',
   face_identify: 'face',
   media_geo: 'media_geo',
+  how_met: 'how_met',
 };
 
 const uiKind = computed(() => UI_KINDS[question.value?.type]);
@@ -460,6 +523,15 @@ const currentPayload = computed(() => {
     case 'marital':
       return pickedPerson.value
         ? { spouse_id: pickedPerson.value.id, type: form.value.type, year: form.value.year || null }
+        : null;
+    case 'how_met':
+      return form.value.context
+        ? {
+          context: form.value.context,
+          via_person_id: form.value.via_person_id || null,
+          story: form.value.story || null,
+          year: form.value.year || null,
+        }
         : null;
     case 'text_year':
       return form.value.text && form.value.year

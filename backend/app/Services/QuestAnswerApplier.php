@@ -8,6 +8,7 @@ use App\Models\DetectedFace;
 use App\Models\LifeEvent;
 use App\Models\Media;
 use App\Models\Person;
+use App\Models\PersonLink;
 use App\Models\PersonRelationship;
 use App\Models\User;
 use App\Services\Vision\FaceMatcher;
@@ -46,6 +47,8 @@ class QuestAnswerApplier
             // aux admins, et au foyer de la personne (miroir de la génération
             // dans QuestService::detectHouseholdAddressGaps).
             abort_unless($this->canFillAddress($user, $subject), 403);
+        } elseif ($type === QuestType::HowMet) {
+            abort_unless($user->person_id, 422, "Reliez d'abord votre compte à votre fiche (« C'est moi »).");
         }
         // Autres questions Person : fiches lisibles par tout compte connecté ;
         // le remplissage de champs vides est ouvert à tous, tracé dans
@@ -71,7 +74,7 @@ class QuestAnswerApplier
     {
         $this->authorize($user, $type, $subject);
 
-        if (! $this->quests->gapExists($type, $subject)) {
+        if (! $this->quests->gapExists($type, $subject, $user)) {
             throw new StaleQuestException('Cette information a déjà été complétée.');
         }
 
@@ -101,6 +104,7 @@ class QuestAnswerApplier
                 'latitude' => $payload['latitude'],
                 'longitude' => $payload['longitude'],
             ]),
+            QuestType::HowMet => $this->applyHowMet($user, $subject, $payload),
         };
     }
 
@@ -154,5 +158,23 @@ class QuestAnswerApplier
             'place' => $place,
             'event_date' => sprintf('%04d-01-01', $year),
         ]);
+    }
+
+    /** Version du compte du récit de rencontre (lui ↔ l'ami). */
+    private function applyHowMet(User $user, Person $friend, array $payload): void
+    {
+        abort_if($friend->id === $user->person_id, 422, 'C\'est votre propre fiche.');
+
+        [$p1, $p2] = PersonLink::pairKey($user->person_id, $friend->id);
+
+        PersonLink::updateOrCreate(
+            ['person1_id' => $p1, 'person2_id' => $p2, 'created_by' => $user->id],
+            [
+                'context' => $payload['context'],
+                'via_person_id' => $payload['via_person_id'] ?? null,
+                'story' => $payload['story'] ?? null,
+                'met_year' => $payload['year'] ?? null,
+            ],
+        );
     }
 }

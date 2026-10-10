@@ -32,6 +32,7 @@ enum QuestType: string
     case FaceIdentify = 'face_identify';
     case MediaDate = 'media_date';
     case MediaGeo = 'media_geo';
+    case HowMet = 'how_met';                // mode amis : « comment as-tu connu X ? »
 
     /** Classe Eloquent du sujet de la question. */
     public function subjectClass(): string
@@ -40,6 +41,24 @@ enum QuestType: string
             self::FaceIdentify => DetectedFace::class,
             self::MediaDate, self::MediaGeo => Media::class,
             default => Person::class,
+        };
+    }
+
+    /**
+     * Question propre à chaque compte (une réponse n'éteint pas la question
+     * pour les autres) : « comment as-tu connu X » dépend de qui répond.
+     */
+    public function perUser(): bool
+    {
+        return $this === self::HowMet;
+    }
+
+    /** Questions de généalogie, absentes du mode amis. */
+    public function genealogical(): bool
+    {
+        return match ($this) {
+            self::BirthDate, self::FaceIdentify, self::MediaDate, self::MediaGeo, self::HowMet => false,
+            default => true,
         };
     }
 
@@ -104,6 +123,12 @@ enum QuestType: string
             self::MediaGeo => [
                 'latitude' => 'required|numeric|between:-90,90',
                 'longitude' => 'required|numeric|between:-180,180',
+            ],
+            self::HowMet => [
+                'context' => 'required|in:'.implode(',', array_keys(\App\Models\PersonLink::CONTEXTS)),
+                'via_person_id' => ['nullable', 'uuid', new VisiblePerson],
+                'story' => 'nullable|string|max:500',
+                'year' => 'nullable|integer|between:1900,'.now()->year,
             ],
         };
     }

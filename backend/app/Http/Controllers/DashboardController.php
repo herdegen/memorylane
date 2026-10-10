@@ -97,7 +97,10 @@ class DashboardController extends Controller
                 'kind' => 'birthday',
                 'emoji' => '🎂',
                 'title' => $person->name,
-                'sub' => "{$age} ans {$this->whenLabel($days)}",
+                // Entre amis, pas d'âge : juste le jour.
+                'sub' => auth()->user()->mode() === \App\Models\Household::KIND_FRIENDS
+                    ? ucfirst($this->whenLabel($days))
+                    : "{$age} ans {$this->whenLabel($days)}",
                 'days_until' => $days,
                 'avatar_url' => $this->avatarUrl($person),
                 'person_id' => $person->id,

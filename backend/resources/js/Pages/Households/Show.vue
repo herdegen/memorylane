@@ -100,6 +100,52 @@
           </div>
         </div>
 
+        <!-- Fiches du cercle d'amis -->
+        <div v-if="household.kind === 'friends'" class="mt-8">
+          <h2 class="text-lg font-semibold text-surface-900 mb-1">
+            Fiches du cercle
+            <span v-if="people.length" class="ml-1 text-sm font-normal text-surface-500">({{ people.length }})</span>
+          </h2>
+          <p class="text-sm text-surface-500 mb-4">Visibles des seuls membres du cercle. Une fiche créée depuis ce cercle y est rattachée automatiquement.</p>
+
+          <div v-if="household.can_manage" class="relative mb-4 max-w-md">
+            <input
+              v-model="personSearch"
+              type="text"
+              placeholder="Ajouter une fiche existante…"
+              aria-label="Ajouter une fiche existante"
+              class="form-input"
+              @input="onPersonSearch"
+            />
+            <ul v-if="personCandidates.length" class="absolute z-10 mt-1 w-full bg-white border border-surface-200 rounded-md shadow-lg max-h-60 overflow-auto">
+              <li v-for="p in personCandidates" :key="p.id">
+                <button type="button" class="w-full px-3 py-2 hover:bg-surface-50 flex items-center justify-between text-left" @click="addPerson(p)">
+                  <span class="font-medium text-surface-800">{{ p.name }}</span>
+                  <span class="text-brand-600 text-sm font-medium">Ajouter</span>
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          <div v-if="people.length" class="flex flex-wrap gap-2">
+            <span
+              v-for="p in people"
+              :key="p.id"
+              class="inline-flex items-center gap-2 pl-3 pr-1.5 py-1 rounded-full bg-white border border-surface-200 text-sm"
+            >
+              <Link :href="`/people/${p.id}`" class="font-medium text-surface-800 hover:text-brand-700">{{ p.name }}</Link>
+              <button
+                v-if="household.can_manage"
+                type="button"
+                class="w-6 h-6 rounded-full text-surface-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10"
+                :aria-label="`Retirer ${p.name} du cercle`"
+                @click="removePerson(p)"
+              >×</button>
+            </span>
+          </div>
+          <p v-else class="text-sm text-surface-500">Aucune fiche pour l'instant.</p>
+        </div>
+
         <!-- Galerie du cercle -->
         <div class="mt-8">
           <h2 class="text-lg font-semibold text-surface-900 mb-4">
@@ -150,6 +196,7 @@ const props = defineProps({
   household: { type: Object, required: true },
   members: { type: Array, default: () => [] },
   media: { type: Array, default: () => [] },
+  people: { type: Array, default: () => [] },
 });
 
 // Visionneuse partagée : photos et vidéos en lightbox (bouton « i » vers la
@@ -206,6 +253,50 @@ const removeMember = async (member) => {
     router.reload();
   } catch (error) {
     toast.error(error.response?.data?.message || 'Erreur lors du retrait du membre.');
+  }
+};
+
+// ---- Fiches du cercle d'amis (administrateur) ----
+const personSearch = ref('');
+const personCandidates = ref([]);
+let personTimer = null;
+onUnmounted(() => clearTimeout(personTimer));
+
+const onPersonSearch = () => {
+  clearTimeout(personTimer);
+  const q = personSearch.value.trim();
+  if (q.length < 2) {
+    personCandidates.value = [];
+    return;
+  }
+  personTimer = setTimeout(async () => {
+    try {
+      const { data } = await axios.get(`/households/${props.household.id}/people/candidates`, { params: { q } });
+      personCandidates.value = data;
+    } catch {
+      personCandidates.value = [];
+    }
+  }, 250);
+};
+
+const addPerson = async (p) => {
+  try {
+    await axios.post(`/households/${props.household.id}/people`, { person_id: p.id });
+    personSearch.value = '';
+    personCandidates.value = [];
+    router.reload({ only: ['people'] });
+  } catch (error) {
+    toast.error(error.response?.data?.message || "Erreur lors de l'ajout.");
+  }
+};
+
+const removePerson = async (p) => {
+  if (!confirm(`Retirer la fiche ${p.name} du cercle ? Ses membres ne la verront plus.`)) return;
+  try {
+    await axios.delete(`/households/${props.household.id}/people/${p.id}`);
+    router.reload({ only: ['people'] });
+  } catch (error) {
+    toast.error(error.response?.data?.message || 'Erreur lors du retrait.');
   }
 };
 

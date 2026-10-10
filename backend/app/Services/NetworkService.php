@@ -47,6 +47,31 @@ class NetworkService
     }
 
     /**
+     * Personnes taguées avec $personId sur des photos visibles du viewer :
+     * [person_id => [count, first_year]], plus fortes d'abord.
+     *
+     * @return array<string, array{0: int, 1: ?int}>
+     */
+    public function coTagged(User $user, string $personId): array
+    {
+        $year = $this->yearExpression('m');
+
+        return DB::table('media_person as a')
+            ->join('media_person as b', 'b.media_id', '=', 'a.media_id')
+            ->join('media as m', 'm.id', '=', 'a.media_id')
+            ->whereNull('m.deleted_at')
+            ->where('a.person_id', $personId)
+            ->whereColumn('b.person_id', '!=', 'a.person_id')
+            ->whereIn('a.media_id', Media::accessibleBy($user)->select('media.id'))
+            ->groupBy('b.person_id')
+            ->selectRaw("b.person_id, COUNT(*) as n, MIN({$year}) as first_year")
+            ->orderByDesc('n')
+            ->get()
+            ->mapWithKeys(fn ($r) => [$r->person_id => [(int) $r->n, $r->first_year !== null ? (int) $r->first_year : null]])
+            ->all();
+    }
+
+    /**
      * Médias que les deux personnes partagent ET que le viewer peut voir.
      */
     public function mediaTogether(User $user, string $personA, string $personB, int $limit = 24)

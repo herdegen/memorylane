@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FamilyTreeController;
 use App\Http\Controllers\GedcomImportController;
 use App\Http\Controllers\NetworkController;
+use App\Http\Controllers\PersonLinkController;
 use App\Http\Controllers\GooglePhotosController;
 use App\Http\Controllers\GuideController;
 use App\Http\Controllers\LifeEventController;
@@ -217,6 +218,11 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::get('/{household}/members/candidates', [HouseholdController::class, 'inviteCandidates'])->name('members.candidates');
         Route::post('/{household}/members', [HouseholdController::class, 'invite'])->name('members.invite');
         Route::delete('/{household}/members/{user}', [HouseholdController::class, 'removeMember'])->name('members.remove');
+
+        // Fiches rattachées à un cercle d'amis (administrateur)
+        Route::get('/{household}/people/candidates', [HouseholdController::class, 'personCandidates'])->name('people.candidates');
+        Route::post('/{household}/people', [HouseholdController::class, 'addPerson'])->name('people.add');
+        Route::delete('/{household}/people/{personId}', [HouseholdController::class, 'removePerson'])->name('people.remove');
     });
 
     // Vision AI routes
@@ -270,6 +276,10 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::get('/{person}/timeline', [PersonController::class, 'timeline'])->name('timeline');
         // Lien de parenté avec la fiche « moi » du visiteur (marche dans l'arbre)
         Route::get('/{person}/kinship', [PersonController::class, 'kinship'])->name('kinship');
+        // « Comment on s'est connus » (une version par compte)
+        Route::get('/{person}/links', [PersonLinkController::class, 'index'])->name('links.index');
+        Route::put('/{person}/links', [PersonLinkController::class, 'upsert'])->name('links.upsert');
+        Route::delete('/{person}/links', [PersonLinkController::class, 'destroy'])->name('links.destroy');
         Route::post('/{person}/events', [LifeEventController::class, 'store'])->name('events.store');
     });
 

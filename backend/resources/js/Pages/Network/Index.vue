@@ -222,6 +222,13 @@
             </div>
           </div>
 
+          <HowWeMetPanel
+            v-if="selfId && !selected.is_self"
+            :key="selected.id"
+            :person-id="selected.id"
+            class="mt-5"
+          />
+
           <div v-if="topLinks.length" class="mt-5">
             <div class="text-xs font-semibold text-surface-600 mb-1">Liens les plus forts</div>
             <button
@@ -281,6 +288,7 @@ import Graph from 'graphology';
 import louvain from 'graphology-communities-louvain';
 import { searchPeople } from '@/utils/personSearch';
 import { useCircle } from '@/Composables/useCircle';
+import HowWeMetPanel from '@/Components/HowWeMetPanel.vue';
 
 const { isFriends, canSeeFamily } = useCircle();
 

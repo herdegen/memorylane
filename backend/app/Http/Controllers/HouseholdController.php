@@ -131,6 +131,11 @@ class HouseholdController extends Controller
             ],
             'members' => $members,
             'media' => $media,
+            // Cercle d'amis : ses fiches (visibles de ses membres).
+            'people' => $household->isFriends()
+                ? $household->people()->orderBy('name')->get(['people.id', 'people.name'])
+                    ->map(fn ($p) => ['id' => $p->id, 'name' => $p->name])->values()
+                : [],
         ]);
     }
 
@@ -258,5 +263,58 @@ class HouseholdController extends Controller
                 $member->person_id => ['added_by' => $by->id],
             ]);
         }
+    }
+
+    /**
+     * Fiches existantes rattachables à un cercle d'amis (recherche par nom,
+     * hors fiches déjà rattachées). Admin : il voit toutes les fiches.
+     */
+    public function personCandidates(Request $request, Household $household)
+    {
+        Gate::authorize('manageMembers', $household);
+        abort_unless($household->isFriends(), 422, 'Seuls les cercles d\'amis ont des fiches rattachées.');
+
+        $q = trim((string) $request->query('q', ''));
+        if (mb_strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $people = \App\Models\Person::visibleTo($request->user())
+            ->whereNotIn('people.id', $household->people()->pluck('people.id'))
+            ->whereRaw('LOWER(name) LIKE ?', ['%'.mb_strtolower($q).'%'])
+            ->orderBy('name')
+            ->limit(8)
+            ->get(['id', 'name']);
+
+        return response()->json($people);
+    }
+
+    /**
+     * Rattache une fiche existante à un cercle d'amis : ses membres la voient
+     * désormais (elle reste dans le répertoire familial si elle y était).
+     */
+    public function addPerson(Request $request, Household $household)
+    {
+        Gate::authorize('manageMembers', $household);
+        abort_unless($household->isFriends(), 422, 'Seuls les cercles d\'amis ont des fiches rattachées.');
+
+        $validated = $request->validate([
+            'person_id' => ['required', 'uuid', new \App\Rules\VisiblePerson],
+        ]);
+
+        $household->people()->syncWithoutDetaching([
+            $validated['person_id'] => ['added_by' => $request->user()->id],
+        ]);
+
+        return response()->json(['message' => 'Fiche ajoutée au cercle.'], 201);
+    }
+
+    public function removePerson(Request $request, Household $household, string $personId)
+    {
+        Gate::authorize('manageMembers', $household);
+
+        $household->people()->detach($personId);
+
+        return response()->json(['message' => 'Fiche retirée du cercle.']);
     }
 }

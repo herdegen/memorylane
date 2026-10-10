@@ -131,8 +131,17 @@
       </div>
     </div>
 
+    <!-- ================= Mode amis : la rencontre, à la place du mini-arbre ================= -->
+    <section v-if="isFriends && viewerPersonId && !isSelf" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+      <div class="bg-white border border-surface-200 rounded-2xl p-5 sm:p-6 grid gap-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
+        <HowWeMetPanel :person-id="person.id" />
+        <Link href="/network" class="btn-secondary self-start">Voir dans le réseau</Link>
+      </div>
+    </section>
+
     <!-- ================= Famille (mini-arbre) ================= -->
     <FamilyPanel
+      v-if="!isFriends"
       :person="person"
       :father="father"
       :mother="mother"
@@ -277,12 +286,15 @@ import MediaCard from '@/Components/MediaCard.vue';
 import { usePhotoSwipe } from '@/composables/usePhotoSwipe';
 import PersonFormModal from '@/Components/PersonFormModal.vue';
 import FamilyPanel from '@/Components/FamilyPanel.vue';
+import HowWeMetPanel from '@/Components/HowWeMetPanel.vue';
+import { useCircle } from '@/Composables/useCircle';
 import PersonTimeline from '@/Components/PersonTimeline.vue';
 import { personLabel } from '@/utils/personName';
 import { formatLongDate } from '@/utils/format';
 import { useToast } from '@/Composables/useToast';
 
 const toast = useToast();
+const { isFriends } = useCircle();
 
 const props = defineProps({
   person: {
