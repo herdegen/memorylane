@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Raconter cette photo</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#92400e}a:hover{color:#78350f}
+</style>
+</helmet>
+<div style="width: 1180px; height: 820px; box-sizing: border-box; padding: 36px 52px 44px; background: #faf7f1; font-family: Figtree, system-ui, sans-serif; color: #1c1917; display: flex; flex-direction: column; gap: 28px">
+
+  <div style="display: flex; align-items: center; justify-content: space-between">
+    <a href="Photos.dc.html" style="height: 76px; padding: 0 30px 0 20px; border-radius: 999px; background: #ffffff; border: 2px solid #e7e5e4; color: #1c1917; text-decoration: none; display: flex; align-items: center; gap: 10px; font-size: 26px; font-weight: 600">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg>
+      Retour à la photo
+    </a>
+  </div>
+
+  <div style="flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; align-items: center">
+
+    <div style="display: flex; flex-direction: column; gap: 22px">
+      <div style="height: 330px; border-radius: 24px; background: #7d6a55; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.75); font-size: 20px; box-shadow: 0 12px 32px rgba(28,25,23,0.14)">[Photo : la plage, été 1978]</div>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="font-size: 22px; font-weight: 700; color: #92400e; text-transform: uppercase; letter-spacing: 0.06em">Racontez-nous</div>
+        <div style="font-family: 'Playfair Display', Georgia, serif; font-size: 34px; font-weight: 700; line-height: 1.2">Où étiez-vous ce jour-là ? Qui a pris la photo ?</div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 26px; text-align: center">
+
+      <sc-if value="{{isIdle}}" hint-placeholder-val="{{ true }}">
+        <button type="button" onClick="{{start}}" aria-label="Commencer l'enregistrement" style="width: 240px; height: 240px; border-radius: 999px; border: 10px solid #fde68a; background: #b45309; color: #ffffff; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 12px 32px rgba(180,83,9,0.35)">
+          <svg width="104" height="104" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>
+        </button>
+        <div style="font-size: 32px; font-weight: 700">Appuyez et parlez</div>
+        <div style="font-size: 24px; color: #57534e; max-width: 420px">Prenez votre temps. Vous pouvez parler aussi longtemps que vous voulez.</div>
+      </sc-if>
+
+      <sc-if value="{{isRecording}}" hint-placeholder-val="{{ false }}">
+        <button type="button" onClick="{{stop}}" aria-label="Arrêter l'enregistrement" style="width: 240px; height: 240px; border-radius: 999px; border: 10px solid #fecaca; background: #b91c1c; color: #ffffff; display: flex; align-items: center; justify-content: center; cursor: pointer">
+          <svg width="84" height="84" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"></rect></svg>
+        </button>
+        <div style="font-size: 52px; font-weight: 700; font-variant-numeric: tabular-nums">1:24</div>
+        <div style="font-size: 26px; color: #57534e">J'écoute… Appuyez pour terminer.</div>
+      </sc-if>
+
+      <sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
+        <div style="width: 160px; height: 160px; border-radius: 999px; background: #dcfce7; color: #166534; display: flex; align-items: center; justify-content: center">
+          <svg width="84" height="84" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+        </div>
+        <div style="font-family: 'Playfair Display', Georgia, serif; font-size: 40px; font-weight: 700">Merci Jeanne !</div>
+        <div style="font-size: 24px; color: #44403c; max-width: 440px">Votre souvenir est gardé avec la photo. Paul, Marie et les petits-enfants pourront l'écouter.</div>
+        <div style="display: flex; gap: 16px">
+          <button type="button" style="height: 80px; padding: 0 28px; border-radius: 20px; border: 2px solid #d6d3d1; background: #ffffff; font-family: inherit; font-size: 24px; font-weight: 600; color: #1c1917; cursor: pointer">Réécouter</button>
+          <button type="button" onClick="{{reset}}" style="height: 80px; padding: 0 28px; border-radius: 20px; border: 2px solid #d6d3d1; background: #ffffff; font-family: inherit; font-size: 24px; font-weight: 600; color: #1c1917; cursor: pointer">Recommencer</button>
+        </div>
+        <a href="Photos.dc.html" style="height: 84px; padding: 0 36px; border-radius: 22px; background: #b45309; color: #ffffff; text-decoration: none; display: flex; align-items: center; font-size: 26px; font-weight: 700">Photo suivante</a>
+      </sc-if>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1180,"height":820}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { step: 'idle' };
+  }
+  renderVals() {
+    var self = this;
+    var step = this.state.step;
+    return {
+      isIdle: step === 'idle',
+      isRecording: step === 'recording',
+      isDone: step === 'done',
+      start: function () { self.setState({ step: 'recording' }); },
+      stop: function () { self.setState({ step: 'done' }); },
+      reset: function () { self.setState({ step: 'idle' }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

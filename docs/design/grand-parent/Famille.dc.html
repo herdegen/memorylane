@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Ma famille</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#92400e}a:hover{color:#78350f}
+</style>
+</helmet>
+<div style="width: 1180px; height: 820px; box-sizing: border-box; padding: 36px 52px 44px; background: #faf7f1; font-family: Figtree, system-ui, sans-serif; color: #1c1917; display: flex; flex-direction: column; gap: 28px">
+
+  <div style="display: flex; align-items: center; gap: 28px">
+    <a href="Main.dc.html" style="height: 76px; padding: 0 30px 0 22px; border-radius: 999px; background: #ffffff; border: 2px solid #e7e5e4; color: #1c1917; text-decoration: none; display: flex; align-items: center; gap: 12px; font-size: 26px; font-weight: 600">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path></svg>
+      Accueil
+    </a>
+    <h1 style="margin: 0; font-family: 'Playfair Display', Georgia, serif; font-size: 52px; font-weight: 700">Ma famille</h1>
+  </div>
+
+  <div style="flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px">
+    <sc-for list="{{people}}" as="p" hint-placeholder-count="8">
+      <a href="Photos.dc.html" style="border-radius: 26px; overflow: hidden; background: #ffffff; text-decoration: none; color: #1c1917; display: flex; flex-direction: column; box-shadow: 0 4px 12px rgba(28,25,23,0.08); border: 2px solid #e7e5e4">
+        <div style="flex: 1; min-height: 0; background: {{p.tone}}; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.8); font-size: 17px">[Portrait]</div>
+        <div style="padding: 14px 18px 16px; display: flex; flex-direction: column; gap: 2px">
+          <div style="font-size: 28px; font-weight: 700; line-height: 1.15">{{p.name}}</div>
+          <div style="font-size: 21px; color: #57534e">{{p.relation}}</div>
+        </div>
+      </a>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1180,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      people: [
+        { name: 'Pierre', relation: 'votre mari', tone: '#8a7560' },
+        { name: 'Paul', relation: 'votre fils', tone: '#7a8290' },
+        { name: 'Marie', relation: 'votre fille', tone: '#a08060' },
+        { name: 'Sophie', relation: 'votre belle-fille', tone: '#8c7a8a' },
+        { name: 'Lucas', relation: 'votre petit-fils', tone: '#6f8a7a' },
+        { name: 'Camille', relation: 'votre petite-fille', tone: '#9a7a6a' },
+        { name: 'Emma', relation: 'votre petite-fille', tone: '#7f7a95' },
+        { name: 'Léo', relation: 'votre arrière-petit-fils', tone: '#9b8a6a' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
