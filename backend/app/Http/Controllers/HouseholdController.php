@@ -13,8 +13,9 @@ use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
 /**
- * Foyers (cercles familiaux). Gestion des foyers, de leur appartenance et
- * de leur galerie partagée (pivot household_media).
+ * Cercles (foyers) famille ou amis : appartenance, galerie partagée (pivot
+ * household_media) et cercle courant. Création et gestion des membres
+ * réservées aux administrateurs.
  */
 class HouseholdController extends Controller
 {
@@ -23,11 +24,13 @@ class HouseholdController extends Controller
     }
 
     /**
-     * Liste des foyers dont l'utilisateur est membre.
+     * Cercles de l'utilisateur (l'admin les voit tous, pour les gérer).
      */
     public function index(Request $request)
     {
-        $households = Household::forUser($request->user())
+        $user = $request->user();
+
+        $households = ($user->isAdmin() ? Household::query() : Household::forUser($user))
             ->withCount('members')
             ->with('creator:id,name')
             ->orderBy('name')
@@ -35,7 +38,9 @@ class HouseholdController extends Controller
             ->map(fn (Household $h) => [
                 'id' => $h->id,
                 'name' => $h->name,
+                'kind' => $h->kind,
                 'members_count' => $h->members_count,
+                'is_member' => $h->isMember($user),
                 'is_creator' => $h->created_by === $request->user()->id,
                 'creator_name' => $h->creator?->name,
             ]);
@@ -46,24 +51,33 @@ class HouseholdController extends Controller
 
         return Inertia::render('Households/Index', [
             'households' => $households,
+            'canManage' => $user->isAdmin(),
+            'defaultKind' => config('memorylane.default_mode'),
         ]);
     }
 
     /**
-     * Crée un foyer et y ajoute le créateur comme premier membre.
+     * Crée un cercle (admin) ; l'admin en fait partie sauf s'il le refuse.
      */
     public function store(Request $request)
     {
+        Gate::authorize('create', Household::class);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
+            'kind' => ['nullable', 'in:'.Household::KIND_FAMILY.','.Household::KIND_FRIENDS],
+            'join' => ['nullable', 'boolean'],
         ]);
 
         $household = Household::create([
             'name' => $validated['name'],
+            'kind' => $validated['kind'] ?? config('memorylane.default_mode'),
             'created_by' => $request->user()->id,
         ]);
 
-        $household->members()->attach($request->user()->id);
+        if ($validated['join'] ?? true) {
+            $this->addMember($household, $request->user(), $request->user());
+        }
 
         if ($request->wantsJson()) {
             return response()->json(['id' => $household->id], 201);
@@ -80,6 +94,7 @@ class HouseholdController extends Controller
         Gate::authorize('view', $household);
 
         $isCreator = $household->created_by === $request->user()->id;
+        $canManage = Gate::allows('manageMembers', $household);
 
         $members = $household->members()->orderBy('name')->get()->map(fn (User $u) => [
             'user_id' => $u->id,
@@ -109,7 +124,10 @@ class HouseholdController extends Controller
             'household' => [
                 'id' => $household->id,
                 'name' => $household->name,
+                'kind' => $household->kind,
                 'is_creator' => $isCreator,
+                'is_member' => $household->isMember($request->user()),
+                'can_manage' => $canManage,
             ],
             'members' => $members,
             'media' => $media,
@@ -153,9 +171,7 @@ class HouseholdController extends Controller
         $invitee = User::findOrFail($validated['user_id']);
         $alreadyMember = $household->isMember($invitee);
 
-        $household->members()->syncWithoutDetaching([
-            $invitee->id => ['invited_by' => $request->user()->id],
-        ]);
+        $this->addMember($household, $invitee, $request->user());
 
         // Push « vous faites partie du foyer » — seulement à un vrai nouvel entrant.
         if (! $alreadyMember) {
@@ -170,14 +186,11 @@ class HouseholdController extends Controller
     }
 
     /**
-     * Retire un membre (créateur uniquement ; le créateur ne peut pas se
-     * retirer lui-même — il doit supprimer le foyer).
+     * Retire un membre (admin).
      */
     public function removeMember(Request $request, Household $household, User $user)
     {
         Gate::authorize('manageMembers', $household);
-
-        abort_if($user->id === $household->created_by, 422, 'Le créateur ne peut pas être retiré du foyer.');
 
         $household->members()->detach($user->id);
 
@@ -190,11 +203,6 @@ class HouseholdController extends Controller
     public function leave(Request $request, Household $household)
     {
         abort_unless($household->isMember($request->user()), 403);
-        abort_if(
-            $household->created_by === $request->user()->id,
-            422,
-            'Le créateur ne peut pas quitter le foyer&nbsp;; supprimez-le à la place.'
-        );
 
         $household->members()->detach($request->user()->id);
 
@@ -215,5 +223,40 @@ class HouseholdController extends Controller
         }
 
         return redirect()->route('households.index');
+    }
+
+    /**
+     * Choisit le cercle courant (sélecteur de l'en-tête) : le mode, la liste
+     * des personnes, le réseau et les quêtes suivent ce cercle.
+     */
+    public function switchCurrent(Request $request)
+    {
+        $validated = $request->validate([
+            'household_id' => ['required', 'uuid'],
+        ]);
+
+        $user = $request->user();
+        abort_unless($user->circles()->contains('id', $validated['household_id']), 403);
+
+        $user->forceFill(['current_household_id' => $validated['household_id']])->save();
+
+        return redirect()->back();
+    }
+
+    /**
+     * Ajoute un compte au cercle. Dans un cercle d'amis, sa fiche « moi » y
+     * est rattachée pour que les autres membres la voient.
+     */
+    private function addMember(Household $household, User $member, User $by): void
+    {
+        $household->members()->syncWithoutDetaching([
+            $member->id => ['invited_by' => $by->id],
+        ]);
+
+        if ($household->isFriends() && $member->person_id) {
+            $household->people()->syncWithoutDetaching([
+                $member->person_id => ['added_by' => $by->id],
+            ]);
+        }
     }
 }

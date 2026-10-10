@@ -3,22 +3,30 @@
 namespace Tests\Feature;
 
 use App\Models\Household;
+use App\Models\Person;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Foyers (phase 2a) : création et gestion de l'appartenance.
+ * Cercles : création et gestion des membres réservées à l'administrateur,
+ * cercle courant (sélecteur de l'en-tête).
  */
 class HouseholdMembershipTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** Crée un foyer avec $creator comme créateur + premier membre. */
-    private function household(User $creator, array $members = []): Household
+    private User $admin;
+
+    protected function setUp(): void
     {
-        $h = Household::factory()->create(['created_by' => $creator->id]);
-        $h->members()->attach($creator->id);
+        parent::setUp();
+        $this->admin = User::factory()->admin()->create();
+    }
+
+    private function household(array $members = [], string $kind = 'family'): Household
+    {
+        $h = Household::factory()->create(['created_by' => $this->admin->id, 'kind' => $kind]);
         foreach ($members as $m) {
             $h->members()->attach($m->id);
         }
@@ -26,109 +34,156 @@ class HouseholdMembershipTest extends TestCase
         return $h;
     }
 
-    public function test_creer_un_foyer_ajoute_le_createur_comme_membre(): void
+    public function test_l_admin_cree_un_cercle_et_en_fait_partie(): void
     {
-        $user = User::factory()->create();
-
-        $this->actingAs($user)
-            ->postJson('/households', ['name' => 'Famille Test'])
+        $this->actingAs($this->admin)
+            ->postJson('/households', ['name' => 'Les copains', 'kind' => 'friends'])
             ->assertCreated();
 
         $household = Household::first();
-        $this->assertSame('Famille Test', $household->name);
-        $this->assertSame($user->id, $household->created_by);
-        $this->assertTrue($household->isMember($user));
+        $this->assertSame('Les copains', $household->name);
+        $this->assertSame('friends', $household->kind);
+        $this->assertTrue($household->isMember($this->admin));
     }
 
-    public function test_index_ne_liste_que_mes_foyers(): void
+    public function test_l_admin_peut_creer_un_cercle_sans_en_faire_partie(): void
     {
-        $user = User::factory()->create();
-        $other = User::factory()->create();
-        $mine = $this->household($user);
-        $this->household($other); // foyer d'un autre
-
-        $this->actingAs($user)
-            ->getJson('/households')
-            ->assertOk()
-            ->assertJsonCount(1)
-            ->assertJsonPath('0.id', $mine->id);
-    }
-
-    public function test_un_non_membre_ne_peut_pas_voir_le_foyer(): void
-    {
-        $creator = User::factory()->create();
-        $stranger = User::factory()->create();
-        $household = $this->household($creator);
-
-        $this->actingAs($stranger)->get("/households/{$household->id}")->assertForbidden();
-        $this->actingAs($creator)->get("/households/{$household->id}")->assertOk();
-    }
-
-    public function test_le_createur_invite_un_compte(): void
-    {
-        $creator = User::factory()->create();
-        $invitee = User::factory()->create();
-        $household = $this->household($creator);
-
-        $this->actingAs($creator)
-            ->postJson("/households/{$household->id}/members", ['user_id' => $invitee->id])
+        $this->actingAs($this->admin)
+            ->postJson('/households', ['name' => 'Famille X', 'join' => false])
             ->assertCreated();
 
-        $this->assertTrue($household->fresh()->isMember($invitee));
+        $household = Household::first();
+        $this->assertSame(config('memorylane.default_mode'), $household->kind);
+        $this->assertFalse($household->isMember($this->admin));
     }
 
-    public function test_un_membre_non_createur_ne_peut_pas_inviter(): void
+    public function test_un_compte_normal_ne_cree_pas_de_cercle(): void
     {
-        $creator = User::factory()->create();
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->postJson('/households', ['name' => 'Mon cercle'])->assertForbidden();
+        $this->assertSame(0, Household::count());
+    }
+
+    public function test_index_ne_liste_que_mes_cercles_sauf_pour_l_admin(): void
+    {
+        $user = User::factory()->create();
+        $mine = $this->household([$user]);
+        $this->household(); // cercle sans lui
+
+        $this->actingAs($user)->getJson('/households')->assertOk()
+            ->assertJsonCount(1)->assertJsonPath('0.id', $mine->id);
+
+        $this->actingAs($this->admin)->getJson('/households')->assertOk()->assertJsonCount(2);
+    }
+
+    public function test_un_non_membre_ne_voit_pas_le_cercle(): void
+    {
+        $member = User::factory()->create();
+        $stranger = User::factory()->create();
+        $household = $this->household([$member]);
+
+        $this->actingAs($stranger)->get("/households/{$household->id}")->assertForbidden();
+        $this->actingAs($member)->get("/households/{$household->id}")->assertOk();
+        $this->actingAs($this->admin)->get("/households/{$household->id}")->assertOk();
+    }
+
+    public function test_seul_l_admin_ajoute_et_retire_des_membres(): void
+    {
         $member = User::factory()->create();
         $target = User::factory()->create();
-        $household = $this->household($creator, [$member]);
+        $household = $this->household([$member]);
 
         $this->actingAs($member)
             ->postJson("/households/{$household->id}/members", ['user_id' => $target->id])
             ->assertForbidden();
-    }
 
-    public function test_le_createur_retire_un_membre_mais_pas_lui_meme(): void
-    {
-        $creator = User::factory()->create();
-        $member = User::factory()->create();
-        $household = $this->household($creator, [$member]);
+        $this->actingAs($this->admin)
+            ->postJson("/households/{$household->id}/members", ['user_id' => $target->id])
+            ->assertCreated();
+        $this->assertTrue($household->fresh()->isMember($target));
 
-        $this->actingAs($creator)
-            ->deleteJson("/households/{$household->id}/members/{$member->id}")
+        $this->actingAs($member)
+            ->deleteJson("/households/{$household->id}/members/{$target->id}")
+            ->assertForbidden();
+
+        $this->actingAs($this->admin)
+            ->deleteJson("/households/{$household->id}/members/{$target->id}")
             ->assertOk();
-        $this->assertFalse($household->fresh()->isMember($member));
-
-        // Le créateur ne peut pas se retirer via removeMember.
-        $this->actingAs($creator)
-            ->deleteJson("/households/{$household->id}/members/{$creator->id}")
-            ->assertStatus(422);
-        $this->assertTrue($household->fresh()->isMember($creator));
+        $this->assertFalse($household->fresh()->isMember($target));
     }
 
-    public function test_un_membre_quitte_le_foyer_mais_pas_le_createur(): void
+    public function test_ajouter_a_un_cercle_d_amis_y_rattache_sa_fiche(): void
     {
-        $creator = User::factory()->create();
+        $friend = User::factory()->create();
+        $self = Person::factory()->create(['user_id' => $friend->id]);
+        $friend->forceFill(['person_id' => $self->id])->save();
+        $household = $this->household([], 'friends');
+
+        $this->actingAs($this->admin)
+            ->postJson("/households/{$household->id}/members", ['user_id' => $friend->id])
+            ->assertCreated();
+
+        $this->assertTrue($household->people()->whereKey($self->id)->exists());
+    }
+
+    public function test_un_membre_quitte_le_cercle(): void
+    {
         $member = User::factory()->create();
-        $household = $this->household($creator, [$member]);
+        $household = $this->household([$member]);
 
         $this->actingAs($member)->postJson("/households/{$household->id}/leave")->assertOk();
         $this->assertFalse($household->fresh()->isMember($member));
-
-        $this->actingAs($creator)->postJson("/households/{$household->id}/leave")->assertStatus(422);
-        $this->assertTrue($household->fresh()->isMember($creator));
     }
 
-    public function test_seul_le_createur_supprime_le_foyer(): void
+    public function test_seul_l_admin_supprime_le_cercle(): void
     {
-        $creator = User::factory()->create();
         $member = User::factory()->create();
-        $household = $this->household($creator, [$member]);
+        $household = $this->household([$member]);
 
         $this->actingAs($member)->deleteJson("/households/{$household->id}")->assertForbidden();
 
-        $this->actingAs($creator)->deleteJson("/households/{$household->id}")->assertOk();
+        $this->actingAs($this->admin)->deleteJson("/households/{$household->id}")->assertOk();
         $this->assertDatabaseMissing('households', ['id' => $household->id]);
+    }
+
+    public function test_choisir_son_cercle_courant(): void
+    {
+        $user = User::factory()->create();
+        $family = $this->household([$user]);
+        $friends = $this->household([$user], 'friends');
+        $other = $this->household([], 'friends');
+
+        $this->assertSame('family', $user->mode());
+
+        $this->actingAs($user)->post('/circles/current', ['household_id' => $friends->id])->assertRedirect();
+        $this->assertSame($friends->id, $user->fresh()->current_household_id);
+        $this->assertSame('friends', $user->fresh()->mode());
+
+        // Pas un cercle dont on n'est pas membre.
+        $this->actingAs($user)->post('/circles/current', ['household_id' => $other->id])->assertForbidden();
+        $this->assertSame($friends->id, $user->fresh()->current_household_id);
+    }
+
+    public function test_props_partagees_du_cercle(): void
+    {
+        $user = User::factory()->create();
+        $this->household([$user], 'friends');
+
+        $this->actingAs($user)->get('/dashboard')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('circle.mode', 'friends')
+                ->where('circle.family', false)
+                ->where('circle.can_manage', false)
+                ->has('circle.list', 1)
+                ->etc());
+    }
+
+    public function test_compte_amis_seulement_redirige_de_l_arbre_vers_le_reseau(): void
+    {
+        $user = User::factory()->create();
+        $this->household([$user], 'friends');
+
+        $this->actingAs($user)->get('/family-tree')->assertRedirect('/network');
     }
 }

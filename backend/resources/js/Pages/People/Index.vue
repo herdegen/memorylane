@@ -1,12 +1,12 @@
 <template>
-  <Head title="Personnes" />
+  <Head :title="peopleLabel" />
   <AppLayout>
     <div class="py-12">
       <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
         <!-- Header -->
         <div class="flex justify-between items-center mb-8">
           <div>
-            <h1 class="text-display text-4xl text-surface-900">Personnes</h1>
+            <h1 class="text-display text-4xl text-surface-900">{{ peopleLabel }}</h1>
             <p class="mt-1 text-sm text-surface-500">Gérez les personnes présentes sur vos médias</p>
           </div>
           <button
@@ -149,6 +149,9 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import PersonFormModal from '@/Components/PersonFormModal.vue';
 import { personLabel } from '@/utils/personName';
 import { formatLongDate } from '@/utils/format';
+import { useCircle } from '@/Composables/useCircle';
+
+const { peopleLabel } = useCircle();
 
 const props = defineProps({
   people: {

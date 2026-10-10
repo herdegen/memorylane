@@ -75,7 +75,7 @@
           <div class="pointer-events-auto bg-white/90 backdrop-blur rounded-2xl border border-surface-200 shadow-warm-sm px-4 py-3 max-sm:py-2 max-w-md">
             <div class="flex items-center gap-3">
               <h1 class="text-display text-2xl text-surface-900">Réseau</h1>
-              <div class="inline-flex rounded-full border border-surface-200 p-0.5 text-xs font-semibold">
+              <div v-if="!isFriends && canSeeFamily" class="inline-flex rounded-full border border-surface-200 p-0.5 text-xs font-semibold">
                 <Link href="/family-tree" class="px-3 py-1 rounded-full text-surface-600 hover:text-surface-900">Arbre</Link>
                 <span class="px-3 py-1 rounded-full bg-brand-100 text-brand-800 dark:bg-brand-500/20 dark:text-brand-200">Réseau</span>
               </div>
@@ -280,6 +280,9 @@ import { select as d3select } from 'd3-selection';
 import Graph from 'graphology';
 import louvain from 'graphology-communities-louvain';
 import { searchPeople } from '@/utils/personSearch';
+import { useCircle } from '@/Composables/useCircle';
+
+const { isFriends, canSeeFamily } = useCircle();
 
 // Palette des groupes : teintes distinctes ET de luminosités différentes,
 // lisibles en clair comme en sombre. Au-delà : gris neutre.

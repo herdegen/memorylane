@@ -147,7 +147,8 @@ class QuestService
 
     private function cacheKey(User $user): string
     {
-        return "quests:batch:{$user->id}";
+        // Le lot dépend du cercle courant (fiches du contexte).
+        return "quests:batch:{$user->id}:".($user->currentCircle()?->id ?? 'none');
     }
 
     /**

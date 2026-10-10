@@ -34,7 +34,8 @@ class PushSocialNotificationsTest extends TestCase
         parent::setUp();
         // En journée (heure de Paris) : pas de report d'heures calmes.
         Carbon::setTestNow(Carbon::parse('2026-10-07 14:00', 'Europe/Paris'));
-        $this->actor = User::factory()->create(['name' => 'Marie Dupont']);
+        // Admin : seul un administrateur ajoute des membres à un cercle.
+        $this->actor = User::factory()->admin()->create(['name' => 'Marie Dupont']);
         $this->member = User::factory()->create(['name' => 'Paul Herdegen']);
     }
 

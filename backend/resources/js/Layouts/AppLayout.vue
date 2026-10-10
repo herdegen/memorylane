@@ -21,13 +21,18 @@
               </Link>
             </div>
 
-            <div class="hidden sm:ml-8 sm:flex sm:space-x-1">
+            <div v-if="user" class="hidden sm:flex items-center ml-5">
+              <CircleSwitcher />
+            </div>
+
+            <div class="hidden sm:ml-6 sm:flex sm:space-x-1">
               <NavLink href="/dashboard" :active="$page.component === 'Dashboard'">Accueil</NavLink>
               <NavLink href="/media" :active="$page.component.startsWith('Media/')">Mes photos</NavLink>
               <NavLink href="/media/upload" :active="$page.component === 'Media/Upload'">Télécharger</NavLink>
               <NavLink href="/albums" :active="$page.component.startsWith('Albums/')">Albums</NavLink>
-              <NavLink href="/people" :active="$page.component.startsWith('People/')">Personnes</NavLink>
-              <NavLink href="/family-tree" :active="$page.component.startsWith('FamilyTree/') || $page.component.startsWith('Network/')">Arbre</NavLink>
+              <NavLink href="/people" :active="$page.component.startsWith('People/')">{{ peopleLabel }}</NavLink>
+              <NavLink v-if="isFriends" href="/network" :active="$page.component.startsWith('Network/')">Réseau</NavLink>
+              <NavLink v-else href="/family-tree" :active="$page.component.startsWith('FamilyTree/') || $page.component.startsWith('Network/')">Arbre</NavLink>
               <NavLink href="/map" :active="$page.component.startsWith('Map/')">Carte</NavLink>
             </div>
           </div>
@@ -71,7 +76,7 @@
                     <p class="text-sm font-semibold text-surface-900 truncate">{{ user.email }}</p>
                   </div>
                   <Link href="/profile" class="dropdown-item" @click="showDropdown = false">Mon profil</Link>
-                  <Link href="/households" class="dropdown-item" @click="showDropdown = false">Foyers</Link>
+                  <Link href="/households" class="dropdown-item" @click="showDropdown = false">Cercles</Link>
                   <Link href="/tags" class="dropdown-item" @click="showDropdown = false">Tags</Link>
                   <Link href="/guide" class="dropdown-item" @click="showDropdown = false">Guide d'utilisation</Link>
                   <hr class="dropdown-divider" />
@@ -107,13 +112,16 @@
 
       <!-- Mobile menu -->
       <div v-show="showMobileMenu" class="sm:hidden border-t border-surface-100 bg-surface-50">
+        <div v-if="user && circles.length > 1" class="px-3 pt-3">
+          <CircleSwitcher />
+        </div>
         <div class="py-2 space-y-0.5 px-3">
           <MobileNavLink href="/dashboard" :active="$page.component === 'Dashboard'">Accueil</MobileNavLink>
           <MobileNavLink href="/media" :active="$page.component.startsWith('Media/')">Mes photos</MobileNavLink>
           <MobileNavLink href="/media/upload" :active="$page.component === 'Media/Upload'">Télécharger</MobileNavLink>
           <MobileNavLink href="/albums" :active="$page.component.startsWith('Albums/')">Albums</MobileNavLink>
-          <MobileNavLink href="/people" :active="$page.component.startsWith('People/')">Personnes</MobileNavLink>
-          <MobileNavLink href="/family-tree" :active="$page.component.startsWith('FamilyTree/')">Arbre</MobileNavLink>
+          <MobileNavLink href="/people" :active="$page.component.startsWith('People/')">{{ peopleLabel }}</MobileNavLink>
+          <MobileNavLink v-if="!isFriends" href="/family-tree" :active="$page.component.startsWith('FamilyTree/')">Arbre</MobileNavLink>
           <MobileNavLink href="/network" :active="$page.component.startsWith('Network/')">Réseau</MobileNavLink>
           <MobileNavLink href="/map" :active="$page.component.startsWith('Map/')">Carte</MobileNavLink>
         </div>
@@ -130,7 +138,7 @@
             </div>
             <div class="space-y-0.5">
               <MobileNavLink href="/profile">Mon profil</MobileNavLink>
-              <MobileNavLink href="/households" :active="$page.component.startsWith('Households/')">Foyers</MobileNavLink>
+              <MobileNavLink href="/households" :active="$page.component.startsWith('Households/')">Cercles</MobileNavLink>
               <MobileNavLink href="/tags" :active="$page.component.startsWith('Tags/')">Tags</MobileNavLink>
               <MobileNavLink href="/guide" :active="$page.component === 'Guide'">Guide d'utilisation</MobileNavLink>
               <a v-if="isAdmin" href="/admin"
@@ -161,21 +169,30 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, watchEffect, onMounted, onUnmounted } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import NavLink from '@/Components/NavLink.vue';
 import MobileNavLink from '@/Components/MobileNavLink.vue';
 import SearchBar from '@/Components/SearchBar.vue';
+import CircleSwitcher from '@/Components/CircleSwitcher.vue';
 import ToastContainer from '@/Components/ToastContainer.vue';
 import { IconSettings, IconChevron, IconMenu, IconTheme } from '@/Components/Icons';
 import { useAuth } from '@/Composables/useAuth';
 import { useTheme } from '@/Composables/useTheme';
 import { startBackgroundFaceScan } from '@/composables/useBackgroundFaceScan';
 import { usePush } from '@/Composables/usePush';
+import { useCircle } from '@/Composables/useCircle';
 
 const { user, isAdmin } = useAuth();
 const { isDark, toggle: toggleTheme } = useTheme();
 const { syncOnce: syncPushSubscription } = usePush();
+const { mode, isFriends, circles, peopleLabel } = useCircle();
+
+// Accent du mode (ambre famille, teal amis) : app.css recolore la palette
+// `brand` sous [data-mode=friends].
+watchEffect(() => {
+  if (typeof document !== 'undefined') document.documentElement.dataset.mode = mode.value;
+});
 
 const showDropdown = ref(false);
 const showMobileMenu = ref(false);

@@ -16,8 +16,14 @@ class FamilyTreeController extends Controller
         private AvatarFacePositionService $avatarPositions,
     ) {}
 
-    public function index()
+    public function index(Request $request)
     {
+        // Sans accès à la famille (cercles d'amis seulement), pas d'arbre :
+        // le réseau en tient lieu.
+        if (! $request->user()->canSeeFamilyDirectory()) {
+            return redirect()->route('network.index');
+        }
+
         return Inertia::render('FamilyTree/Index');
     }
 

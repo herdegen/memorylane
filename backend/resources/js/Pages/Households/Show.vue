@@ -7,33 +7,44 @@
           <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
           </svg>
-          Retour aux foyers
+          Retour aux cercles
         </Link>
 
         <div class="bg-white rounded-lg shadow-md p-6 mb-6 flex items-start justify-between gap-4">
           <div>
-            <h1 class="font-display text-2xl font-semibold text-surface-900">{{ household.name }}</h1>
+            <div class="flex items-center gap-2">
+              <h1 class="font-display text-2xl font-semibold text-surface-900">{{ household.name }}</h1>
+              <span
+                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
+                :class="household.kind === 'friends' ? 'bg-teal-100 text-teal-700 dark:bg-teal-500/15 dark:text-teal-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'"
+              >
+                <CircleKindIcon :kind="household.kind" class="w-3.5 h-3.5" />
+                {{ KIND_LABELS[household.kind] }}
+              </span>
+            </div>
             <p class="mt-1 text-sm text-surface-500">{{ members.length }} membre{{ members.length > 1 ? 's' : '' }}</p>
           </div>
-          <button
-            v-if="household.is_creator"
-            @click="destroyHousehold"
-            class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
-          >
-            Supprimer le foyer
-          </button>
-          <button
-            v-else
-            @click="leaveHousehold"
-            class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-surface-700 hover:text-surface-900"
-          >
-            Quitter le foyer
-          </button>
+          <div class="flex items-center gap-1">
+            <button
+              v-if="household.is_member"
+              @click="leaveHousehold"
+              class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-surface-700 hover:text-surface-900"
+            >
+              Quitter le cercle
+            </button>
+            <button
+              v-if="household.can_manage"
+              @click="destroyHousehold"
+              class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
+            >
+              Supprimer le cercle
+            </button>
+          </div>
         </div>
 
-        <!-- Inviter (créateur) -->
-        <div v-if="household.is_creator" class="bg-white rounded-lg shadow-xs p-4 mb-6">
-          <label class="block text-sm font-medium text-surface-700 mb-2">Inviter un compte</label>
+        <!-- Ajouter un membre (administrateur) -->
+        <div v-if="household.can_manage" class="bg-white rounded-lg shadow-xs p-4 mb-6">
+          <label class="block text-sm font-medium text-surface-700 mb-2">Ajouter un compte au cercle</label>
           <div class="relative">
             <input
               v-model="search"
@@ -80,7 +91,7 @@
               </span>
             </div>
             <button
-              v-if="household.is_creator && !m.is_creator"
+              v-if="household.can_manage"
               @click="removeMember(m)"
               class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
             >
@@ -89,10 +100,10 @@
           </div>
         </div>
 
-        <!-- Galerie du foyer -->
+        <!-- Galerie du cercle -->
         <div class="mt-8">
           <h2 class="text-lg font-semibold text-surface-900 mb-4">
-            Photos du foyer
+            Photos du cercle
             <span v-if="media.length > 0" class="ml-1 text-sm font-normal text-surface-500">({{ media.length }})</span>
           </h2>
 
@@ -127,6 +138,8 @@ import { ref, onUnmounted } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import CircleKindIcon from '@/Components/CircleKindIcon.vue';
+import { KIND_LABELS } from '@/Composables/useCircle';
 import MediaCard from '@/Components/MediaCard.vue';
 import { useToast } from '@/Composables/useToast';
 import { usePhotoSwipe } from '@/composables/usePhotoSwipe';
@@ -187,7 +200,7 @@ const invite = async (candidate) => {
 };
 
 const removeMember = async (member) => {
-  if (!confirm(`Retirer ${member.name} du foyer ?`)) return;
+  if (!confirm(`Retirer ${member.name} du cercle ?`)) return;
   try {
     await axios.delete(`/households/${props.household.id}/members/${member.user_id}`);
     router.reload();
@@ -197,22 +210,22 @@ const removeMember = async (member) => {
 };
 
 const leaveHousehold = async () => {
-  if (!confirm('Quitter ce foyer ?')) return;
+  if (!confirm('Quitter ce cercle ?')) return;
   try {
     await axios.post(`/households/${props.household.id}/leave`);
     router.visit('/households');
   } catch (error) {
-    toast.error(error.response?.data?.message || 'Erreur : impossible de quitter le foyer.');
+    toast.error(error.response?.data?.message || 'Erreur : impossible de quitter le cercle.');
   }
 };
 
 const destroyHousehold = async () => {
-  if (!confirm('Supprimer ce foyer ? Cette action est irréversible.')) return;
+  if (!confirm('Supprimer ce cercle ? Cette action est irréversible.')) return;
   try {
     await axios.delete(`/households/${props.household.id}`);
     router.visit('/households');
   } catch (error) {
-    toast.error(error.response?.data?.message || 'Erreur lors de la suppression du foyer.');
+    toast.error(error.response?.data?.message || 'Erreur lors de la suppression du cercle.');
   }
 };
 </script>

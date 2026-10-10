@@ -203,7 +203,10 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::delete('/{album}/access', [AlbumController::class, 'revokeAccess'])->name('access.revoke');
     });
 
-    // Foyers (cercles familiaux) — appartenance ; le partage média arrive en 2b
+    // Cercle courant (sélecteur de l'en-tête)
+    Route::post('/circles/current', [HouseholdController::class, 'switchCurrent'])->name('circles.current');
+
+    // Cercles (foyers famille / amis) — appartenance, galerie partagée
     Route::prefix('households')->name('households.')->group(function () {
         Route::get('/', [HouseholdController::class, 'index'])->name('index');
         Route::post('/', [HouseholdController::class, 'store'])->name('store');

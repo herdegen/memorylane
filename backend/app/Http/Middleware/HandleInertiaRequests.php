@@ -53,6 +53,19 @@ class HandleInertiaRequests extends Middleware
                 'has_subscriptions' => $request->user()->pushSubscriptions()->exists(),
                 'prompt_dismissed' => isset($request->user()->preferences['push']['prompt_dismissed_at']),
             ] : null,
+            // Cercles : mode courant (famille/amis), cercle courant, liste pour
+            // le sélecteur (affiché seulement s'il y en a plusieurs).
+            'circle' => fn () => $request->user() ? [
+                'mode' => $request->user()->mode(),
+                'current' => ($c = $request->user()->currentCircle())
+                    ? ['id' => $c->id, 'name' => $c->name, 'kind' => $c->kind]
+                    : null,
+                'list' => $request->user()->circles()
+                    ->map(fn ($h) => ['id' => $h->id, 'name' => $h->name, 'kind' => $h->kind])
+                    ->values(),
+                'family' => $request->user()->canSeeFamilyDirectory(),
+                'can_manage' => $request->user()->isAdmin(),
+            ] : null,
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
