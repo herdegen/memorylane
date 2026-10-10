@@ -17,6 +17,7 @@ RUN apk add --no-cache \
     zip \
     unzip \
     postgresql-dev \
+    postgresql16-client \
     imagemagick-dev \
     imagemagick \
     libheif \

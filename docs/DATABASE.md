@@ -399,24 +399,33 @@ $nearbyMedia = Media::selectRaw("
 
 ## Backup & Restore
 
-### Backup
+### Sauvegarde automatique
+
+`php artisan memorylane:backup-db` (planifié chaque nuit à 02:45, heure de Paris) :
+
+- `pg_dump --format=custom` → `backend/storage/app/private/backups/db/memorylane-AAAA-MM-JJ_HHMMSS.dump`
+- copie hors serveur sur le bucket Scaleway, préfixe privé `_backups/db/`
+- rotation (locale et distante) : 7 derniers jours, dimanches sur 4 semaines, 1ers du mois sur 6 mois
+- `--check` (planifié le 2 du mois) : restaure la dernière sauvegarde dans une base jetable
+  `memorylane_restore_check` et vérifie qu'elle contient personnes et médias. Échecs → `storage/logs`.
+
+Le client `pg_dump` vient de l'image `docker/app` (`postgresql16-client`).
+
+### Restaurer
 
 ```bash
-# Backup complet
-docker-compose exec postgres pg_dump -U memorylane memorylane > backup.sql
-
-# Backup avec compression
-docker-compose exec postgres pg_dump -U memorylane memorylane | gzip > backup.sql.gz
+# 1. Récupérer le dump (local, ou depuis Scaleway si le serveur est perdu :
+#    aws s3 cp --endpoint-url https://s3.fr-par.scw.cloud s3://$SCALEWAY_BUCKET/_backups/db/<fichier> .)
+# 2. Restaurer dans une base VIDE (jamais par-dessus la prod sans dump préalable)
+docker compose exec -T postgres createdb -U memorylane memorylane_restored
+docker compose exec -T postgres pg_restore -U memorylane --no-owner -d memorylane_restored < memorylane-AAAA-MM-JJ_HHMMSS.dump
+# 3. Vérifier, puis basculer DB_DATABASE ou renommer les bases.
 ```
 
-### Restore
+### Dump ponctuel (avant une opération risquée)
 
 ```bash
-# Restore depuis backup
-docker-compose exec -T postgres psql -U memorylane memorylane < backup.sql
-
-# Restore depuis backup compressé
-gunzip -c backup.sql.gz | docker-compose exec -T postgres psql -U memorylane memorylane
+docker compose exec postgres pg_dump -U memorylane memorylane > backups/pre-<operation>-$(date +%F).sql
 ```
 
 ## Performance
