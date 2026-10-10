@@ -126,6 +126,13 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    // Réponses aux mails automatiques (résumé, liens…) : vers une vraie boîte,
+    // l'adresse d'envoi du domaine n'en ayant pas.
+    'reply_to' => [
+        'address' => env('MAIL_REPLY_TO_ADDRESS'),
+        'name' => env('MAIL_REPLY_TO_NAME'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Invitations (MemoryLane)
