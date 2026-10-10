@@ -62,4 +62,34 @@ class DetectedFace extends Model
     {
         return $this->belongsTo(Person::class);
     }
+
+    /**
+     * Masque la personne associée si le viewer ne peut pas la voir (fiche
+     * d'un autre cercle) : le visage reste « identifié » mais sans nom ni
+     * lien. Ne charge rien : à appeler sur des visages déjà `person`-chargés.
+     *
+     * @param  iterable<DetectedFace>  $faces
+     */
+    public static function maskPeopleFor(iterable $faces, ?User $viewer): void
+    {
+        $ids = collect($faces)->pluck('person_id')->filter()->unique()->values();
+        if ($ids->isEmpty()) {
+            return;
+        }
+
+        $visible = Person::visibleTo($viewer)->whereIn('people.id', $ids)->pluck('people.id')->flip();
+
+        foreach ($faces as $face) {
+            if ($face->person_id && ! isset($visible[$face->person_id])) {
+                $face->setRelation('person', null);
+                $face->setAttribute('person_hidden', true);
+            }
+        }
+    }
+
+    /** La personne associée (s'il y en a une) est-elle visible du viewer ? */
+    public function personVisibleTo(?User $viewer): bool
+    {
+        return ! $this->person_id || Person::visibleTo($viewer)->whereKey($this->person_id)->exists();
+    }
 }

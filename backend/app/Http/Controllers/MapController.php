@@ -123,7 +123,7 @@ class MapController extends Controller
      */
     public function heatmap()
     {
-        $points = Person::query()
+        $points = Person::visibleTo(auth()->user())
             ->whereNotNull('address_latitude')
             ->whereNotNull('address_longitude')
             ->get(['address_latitude', 'address_longitude'])

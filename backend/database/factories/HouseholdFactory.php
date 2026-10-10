@@ -14,7 +14,13 @@ class HouseholdFactory extends Factory
     {
         return [
             'name' => 'Foyer '.fake()->lastName(),
+            'kind' => 'family',
             'created_by' => User::factory(),
         ];
+    }
+
+    public function friends(): static
+    {
+        return $this->state(fn () => ['name' => 'Amis '.fake()->city(), 'kind' => 'friends']);
     }
 }

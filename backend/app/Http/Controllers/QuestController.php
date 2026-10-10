@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\QuestType;
 use App\Exceptions\StaleQuestException;
+use App\Models\Person;
 use App\Models\QuestAnswer;
 use App\Services\QuestAnswerApplier;
 use App\Services\QuestService;
@@ -48,7 +49,9 @@ class QuestController extends Controller
         $user = $request->user();
         $type = QuestType::from($validated['question_type']);
         $kind = $validated['answer_kind'];
-        $subject = $type->subjectClass()::findOrFail($validated['subject_id']);
+        $subject = $type->subjectClass() === Person::class
+            ? Person::visibleTo($user)->findOrFail($validated['subject_id'])
+            : $type->subjectClass()::findOrFail($validated['subject_id']);
 
         if ($kind === 'no' && ! $type->allowsNo()) {
             return response()->json(['message' => 'Cette question n\'accepte pas la réponse « non ».'], 422);

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Rules\VisiblePerson;
 use App\Models\Album;
 use App\Models\Person;
 use App\Models\PersonRelationship;
@@ -38,7 +39,10 @@ class PersonController extends Controller
     {
         // Arbre/personnes publics : tous les comptes connectés voient les fiches
         // (lecture). L'écriture reste réservée au propriétaire.
-        $people = Person::withCount('media')
+        // Fiches du cercle courant (famille : répertoire familial ; amis :
+        // fiches du cercle) — sert aussi aux sélecteurs de personne.
+        $people = Person::inContext($request->user())
+            ->withCount('media')
             ->withMatchedFacesCount()
             ->with(['avatar.conversions'])
             ->orderBy('name')
@@ -123,8 +127,8 @@ class PersonController extends Controller
             'address' => 'nullable|string|max:255',
             'avatar_media_id' => 'nullable|exists:media,id',
             'notes' => 'nullable|string|max:2000',
-            'father_id' => 'nullable|exists:people,id',
-            'mother_id' => 'nullable|exists:people,id',
+            'father_id' => ['nullable', new VisiblePerson],
+            'mother_id' => ['nullable', new VisiblePerson],
         ];
     }
 
@@ -132,10 +136,20 @@ class PersonController extends Controller
     {
         $validated = $this->normalizeNameFields($request->validate($this->personRules()));
 
+        // Créée depuis un cercle d'amis : la fiche lui appartient (visible de
+        // ses membres) et reste hors du répertoire familial.
+        $circle = $request->user()->currentCircle();
+        $inFriends = $circle?->isFriends() ?? false;
+
         $person = Person::create([
             ...$validated,
             'user_id' => auth()->id(),
+            'in_family_directory' => ! $inFriends,
         ]);
+
+        if ($inFriends) {
+            $person->circles()->attach($circle->id, ['added_by' => auth()->id()]);
+        }
 
         if ($request->wantsJson()) {
             return response()->json([
@@ -164,13 +178,17 @@ class PersonController extends Controller
         }
 
         // Père / mère avec miniature (avatar_url) pour la navigation.
-        $father = $this->hydrateAvatar($person->father);
-        $mother = $this->hydrateAvatar($person->mother);
+        $viewer = $request->user();
+        $father = $person->father?->isVisibleTo($viewer) ? $this->hydrateAvatar($person->father) : null;
+        $mother = $person->mother?->isVisibleTo($viewer) ? $this->hydrateAvatar($person->mother) : null;
+        // Ne pas laisser fuiter un parent d'un autre cercle via la relation.
+        $person->setRelation('father', $father);
+        $person->setRelation('mother', $mother);
 
         // Frères et sœurs : partagent père OU mère, en excluant la personne.
         $siblings = collect();
         if ($person->father_id || $person->mother_id) {
-            $siblings = Person::where('id', '!=', $person->id)
+            $siblings = Person::visibleTo($viewer)->where('id', '!=', $person->id)
                 ->where(function ($q) use ($person) {
                     if ($person->father_id) {
                         $q->orWhere('father_id', $person->father_id);
@@ -186,8 +204,8 @@ class PersonController extends Controller
         }
 
         // Load children
-        $children = Person::where('father_id', $person->id)
-            ->orWhere('mother_id', $person->id)
+        $children = Person::visibleTo($viewer)
+            ->where(fn ($q) => $q->where('father_id', $person->id)->orWhere('mother_id', $person->id))
             ->with('avatar.conversions')
             ->withMatchedFacesCount()
             ->get();
@@ -206,7 +224,7 @@ class PersonController extends Controller
             ->get()
             ->map(fn ($r) => $r->person1_id === $person->id ? $r->person2_id : $r->person1_id);
 
-        $spouses = Person::whereIn('id', $spouseIds)
+        $spouses = Person::visibleTo($viewer)->whereIn('id', $spouseIds)
             ->with('avatar.conversions')
             ->withMatchedFacesCount()
             ->get();
@@ -382,11 +400,16 @@ class PersonController extends Controller
             return response()->json(['found' => false]);
         }
 
-        $people = Person::whereIn('id', $path['ids'])
+        $people = Person::visibleTo($request->user())->whereIn('id', $path['ids'])
             ->with('avatar.conversions')
             ->withMatchedFacesCount()
             ->get()
             ->keyBy('id');
+
+        // Un chemin qui traverse une fiche invisible (autre cercle) n'est pas montré.
+        if ($people->count() !== count(array_unique($path['ids']))) {
+            return response()->json(['found' => false]);
+        }
 
         $orderedPath = collect($path['ids'])->map(fn ($id) => [
             'id' => $id,
@@ -447,7 +470,11 @@ class PersonController extends Controller
         }
 
         // Mariages / unions (dates portées par le pivot person_relationships)
+        $viewer = auth()->user();
         foreach ($person->spouses as $spouse) {
+            if (! $spouse->isVisibleTo($viewer)) {
+                continue;
+            }
             $start = $spouse->pivot->start_date ?? null;
             if ($start) {
                 $label = ($spouse->pivot->type ?? 'spouse') === 'partner' ? 'Union avec ' : 'Mariage avec ';
@@ -459,8 +486,8 @@ class PersonController extends Controller
         }
 
         // Naissances des enfants
-        $children = Person::where('father_id', $person->id)
-            ->orWhere('mother_id', $person->id)
+        $children = Person::visibleTo($viewer)
+            ->where(fn ($q) => $q->where('father_id', $person->id)->orWhere('mother_id', $person->id))
             ->whereNotNull('birth_date')
             ->get();
         foreach ($children as $child) {
@@ -696,7 +723,7 @@ class PersonController extends Controller
     {
         $validated = $request->validate([
             'media_id' => 'required|exists:media,id',
-            'person_id' => 'required|exists:people,id',
+            'person_id' => ['required', new VisiblePerson],
         ]);
 
         $media = Media::findOrFail($validated['media_id']);
@@ -719,7 +746,7 @@ class PersonController extends Controller
     {
         $validated = $request->validate([
             'media_id' => 'required|exists:media,id',
-            'person_id' => 'required|exists:people,id',
+            'person_id' => ['required', new VisiblePerson],
         ]);
 
         $media = Media::findOrFail($validated['media_id']);
@@ -741,7 +768,7 @@ class PersonController extends Controller
         $this->authorizeManage($person);
 
         $validated = $request->validate([
-            'parent_id' => 'required|exists:people,id',
+            'parent_id' => ['required', new VisiblePerson],
             'parent_type' => 'required|in:father,mother',
         ]);
 
@@ -782,7 +809,7 @@ class PersonController extends Controller
         $this->authorizeManage($person);
 
         $validated = $request->validate([
-            'spouse_id' => 'required|exists:people,id',
+            'spouse_id' => ['required', new VisiblePerson],
             'type' => 'nullable|in:spouse,partner',
             'start_date' => 'nullable|date',
             'start_place' => 'nullable|string|max:255',
@@ -814,7 +841,7 @@ class PersonController extends Controller
         $this->authorizeManage($person);
 
         $validated = $request->validate([
-            'spouse_id' => 'required|exists:people,id',
+            'spouse_id' => ['required', new VisiblePerson],
         ]);
 
         $ids = [$person->id, $validated['spouse_id']];
@@ -837,8 +864,8 @@ class PersonController extends Controller
         $this->authorizeManage($person);
 
         $validated = $request->validate([
-            'child_id' => 'required|exists:people,id',
-            'other_parent_id' => 'nullable|exists:people,id',
+            'child_id' => ['required', new VisiblePerson],
+            'other_parent_id' => ['nullable', new VisiblePerson],
             'parent_type' => 'nullable|in:father,mother',
         ]);
 

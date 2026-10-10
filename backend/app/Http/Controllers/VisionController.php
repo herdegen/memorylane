@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Rules\VisiblePerson;
 use App\Jobs\AnalyzeMediaWithVision;
 use App\Models\DetectedFace;
 use App\Models\Media;
@@ -164,6 +165,7 @@ class VisionController extends Controller
     public function resetFace(DetectedFace $detectedFace): JsonResponse
     {
         $this->authorizeMedia($detectedFace->media);
+        $this->ensureFacePersonEditable($detectedFace);
 
         // Désassociation « collante » : le visage passe en `rejected` et n'est
         // plus re-matché automatiquement (sinon la correction serait défaite par
@@ -189,6 +191,7 @@ class VisionController extends Controller
             $detectedFace,
             FaceMatcher::MATCH_THRESHOLD,
             $detectedFace->media->user_id,
+            auth()->user(),
         );
 
         return response()->json([
@@ -226,6 +229,7 @@ class VisionController extends Controller
             ->with('person')
             ->whereIn('status', ['unmatched', 'matched', 'rejected'])
             ->get();
+        DetectedFace::maskPeopleFor($faces, auth()->user());
 
         return response()->json($faces);
     }
@@ -237,8 +241,10 @@ class VisionController extends Controller
     {
         $this->authorizeMedia($detectedFace->media);
 
+        $this->ensureFacePersonEditable($detectedFace);
+
         $validated = $request->validate([
-            'person_id' => 'required|uuid|exists:people,id',
+            'person_id' => ['required', 'uuid', new VisiblePerson],
         ]);
 
         $this->faceMatcher->applyMatch($detectedFace, $validated['person_id']);
@@ -274,7 +280,7 @@ class VisionController extends Controller
         $this->authorizeMedia($detectedFace->media);
 
         // Même corpus que suggest : les visages labellisés du propriétaire.
-        $best = $this->faceMatcher->autoMatch($detectedFace, $detectedFace->media->user_id);
+        $best = $this->faceMatcher->autoMatch($detectedFace, $detectedFace->media->user_id, auth()->user());
 
         if (! $best) {
             return response()->json(['matched' => false]);
@@ -293,6 +299,7 @@ class VisionController extends Controller
     public function dismissFace(DetectedFace $detectedFace): JsonResponse
     {
         $this->authorizeMedia($detectedFace->media);
+        $this->ensureFacePersonEditable($detectedFace);
 
         // Rejeter un visage retire aussi son association éventuelle (person_id +
         // pivot), pas seulement son affichage (issue #30, incohérence secondaire).
@@ -384,5 +391,14 @@ class VisionController extends Controller
     private function authorizeMediaOwner(Media $media): void
     {
         Gate::authorize('update', $media);
+    }
+
+    /**
+     * Un visage identifié comme une fiche d'un autre cercle ne peut être ni
+     * ré-identifié ni désassocié par ce viewer (il ne la voit pas).
+     */
+    private function ensureFacePersonEditable(DetectedFace $face): void
+    {
+        abort_unless($face->personVisibleTo(auth()->user()), 403, 'Ce visage est identifié dans un autre cercle.');
     }
 }

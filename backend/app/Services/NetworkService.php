@@ -32,12 +32,18 @@ class NetworkService
      */
     public function graphFor(User $user): array
     {
-        return Cache::remember("network:graph:{$user->id}", self::CACHE_TTL, fn () => $this->build($user));
+        return Cache::remember($this->cacheKey($user), self::CACHE_TTL, fn () => $this->build($user));
     }
 
     public function forget(User $user): void
     {
-        Cache::forget("network:graph:{$user->id}");
+        Cache::forget($this->cacheKey($user));
+    }
+
+    /** Le graphe dépend du cercle courant (fiches du contexte). */
+    private function cacheKey(User $user): string
+    {
+        return "network:graph:{$user->id}:".($user->currentCircle()?->id ?? 'none');
     }
 
     /**
@@ -111,7 +117,15 @@ class NetworkService
         if ($user->person_id) {
             $personIds->push($user->person_id);
         }
-        $personIds = $personIds->unique()->values();
+
+        // Fiches du cercle courant uniquement (famille : répertoire familial ;
+        // amis : fiches du cercle) ; les liens vers les autres disparaissent.
+        $inContext = Person::inContext($user)
+            ->whereIn('people.id', $personIds->unique()->values())
+            ->pluck('people.id')
+            ->flip();
+        $edges = array_values(array_filter($edges, fn ($e) => isset($inContext[$e['source']], $inContext[$e['target']])));
+        $personIds = $inContext->keys();
 
         // Nombre de photos accessibles par personne + première année.
         $stats = DB::table('media_person as mp')

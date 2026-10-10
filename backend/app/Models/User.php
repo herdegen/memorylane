@@ -35,6 +35,7 @@ class User extends Authenticatable implements FilamentUser
         'pin_code',
         'avatar_id',
         'person_id',
+        'current_household_id',
         'preferences',
         'guest_expires_at',
         'guest_person_id',
@@ -119,6 +120,70 @@ class User extends Authenticatable implements FilamentUser
     public function householdIds(): array
     {
         return $this->householdIdsCache ??= $this->households()->pluck('households.id')->all();
+    }
+
+    /**
+     * Cercles (foyers) du compte avec leur type, mémoïsés — servent à la
+     * visibilité des fiches (Person::scopeVisibleTo) et au sélecteur.
+     */
+    protected ?\Illuminate\Support\Collection $circlesCache = null;
+
+    public function circles(): \Illuminate\Support\Collection
+    {
+        return $this->circlesCache ??= $this->households()
+            ->orderBy('households.name')
+            ->get(['households.id', 'households.name', 'households.kind']);
+    }
+
+    public function forgetCircles(): void
+    {
+        $this->circlesCache = null;
+        $this->householdIdsCache = null;
+    }
+
+    /** IDs des cercles d'amis du compte. */
+    public function friendCircleIds(): array
+    {
+        return $this->circles()->where('kind', Household::KIND_FRIENDS)->pluck('id')->all();
+    }
+
+    /**
+     * Le compte voit-il le répertoire familial (arbre, fiches « famille ») ?
+     * Oui s'il est dans un cercle familial ; sans aucun cercle, selon le mode
+     * de l'installation (rétrocompatibilité des comptes existants). Un compte
+     * qui n'a QUE des cercles d'amis ne voit pas la famille.
+     */
+    public function canSeeFamilyDirectory(): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        $circles = $this->circles();
+        if ($circles->isEmpty()) {
+            return config('memorylane.default_mode') === Household::KIND_FAMILY;
+        }
+
+        return $circles->contains('kind', Household::KIND_FAMILY);
+    }
+
+    /**
+     * Cercle courant (sélecteur de l'en-tête) : celui choisi s'il en est
+     * toujours membre, sinon le premier cercle familial, sinon le premier.
+     */
+    public function currentCircle(): ?Household
+    {
+        $circles = $this->circles();
+
+        return $circles->firstWhere('id', $this->current_household_id)
+            ?? $circles->firstWhere('kind', Household::KIND_FAMILY)
+            ?? $circles->first();
+    }
+
+    /** Mode d'affichage courant : celui du cercle courant, sinon de l'installation. */
+    public function mode(): string
+    {
+        return $this->currentCircle()?->kind ?? config('memorylane.default_mode');
     }
 
     /**

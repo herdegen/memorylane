@@ -27,6 +27,7 @@ class Person extends Model
 
     protected $fillable = [
         'user_id',
+        'in_family_directory',
         'name',
         'first_name',
         'last_name',
@@ -205,5 +206,93 @@ class Person extends Model
     public function getParentsAttribute()
     {
         return collect([$this->father, $this->mother])->filter()->values();
+    }
+
+    /**
+     * Cercles d'amis auxquels la fiche est rattachée.
+     */
+    public function circles()
+    {
+        return $this->belongsToMany(Household::class, 'household_person')
+            ->withPivot('added_by')
+            ->withTimestamps();
+    }
+
+    /**
+     * Fiches que le compte peut voir — POINT UNIQUE de la visibilité :
+     * - répertoire familial : ouvert à qui voit la famille (cercle familial,
+     *   ou installation familiale sans cercle) — comportement historique ;
+     * - fiche d'un cercle d'amis : membres de ce cercle seulement ;
+     * - toujours : sa propre fiche, celles qu'on a créées, la fiche invitée.
+     * L'admin voit tout.
+     */
+    public function scopeVisibleTo($query, ?User $user)
+    {
+        if (! $user) {
+            return $query->whereRaw('1 = 0');
+        }
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        $friendCircles = $user->friendCircleIds();
+        $familyOpen = $user->canSeeFamilyDirectory();
+
+        return $query->where(function ($q) use ($user, $friendCircles, $familyOpen) {
+            if ($familyOpen) {
+                $q->orWhere('people.in_family_directory', true);
+            }
+            if ($friendCircles !== []) {
+                $q->orWhereHas('circles', fn ($c) => $c->whereIn('households.id', $friendCircles));
+            }
+            $q->orWhere('people.user_id', $user->id);
+            foreach (array_filter([$user->person_id, $user->guest_person_id]) as $own) {
+                $q->orWhere('people.id', $own);
+            }
+        });
+    }
+
+    public function isVisibleTo(?User $user): bool
+    {
+        return static::visibleTo($user)->whereKey($this->getKey())->exists();
+    }
+
+    /**
+     * Fiches du CONTEXTE courant (cercle choisi dans l'en-tête) — filtre
+     * d'affichage, toujours inclus dans visibleTo : cercle d'amis courant →
+     * ses fiches (+ la sienne) ; sinon → le répertoire familial visible.
+     */
+    public function scopeInContext($query, User $user)
+    {
+        $query->visibleTo($user);
+        $circle = $user->currentCircle();
+
+        if ($circle?->isFriends()) {
+            return $query->where(function ($q) use ($circle, $user) {
+                $q->whereHas('circles', fn ($c) => $c->whereKey($circle->id));
+                if ($user->person_id) {
+                    $q->orWhere('people.id', $user->person_id);
+                }
+            });
+        }
+
+        return $user->canSeeFamilyDirectory()
+            ? $query->where('people.in_family_directory', true)
+            : $query;
+    }
+
+    /**
+     * Liaison implicite {person} : une fiche invisible pour le compte connecté
+     * n'existe pas (404) — couvre fiche, frise, avatars, parenté, arbre…
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        $query = $this->resolveRouteBindingQuery($this->newQuery(), $value, $field);
+
+        if ($user = auth()->user()) {
+            $query->visibleTo($user);
+        }
+
+        return $query->first();
     }
 }

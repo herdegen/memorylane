@@ -99,9 +99,11 @@ class SearchController extends Controller
      */
     private function rankedPeople(string $query): \Illuminate\Support\Collection
     {
+        // Fiches visibles seulement (autres cercles exclus) ; take élargi car
+        // le filtre s'applique après Meilisearch.
         $people = $this->safeSearch(fn () => Person::search($query)
-            ->query(fn ($b) => $b->with('avatar.conversions')->withMatchedFacesCount())
-            ->take(30)->get());
+            ->query(fn ($b) => $b->visibleTo(auth()->user())->with('avatar.conversions')->withMatchedFacesCount())
+            ->take(60)->get());
 
         if ($people->isEmpty()) {
             return collect();

@@ -126,7 +126,11 @@ class QuestService
     public function candidates(User $user): array
     {
         return Cache::remember($this->cacheKey($user), self::BATCH_TTL, function () use ($user) {
+            // Cercle de parenté restreint aux fiches du contexte courant (pas
+            // de question sur une fiche d'un autre cercle).
             $circle = $this->innerCircle($user);
+            $inContext = Person::inContext($user)->whereIn('people.id', array_keys($circle))->pluck('people.id')->flip();
+            $circle = array_intersect_key($circle, $inContext->all());
 
             $candidates = array_merge(
                 $this->detectPersonGaps($circle),
@@ -274,7 +278,8 @@ class QuestService
     private function detectHouseholdAddressGaps(User $user): array
     {
         $memberUserIds = DB::table('household_user')
-            ->whereIn('household_id', $user->householdIds())
+            // Cercles familiaux seulement : l'adresse ne se demande pas entre amis.
+            ->whereIn('household_id', $user->circles()->where('kind', \App\Models\Household::KIND_FAMILY)->pluck('id'))
             ->pluck('user_id')
             ->push($user->id)
             ->unique();
@@ -449,6 +454,7 @@ class QuestService
                     $subject,
                     FaceMatcher::MATCH_THRESHOLD,
                     $subject->media->user_id,
+                    $user,
                 ), 0, 4),
             ];
         }

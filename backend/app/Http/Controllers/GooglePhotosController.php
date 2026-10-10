@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Rules\VisiblePerson;
 use App\Jobs\ImportGooglePhotosItems;
 use App\Models\Media;
 use App\Services\MediaService;
@@ -37,7 +38,7 @@ class GooglePhotosController extends Controller
         return Inertia::render('Media/GooglePhotosImport', [
             'isConnected' => $request->session()->has('google_photos.access_token'),
             'pickerSession' => $request->session()->get('google_photos.picker_session'),
-            'people' => \App\Models\Person::orderBy('name')->get(['id', 'name']),
+            'people' => \App\Models\Person::inContext($request->user())->orderBy('name')->get(['id', 'name']),
             'albums' => \App\Models\Album::where('user_id', $request->user()->id)
                 ->orderBy('name')
                 ->get(['id', 'name']),
@@ -195,7 +196,7 @@ class GooglePhotosController extends Controller
     public function import(Request $request)
     {
         $validated = $request->validate([
-            'person_id' => ['nullable', 'uuid', 'exists:people,id'],
+            'person_id' => ['nullable', 'uuid', new VisiblePerson],
             // L'album cible doit appartenir à l'importateur (sinon on écrirait
             // dans l'album d'un autre compte).
             'album_id' => [

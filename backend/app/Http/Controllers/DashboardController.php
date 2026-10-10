@@ -89,7 +89,7 @@ class DashboardController extends Controller
         $birthdays = $this->celebrations->upcomingBirthdays(
             $today,
             self::CELEBRATIONS_WINDOW_DAYS,
-            Person::with('avatar.conversions')->withMatchedFacesCount(),
+            Person::inContext(auth()->user())->with('avatar.conversions')->withMatchedFacesCount(),
         );
 
         foreach ($birthdays as ['person' => $person, 'age' => $age, 'days_until' => $days]) {
@@ -129,7 +129,7 @@ class DashboardController extends Controller
         // correspond (accents/casse ignorés).
         $names = app(\App\Services\NameDayService::class)->namesFor($today);
         if ($names !== []) {
-            $celebrated = Person::whereNull('death_date')
+            $celebrated = Person::inContext(auth()->user())->whereNull('death_date')
                 ->with('avatar.conversions')
                 ->withMatchedFacesCount()
                 ->get()
@@ -156,6 +156,8 @@ class DashboardController extends Controller
         $unions = DB::table('person_relationships as r')
             ->join('people as p1', 'p1.id', '=', 'r.person1_id')
             ->join('people as p2', 'p2.id', '=', 'r.person2_id')
+            ->whereIn('r.person1_id', Person::inContext(auth()->user())->select('people.id'))
+            ->whereIn('r.person2_id', Person::inContext(auth()->user())->select('people.id'))
             ->whereNotNull('r.start_date')
             ->whereNull('r.end_date')
             ->whereNull('p1.death_date')
@@ -205,7 +207,7 @@ class DashboardController extends Controller
      */
     protected function personOfTheDay(): ?array
     {
-        $ids = Person::has('media')->orderBy('id')->pluck('id');
+        $ids = Person::inContext(auth()->user())->has('media')->orderBy('id')->pluck('id');
         if ($ids->isEmpty()) {
             return null;
         }

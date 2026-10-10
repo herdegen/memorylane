@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Rules\VisiblePerson;
 use App\Models\Album;
 use App\Models\AlbumAccess;
 use App\Models\Media;
@@ -40,7 +41,7 @@ class AlbumController extends Controller
             'is_public' => 'boolean',
             'is_smart' => 'boolean',
             'smart_rules' => 'nullable|required_if:is_smart,true|array',
-            'smart_rules.person_id' => 'nullable|uuid|exists:people,id',
+            'smart_rules.person_id' => ['nullable', 'uuid', new VisiblePerson],
             'smart_rules.tag_id' => 'nullable|integer|exists:tags,id',
             'smart_rules.year' => 'nullable|integer|min:1800|max:2200',
             'smart_rules.type' => 'nullable|in:photo,video,document',

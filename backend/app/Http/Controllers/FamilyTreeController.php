@@ -26,15 +26,18 @@ class FamilyTreeController extends Controller
      */
     public function treeData(Request $request)
     {
-        // Arbre public : lecture ouverte à tous les comptes connectés.
-        $people = Person::with(['avatar.conversions'])
+        // Arbre = répertoire familial, ouvert à qui voit la famille (un compte
+        // qui n'a que des cercles d'amis n'a pas d'arbre).
+        $people = $this->familyQuery($request)
+            ->with(['avatar.conversions'])
             ->withMatchedFacesCount()
             ->get();
 
         [$spouseMap, $childrenMap] = $this->buildRelationMaps();
         $facePositions = $this->avatarPositions->forPeople($people);
+        $known = $people->pluck('id')->flip()->all();
 
-        $nodes = $people->map(fn (Person $person) => $this->buildNode($person, $spouseMap, $childrenMap, $facePositions));
+        $nodes = $people->map(fn (Person $person) => $this->buildNode($person, $spouseMap, $childrenMap, $facePositions, $known));
 
         return response()->json($nodes->values());
     }
@@ -47,15 +50,17 @@ class FamilyTreeController extends Controller
         // Arbre public : lecture ouverte à tous les comptes connectés.
         $relatedIds = $this->gatherRelatedIds($person, 3, 3);
 
-        $people = Person::whereIn('id', $relatedIds)
+        $people = $this->familyQuery($request)
+            ->whereIn('id', $relatedIds)
             ->with(['avatar.conversions'])
             ->withMatchedFacesCount()
             ->get();
 
         [$spouseMap, $childrenMap] = $this->buildRelationMaps();
         $facePositions = $this->avatarPositions->forPeople($people);
+        $known = $people->pluck('id')->flip()->all();
 
-        $nodes = $people->map(fn (Person $p) => $this->buildNode($p, $spouseMap, $childrenMap, $facePositions));
+        $nodes = $people->map(fn (Person $p) => $this->buildNode($p, $spouseMap, $childrenMap, $facePositions, $known));
 
         return response()->json($nodes->values());
     }
@@ -91,8 +96,25 @@ class FamilyTreeController extends Controller
         return [$spouseMap, $childrenMap];
     }
 
-    private function buildNode(Person $person, array $spouseMap, array $childrenMap, array $facePositions = []): array
+    /**
+     * Fiches de l'arbre pour le compte : répertoire familial visible, vide si
+     * le compte ne voit pas la famille.
+     */
+    private function familyQuery(Request $request)
     {
+        $user = $request->user();
+
+        return $user->canSeeFamilyDirectory()
+            ? Person::visibleTo($user)->where('in_family_directory', true)
+            : Person::whereRaw('1 = 0');
+    }
+
+    private function buildNode(Person $person, array $spouseMap, array $childrenMap, array $facePositions = [], ?array $known = null): array
+    {
+        // Liens restreints aux fiches renvoyées (pas d'id d'un autre cercle).
+        $keep = fn (array $ids) => array_values(array_filter(array_unique($ids), fn ($id) => $known === null || isset($known[$id])));
+        $inTree = fn (?string $id) => $id !== null && ($known === null || isset($known[$id])) ? $id : null;
+
         $user = auth()->user();
 
         return [
@@ -117,10 +139,10 @@ class FamilyTreeController extends Controller
                 'slug' => $person->slug,
             ],
             'rels' => [
-                'father' => $person->father_id,
-                'mother' => $person->mother_id,
-                'spouses' => array_values(array_unique($spouseMap[$person->id] ?? [])),
-                'children' => array_values(array_unique($childrenMap[$person->id] ?? [])),
+                'father' => $inTree($person->father_id),
+                'mother' => $inTree($person->mother_id),
+                'spouses' => $keep($spouseMap[$person->id] ?? []),
+                'children' => $keep($childrenMap[$person->id] ?? []),
             ],
         ];
     }

@@ -122,10 +122,10 @@ class CelebrationService
         $ids = array_keys(array_filter($distance, fn ($d) => $d <= self::PUSH_CIRCLE_MAX_DISTANCE));
 
         if ($ids !== []) {
-            return Person::whereIn('id', $ids);
+            return Person::visibleTo($user)->whereIn('id', $ids);
         }
 
-        return Person::whereHas('media', fn ($q) => $q->accessibleBy($user));
+        return Person::visibleTo($user)->whereHas('media', fn ($q) => $q->accessibleBy($user));
     }
 
     /**

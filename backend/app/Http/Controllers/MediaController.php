@@ -117,6 +117,13 @@ class MediaController extends Controller
             'sourceMedia', 'clips.conversions',
         ]);
 
+        // Personnes d'un autre cercle : ni nom ni lien pour ce viewer.
+        $visiblePeople = \App\Models\Person::visibleTo(auth()->user())
+            ->whereIn('people.id', $media->people->pluck('id'))
+            ->pluck('people.id')->flip();
+        $media->setRelation('people', $media->people->filter(fn ($p) => isset($visiblePeople[$p->id]))->values());
+        \App\Models\DetectedFace::maskPeopleFor($media->detectedFaces, auth()->user());
+
         // URLs signées du média + de ses conversions
         $this->mediaService->hydrateSignedUrls([$media]);
 

@@ -8,17 +8,37 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Foyer : cercle familial de comptes partageant une mémoire commune. Un compte
- * peut appartenir à plusieurs foyers. Le créateur gère les membres.
+ * Cercle (foyer) : groupe de comptes partageant une mémoire commune, de type
+ * famille ou amis. Un compte peut appartenir à plusieurs cercles ; seuls les
+ * administrateurs les créent et en gèrent les membres.
  */
 class Household extends Model
 {
     use HasFactory, HasUuids;
 
+    public const KIND_FAMILY = 'family';
+    public const KIND_FRIENDS = 'friends';
+
     protected $fillable = [
         'name',
+        'kind',
         'created_by',
     ];
+
+    public function isFriends(): bool
+    {
+        return $this->kind === self::KIND_FRIENDS;
+    }
+
+    /**
+     * Fiches rattachées à ce cercle (cercles d'amis : visibles des membres).
+     */
+    public function people()
+    {
+        return $this->belongsToMany(Person::class, 'household_person')
+            ->withPivot('added_by')
+            ->withTimestamps();
+    }
 
     /**
      * Comptes membres du foyer.

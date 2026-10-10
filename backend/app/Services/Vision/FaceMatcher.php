@@ -42,7 +42,7 @@ class FaceMatcher
      *
      * @return array{person: array{id: string, name: string}, distance: float, score: float}|null
      */
-    public function autoMatch(DetectedFace $face, string $ownerId): ?array
+    public function autoMatch(DetectedFace $face, string $ownerId, ?\App\Models\User $viewer = null): ?array
     {
         // Ne jamais écraser une association existante.
         if ($face->person_id || $face->status !== 'unmatched') {
@@ -62,7 +62,7 @@ class FaceMatcher
             ->all();
 
         $best = null;
-        foreach ($this->rankedCandidates($face, self::AUTO_MATCH_THRESHOLD, $ownerId) as $candidate) {
+        foreach ($this->rankedCandidates($face, self::AUTO_MATCH_THRESHOLD, $ownerId, $viewer) as $candidate) {
             if (! in_array($candidate['person']['id'], $alreadyOnMedia, true)) {
                 $best = $candidate;
                 break;
@@ -82,11 +82,13 @@ class FaceMatcher
      * Personnes candidates (plus proche voisin par personne) sous $maxDistance,
      * triées par distance croissante. Chaque entrée :
      * {person{id,name}, distance, score}. Les candidats sont restreints aux
-     * visages labellisés appartenant au propriétaire $ownerId.
+     * visages labellisés appartenant au propriétaire $ownerId. Avec $viewer,
+     * seules les personnes qu'il peut voir sont proposées (pas de fiche d'un
+     * autre cercle).
      *
      * @return array<int, array{person: array{id: string, name: string}, distance: float, score: float}>
      */
-    public function rankedCandidates(DetectedFace $face, float $maxDistance, string $ownerId): array
+    public function rankedCandidates(DetectedFace $face, float $maxDistance, string $ownerId, ?\App\Models\User $viewer = null): array
     {
         $target = $face->embedding;
 
@@ -99,6 +101,7 @@ class FaceMatcher
             ->whereNotNull('embedding')
             ->where('id', '!=', $face->id)
             ->whereHas('media', fn ($q) => $q->where('user_id', $ownerId))
+            ->when($viewer, fn ($q) => $q->whereHas('person', fn ($p) => $p->visibleTo($viewer)))
             ->with('person:id,name')
             ->get();
 

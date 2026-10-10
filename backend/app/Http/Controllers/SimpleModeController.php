@@ -66,7 +66,8 @@ class SimpleModeController extends Controller
         $person = null;
 
         if (! empty($validated['person'])) {
-            $person = Person::find($validated['person']);
+            $person = Person::visibleTo($user)->find($validated['person']);
+            abort_unless($person, 404);
             $query->whereHas('people', fn ($p) => $p->where('people.id', $validated['person']))
                 ->orderByRaw('taken_at IS NULL')
                 ->orderBy('taken_at');
@@ -100,7 +101,7 @@ class SimpleModeController extends Controller
 
         if ($user->person_id) {
             $paths = $this->genealogy->pathsFrom($user->person_id, self::FAMILY_MAX_STEPS);
-            $people = Person::whereIn('id', array_keys($paths))
+            $people = Person::visibleTo($user)->whereIn('id', array_keys($paths))
                 ->with('avatar.conversions')
                 ->withMatchedFacesCount()
                 ->get();

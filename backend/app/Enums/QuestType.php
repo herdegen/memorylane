@@ -2,6 +2,7 @@
 
 namespace App\Enums;
 
+use App\Rules\VisiblePerson;
 use App\Models\DetectedFace;
 use App\Models\Media;
 use App\Models\Person;
@@ -84,9 +85,9 @@ enum QuestType: string
             self::DeathStatus => ['death_date' => 'nullable|date|before:tomorrow'],
             self::BirthPlace, self::DeathPlace, self::MaidenName, self::Address => ['value' => 'required|string|max:255'],
             self::Gender => ['value' => 'required|in:M,F'],
-            self::ParentFather, self::ParentMother => ['parent_id' => 'required|uuid|exists:people,id'],
+            self::ParentFather, self::ParentMother => ['parent_id' => ['required', 'uuid', new VisiblePerson]],
             self::MaritalStatus => [
-                'spouse_id' => 'required|uuid|exists:people,id',
+                'spouse_id' => ['required', 'uuid', new VisiblePerson],
                 'type' => 'nullable|in:spouse,partner',
                 'year' => 'nullable|integer|between:1500,'.now()->year,
             ],
@@ -98,7 +99,7 @@ enum QuestType: string
                 'place' => 'required|string|max:255',
                 'year' => 'required|integer|between:1500,'.now()->year,
             ],
-            self::FaceIdentify => ['person_id' => 'required|uuid|exists:people,id'],
+            self::FaceIdentify => ['person_id' => ['required', 'uuid', new VisiblePerson]],
             self::MediaDate => ['value' => 'required|date|before:tomorrow'],
             self::MediaGeo => [
                 'latitude' => 'required|numeric|between:-90,90',
