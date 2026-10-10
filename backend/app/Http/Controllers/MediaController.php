@@ -117,11 +117,14 @@ class MediaController extends Controller
             'sourceMedia', 'clips.conversions',
         ]);
 
-        // Personnes d'un autre cercle : ni nom ni lien pour ce viewer.
+        // Personnes d'un autre cercle : leur nom seul (on voit qui est sur la
+        // photo), sans le reste de leur fiche.
         $visiblePeople = \App\Models\Person::visibleTo(auth()->user())
             ->whereIn('people.id', $media->people->pluck('id'))
             ->pluck('people.id')->flip();
-        $media->setRelation('people', $media->people->filter(fn ($p) => isset($visiblePeople[$p->id]))->values());
+        $media->setRelation('people', $media->people
+            ->map(fn ($p) => isset($visiblePeople[$p->id]) ? $p : \App\Models\Person::restrictedStub($p))
+            ->values());
         \App\Models\DetectedFace::maskPeopleFor($media->detectedFaces, auth()->user());
 
         // URLs signées du média + de ses conversions

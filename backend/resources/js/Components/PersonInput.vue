@@ -28,8 +28,9 @@
         >
           {{ person.name.charAt(0).toUpperCase() }}
         </div>
-        {{ personLabel(person) }}
+        <span :title="person.restricted ? 'Fiche d\'un autre cercle' : undefined">{{ personLabel(person) }}</span>
         <button
+          v-if="!person.restricted"
           @click="removePerson(person)"
           class="ml-1 hover:text-red-600 dark:hover:text-red-400 transition"
           type="button"

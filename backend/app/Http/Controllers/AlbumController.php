@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Rules\VisiblePerson;
 use App\Models\Album;
+use App\Models\Household;
 use App\Models\AlbumAccess;
 use App\Models\Media;
 use App\Models\Person;
@@ -615,5 +616,77 @@ class AlbumController extends Controller
         $access->delete();
 
         return response()->json(['message' => 'Accès révoqué.']);
+    }
+
+    /**
+     * Cercles : ceux avec qui l'album est partagé, et ceux où le viewer peut
+     * encore le partager (ses cercles ; tous pour l'admin).
+     */
+    public function circles(Request $request, Album $album)
+    {
+        Gate::authorize('view', $album);
+
+        $user = $request->user();
+        $shared = $album->households()->get(['households.id', 'households.name', 'households.kind']);
+        $mine = $user->isAdmin()
+            ? Household::orderBy('name')->get(['id', 'name', 'kind'])
+            : $user->circles();
+
+        $canGrant = Gate::allows('grantAccess', $album);
+
+        return response()->json([
+            'shared' => $shared->map(fn ($h) => [
+                'id' => $h->id,
+                'name' => $h->name,
+                'kind' => $h->kind,
+                'can_revoke' => $album->user_id === $user->id || $user->isAdmin() || $h->pivot->granted_by === $user->id,
+            ])->values(),
+            'available' => $canGrant
+                ? $mine->whereNotIn('id', $shared->pluck('id'))
+                    ->map(fn ($h) => ['id' => $h->id, 'name' => $h->name, 'kind' => $h->kind])->values()
+                : [],
+        ]);
+    }
+
+    /**
+     * Partager l'album avec un cercle : quiconque a accès à l'album (comme
+     * pour un compte), vers un cercle dont il est membre (l'admin : tout cercle).
+     */
+    public function shareWithCircle(Request $request, Album $album)
+    {
+        Gate::authorize('grantAccess', $album);
+
+        $validated = $request->validate([
+            'household_id' => ['required', 'uuid', 'exists:households,id'],
+        ]);
+
+        $user = $request->user();
+        abort_unless(
+            $user->isAdmin() || in_array($validated['household_id'], $user->householdIds(), true),
+            403,
+            'Vous ne pouvez partager qu\'avec vos propres cercles.'
+        );
+
+        $album->households()->syncWithoutDetaching([
+            $validated['household_id'] => ['granted_by' => $user->id],
+        ]);
+
+        return $this->circles($request, $album);
+    }
+
+    /**
+     * Retirer le partage avec un cercle : le propriétaire, l'admin, ou celui
+     * qui l'a accordé.
+     */
+    public function unshareWithCircle(Request $request, Album $album, Household $household)
+    {
+        $user = $request->user();
+        $pivot = $album->households()->whereKey($household->id)->first()?->pivot;
+        abort_unless($pivot, 404);
+        abort_unless($album->user_id === $user->id || $user->isAdmin() || $pivot->granted_by === $user->id, 403);
+
+        $album->households()->detach($household->id);
+
+        return $this->circles($request, $album);
     }
 }

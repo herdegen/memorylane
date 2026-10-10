@@ -23,6 +23,12 @@
       </div>
     </div>
 
+    <!-- Identifié·e dans un autre cercle : nom visible, correction fermée -->
+    <p v-if="face.person_restricted" class="text-sm text-surface-600 bg-surface-100 rounded-lg px-3 py-2.5">
+      Cette personne a été identifiée dans un autre cercle : vous voyez son nom, mais seule une personne de ce cercle peut corriger l'identification.
+    </p>
+
+    <template v-else>
     <!-- Suggestion de reconnaissance -->
     <div
       v-if="topSuggestion"
@@ -107,6 +113,7 @@
         Ignorer
       </button>
     </div>
+    </template>
 
     <!-- Create person inline form -->
     <div v-if="showCreatePerson" class="mt-4 p-4 bg-surface-50 rounded-lg">

@@ -112,6 +112,42 @@
       </div>
     </div>
 
+    <!-- Partage avec un cercle entier (membres actuels et futurs) -->
+    <div v-if="circlesShared.length || circlesAvailable.length" class="py-4 border-t border-surface-200">
+      <p class="text-sm font-medium text-surface-700 mb-2">Cercles</p>
+      <p class="text-xs text-surface-500 mb-3">
+        Tous les membres du cercle voient l'album, y compris ceux qui le rejoindront plus tard.
+      </p>
+      <div class="flex flex-wrap gap-2">
+        <span
+          v-for="c in circlesShared"
+          :key="c.id"
+          class="inline-flex items-center gap-1.5 h-9 pl-2 pr-1.5 rounded-full text-sm font-semibold border"
+          :class="c.kind === 'friends' ? 'border-teal-300 bg-teal-50 text-teal-800 dark:bg-teal-500/10 dark:text-teal-200' : 'border-amber-300 bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-200'"
+        >
+          <CircleKindIcon :kind="c.kind" class="w-4 h-4" />
+          {{ c.name }}
+          <button
+            v-if="c.can_revoke"
+            type="button"
+            class="w-6 h-6 rounded-full hover:bg-black/10"
+            :aria-label="`Ne plus partager avec ${c.name}`"
+            @click="unshareCircle(c)"
+          >×</button>
+        </span>
+        <button
+          v-for="c in circlesAvailable"
+          :key="c.id"
+          type="button"
+          class="inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-sm font-semibold border border-dashed border-surface-300 text-surface-600 hover:border-surface-400 hover:text-surface-900"
+          @click="shareCircle(c)"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+          {{ c.name }}
+        </button>
+      </div>
+    </div>
+
     <!-- Accès par compte (partage restreint + délégation) -->
     <div class="py-4 border-t border-surface-200">
       <p class="text-sm font-medium text-surface-700 mb-2">Personnes ayant accès</p>
@@ -175,6 +211,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
+import CircleKindIcon from '@/Components/CircleKindIcon.vue';
 import axios from 'axios';
 
 const props = defineProps({
@@ -203,6 +240,44 @@ const accesses = ref([]);
 const search = ref('');
 const candidates = ref([]);
 let searchTimer = null;
+
+// ---- Cercles ----
+const circlesShared = ref([]);
+const circlesAvailable = ref([]);
+
+const applyCircles = (data) => {
+  circlesShared.value = data.shared;
+  circlesAvailable.value = data.available;
+};
+
+const loadCircles = async () => {
+  try {
+    const { data } = await axios.get(`/albums/${props.album.id}/circles`);
+    applyCircles(data);
+  } catch (e) {
+    console.error('Failed to load circles:', e);
+  }
+};
+
+const shareCircle = async (c) => {
+  try {
+    const { data } = await axios.post(`/albums/${props.album.id}/circles`, { household_id: c.id });
+    applyCircles(data);
+    emit('updated');
+  } catch (e) {
+    errorMessage.value = e.response?.data?.message || 'Impossible de partager avec ce cercle.';
+  }
+};
+
+const unshareCircle = async (c) => {
+  try {
+    const { data } = await axios.delete(`/albums/${props.album.id}/circles/${c.id}`);
+    applyCircles(data);
+    emit('updated');
+  } catch (e) {
+    errorMessage.value = e.response?.data?.message || 'Impossible de retirer ce cercle.';
+  }
+};
 
 const loadAccesses = async () => {
   try {
@@ -258,7 +333,10 @@ const originLabel = (a) => {
   return 'Ajouté' + (a.granted_by ? ` par ${a.granted_by}` : '');
 };
 
-onMounted(loadAccesses);
+onMounted(() => {
+  loadAccesses();
+  loadCircles();
+});
 onUnmounted(() => clearTimeout(searchTimer));
 
 const togglePublic = async () => {

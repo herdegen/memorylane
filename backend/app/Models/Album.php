@@ -118,6 +118,16 @@ class Album extends Model
      *  - une personne taguée (avec compte lié) dans un média de l'album,
      *    quelle que soit la visibilité.
      */
+    /**
+     * Cercles avec lesquels l'album est partagé.
+     */
+    public function households()
+    {
+        return $this->belongsToMany(Household::class, 'album_household')
+            ->withPivot('granted_by')
+            ->withTimestamps();
+    }
+
     public function isAccessibleBy(?User $user, ?string $token = null): bool
     {
         // Lien de partage anonyme (chemin séparé, non authentifié)
@@ -138,6 +148,10 @@ class Album extends Model
         }
 
         if ($this->accesses()->where('user_id', $user->id)->exists()) {
+            return true;
+        }
+
+        if ($this->households()->whereIn('households.id', $user->householdIds())->exists()) {
             return true;
         }
 
@@ -162,7 +176,9 @@ class Album extends Model
         return $query->where(function ($q) use ($user) {
             $q->where('user_id', $user->id)
                 ->orWhere('is_public', true)
-                ->orWhereHas('accesses', fn ($a) => $a->where('user_id', $user->id));
+                ->orWhereHas('accesses', fn ($a) => $a->where('user_id', $user->id))
+                // Branche cercle : album partagé avec un cercle du viewer.
+                ->orWhereHas('households', fn ($h) => $h->whereIn('households.id', $user->householdIds()));
 
             if ($user->person_id) {
                 $q->orWhereHas('media.people', fn ($p) => $p->where('people.id', $user->person_id));

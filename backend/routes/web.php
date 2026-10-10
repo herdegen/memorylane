@@ -202,6 +202,10 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::get('/{album}/access/candidates', [AlbumController::class, 'grantCandidates'])->name('access.candidates');
         Route::post('/{album}/access', [AlbumController::class, 'grantAccess'])->name('access.grant');
         Route::delete('/{album}/access', [AlbumController::class, 'revokeAccess'])->name('access.revoke');
+        // Partage avec un cercle entier
+        Route::get('/{album}/circles', [AlbumController::class, 'circles'])->name('circles.list');
+        Route::post('/{album}/circles', [AlbumController::class, 'shareWithCircle'])->name('circles.share');
+        Route::delete('/{album}/circles/{household}', [AlbumController::class, 'unshareWithCircle'])->name('circles.unshare');
     });
 
     // Cercle courant (sélecteur de l'en-tête)

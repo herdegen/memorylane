@@ -295,4 +295,24 @@ class Person extends Model
 
         return $query->first();
     }
+
+    /**
+     * Version réduite d'une fiche d'un autre cercle, montrée sur une photo
+     * que le viewer a le droit de voir : le nom seul (ni dates, ni notes, ni
+     * avatar, ni lien vers la fiche), marquée `restricted`.
+     */
+    public static function restrictedStub(Person $person): Person
+    {
+        $stub = new Person;
+        $stub->forceFill([
+            'id' => $person->id,
+            'name' => $person->name,
+            'first_name' => $person->first_name,
+            'last_name' => $person->last_name,
+        ]);
+        $stub->setAttribute('restricted', true);
+        $stub->exists = true;
+
+        return $stub;
+    }
 }
