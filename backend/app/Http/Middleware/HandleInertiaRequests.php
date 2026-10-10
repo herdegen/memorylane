@@ -43,6 +43,7 @@ class HandleInertiaRequests extends Middleware
                     'email' => $request->user()->email,
                     'role' => $request->user()->role,
                     'person_id' => $request->user()->person_id,
+                    'simple_mode' => (bool) $request->user()->simple_mode,
                 ] : null,
             ],
             // Notifications push : clé publique VAPID + état (profil, carte dashboard)

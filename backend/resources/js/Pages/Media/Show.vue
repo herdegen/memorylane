@@ -170,6 +170,13 @@
             <!-- Basic info with editor -->
             <MediaInfoEditor :media="media" @updated="handleMediaUpdated" />
 
+            <!-- Mémos vocaux : la famille raconte la photo -->
+            <VoiceNotesPanel
+              v-if="media.type === 'photo'"
+              :media-id="media.id"
+              :initial-notes="voiceNotes"
+            />
+
             <!-- Tags -->
             <div class="bg-white rounded-lg shadow-xs p-6">
               <h2 class="text-lg font-semibold text-surface-900 mb-4">Tags</h2>
@@ -301,6 +308,7 @@ import VisionStatusBadge from '@/Components/VisionStatusBadge.vue';
 import VisionLabels from '@/Components/VisionLabels.vue';
 import VideoPlayer from '@/Components/VideoPlayer.vue';
 import VideoClipEditor from '@/Components/VideoClipEditor.vue';
+import VoiceNotesPanel from '@/Components/VoiceNotesPanel.vue';
 import { useFaceDetection } from '@/composables/useFaceDetection';
 import { useToast } from '@/Composables/useToast';
 import { formatFileSize, formatDuration } from '@/utils/format';
@@ -324,6 +332,10 @@ const props = defineProps({
   media: {
     type: Object,
     required: true,
+  },
+  voiceNotes: {
+    type: Array,
+    default: () => [],
   },
 });
 

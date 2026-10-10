@@ -38,6 +38,7 @@ class User extends Authenticatable implements FilamentUser
         'preferences',
         'guest_expires_at',
         'guest_person_id',
+        'simple_mode',
     ];
 
     /**
@@ -49,6 +50,7 @@ class User extends Authenticatable implements FilamentUser
         'password',
         'pin_code',
         'remember_token',
+        'tablet_token_hash',
     ];
 
     /**
@@ -63,6 +65,7 @@ class User extends Authenticatable implements FilamentUser
             'password' => 'hashed',
             'preferences' => 'json',
             'guest_expires_at' => 'datetime',
+            'simple_mode' => 'boolean',
         ];
     }
 

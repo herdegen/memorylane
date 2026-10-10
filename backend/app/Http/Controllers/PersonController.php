@@ -423,55 +423,11 @@ class PersonController extends Controller
         return response()->json([
             'found' => true,
             'steps' => count($path['edges']),
-            'relation_label' => $this->kinshipLabel($path['edges'], $person->gender),
+            'relation_label' => \App\Services\GenealogyService::relationLabel($path['edges'], $person->gender),
             'path' => $orderedPath,
             'edge_labels' => $stepLabels,
             'apex_index' => $apexIndex,
         ]);
-    }
-
-    /**
-     * Nom français du lien pour les motifs courants (genré sur la cible),
-     * « par alliance » quand un unique pas conjoint encadre un motif connu.
-     * Null pour les chemins exotiques (le front affichera « lien en N pas »).
-     */
-    private function kinshipLabel(array $edges, ?string $gender): ?string
-    {
-        $f = $gender === 'F';
-        $direct = [
-            'parent' => $f ? 'votre mère' : 'votre père',
-            'parent.parent' => $f ? 'votre grand-mère' : 'votre grand-père',
-            'parent.parent.parent' => $f ? 'votre arrière-grand-mère' : 'votre arrière-grand-père',
-            'child' => $f ? 'votre fille' : 'votre fils',
-            'child.child' => $f ? 'votre petite-fille' : 'votre petit-fils',
-            'child.child.child' => $f ? 'votre arrière-petite-fille' : 'votre arrière-petit-fils',
-            'parent.child' => $f ? 'votre sœur' : 'votre frère',
-            'parent.child.child' => $f ? 'votre nièce' : 'votre neveu',
-            'parent.parent.child' => $f ? 'votre tante' : 'votre oncle',
-            'parent.parent.child.child' => $f ? 'votre cousine germaine' : 'votre cousin germain',
-            'spouse' => $f ? 'votre conjointe' : 'votre conjoint',
-            'spouse.parent' => $f ? 'votre belle-mère' : 'votre beau-père',
-            'parent.child.spouse' => $f ? 'votre belle-sœur' : 'votre beau-frère',
-            'spouse.parent.child' => $f ? 'votre belle-sœur' : 'votre beau-frère',
-            'child.spouse' => $f ? 'votre belle-fille' : 'votre gendre',
-        ];
-
-        $key = implode('.', $edges);
-        if (isset($direct[$key])) {
-            return $direct[$key];
-        }
-
-        // Un unique pas « conjoint » en tête ou en queue : motif connu par alliance.
-        if (count($edges) > 1 && ! in_array('spouse', array_slice($edges, 1, -1), true)) {
-            foreach ([['start', array_slice($edges, 1)], ['end', array_slice($edges, 0, -1)]] as [$where, $rest]) {
-                $edge = $where === 'start' ? $edges[0] : end($edges);
-                if ($edge === 'spouse' && isset($direct[implode('.', $rest)])) {
-                    return $direct[implode('.', $rest)] . ' par alliance';
-                }
-            }
-        }
-
-        return null;
     }
 
     /**

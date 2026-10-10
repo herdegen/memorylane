@@ -130,8 +130,14 @@ class MediaController extends Controller
             $media->append('resolution_label');
         }
 
+        $viewer = auth()->user();
+        $voiceNotes = $media->voiceNotes()->with('person', 'user')->get()
+            ->map(fn ($note) => VoiceNoteController::payload($note, $viewer))
+            ->values();
+
         return Inertia::render('Media/Show', [
             'media' => $media,
+            'voiceNotes' => $voiceNotes,
         ]);
     }
 

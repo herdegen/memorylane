@@ -48,8 +48,26 @@ Route::get('/invite/{user}/{person}', [AuthController::class, 'loginAsGuest'])
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
+// Mode grand-parent : lien tablette sans mot de passe (tablet:create)
+Route::get('/tablette/{token}', [AuthController::class, 'loginWithTabletLink'])
+    ->middleware('throttle:10,1')
+    ->name('tablet.login');
+
 // Protected routes
-Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class])->group(function () {
+Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\Middleware\RestrictSimpleMode::class])->group(function () {
+    // Mode grand-parent : interface simplifiée (tablette)
+    Route::prefix('simple')->name('simple.')->controller(\App\Http\Controllers\SimpleModeController::class)->group(function () {
+        Route::get('/', 'home')->name('home');
+        Route::get('/photos', 'photos')->name('photos');
+        Route::get('/famille', 'family')->name('family');
+        Route::get('/photos/{media}/raconter', 'record')->name('record');
+    });
+
+    // Mémos vocaux (« Raconter cette photo »)
+    Route::post('/media/{media}/voice-notes', [\App\Http\Controllers\VoiceNoteController::class, 'store'])->name('voice-notes.store');
+    Route::get('/voice-notes/{voiceNote}/file', [\App\Http\Controllers\VoiceNoteController::class, 'file'])->name('voice-notes.file');
+    Route::delete('/voice-notes/{voiceNote}', [\App\Http\Controllers\VoiceNoteController::class, 'destroy'])->name('voice-notes.destroy');
+
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/dashboard/hide-guide', [DashboardController::class, 'hideGuide'])->name('dashboard.hideGuide');

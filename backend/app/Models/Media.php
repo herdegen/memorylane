@@ -177,6 +177,14 @@ class Media extends Model
     }
 
     /**
+     * Mémos vocaux racontant ce média.
+     */
+    public function voiceNotes()
+    {
+        return $this->hasMany(VoiceNote::class)->orderBy('created_at');
+    }
+
+    /**
      * Médias accessibles par $user : ceux qu'il possède, ou présents dans un
      * album accessible (public / accès accordé / tagué). La galerie reste
      * privée : un média hors album partagé n'est visible que du propriétaire.

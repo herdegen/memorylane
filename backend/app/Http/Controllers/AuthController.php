@@ -109,6 +109,26 @@ class AuthController extends Controller
     }
 
     /**
+     * Mode grand-parent : connexion « pour toujours » sur la tablette via le
+     * lien sans mot de passe (tablet:create). Jeton comparé par son hash.
+     */
+    public function loginWithTabletLink(Request $request, string $token)
+    {
+        $user = User::where('tablet_token_hash', hash('sha256', $token))
+            ->where('simple_mode', true)
+            ->first();
+
+        if (! $user) {
+            return redirect()->route('login')->withErrors(['email' => 'Ce lien tablette n\'est plus valable. Demandez-en un nouveau.']);
+        }
+
+        Auth::login($user, remember: true);
+        $request->session()->regenerate();
+
+        return redirect()->route('simple.home');
+    }
+
+    /**
      * Handle logout request.
      */
     public function logout(Request $request)

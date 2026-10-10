@@ -341,6 +341,11 @@ class MediaService
                 $this->s3Service->delete($conversion->file_path);
             }
         }
+
+        // Mémos vocaux : les lignes partent en cascade avec le média, pas les fichiers.
+        foreach ($media->voiceNotes()->pluck('file_path') as $path) {
+            $this->s3Service->delete($path);
+        }
     }
 
     /**
