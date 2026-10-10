@@ -45,6 +45,13 @@ class HandleInertiaRequests extends Middleware
                     'person_id' => $request->user()->person_id,
                 ] : null,
             ],
+            // Notifications push : clé publique VAPID + état (profil, carte dashboard)
+            'push' => fn () => $request->user() ? [
+                'vapid_public_key' => config('webpush.vapid.public_key'),
+                'preferences' => $request->user()->pushPreferences(),
+                'has_subscriptions' => $request->user()->pushSubscriptions()->exists(),
+                'prompt_dismissed' => isset($request->user()->preferences['push']['prompt_dismissed_at']),
+            ] : null,
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),

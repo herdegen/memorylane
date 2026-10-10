@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Notifications\WeeklyDigest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use NotificationChannels\WebPush\WebPushChannel;
 use Tests\TestCase;
 
 class WeeklyDigestTest extends TestCase
@@ -107,5 +108,28 @@ class WeeklyDigestTest extends TestCase
         $this->assertStringContainsString('5 nouveaux souvenirs', $rendered);
         $this->assertStringContainsString('Paul, Marie', $rendered);
         $this->assertStringContainsString('Voir les nouveaut', $rendered);
+    }
+
+    /**
+     * Canal push en plus du mail, uniquement pour ceux qui ont activé
+     * « Résumé de la semaine » sur un appareil.
+     */
+    public function test_digest_part_aussi_en_push_quand_la_categorie_est_activee(): void
+    {
+        $user = User::factory()->create();
+        $digest = new WeeklyDigest(34, ['Marie', 'Paul']);
+
+        $this->assertSame(['mail'], $digest->via($user));
+
+        $user->updatePushSubscription('https://push.example.org/u', 'k', 't');
+        $user->setPreference('push', ['digest' => false]);
+        $this->assertSame(['mail'], $digest->via($user));
+
+        $user->setPreference('push.digest', true);
+        $this->assertSame(['mail', WebPushChannel::class], $digest->via($user));
+
+        $push = $digest->toWebPush($user, $digest)->toArray();
+        $this->assertSame('34 nouveaux souvenirs (Marie, Paul)', $push['body']);
+        $this->assertSame('/media', $push['data']['url']);
     }
 }

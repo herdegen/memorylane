@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Household;
 use App\Models\Media;
 use App\Services\MediaService;
+use App\Services\PushNotifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -221,7 +222,7 @@ class MediaController extends Controller
      * partagés (les autres → `skipped` : partager le média d'un tiers
      * ouvrirait des accès à son insu).
      */
-    public function bulkShareToHousehold(Request $request)
+    public function bulkShareToHousehold(Request $request, PushNotifier $push)
     {
         $validated = $request->validate([
             'media_ids' => 'required|array|min:1|max:500',
@@ -245,6 +246,8 @@ class MediaController extends Controller
 
         if ($toAttach !== []) {
             $household->media()->attach($toAttach);
+            // Push groupé aux autres membres (fenêtre de 10 min, cf. PushNotifier).
+            $push->householdShare($request->user(), $household, count($toAttach));
         }
 
         return response()->json([

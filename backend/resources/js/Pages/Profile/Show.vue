@@ -55,36 +55,11 @@
                 help="Maximum 6 caractères"
               />
 
-              <div>
-                <button
-                  type="button"
-                  role="switch"
-                  :aria-checked="profileForm.share_address_with_household"
-                  @click="profileForm.share_address_with_household = !profileForm.share_address_with_household"
-                  class="w-full flex items-start justify-between gap-4 text-left"
-                >
-                  <span>
-                    <span class="block text-sm font-medium text-surface-700">Partager mon adresse avec mon foyer</span>
-                    <span class="block mt-1 text-xs text-surface-500">
-                      Les membres de vos foyers verront votre adresse sur votre fiche.
-                      Sans cela, seule une position approximative (~1 km) alimente la carte.
-                    </span>
-                  </span>
-                  <span
-                    :class="[
-                      'relative inline-flex h-5 w-9 shrink-0 mt-0.5 rounded-full transition-colors',
-                      profileForm.share_address_with_household ? 'bg-brand-600' : 'bg-surface-300'
-                    ]"
-                  >
-                    <span
-                      :class="[
-                        'absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform',
-                        profileForm.share_address_with_household ? 'translate-x-4.5' : 'translate-x-0.5'
-                      ]"
-                    ></span>
-                  </span>
-                </button>
-              </div>
+              <ToggleSwitch
+                v-model="profileForm.share_address_with_household"
+                label="Partager mon adresse avec mon foyer"
+                help="Les membres de vos foyers verront votre adresse sur votre fiche. Sans cela, seule une position approximative (~1 km) alimente la carte."
+              />
 
               <div class="flex items-center gap-4">
                 <FormButton
@@ -97,6 +72,9 @@
             </form>
           </div>
         </div>
+
+        <!-- Notifications push -->
+        <PushSettingsCard :initial-subscriptions="pushSubscriptions" />
 
         <!-- Mot de passe -->
         <div class="bg-white overflow-hidden shadow-xs sm:rounded-lg">
@@ -163,12 +141,15 @@ import { Head, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FormField from '@/Components/Forms/FormField.vue';
 import FormButton from '@/Components/Forms/FormButton.vue';
+import ToggleSwitch from '@/Components/Forms/ToggleSwitch.vue';
+import PushSettingsCard from '@/Components/PushSettingsCard.vue';
 import { formatLongDate } from '@/utils/format';
 
 // Page unique du compte : consultation ET modification (fusion de l'ancien
 // couple Mon profil / Paramètres — une seule entrée dans le menu avatar).
 const props = defineProps({
   user: Object,
+  pushSubscriptions: { type: Array, default: () => [] },
 });
 
 const profileForm = useForm({

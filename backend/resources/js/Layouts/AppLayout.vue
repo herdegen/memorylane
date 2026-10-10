@@ -170,9 +170,11 @@ import { IconSettings, IconChevron, IconMenu, IconTheme } from '@/Components/Ico
 import { useAuth } from '@/Composables/useAuth';
 import { useTheme } from '@/Composables/useTheme';
 import { startBackgroundFaceScan } from '@/composables/useBackgroundFaceScan';
+import { usePush } from '@/Composables/usePush';
 
 const { user, isAdmin } = useAuth();
 const { isDark, toggle: toggleTheme } = useTheme();
+const { syncOnce: syncPushSubscription } = usePush();
 
 const showDropdown = ref(false);
 const showMobileMenu = ref(false);
@@ -189,6 +191,8 @@ onMounted(() => {
   // Analyse des visages en tâche de fond pendant la navigation (silencieux,
   // singleton, sans coût s'il n'y a rien à traiter).
   startBackgroundFaceScan();
+  // Resynchronise l'abonnement push de cet appareil (rotation d'endpoint).
+  syncPushSubscription();
 });
 
 onUnmounted(() => {

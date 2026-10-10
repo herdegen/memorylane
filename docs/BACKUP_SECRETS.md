@@ -64,3 +64,11 @@ Bitwarden nommée `MemoryLane prod .env` (restauration par copier-coller).
 ## Ne jamais committer
 `backend/.env`, l'`BWS_ACCESS_TOKEN`, ou toute valeur de secret — le dépôt est
 **public**.
+
+## Clés VAPID (notifications push)
+
+`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` vivent dans ce même
+`.env`. Elles ont été générées **une seule fois** (`php artisan webpush:vapid`) :
+les perdre ou les régénérer invalide tous les abonnements push existants (chaque
+membre devrait réactiver les notifications sur chacun de ses appareils).
+Relancer la sauvegarde après toute modification.

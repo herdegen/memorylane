@@ -6,6 +6,9 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use App\Notifications\Push\PushNotification;
+use NotificationChannels\WebPush\WebPushChannel;
+use NotificationChannels\WebPush\WebPushMessage;
 
 class WeeklyDigest extends Notification implements ShouldQueue
 {
@@ -22,9 +25,38 @@ class WeeklyDigest extends Notification implements ShouldQueue
         public array $samples = [],
     ) {}
 
+    /**
+     * Mail pour tous ; push en plus pour ceux qui ont activé « Résumé de la
+     * semaine » sur un appareil. La commande ne notifie que s'il y a du
+     * nouveau : jamais de push vide.
+     */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        $channels = ['mail'];
+        if (method_exists($notifiable, 'wantsPush') && $notifiable->wantsPush('digest')) {
+            $channels[] = WebPushChannel::class;
+        }
+
+        return $channels;
+    }
+
+    public function toWebPush(object $notifiable, Notification $notification): WebPushMessage
+    {
+        $body = $this->mediaCount === 1 ? '1 nouveau souvenir' : "{$this->mediaCount} nouveaux souvenirs";
+        if ($this->uploaderNames !== []) {
+            $body .= ' (' . implode(', ', $this->uploaderNames) . ')';
+        }
+
+        // 48 h de durée de vie : passé lundi soir, le résumé n'a plus d'intérêt.
+        return (new WebPushMessage)
+            ->title('Cette semaine sur MemoryLane')
+            ->body($body)
+            ->icon(PushNotification::ICON)
+            ->badge(PushNotification::ICON)
+            ->lang('fr')
+            ->tag('weekly-digest')
+            ->data(['url' => '/media'])
+            ->options(['TTL' => 172800, 'urgency' => 'normal']);
     }
 
     public function toMail(object $notifiable): MailMessage

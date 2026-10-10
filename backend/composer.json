@@ -12,6 +12,7 @@
         "google/cloud-vision": "^2.0",
         "inertiajs/inertia-laravel": "^3.0",
         "intervention/image": "^4.0",
+        "laravel-notification-channels/webpush": "^13.0",
         "laravel/framework": "^13.0",
         "laravel/horizon": "^5.0",
         "laravel/scout": "^11.0",

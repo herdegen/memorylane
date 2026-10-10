@@ -12,6 +12,7 @@ use App\Http\Controllers\MediaController;
 use App\Http\Controllers\HouseholdController;
 use App\Http\Controllers\PersonController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PushController;
 use App\Http\Controllers\QuestController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ShareTargetController;
@@ -40,10 +41,15 @@ Route::middleware('guest')->group(function () {
         ->name('login.magic.verify');
 });
 
+// Lien d'invitation temporaire (compte invité) : signé, redirige vers une fiche
+Route::get('/invite/{user}/{person}', [AuthController::class, 'loginAsGuest'])
+    ->middleware('signed')
+    ->name('invite.guest');
+
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
 // Protected routes
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class])->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/dashboard/hide-guide', [DashboardController::class, 'hideGuide'])->name('dashboard.hideGuide');
@@ -84,6 +90,15 @@ Route::middleware('auth')->group(function () {
         Route::redirect('/edit', '/profile')->name('edit');
         Route::put('/', [ProfileController::class, 'update'])->name('update');
         Route::put('/password', [ProfileController::class, 'updatePassword'])->name('password');
+    });
+
+    // Notifications push (Web Push) : abonnement par appareil + préférences
+    Route::prefix('push')->name('push.')->group(function () {
+        Route::post('/subscriptions', [PushController::class, 'store'])->name('subscriptions.store');
+        Route::delete('/subscriptions/{subscription}', [PushController::class, 'destroy'])->name('subscriptions.destroy');
+        Route::put('/preferences', [PushController::class, 'updatePreferences'])->name('preferences');
+        Route::post('/test', [PushController::class, 'test'])->name('test');
+        Route::post('/prompt-dismiss', [PushController::class, 'dismissPrompt'])->name('prompt.dismiss');
     });
 
     // Media routes

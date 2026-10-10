@@ -105,17 +105,23 @@
 
         <!-- ============ Fêtes & anniversaires ============ -->
         <div v-if="celebrations.length > 0" class="space-y-4">
-          <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400">Fêtes &amp; anniversaires</h2>
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400">Fêtes, anniversaires &amp; souvenirs</h2>
           <div class="flex flex-wrap gap-3">
             <Link
               v-for="(c, i) in celebrations"
               :key="i"
               :href="`/people/${c.person_id}`"
               class="flex items-center gap-3 py-2.5 pl-3 pr-5 bg-white rounded-full shadow-warm-sm transition hover:shadow-warm-md"
-              :class="c.days_until === 0 ? 'border border-brand-300' : 'border border-dashed border-surface-300 opacity-80 hover:opacity-100'"
+              :class="[
+                c.days_until === 0 ? 'border' : 'border border-dashed opacity-80 hover:opacity-100',
+                c.kind === 'memorial' ? 'border-surface-300' : (c.days_until === 0 ? 'border-brand-300' : 'border-surface-300'),
+              ]"
             >
-              <div class="w-11 h-11 rounded-full overflow-hidden bg-brand-100 flex items-center justify-center shrink-0">
-                <img v-if="c.avatar_url" :src="c.avatar_url" class="w-full h-full object-cover" />
+              <div
+                class="w-11 h-11 rounded-full overflow-hidden flex items-center justify-center shrink-0"
+                :class="c.kind === 'memorial' ? 'bg-surface-100' : 'bg-brand-100'"
+              >
+                <img v-if="c.avatar_url" :src="c.avatar_url" class="w-full h-full object-cover" :class="{ grayscale: c.kind === 'memorial' }" />
                 <span v-else class="text-lg">{{ c.emoji }}</span>
               </div>
               <div>
@@ -128,6 +134,9 @@
 
         <!-- ============ Quêtes : complétez la mémoire familiale ============ -->
         <QuestCard />
+
+        <!-- ============ Notifications push (invitation, masquable) ============ -->
+        <PushPromptCard />
 
         <!-- ============ Bien démarrer (masquable par personne) ============ -->
         <div
@@ -236,6 +245,7 @@ import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FullscreenSlideshow from '@/Components/FullscreenSlideshow.vue';
 import QuestCard from '@/Components/QuestCard.vue';
+import PushPromptCard from '@/Components/PushPromptCard.vue';
 import { useAuth } from '@/Composables/useAuth';
 import { thumbnailUrl } from '@/utils/media';
 

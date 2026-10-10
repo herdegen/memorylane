@@ -19,6 +19,7 @@ class ProfileController extends Controller
     {
         return Inertia::render('Profile/Show', [
             'user' => Auth::user(),
+            'pushSubscriptions' => PushController::subscriptionList(Auth::user()),
         ]);
     }
 

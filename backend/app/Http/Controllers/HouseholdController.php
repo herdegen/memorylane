@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Household;
 use App\Models\User;
+use App\Notifications\Push\HouseholdMemberAdded;
+use App\Notifications\Push\PushNotification;
+use App\Services\PushNotifier;
 use App\Services\MediaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -139,7 +142,7 @@ class HouseholdController extends Controller
     /**
      * Ajoute un compte au foyer.
      */
-    public function invite(Request $request, Household $household)
+    public function invite(Request $request, Household $household, PushNotifier $push)
     {
         Gate::authorize('manageMembers', $household);
 
@@ -147,9 +150,21 @@ class HouseholdController extends Controller
             'user_id' => ['required', 'uuid', 'exists:users,id'],
         ]);
 
+        $invitee = User::findOrFail($validated['user_id']);
+        $alreadyMember = $household->isMember($invitee);
+
         $household->members()->syncWithoutDetaching([
-            $validated['user_id'] => ['invited_by' => $request->user()->id],
+            $invitee->id => ['invited_by' => $request->user()->id],
         ]);
+
+        // Push « vous faites partie du foyer » — seulement à un vrai nouvel entrant.
+        if (! $alreadyMember) {
+            $push->social(
+                $invitee,
+                new HouseholdMemberAdded(PushNotification::firstName($request->user()->name), $household->name, $household->id),
+                $request->user(),
+            );
+        }
 
         return response()->json(['message' => 'Membre ajouté.'], 201);
     }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Media;
 use App\Models\Person;
+use App\Services\CelebrationService;
 use App\Services\MediaService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -16,7 +17,8 @@ class DashboardController extends Controller
     private const CELEBRATIONS_WINDOW_DAYS = 15;
 
     public function __construct(
-        protected MediaService $mediaService
+        protected MediaService $mediaService,
+        protected CelebrationService $celebrations,
     ) {}
 
     public function index()
@@ -83,29 +85,39 @@ class DashboardController extends Controller
         $today = now()->startOfDay();
         $entries = collect();
 
-        // Anniversaires de naissance.
-        $people = Person::whereNotNull('birth_date')
-            ->whereNull('death_date')
-            ->with('avatar.conversions')
-            ->withMatchedFacesCount()
-            ->get();
+        // Anniversaires de naissance (logique partagée avec le push quotidien).
+        $birthdays = $this->celebrations->upcomingBirthdays(
+            $today,
+            self::CELEBRATIONS_WINDOW_DAYS,
+            Person::with('avatar.conversions')->withMatchedFacesCount(),
+        );
 
-        foreach ($people as $person) {
-            $days = $this->daysUntilAnniversary($person->birth_date, $today);
-            if ($days === null) {
-                continue;
-            }
-            $age = $today->copy()->addDays($days)->year - $person->birth_date->year;
-            // Fiches généalogiques anciennes sans date de décès : au-delà d'un
-            // âge plausible, on ne souhaite pas l'anniversaire.
-            if ($age > 105) {
-                continue;
-            }
+        foreach ($birthdays as ['person' => $person, 'age' => $age, 'days_until' => $days]) {
             $entries->push([
                 'kind' => 'birthday',
                 'emoji' => '🎂',
                 'title' => $person->name,
                 'sub' => "{$age} ans {$this->whenLabel($days)}",
+                'days_until' => $days,
+                'avatar_url' => $this->avatarUrl($person),
+                'person_id' => $person->id,
+            ]);
+        }
+
+        // Anniversaires de décès : uniquement le cercle proche du visiteur
+        // (un proche disparu, pas un ancêtre lointain), ton sobre.
+        $memorials = $this->celebrations->upcomingMemorials(
+            $today,
+            self::CELEBRATIONS_WINDOW_DAYS,
+            $this->celebrations->closeCircleQuery(auth()->user())->with('avatar.conversions')->withMatchedFacesCount(),
+        );
+
+        foreach ($memorials as ['person' => $person, 'years' => $years, 'days_until' => $days]) {
+            $entries->push([
+                'kind' => 'memorial',
+                'emoji' => '🕯️',
+                'title' => $person->name,
+                'sub' => 'En mémoire · ' . self::yearsLabel($years) . " {$this->whenLabel($days)}",
                 'days_until' => $days,
                 'avatar_url' => $this->avatarUrl($person),
                 'person_id' => $person->id,
@@ -152,7 +164,7 @@ class DashboardController extends Controller
 
         foreach ($unions as $union) {
             $start = Carbon::parse($union->start_date)->startOfDay();
-            $days = $this->daysUntilAnniversary($start, $today);
+            $days = CelebrationService::daysUntilAnniversary($start, $today, self::CELEBRATIONS_WINDOW_DAYS);
             if ($days === null) {
                 continue;
             }
@@ -172,21 +184,9 @@ class DashboardController extends Controller
         return $entries->sortBy('days_until')->values()->take(8);
     }
 
-    /**
-     * Jours restants avant la prochaine occurrence (mois + jour) de la date,
-     * ou null hors de la fenêtre d'affichage.
-     */
-    private function daysUntilAnniversary(Carbon $date, Carbon $today): ?int
+    private static function yearsLabel(int $years): string
     {
-        // Année courante d'abord (29 février : Carbon reporte au 1er mars).
-        $next = $date->copy()->year($today->year)->startOfDay();
-        if ($next->lt($today)) {
-            $next->addYear();
-        }
-
-        $days = (int) $today->diffInDays($next);
-
-        return $days <= self::CELEBRATIONS_WINDOW_DAYS ? $days : null;
+        return $years === 1 ? '1 an' : "{$years} ans";
     }
 
     private function whenLabel(int $days): string

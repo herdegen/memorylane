@@ -7,6 +7,9 @@ use App\Models\AlbumAccess;
 use App\Models\Media;
 use App\Models\Person;
 use App\Models\User;
+use App\Notifications\Push\AlbumAccessGranted;
+use App\Notifications\Push\PushNotification;
+use App\Services\PushNotifier;
 use App\Services\MediaService;
 use App\Services\SmartAlbumService;
 use Illuminate\Http\Request;
@@ -565,7 +568,7 @@ class AlbumController extends Controller
     /**
      * Accorder un accès à un compte (délégation possible, cf. AlbumPolicy).
      */
-    public function grantAccess(Request $request, Album $album)
+    public function grantAccess(Request $request, Album $album, PushNotifier $push)
     {
         Gate::authorize('grantAccess', $album);
 
@@ -577,10 +580,19 @@ class AlbumController extends Controller
             return response()->json(['message' => 'Le propriétaire a déjà accès.'], 422);
         }
 
-        AlbumAccess::firstOrCreate(
+        $access = AlbumAccess::firstOrCreate(
             ['album_id' => $album->id, 'user_id' => $validated['user_id']],
             ['granted_by' => auth()->id()],
         );
+
+        // Push « accès à l'album » — uniquement à la création de l'accès.
+        if ($access->wasRecentlyCreated) {
+            $push->social(
+                User::findOrFail($validated['user_id']),
+                new AlbumAccessGranted(PushNotification::firstName(auth()->user()->name), $album->name, $album->id),
+                auth()->user(),
+            );
+        }
 
         return response()->json(['message' => 'Accès accordé.'], 201);
     }
