@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Scout\Searchable;
 
@@ -192,6 +193,16 @@ class Media extends Model
                 // Branche foyer : média partagé dans un foyer dont le viewer
                 // est membre (pivot household_media).
                 ->orWhereHas('households', fn ($h) => $h->whereIn('households.id', $user->householdIds()));
+
+            // Invité temporaire : uniquement les médias de la fiche invitée
+            // (taggés, ou illustrant l'un de ses moments de vie).
+            if ($user->guest_person_id) {
+                $q->orWhereHas('people', fn ($p) => $p->where('people.id', $user->guest_person_id))
+                    ->orWhereIn('id', DB::table('life_event_media')
+                        ->join('life_events', 'life_events.id', '=', 'life_event_media.life_event_id')
+                        ->where('life_events.person_id', $user->guest_person_id)
+                        ->select('life_event_media.media_id'));
+            }
         });
     }
 

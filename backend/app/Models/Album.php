@@ -167,6 +167,10 @@ class Album extends Model
             if ($user->person_id) {
                 $q->orWhereHas('media.people', fn ($p) => $p->where('people.id', $user->person_id));
             }
+
+            if ($user->guest_person_id) {
+                $q->orWhereHas('media.people', fn ($p) => $p->where('people.id', $user->guest_person_id));
+            }
         });
     }
 }

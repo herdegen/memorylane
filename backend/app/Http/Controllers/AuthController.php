@@ -96,6 +96,19 @@ class AuthController extends Controller
     }
 
     /**
+     * Connexion via un lien d'invitation temporaire : compte invité uniquement.
+     */
+    public function loginAsGuest(Request $request, User $user, string $person)
+    {
+        abort_if(! $user->isGuest() || $user->guestExpired(), 403, 'Ce lien d\'invitation a expiré.');
+
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        return redirect()->route('people.show', $person);
+    }
+
+    /**
      * Handle logout request.
      */
     public function logout(Request $request)
