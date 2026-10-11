@@ -59,19 +59,3 @@ export function formatDateTime(dateString) {
     minute: '2-digit',
   });
 }
-
-// Date relative pour les tuiles : « Aujourd'hui », « Hier », « Il y a N jours »,
-// puis la date absolue au-delà d'une semaine.
-export function formatRelativeDate(dateString) {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) return '';
-  // Différence en jours CALENDAIRES locaux (pas en tranches de 24 h, sinon
-  // une photo d'il y a 2 h serait déjà « Hier »).
-  const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const diffDays = Math.round((startOfDay(new Date()) - startOfDay(date)) / 86400000);
-  if (diffDays <= 0) return "Aujourd'hui";
-  if (diffDays === 1) return 'Hier';
-  if (diffDays < 7) return `Il y a ${diffDays} jours`;
-  return formatDate(dateString);
-}

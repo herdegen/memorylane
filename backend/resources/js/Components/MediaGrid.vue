@@ -195,7 +195,7 @@ const props = defineProps({
   },
   emptyStateMessage: {
     type: String,
-    default: 'Commencez par télécharger vos premiers médias.',
+    default: 'Commencez par ajouter vos premières photos.',
   },
 });
 

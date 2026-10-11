@@ -319,6 +319,7 @@ import InviteToMemoryLaneModal from '@/Components/InviteToMemoryLaneModal.vue';
 import { personLabel } from '@/utils/personName';
 import { formatLongDate } from '@/utils/format';
 import { useToast } from '@/Composables/useToast';
+import { apiError } from '@/utils/apiError';
 
 const toast = useToast();
 const { isFriends } = useCircle();
@@ -471,7 +472,7 @@ const handlePersonUpdated = () => {
 };
 
 const deletePerson = async () => {
-  if (!confirm(`Etes-vous sur de vouloir supprimer ${props.person.name} ? Cette action ne supprimera pas les medias.`)) {
+  if (!confirm(`Êtes-vous sûr de vouloir supprimer ${props.person.name} ? Cette action ne supprimera pas les médias.`)) {
     return;
   }
 
@@ -479,7 +480,7 @@ const deletePerson = async () => {
     await axios.delete(`/people/${props.person.id}`);
     router.visit('/people');
   } catch (error) {
-    toast.error(error.response?.data?.message || 'Erreur lors de la suppression de la personne.');
+    toast.error(apiError(error, 'Erreur lors de la suppression de la personne.'));
   }
 };
 </script>

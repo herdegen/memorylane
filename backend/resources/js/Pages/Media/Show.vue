@@ -311,6 +311,7 @@ import VideoClipEditor from '@/Components/VideoClipEditor.vue';
 import VoiceNotesPanel from '@/Components/VoiceNotesPanel.vue';
 import { useFaceDetection } from '@/composables/useFaceDetection';
 import { useToast } from '@/Composables/useToast';
+import { apiError } from '@/utils/apiError';
 import { formatFileSize, formatDuration } from '@/utils/format';
 import { backTarget } from '@/utils/navigation';
 import axios from 'axios';
@@ -460,7 +461,9 @@ const handleFaceReset = () => {
 };
 
 const deleteMedia = async () => {
-  if (!confirm('Êtes-vous sûr de vouloir supprimer ce média ? Cette action est irréversible.')) {
+  // Suppression douce : le média part dans la corbeille (restaurable).
+  const what = { photo: 'La photo', video: 'La vidéo', document: 'Le document' }[props.media.type] || 'Le média';
+  if (!confirm(`Êtes-vous sûr de vouloir supprimer ce média ? ${what} ira dans la corbeille.`)) {
     return;
   }
 
@@ -468,7 +471,7 @@ const deleteMedia = async () => {
     await axios.delete(`/media/${props.media.id}`);
     router.visit('/media');
   } catch (error) {
-    toast.error(error.response?.data?.message || 'Erreur lors de la suppression.');
+    toast.error(apiError(error, 'Erreur lors de la suppression.'));
   }
 };
 </script>

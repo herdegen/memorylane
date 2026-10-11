@@ -402,12 +402,15 @@ const filterTabs = computed(() => [
 
 const emptyStateMessage = computed(() => {
   if (currentFilter.value !== 'all') {
-    return `Aucun ${currentFilter.value === 'photo' ? 'photo' : currentFilter.value === 'video' ? 'vidéo' : 'document'} trouvé.`;
+    return {
+      photo: 'Aucune photo trouvée.',
+      video: 'Aucune vidéo trouvée.',
+    }[currentFilter.value] || 'Aucun document trouvé.';
   }
   if (searchQuery.value) {
     return `Aucun résultat pour "${searchQuery.value}".`;
   }
-  return 'Commencez par télécharger vos premiers médias.';
+  return 'Commencez par ajouter vos premières photos.';
 });
 
 // Construit les paramètres de requête courants (type, recherche, tags et,
