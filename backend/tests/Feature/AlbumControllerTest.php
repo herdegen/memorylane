@@ -215,60 +215,6 @@ class AlbumControllerTest extends TestCase
         $this->assertEquals(2, $album->media()->count());
     }
 
-    public function test_can_reorder_media_in_album(): void
-    {
-        $album = Album::factory()->create(['user_id' => $this->user->id]);
-        $media = Media::factory()->count(3)->create(['user_id' => $this->user->id]);
-        foreach ($media as $i => $m) {
-            $album->media()->attach($m->id, ['order' => $i]);
-        }
-
-        $reversed = $media->reverse()->pluck('id')->toArray();
-
-        $response = $this->actingAs($this->user)->putJson("/albums/{$album->id}/media/reorder", [
-            'media_order' => $reversed,
-        ]);
-
-        $response->assertStatus(200);
-
-        $this->assertDatabaseHas('album_media', [
-            'album_id' => $album->id,
-            'media_id' => $reversed[0],
-            'order' => 0,
-        ]);
-    }
-
-    /**
-     * Un doublon d'UUID dans media_order (double événement de drag) ne doit
-     * pas faire échouer l'upsert groupé (Postgres refuse de toucher deux fois
-     * la même ligne dans une seule commande).
-     */
-    public function test_reorder_tolere_les_doublons_dans_la_liste(): void
-    {
-        $album = Album::factory()->create(['user_id' => $this->user->id]);
-        $media = Media::factory()->count(2)->create(['user_id' => $this->user->id]);
-        foreach ($media as $i => $m) {
-            $album->media()->attach($m->id, ['order' => $i]);
-        }
-
-        $response = $this->actingAs($this->user)->putJson("/albums/{$album->id}/media/reorder", [
-            'media_order' => [$media[1]->id, $media[1]->id, $media[0]->id],
-        ]);
-
-        $response->assertStatus(200);
-
-        $this->assertDatabaseHas('album_media', [
-            'album_id' => $album->id,
-            'media_id' => $media[1]->id,
-            'order' => 0,
-        ]);
-        $this->assertDatabaseHas('album_media', [
-            'album_id' => $album->id,
-            'media_id' => $media[0]->id,
-            'order' => 1,
-        ]);
-    }
-
     /**
      * Attacher le média privé d'un tiers à son propre album est refusé :
      * sinon l'attache ouvrirait la lecture du média via la branche « albums

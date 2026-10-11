@@ -66,6 +66,60 @@ class FamilyRelationshipTest extends TestCase
         $response->assertStatus(422);
     }
 
+    /** Grand-père ← père ← petit-fils : trois générations. */
+    private function lineage(): array
+    {
+        $grandpa = Person::factory()->male()->create(['user_id' => $this->user->id]);
+        $dad = Person::factory()->male()->create(['user_id' => $this->user->id, 'father_id' => $grandpa->id]);
+        $kid = Person::factory()->male()->create(['user_id' => $this->user->id, 'father_id' => $dad->id]);
+
+        return [$grandpa, $dad, $kid];
+    }
+
+    public function test_a_descendant_cannot_become_a_parent(): void
+    {
+        [$grandpa, , $kid] = $this->lineage();
+
+        $this->actingAs($this->user)->postJson("/people/{$grandpa->id}/parent", [
+            'parent_id' => $kid->id,
+            'parent_type' => 'father',
+        ])->assertStatus(422)->assertJsonValidationErrors('father_id');
+
+        $this->assertNull($grandpa->fresh()->father_id);
+    }
+
+    public function test_an_ancestor_cannot_be_added_as_a_child(): void
+    {
+        [$grandpa, , $kid] = $this->lineage();
+
+        $this->actingAs($this->user)->postJson("/people/{$kid->id}/child", [
+            'child_id' => $grandpa->id,
+        ])->assertStatus(422);
+
+        $this->assertNull($grandpa->fresh()->father_id);
+    }
+
+    public function test_editing_a_person_cannot_create_a_loop(): void
+    {
+        [$grandpa, , $kid] = $this->lineage();
+
+        $this->actingAs($this->user)->putJson("/people/{$grandpa->id}", [
+            'name' => $grandpa->name,
+            'mother_id' => $kid->id,
+        ])->assertStatus(422)->assertJsonValidationErrors('mother_id');
+    }
+
+    public function test_unrelated_parent_is_still_accepted(): void
+    {
+        [$grandpa] = $this->lineage();
+        $other = Person::factory()->male()->create(['user_id' => $this->user->id]);
+
+        $this->actingAs($this->user)->postJson("/people/{$grandpa->id}/parent", [
+            'parent_id' => $other->id,
+            'parent_type' => 'father',
+        ])->assertOk();
+    }
+
     public function test_can_remove_parent(): void
     {
         $father = Person::factory()->create(['user_id' => $this->user->id]);

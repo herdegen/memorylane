@@ -728,6 +728,8 @@ class PersonController extends Controller
             Gate::authorize('view', Media::findOrFail($validated['avatar_media_id']));
         }
 
+        $this->ensureNoCycle($person->id, array_intersect_key($validated, array_flip(['father_id', 'mother_id'])));
+
         $person->update($validated);
 
         if ($request->wantsJson()) {
@@ -799,6 +801,25 @@ class PersonController extends Controller
         ]);
     }
 
+    /**
+     * Refuse un parent qui descend déjà de l'enfant : la fiche deviendrait
+     * son propre ancêtre (boucle qui casse l'arbre et les calculs de
+     * parenté). $parents : ['father_id' => id|null, 'mother_id' => id|null].
+     */
+    private function ensureNoCycle(string $childId, array $parents): void
+    {
+        foreach ($parents as $field => $parentId) {
+            if (! $parentId) {
+                continue;
+            }
+            if ($parentId === $childId || Person::descendsFrom($parentId, $childId)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    $field => 'Lien impossible : cette personne descend déjà de la fiche (boucle dans l\'arbre).',
+                ]);
+            }
+        }
+    }
+
     public function setParent(Request $request, Person $person)
     {
         $this->authorizeManage($person);
@@ -814,6 +835,7 @@ class PersonController extends Controller
         if ($validated['parent_id'] === $person->id) {
             return response()->json(['message' => 'Une personne ne peut pas etre son propre parent'], 422);
         }
+        $this->ensureNoCycle($person->id, [$validated['parent_type'].'_id' => $parent->id]);
 
         $person->update([
             $validated['parent_type'].'_id' => $validated['parent_id'],
@@ -926,6 +948,7 @@ class PersonController extends Controller
             }
             $update[$otherSlot . '_id'] = $validated['other_parent_id'];
         }
+        $this->ensureNoCycle($child->id, $update);
 
         $child->update($update);
 

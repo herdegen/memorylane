@@ -202,7 +202,6 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         // Media management
         Route::post('/{album}/media', [AlbumController::class, 'addMedia'])->name('addMedia');
         Route::delete('/{album}/media', [AlbumController::class, 'removeMedia'])->name('removeMedia');
-        Route::put('/{album}/media/reorder', [AlbumController::class, 'reorderMedia'])->name('reorderMedia');
         Route::post('/{album}/geolocate', [AlbumController::class, 'geolocate'])->name('geolocate');
         Route::post('/{album}/cover', [AlbumController::class, 'setCover'])->name('setCover');
 
@@ -336,11 +335,3 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
 Route::get('/albums/shared/{token}', [AlbumController::class, 'showShared'])->name('albums.shared');
 Route::get('/albums/shared/{token}/media/{media}/file/{conversion?}', [AlbumController::class, 'sharedFile'])->name('albums.shared.file');
 
-// Health check endpoint for Docker
-Route::get('/health', function () {
-    return response()->json([
-        'status' => 'healthy',
-        'app' => config('app.name'),
-        'version' => '1.0.0',
-    ]);
-});

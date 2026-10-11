@@ -55,7 +55,9 @@ services:
 
   # Meilisearch Search Engine
   meilisearch:
-    image: docker.io/getmeili/meilisearch:v1.6
+    # v1.6 → v1.53 : format de données incompatible, d'où un nouveau volume
+    # (l'ancien reste pour retour arrière) et une réindexation Scout.
+    image: docker.io/getmeili/meilisearch:v1.53.2
     container_name: memorylane_meilisearch
     logging: *logging
     mem_limit: 2g
@@ -65,7 +67,7 @@ services:
       MEILI_ENV: ${MEILI_ENV:-development}
       MEILI_HTTP_ADDR: '0.0.0.0:7700'
     volumes:
-      - meilisearch_data:/meili_data
+      - meilisearch_data_v153:/meili_data
     ports:
       - "${MEILISEARCH_PORT:-7700}:7700"
     networks:
@@ -236,4 +238,5 @@ volumes:
   redis_data:
     driver: local
   meilisearch_data:
+  meilisearch_data_v153:
     driver: local

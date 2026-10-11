@@ -318,46 +318,6 @@ class AlbumController extends Controller
         ]);
     }
 
-    public function reorderMedia(Request $request, Album $album)
-    {
-        Gate::authorize('manageMedia', $album);
-
-        $validated = $request->validate([
-            'media_order' => 'required|array|max:5000',
-            'media_order.*' => 'uuid',
-        ]);
-
-        // Un seul upsert au lieu d'un UPDATE par média (la PK (album_id,
-        // media_id) sert de cible ON CONFLICT). Les IDs étrangers à l'album
-        // sont ignorés plutôt que d'être insérés.
-        $albumMediaIds = $album->media()->pluck('media.id')->all();
-        $now = now();
-
-        $rows = collect($validated['media_order'])
-            ->intersect($albumMediaIds)
-            // unique() : un doublon d'UUID ferait toucher deux fois la même
-            // ligne dans un seul upsert, ce que Postgres refuse (21000).
-            ->unique()
-            ->values()
-            ->map(fn ($mediaId, $order) => [
-                'album_id' => $album->id,
-                'media_id' => $mediaId,
-                'order' => $order,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ])
-            ->all();
-
-        if ($rows !== []) {
-            DB::table('album_media')
-                ->upsert($rows, ['album_id', 'media_id'], ['order', 'updated_at']);
-        }
-
-        return response()->json([
-            'message' => 'Ordre mis a jour',
-        ]);
-    }
-
     public function generateShareToken(Request $request, Album $album)
     {
         Gate::authorize('update', $album);

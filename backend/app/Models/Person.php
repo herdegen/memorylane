@@ -271,6 +271,32 @@ class Person extends Model
         });
     }
 
+    /**
+     * Vrai si la fiche $personId descend de $ancestorId (remontée des
+     * parents génération par génération, une requête par génération).
+     * Sert à refuser un lien parent/enfant qui créerait une boucle.
+     */
+    public static function descendsFrom(string $personId, string $ancestorId): bool
+    {
+        $seen = [];
+        $frontier = [$personId];
+
+        while ($frontier !== []) {
+            $parents = static::withTrashed()->whereIn('id', $frontier)
+                ->get(['father_id', 'mother_id'])
+                ->flatMap(fn ($p) => [$p->father_id, $p->mother_id])
+                ->filter()->unique()->values()->all();
+
+            if (in_array($ancestorId, $parents, true)) {
+                return true;
+            }
+            $seen += array_flip($frontier);
+            $frontier = array_values(array_filter($parents, fn ($id) => ! isset($seen[$id])));
+        }
+
+        return false;
+    }
+
     public function isVisibleTo(?User $user): bool
     {
         return static::visibleTo($user)->whereKey($this->getKey())->exists();
