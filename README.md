@@ -371,11 +371,29 @@ podman-compose exec app php artisan test --coverage
 
 ## Reconnaissance de visages
 
-La détection et la reconnaissance se font **dans le navigateur** (face-api.js,
-modèles servis par l'application) : aucune photo n'est envoyée à un service
-tiers. Le serveur ne stocke que les cadres et les descripteurs (128 valeurs)
-des visages, et propose des correspondances (`FaceMatcher`) à partir des
-visages déjà identifiés.
+Deux moteurs, choisis par `FACES_ENGINE` (aucune photo ne sort du serveur) :
+
+- **`insightface`** (recommandé) : service interne `docker/faces`
+  (InsightFace 2.0, modèles `buffalo_l` : détection SCRFD, empreinte ArcFace
+  512, âge estimé), appelé par la tâche `AnalyzeFaces` (file `faces`) après
+  chaque envoi. Empreintes dans `detected_faces.embedding_v2`.
+- **`faceapi`** (historique) : détection dans le navigateur (face-api.js),
+  empreintes 128 dans `detected_faces.embedding`.
+
+Les deux colonnes coexistent : on peut revenir en arrière par simple réglage.
+`php artisan faces:reanalyze` (ré)analyse avec InsightFace **sans rien
+perdre** : visages identifiés, ignorés ou dessinés à la main sont conservés
+(seules leurs empreintes sont complétées), les visages manquants sont ajoutés.
+
+Seuils calibrés sur nos photos (banc d'essai d'octobre 2026, `config/memorylane.php`) :
+suggestion sous 1,25 ; association automatique (`FACES_AUTO_MATCH`) seulement
+sous 1,00 **et** avec 0,15 d'avance sur la personne suivante, jamais pour un
+bébé, une personne pas encore née ou sans parenté proche avec la photo.
+Revue dans l'admin : *Visages en double*, *Identifications à vérifier*.
+
+> ⚠️ Le code d'InsightFace est sous licence MIT, mais ses **modèles
+> pré-entraînés sont réservés à un usage non commercial**. Pour un usage
+> commercial, utiliser le moteur `faceapi` ou d'autres modèles.
 
 ## Développement
 
