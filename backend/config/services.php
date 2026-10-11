@@ -35,6 +35,13 @@ return [
         ],
     ],
 
+    // Supervision externe facultative (ex. healthchecks.io) : pingée à chaque
+    // vérification horaire (« /fail » en cas de problème). Si les pings
+    // cessent (serveur ou planificateur arrêté), le service prévient.
+    'healthchecks' => [
+        'ping_url' => env('HEALTHCHECK_PING_URL'),
+    ],
+
     'google_photos' => [
         'client_id' => env('GOOGLE_PHOTOS_CLIENT_ID'),
         'client_secret' => env('GOOGLE_PHOTOS_CLIENT_SECRET'),

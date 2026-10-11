@@ -8,6 +8,7 @@
 # effacé ni écrasé pendant ce délai.
 #
 #   backup.sh copy    copie nocturne de media/ et _backups/ (dumps de la base)
+#                     + les deux .env (secrets compris, chiffrés) sous config/
 #   backup.sh verify  test de restauration : fichiers manquants + 5 fichiers
 #                     au hasard relus depuis la sauvegarde, comparés à l'original
 #
@@ -52,6 +53,11 @@ PREFIXES="media _backups"
 
 log() { echo "$(date -u '+%Y-%m-%d %H:%M:%S') $*" >> "$LOG"; echo "$*"; }
 
+# Journal borné : au-delà de 5 Mo, l'ancien est gardé en .1.
+if [ -f "$LOG" ] && [ "$(wc -c < "$LOG")" -gt 5242880 ]; then
+    mv "$LOG" "$LOG.1"
+fi
+
 case "${1:-}" in
 copy)
     log "copie : début"
@@ -61,6 +67,14 @@ copy)
         # des dates une à une sur la source.
         rclone copy "$SRC/$p" "crypt:$p" --size-only --fast-list --transfers 8 --checkers 16 \
             --log-file "$LOG" --log-level INFO --stats 0 || status=$?
+    done
+    # Configuration du serveur (.env de l'appli et racine) : indispensable pour
+    # tout remonter ailleurs. Versionnée par le bucket à chaque changement.
+    # Pour la relire il faut BACKUP_CRYPT_PASSWORD/SALT, gardés hors serveur.
+    for f in /app/.env:backend.env /app/root.env:root.env; do
+        if [ -r "${f%%:*}" ]; then
+            rclone copyto "${f%%:*}" "crypt:config/${f##*:}" --log-file "$LOG" --log-level INFO || status=$?
+        fi
     done
     [ "$status" -eq 0 ] && log "copie : TERMINÉE OK" || log "copie : ÉCHEC (code $status)"
     exit "$status"

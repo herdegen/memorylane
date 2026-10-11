@@ -1,8 +1,18 @@
+# Journaux Docker bornés (10 Mo × 3 par service) : sans rotation, ils
+# grossissaient sans limite (Meilisearch > 150 Mo).
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   # PostgreSQL Database
   postgres:
     image: docker.io/library/postgres:16-alpine
     container_name: memorylane_postgres
+    logging: *logging
+    mem_limit: 2g
     environment:
       POSTGRES_DB: ${DB_DATABASE:-memorylane}
       POSTGRES_USER: ${DB_USERNAME:-memorylane}
@@ -26,7 +36,11 @@ services:
   redis:
     image: docker.io/library/redis:7-alpine
     container_name: memorylane_redis
-    command: redis-server --appendonly yes
+    logging: *logging
+    mem_limit: 1g
+    # Au-delà de 768 Mo, évince d'abord les clés expirables (cache, sessions),
+    # jamais les files d'attente.
+    command: redis-server --appendonly yes --maxmemory 768mb --maxmemory-policy volatile-lru
     volumes:
       - redis_data:/data
     ports:
@@ -43,6 +57,8 @@ services:
   meilisearch:
     image: docker.io/getmeili/meilisearch:v1.6
     container_name: memorylane_meilisearch
+    logging: *logging
+    mem_limit: 2g
     environment:
       MEILI_MASTER_KEY: ${MEILISEARCH_KEY:?MEILISEARCH_KEY doit être défini dans le .env racine}
       MEILI_NO_ANALYTICS: ${MEILI_NO_ANALYTICS:-true}
@@ -60,10 +76,14 @@ services:
       timeout: 3s
       retries: 5
 
-  # Mailpit - boîte mail de dev (attrape tous les mails sortants)
+  # Mailpit - boîte mail de dev (attrape tous les mails sortants). Profil
+  # « dev » : ne démarre pas en prod (`docker compose --profile dev up -d`).
   mailpit:
+    profiles: ["dev"]
     image: docker.io/axllent/mailpit:latest
     container_name: memorylane_mailpit
+    logging: *logging
+    mem_limit: 256m
     ports:
       - "${MAILPIT_UI_PORT:-8025}:8025"
     networks:
@@ -84,6 +104,8 @@ services:
         - UID=${UID:-1000}
         - GID=${GID:-1000}
     container_name: memorylane_app
+    logging: *logging
+    mem_limit: 3g
     working_dir: /var/www/html
     volumes:
       - ./backend:/var/www/html
@@ -114,9 +136,12 @@ services:
       context: ./docker/nginx
       dockerfile: Dockerfile
     container_name: memorylane_nginx
+    logging: *logging
+    mem_limit: 256m
     volumes:
       - ./backend:/var/www/html
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./docker/nginx/security-headers.conf:/etc/nginx/snippets/security-headers.conf:ro
     ports:
       - "${APP_PORT:-8000}:80"
     networks:
@@ -138,6 +163,8 @@ services:
         - UID=${UID:-1000}
         - GID=${GID:-1000}
     container_name: memorylane_horizon
+    logging: *logging
+    mem_limit: 4g
     working_dir: /var/www/html
     command: php artisan horizon
     volumes:
@@ -162,8 +189,10 @@ services:
         - UID=${UID:-1000}
         - GID=${GID:-1000}
     container_name: memorylane_scheduler
+    logging: *logging
+    mem_limit: 1g
     working_dir: /var/www/html
-    command: /bin/sh -c "while true; do php artisan schedule:run --verbose --no-interaction & sleep 60; done"
+    command: php artisan schedule:work
     volumes:
       - ./backend:/var/www/html
       # Même config PHP que `app` (512M) — cohérence avec le worker horizon.
@@ -180,9 +209,12 @@ services:
   backup:
     image: docker.io/rclone/rclone:1.75.1
     container_name: memorylane_backup
+    logging: *logging
+    mem_limit: 512m
     entrypoint: ["crond", "-f", "-l", "8"]
     volumes:
       - ./backend/.env:/app/.env:ro
+      - ./.env:/app/root.env:ro
       - ./docker/backup/backup.sh:/usr/local/bin/backup.sh:ro
       - ./docker/backup/crontab:/etc/crontabs/root:ro
       - ./backend/storage/logs:/logs

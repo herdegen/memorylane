@@ -32,3 +32,10 @@ Schedule::command('memorylane:backup-db')->dailyAt('02:45')->timezone('Europe/Pa
 
 // Test de restauration de la dernière sauvegarde, le 2 de chaque mois.
 Schedule::command('memorylane:backup-db --check')->monthlyOn(2, '05:15')->timezone('Europe/Paris');
+
+// Supervision : sauvegardes, files d'attente, disque, erreurs — mail aux
+// administrateurs en cas de problème, widget « État du système » dans l'admin.
+Schedule::command('memorylane:health-check')->hourlyAt(17)->withoutOverlapping();
+
+// Les échecs de tâches de plus d'un mois n'apprennent plus rien.
+Schedule::command('queue:prune-failed --hours=720')->weeklyOn(1, '04:30');
