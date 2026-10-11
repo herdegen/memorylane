@@ -312,6 +312,7 @@ import BulkDateModal from '@/Components/BulkDateModal.vue';
 import { usePhotoSwipe } from '@/composables/usePhotoSwipe';
 import { useToast } from '@/Composables/useToast';
 import { apiError } from '@/utils/apiError';
+import { useTags } from '@/Composables/useTags';
 
 // Chargé à l'ouverture seulement : la carte embarque Leaflet (~45 ko gzip).
 const GeolocatePickerModal = defineAsyncComponent(() => import('@/Components/GeolocatePickerModal.vue'));
@@ -480,12 +481,11 @@ const clearTagFilters = () => {
   navigate();
 };
 
+// Liste partagée (en cache si une autre page l'a déjà chargée).
+const tagList = useTags();
 const loadAvailableTags = async () => {
   try {
-    const { data } = await axios.get('/tags', {
-      headers: { 'Accept': 'application/json' }
-    });
-    availableTags.value = data;
+    availableTags.value = await tagList.load();
   } catch (error) {
     console.error('Error loading tags:', error);
   }

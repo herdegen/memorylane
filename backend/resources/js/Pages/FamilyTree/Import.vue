@@ -203,6 +203,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import axios from 'axios';
 import { useToast } from '@/Composables/useToast';
+import { usePeopleDirectory } from '@/Composables/usePeopleDirectory';
 
 const toast = useToast();
 
@@ -270,6 +271,8 @@ async function confirmImport() {
       decisions: { ...decisions },
     });
     importStats.value = response.data.stats;
+    // Fiches créées/fusionnées par l'import : annuaire partagé caduc.
+    usePeopleDirectory().invalidate();
     step.value = 'results';
   } catch (error) {
     toast.error(error.response?.data?.message || "Erreur lors de l'import.");

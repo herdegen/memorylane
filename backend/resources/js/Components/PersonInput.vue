@@ -126,8 +126,10 @@ import PersonFormModal from '@/Components/PersonFormModal.vue';
 import { personLabel } from '@/utils/personName';
 import { searchPeople } from '@/utils/personSearch';
 import { useToast } from '@/Composables/useToast';
+import { usePeopleDirectory } from '@/Composables/usePeopleDirectory';
 
 const toast = useToast();
+const peopleDirectory = usePeopleDirectory();
 
 const props = defineProps({
   mediaId: {
@@ -161,12 +163,11 @@ const filteredPeople = computed(() => {
   return people.slice(0, 10);
 });
 
-const loadAvailablePeople = async () => {
+// Annuaire partagé (une requête pour toute la page) ; `force` après une
+// création pour que la nouvelle fiche apparaisse.
+const loadAvailablePeople = async ({ force = false } = {}) => {
   try {
-    const response = await axios.get('/people', {
-      headers: { 'Accept': 'application/json' }
-    });
-    availablePeople.value = response.data;
+    availablePeople.value = await (force ? peopleDirectory.refresh() : peopleDirectory.load());
   } catch (error) {
     console.error('Error loading people:', error);
   }
@@ -231,7 +232,7 @@ const selectFirstSuggestion = () => {
 const handlePersonCreated = async (person) => {
   showCreateModal.value = false;
   searchQuery.value = '';
-  await loadAvailablePeople();
+  await loadAvailablePeople({ force: true });
   await addPerson(person);
 };
 

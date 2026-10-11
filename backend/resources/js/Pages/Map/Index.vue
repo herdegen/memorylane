@@ -202,6 +202,7 @@ import { formatDate } from '@/utils/format';
 import { escapeHtml } from '@/utils/html';
 import { apiError } from '@/utils/apiError';
 import { useToast } from '@/Composables/useToast';
+import { useTags } from '@/Composables/useTags';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.heat';
@@ -272,11 +273,8 @@ onMounted(async () => {
   // Create markers layer
   markersLayer = L.layerGroup().addTo(map);
 
-  // Load available tags
-  await loadTags();
-
-  // Load geolocated media
-  await loadGeolocatedMedia();
+  // Tags (filtres) et médias géolocalisés : indépendants, chargés en parallèle.
+  await Promise.all([loadTags(), loadGeolocatedMedia()]);
 });
 
 onUnmounted(() => {
@@ -287,11 +285,11 @@ onUnmounted(() => {
   }
 });
 
-// Load all tags
+// Load all tags (liste partagée, souvent déjà en cache)
+const tagList = useTags();
 async function loadTags() {
   try {
-    const response = await axios.get('/tags');
-    availableTags.value = response.data;
+    availableTags.value = await tagList.load();
   } catch (error) {
     console.error('Failed to load tags:', error);
     toast.error(apiError(error, 'Impossible de charger les tags pour le filtre.'));

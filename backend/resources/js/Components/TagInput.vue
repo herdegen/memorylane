@@ -78,8 +78,10 @@ import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
 import { matchesPerson } from '@/utils/personSearch';
 import { useToast } from '@/Composables/useToast';
+import { useTags } from '@/Composables/useTags';
 
 const toast = useToast();
+const tagList = useTags();
 
 const props = defineProps({
   mediaId: {
@@ -113,12 +115,10 @@ const filteredTags = computed(() => {
   return tags.slice(0, 10); // Limit to 10 suggestions
 });
 
+// Liste partagée (une requête pour toute la page).
 const loadAvailableTags = async () => {
   try {
-    const response = await axios.get('/tags', {
-      headers: { 'Accept': 'application/json' }
-    });
-    availableTags.value = response.data;
+    availableTags.value = await tagList.load();
   } catch (error) {
     console.error('Error loading tags:', error);
   }
