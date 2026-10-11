@@ -86,6 +86,11 @@ class GenerateMediaConversions implements ShouldQueue
                 'media_id' => $this->media->id,
                 'conversions_count' => $this->media->conversions()->count(),
             ]);
+
+            // Visages : analysés côté serveur une fois les conversions prêtes.
+            if (\App\Services\Vision\FaceEngine::enabled()) {
+                AnalyzeFaces::dispatch($this->media);
+            }
         } catch (\Exception $e) {
             Log::error('GenerateMediaConversions: Conversion generation failed', [
                 'media_id' => $this->media->id,

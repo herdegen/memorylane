@@ -26,6 +26,12 @@ class DuplicateFaceResolver
 
     public function __construct(private FaceMatcher $matcher) {}
 
+    /** Écart « net » selon l'échelle des distances du moteur actif. */
+    private function clearGap(): float
+    {
+        return $this->matcher->engine() === 'insightface' ? 0.10 : self::CLEAR_GAP;
+    }
+
     /** Paires (photo, personne) identifiées sur plus d'un visage. */
     public function pairs(): Collection
     {
@@ -47,8 +53,9 @@ class DuplicateFaceResolver
         // Gardée en cache jusqu'à la prochaine modification d'une
         // identification (même version que les références de FaceMatcher).
         $version = (int) Cache::get('face-refs-version', 0);
+        $engine = $this->matcher->engine();
 
-        return $this->analysis ??= Cache::remember("face-duplicates:v{$version}", now()->addHour(), fn () => $this->compute());
+        return $this->analysis ??= Cache::remember("face-duplicates:{$engine}:v{$version}", now()->addHour(), fn () => $this->compute());
     }
 
     private function compute(): array
@@ -56,23 +63,24 @@ class DuplicateFaceResolver
         $result = [];
         foreach ($this->pairs()->groupBy('person_id') as $personId => $pairs) {
             // Toutes les empreintes de la personne, chargées une seule fois.
-            $faces = DetectedFace::where('person_id', $personId)->whereNotNull('embedding')
-                ->get(['id', 'media_id', 'embedding', 'status'])
-                ->filter(fn ($f) => is_array($f->embedding) && count($f->embedding) === 128);
+            $faces = DetectedFace::where('person_id', $personId)->whereNotNull($this->matcher->embeddingColumn())
+                ->get(['id', 'media_id', 'embedding', 'embedding_v2', 'status'])
+                ->each(fn ($f) => $f->setAttribute('vector', $this->matcher->embeddingOf($f)))
+                ->filter(fn ($f) => $f->vector !== null);
 
             foreach ($pairs as $pair) {
-                $refs = $faces->where('media_id', '!=', $pair->media_id)->pluck('embedding');
+                $refs = $faces->where('media_id', '!=', $pair->media_id)->pluck('vector');
                 $scored = $faces->where('media_id', $pair->media_id)->where('status', 'matched')
                     ->map(fn (DetectedFace $f) => [
                         'id' => $f->id,
                         'score' => $refs->isNotEmpty()
-                            ? round($refs->map(fn ($r) => $this->matcher->euclideanDistance($f->embedding, $r))->sort()->take(5)->avg(), 3)
+                            ? round($refs->map(fn ($r) => $this->matcher->euclideanDistance($f->vector, $r))->sort()->take(5)->avg(), 3)
                             : null,
                     ])
                     ->sortBy(fn ($x) => $x['score'] ?? INF)->values();
 
                 $clear = $scored->count() > 1 && $scored[0]['score'] !== null && $scored[1]['score'] !== null
-                    && ($scored[1]['score'] - $scored[0]['score']) >= self::CLEAR_GAP;
+                    && ($scored[1]['score'] - $scored[0]['score']) >= $this->clearGap();
 
                 foreach ($scored as $i => $face) {
                     $result[$face['id']] = [

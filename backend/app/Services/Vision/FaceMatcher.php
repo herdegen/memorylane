@@ -66,17 +66,25 @@ class FaceMatcher
             ->pluck('person_id')
             ->all();
 
-        $best = null;
-        foreach ($this->rankedCandidates($face, self::AUTO_MATCH_THRESHOLD, $ownerId, $viewer) as $candidate) {
-            if (! in_array($candidate['person']['id'], $alreadyOnMedia, true)) {
-                $best = $candidate;
-                break;
-            }
+        // Candidats jusqu'au seuil de SUGGESTION, pour connaître la 2e personne
+        // la plus proche : l'association n'est faite que si la meilleure est
+        // sous le seuil strict ET nettement devant la suivante (marge).
+        $candidates = array_values(array_filter(
+            $this->rankedCandidates($face, $this->matchThreshold(), $ownerId, $viewer),
+            fn ($c) => ! in_array($c['person']['id'], $alreadyOnMedia, true),
+        ));
+        $best = $candidates[0] ?? null;
+
+        if (! $best || $best['distance'] > $this->autoThreshold()) {
+            return null;
+        }
+        if (isset($candidates[1]) && $candidates[1]['distance'] - $best['distance'] < $this->threshold('margin')) {
+            return null;
         }
 
         // Garde-fou : un candidat douteux (bébé, parenté lointaine) n'est
         // jamais associé sans un humain.
-        if (! $best || $best['doubts'] !== []) {
+        if ($best['doubts'] !== []) {
             return null;
         }
 
@@ -97,9 +105,9 @@ class FaceMatcher
      */
     public function rankedCandidates(DetectedFace $face, float $maxDistance, string $ownerId, ?\App\Models\User $viewer = null): array
     {
-        $target = $face->embedding;
+        $target = $this->embeddingOf($face);
 
-        if (! is_array($target) || count($target) !== 128) {
+        if ($target === null) {
             return [];
         }
 
@@ -144,7 +152,7 @@ class FaceMatcher
                 'person' => ['id' => $person->id, 'name' => $person->name],
                 'distance' => round($distance, 4),
                 // Score de similarité (0..1) : 1 = identique, 0 = au seuil de suggestion.
-                'score' => round(max(0, 1 - $distance / self::MATCH_THRESHOLD), 4),
+                'score' => round(max(0, 1 - $distance / $this->matchThreshold()), 4),
                 'doubts' => $media ? $plausibility->doubts($person, $media, $kin) : [],
             ];
         }
@@ -154,6 +162,43 @@ class FaceMatcher
         usort($candidates, fn ($a, $b) => $rank($a) <=> $rank($b));
 
         return $candidates;
+    }
+
+    /** Moteur de reconnaissance actif (config memorylane.faces.engine). */
+    public function engine(): string
+    {
+        return config('memorylane.faces.engine', 'faceapi');
+    }
+
+    /** Colonne de l'empreinte du moteur actif. */
+    public function embeddingColumn(): string
+    {
+        return $this->engine() === 'insightface' ? 'embedding_v2' : 'embedding';
+    }
+
+    /** Empreinte du visage pour le moteur actif (null si absente ou invalide). */
+    public function embeddingOf(DetectedFace $face): ?array
+    {
+        $vector = $face->{$this->embeddingColumn()};
+        $dims = $this->engine() === 'insightface' ? 512 : 128;
+
+        return is_array($vector) && count($vector) === $dims ? $vector : null;
+    }
+
+    /** Seuil du moteur actif : 'match' (suggestion), 'auto', 'margin'. */
+    public function threshold(string $name): float
+    {
+        return (float) config("memorylane.faces.thresholds.{$this->engine()}.{$name}");
+    }
+
+    public function matchThreshold(): float
+    {
+        return $this->threshold('match');
+    }
+
+    public function autoThreshold(): float
+    {
+        return $this->threshold('auto');
     }
 
     /** Mémo par requête (plusieurs visages d'une même photo, quêtes…). */
@@ -169,7 +214,8 @@ class FaceMatcher
     private function references(string $ownerId): array
     {
         $version = (int) \Illuminate\Support\Facades\Cache::get('face-refs-version', 0);
-        $key = "face-refs:{$ownerId}:v{$version}";
+        $engine = $this->engine();
+        $key = "face-refs:{$engine}:{$ownerId}:v{$version}";
 
         // Une seule entrée gardée en mémoire : les workers tournent longtemps,
         // les anciennes versions ne doivent pas s'accumuler.
@@ -179,11 +225,11 @@ class FaceMatcher
 
         return (self::$referencesMemo = [$key => \Illuminate\Support\Facades\Cache::remember($key, now()->addDay(), fn () => DetectedFace::query()
             ->whereNotNull('person_id')
-            ->whereNotNull('embedding')
+            ->whereNotNull($this->embeddingColumn())
             ->whereHas('media', fn ($q) => $q->where('user_id', $ownerId))
-            ->get(['id', 'person_id', 'embedding'])
-            ->filter(fn (DetectedFace $f) => is_array($f->embedding) && count($f->embedding) === 128)
-            ->map(fn (DetectedFace $f) => [$f->id, $f->person_id, $f->embedding])
+            ->get(['id', 'person_id', 'embedding', 'embedding_v2'])
+            ->map(fn (DetectedFace $f) => [$f->id, $f->person_id, $this->embeddingOf($f)])
+            ->filter(fn ($row) => $row[2] !== null)
             ->values()
             ->all())])[$key];
     }
@@ -200,7 +246,7 @@ class FaceMatcher
     /**
      * Associe un visage à une personne (statut matched + pivot media_person).
      */
-    public function applyMatch(DetectedFace $face, string $personId, bool $allowDuplicate = false): void
+    public function applyMatch(DetectedFace $face, string $personId, bool $allowDuplicate = false, bool $verified = false): void
     {
         $person = \App\Models\Person::findOrFail($personId);
         $media = $this->mediaOf($face);
@@ -218,6 +264,8 @@ class FaceMatcher
         $face->update([
             'person_id' => $personId,
             'status' => 'matched',
+            // Posée par un humain (panneau, quête, revue), jamais par l'automatique.
+            'verified_at' => $verified ? now() : null,
         ]);
 
         $media->people()->syncWithoutDetaching([
@@ -242,6 +290,7 @@ class FaceMatcher
         $face->update([
             'person_id' => null,
             'status' => $status,
+            'verified_at' => null,
         ]);
 
         if ($personId) {

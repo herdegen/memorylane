@@ -89,7 +89,7 @@ class DuplicateFaceResource extends Resource
                             return '—';
                         }
                         // Distance → pourcentage lisible (100 % = identique).
-                        return round(max(0, 1 - $row['score'] / FaceMatcher::MATCH_THRESHOLD) * 100).' %';
+                        return round(max(0, 1 - $row['score'] / app(FaceMatcher::class)->matchThreshold()) * 100).' %';
                     })
                     ->badge()
                     ->color(fn (DetectedFace $r) => ($analysis()[$r->id]['suggested'] ?? false) ? 'success' : 'gray'),

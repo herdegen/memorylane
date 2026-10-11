@@ -163,7 +163,7 @@ class FaceGuardsTest extends TestCase
         $this->face($media, 0.5, $parent);          // déjà identifié sur la photo
         $target = $this->face($media, 0.205);
 
-        $rows = collect(app(FaceMatcher::class)->rankedCandidates($target, FaceMatcher::MATCH_THRESHOLD, $this->user->id));
+        $rows = collect(app(FaceMatcher::class)->rankedCandidates($target, app(FaceMatcher::class)->matchThreshold(), $this->user->id));
         $this->assertSame([], $rows->firstWhere('person.id', $child->id)['doubts']);
         $this->assertSame('distant', $rows->firstWhere('person.id', $stranger->id)['doubts'][0]['code']);
     }

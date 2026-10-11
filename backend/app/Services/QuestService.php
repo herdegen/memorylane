@@ -538,7 +538,7 @@ class QuestService
                 'with' => $subject->media->people()->visibleTo($user)->orderBy('name')->limit(4)->pluck('people.name'),
                 'suggestions' => array_slice($this->faceMatcher->rankedCandidates(
                     $subject,
-                    FaceMatcher::MATCH_THRESHOLD,
+                    $this->faceMatcher->matchThreshold(),
                     $subject->media->user_id,
                     $user,
                 ), 0, 4),

@@ -69,6 +69,9 @@ services:
     container_name: memorylane_dev_scheduler
     profiles: ["scheduler"]
 
+  faces:
+    container_name: memorylane_dev_faces
+
   # La sauvegarde ne concerne que la prod.
   backup:
     container_name: memorylane_dev_backup

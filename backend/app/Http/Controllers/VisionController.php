@@ -126,6 +126,37 @@ class VisionController extends Controller
     }
 
     /**
+     * Analyse côté serveur (InsightFace) : ajoute les visages manquants et
+     * les empreintes, sans rien supprimer ni réattribuer (FaceReconciler).
+     */
+    public function analyzeOnServer(Media $media): JsonResponse
+    {
+        $this->authorizeMedia($media);
+        abort_unless(in_array($media->type, ['photo', 'video'], true), 422, 'Seules les photos et vidéos s\'analysent.');
+        abort_unless(\App\Services\Vision\FaceEngine::enabled(), 409, 'Analyse serveur désactivée.');
+
+        \App\Jobs\AnalyzeFaces::dispatchSync($media);
+
+        return $this->faces($media);
+    }
+
+    /**
+     * Analyse côté serveur d'un lot de médias (page « Visages » par lots) :
+     * mise en file, une tâche par média.
+     */
+    public function analyzeBatch(Request $request): JsonResponse
+    {
+        abort_unless(\App\Services\Vision\FaceEngine::enabled(), 409, 'Analyse serveur désactivée.');
+        $validated = $request->validate(['ids' => 'required|array|max:1000', 'ids.*' => 'uuid']);
+
+        $medias = Media::whereIn('id', $validated['ids'])->whereIn('type', ['photo', 'video'])->get()
+            ->filter(fn (Media $m) => \Illuminate\Support\Facades\Gate::allows('view', $m));
+        $medias->each(fn (Media $m) => \App\Jobs\AnalyzeFaces::dispatch($m));
+
+        return response()->json(['queued' => $medias->count()]);
+    }
+
+    /**
      * Ajoute UN visage dessiné manuellement (sans wiper les visages existants).
      * Utile quand la détection auto rate un visage (de profil, partiel…).
      */
@@ -155,6 +186,14 @@ class VisionController extends Controller
             'provider' => 'manual',
             'status' => 'unmatched',
         ]);
+
+        // Moteur InsightFace : empreinte calculée par le service sur la zone.
+        if (\App\Services\Vision\FaceEngine::enabled()) {
+            $embedded = app(\App\Services\Vision\FaceEngine::class)->embedBox($media, $validated['bounding_box']);
+            if ($embedded) {
+                $face->forceFill(['embedding_v2' => $embedded['embedding'], 'age_estimate' => $embedded['age'], 'engine' => 'insightface-box'])->save();
+            }
+        }
 
         // Le média est désormais « analysé » ; on met le compteur à jour.
         $media->metadata()->updateOrCreate([], [
@@ -199,7 +238,7 @@ class VisionController extends Controller
         // propriétaire (même comportement que l'auto-match admin).
         $candidates = $this->faceMatcher->rankedCandidates(
             $detectedFace,
-            FaceMatcher::MATCH_THRESHOLD,
+            $this->faceMatcher->matchThreshold(),
             $detectedFace->media->user_id,
             auth()->user(),
         );
@@ -217,7 +256,12 @@ class VisionController extends Controller
         $ids = Media::query()
             ->where('user_id', auth()->id())
             ->where('type', 'photo')
-            ->whereDoesntHave('metadata', fn ($q) => $q->where('vision_status', 'completed'))
+            ->when(
+                \App\Services\Vision\FaceEngine::enabled(),
+                // InsightFace : pas encore passé par le service.
+                fn ($q) => $q->whereDoesntHave('metadata', fn ($m) => $m->where('vision_provider', 'insightface')),
+                fn ($q) => $q->whereDoesntHave('metadata', fn ($m) => $m->where('vision_status', 'completed')),
+            )
             ->pluck('id');
 
         return response()->json([
@@ -260,7 +304,7 @@ class VisionController extends Controller
             'allow_duplicate' => ['sometimes', 'boolean'],
         ]);
 
-        $this->faceMatcher->applyMatch($detectedFace, $validated['person_id'], (bool) ($validated['allow_duplicate'] ?? false));
+        $this->faceMatcher->applyMatch($detectedFace, $validated['person_id'], (bool) ($validated['allow_duplicate'] ?? false), verified: true);
         $detectedFace->load('person');
 
         return response()->json($detectedFace);

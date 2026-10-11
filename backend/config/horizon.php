@@ -215,10 +215,23 @@ return [
             'timeout' => 3600,
             'nice' => 0,
         ],
+        // Analyse des visages (service InsightFace, une photo à la fois côté
+        // service) : file à part pour ne pas bloquer conversions et envois.
+        'supervisor-faces' => [
+            'connection' => 'redis',
+            'queue' => ['faces'],
+            'balance' => 'simple',
+            'maxProcesses' => 1,
+            'memory' => 256,
+            'tries' => 3,
+            'timeout' => 300,
+            'nice' => 5,
+        ],
     ],
 
     'environments' => [
         'production' => [
+            'supervisor-faces' => ['maxProcesses' => 2],
             'supervisor-1' => [
                 // Serveur partagé avec d'autres services : 5 workers suffisent.
                 'maxProcesses' => 5,
@@ -228,6 +241,7 @@ return [
         ],
 
         'local' => [
+            'supervisor-faces' => ['maxProcesses' => 1],
             'supervisor-1' => [
                 'maxProcesses' => 3,
             ],

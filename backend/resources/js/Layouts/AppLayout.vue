@@ -308,7 +308,7 @@ onMounted(() => {
   document.addEventListener('click', handleClickOutside);
   // Analyse des visages en tâche de fond pendant la navigation (silencieux,
   // singleton, sans coût s'il n'y a rien à traiter).
-  startBackgroundFaceScan();
+  if (page.props.faces_engine !== 'insightface') startBackgroundFaceScan();
   // Resynchronise l'abonnement push de cet appareil (rotation d'endpoint).
   syncPushSubscription();
   if (standalone && user.value && !user.value.onboarding?.pwa) {

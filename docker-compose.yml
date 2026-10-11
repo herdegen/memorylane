@@ -210,6 +210,20 @@ services:
       - app
     restart: unless-stopped
 
+  # Reconnaissance de visages (InsightFace) : service interne au réseau, CPU
+  # seul, aucune photo ne sort du serveur — voir docker/faces.
+  faces:
+    build:
+      context: ./docker/faces
+    image: memorylane-faces:1
+    container_name: memorylane_faces
+    logging: *logging
+    mem_limit: 3g
+    cpus: 4
+    networks:
+      - memorylane
+    restart: unless-stopped
+
   # Sauvegarde chiffrée des fichiers (médias + dumps de la base) vers OVH,
   # chaque nuit, test de restauration mensuel — voir docker/backup/backup.sh.
   backup:

@@ -50,6 +50,9 @@ class HandleInertiaRequests extends Middleware
                 ] : null,
             ],
             // Notifications push : clé publique VAPID + état (profil, carte dashboard)
+            // Moteur de reconnaissance : 'insightface' = analyse côté serveur
+            // (le navigateur ne charge plus face-api).
+            'faces_engine' => config('memorylane.faces.engine'),
             'push' => fn () => $request->user() ? [
                 'vapid_public_key' => config('webpush.vapid.public_key'),
                 'preferences' => $request->user()->pushPreferences(),

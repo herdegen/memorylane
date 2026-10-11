@@ -34,6 +34,10 @@ class DetectedFace extends Model
         'tilt_angle',
         'provider',
         'status',
+        'embedding_v2',
+        'age_estimate',
+        'engine',
+        'verified_at',
     ];
 
     /**
@@ -43,7 +47,7 @@ class DetectedFace extends Model
     protected static function booted(): void
     {
         static::saved(function (DetectedFace $face) {
-            if ($face->person_id && ($face->wasRecentlyCreated || $face->wasChanged(['person_id', 'embedding']))
+            if ($face->person_id && ($face->wasRecentlyCreated || $face->wasChanged(['person_id', 'embedding', 'embedding_v2', 'verified_at']))
                 || $face->wasChanged('person_id')) {
                 \App\Services\Vision\FaceMatcher::bumpReferences();
             }
@@ -61,6 +65,9 @@ class DetectedFace extends Model
             'bounding_box' => 'array',
             'landmarks' => 'array',
             'embedding' => 'array',
+            'embedding_v2' => 'array',
+            'age_estimate' => 'integer',
+            'verified_at' => 'datetime',
             'confidence' => 'float',
             'joy_likelihood' => 'float',
             'sorrow_likelihood' => 'float',

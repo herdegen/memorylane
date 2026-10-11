@@ -369,8 +369,16 @@ const clipThumb = (clip) => conversionUrl(clip, 'small', 'thumbnail', 'medium') 
 // L'original reste accessible via « Télécharger ».
 const photoUrl = computed(() => displayUrl(props.media));
 
-// Détection de visages côté navigateur.
-const { detectFaces, computeDescriptorForRegion, loading: detecting, progress: detectProgress, error: detectError } = useFaceDetection();
+// Détection de visages : côté serveur (InsightFace) ou, à défaut, dans le
+// navigateur (face-api, chargé seulement s'il sert).
+const serverFaces = computed(() => usePage().props.faces_engine === 'insightface');
+const browserDetection = useFaceDetection();
+const { detectFaces, computeDescriptorForRegion } = browserDetection;
+const serverDetecting = ref(false);
+const serverError = ref(null);
+const detecting = computed(() => serverDetecting.value || browserDetection.loading.value);
+const detectProgress = computed(() => (serverDetecting.value ? 'Analyse sur le serveur…' : browserDetection.progress.value));
+const detectError = computed(() => serverError.value || browserDetection.error.value);
 
 // Ajout manuel d'un visage (dessin d'une zone).
 const addingFace = ref(false);
@@ -379,12 +387,14 @@ const savingFace = ref(false);
 const handleRegionDrawn = async (box) => {
   savingFace.value = true;
   try {
-    // Empreinte calculée sur l'image proxy même-origine (canvas non tainté).
-    const proxyUrl = `/vision/media/${props.media.id}/image?conversion=medium`;
-    const embedding = await computeDescriptorForRegion(proxyUrl, box);
+    // Serveur : l'empreinte est calculée par le service sur la zone.
+    // Navigateur : sur l'image proxy même-origine (canvas non tainté).
+    const embedding = serverFaces.value
+      ? null
+      : await computeDescriptorForRegion(`/vision/media/${props.media.id}/image?conversion=medium`, box);
     await axios.post(`/vision/media/${props.media.id}/faces/add`, {
       bounding_box: box,
-      embedding,
+      ...(embedding ? { embedding } : {}),
     });
     addingFace.value = false;
     router.reload();
@@ -410,6 +420,20 @@ const notScanned = computed(
 );
 
 const runDetection = async () => {
+  // Serveur : ajoute les visages manquants sans rien effacer.
+  if (serverFaces.value) {
+    serverDetecting.value = true;
+    serverError.value = null;
+    try {
+      await axios.post(`/vision/media/${props.media.id}/analyze`);
+      router.reload();
+    } catch (e) {
+      serverError.value = apiError(e, "L'analyse des visages a échoué. Réessayez dans un instant.");
+    } finally {
+      serverDetecting.value = false;
+    }
+    return;
+  }
   try {
     // On détecte sur la conversion medium (même origine → pas de canvas tainted).
     const proxyUrl = `/vision/media/${props.media.id}/image?conversion=medium`;

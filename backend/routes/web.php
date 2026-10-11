@@ -248,6 +248,8 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::get('/media/{media}/image', [VisionController::class, 'image'])->name('image');
         Route::post('/media/{media}/faces', [VisionController::class, 'storeFaces'])->name('storeFaces');
         Route::post('/media/{media}/faces/add', [VisionController::class, 'addFace'])->name('addFace');
+        Route::post('/media/{media}/analyze', [VisionController::class, 'analyzeOnServer'])->name('analyzeOnServer');
+        Route::post('/batch/analyze', [VisionController::class, 'analyzeBatch'])->name('analyzeBatch');
         Route::post('/faces/{detectedFace}/match', [VisionController::class, 'matchFace'])->name('matchFace');
         Route::post('/faces/{detectedFace}/dismiss', [VisionController::class, 'dismissFace'])->name('dismissFace');
         Route::post('/faces/{detectedFace}/reset', [VisionController::class, 'resetFace'])->name('resetFace');

@@ -98,7 +98,7 @@ class QuestAnswerApplier
             QuestType::Job => $this->applyLifeEvent($user, $subject, 'job', $payload['title'], (int) $payload['year']),
             QuestType::Education => $this->applyLifeEvent($user, $subject, 'education', $payload['title'], (int) $payload['year']),
             QuestType::Residence => $this->applyLifeEvent($user, $subject, 'residence', $payload['place'], (int) $payload['year'], $payload['place']),
-            QuestType::FaceIdentify => $this->faceMatcher->applyMatch($subject, $payload['person_id']),
+            QuestType::FaceIdentify => $this->faceMatcher->applyMatch($subject, $payload['person_id'], verified: true),
             QuestType::MediaDate => $subject->update(['taken_at' => $payload['value']]),
             QuestType::MediaGeo => $subject->metadata()->updateOrCreate([], [
                 'latitude' => $payload['latitude'],

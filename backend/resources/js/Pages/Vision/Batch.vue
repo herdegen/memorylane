@@ -6,7 +6,11 @@
         <div class="bg-white rounded-lg shadow-xs p-6">
           <h1 class="text-xl font-semibold text-surface-900 mb-2">Détection des visages en lot</h1>
           <p class="text-sm text-surface-500 mb-6">
-            <template v-if="selectionMode">
+            <template v-if="serverMode">
+              Les photos sont analysées sur le serveur, en arrière-plan : vous pouvez
+              fermer cet onglet. Les visages déjà identifiés sont conservés.
+            </template>
+            <template v-else-if="selectionMode">
               Analyse les photos sélectionnées dans l'admin, directement dans votre
               navigateur. Laissez cet onglet ouvert pendant le traitement.
             </template>
@@ -56,7 +60,10 @@
               >
                 Arrêter
               </button>
-              <div v-if="done" class="text-sm text-green-700 dark:text-green-300 font-medium py-2">
+              <div v-if="done && serverMode" class="text-sm text-green-700 dark:text-green-300 font-medium py-2">
+                {{ queued }} photo(s) envoyée(s) à l'analyse — quelques secondes chacune, en arrière-plan.
+              </div>
+              <div v-else-if="done" class="text-sm text-green-700 dark:text-green-300 font-medium py-2">
                 Terminé : {{ processed - errors }} photo(s) analysée(s){{ errors ? `, ${errors} en échec` : '' }}.
               </div>
             </div>
@@ -68,8 +75,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { Head } from '@inertiajs/vue3';
+import { ref, computed, onMounted } from 'vue';
+import { Head, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { useFaceDetection } from '@/Composables/useFaceDetection';
 import axios from 'axios';
@@ -85,6 +92,8 @@ const total = ref(0);
 const errors = ref(0);
 const statusMessage = ref('');
 const selectionMode = ref(false);
+const serverMode = computed(() => usePage().props.faces_engine === 'insightface');
+const queued = ref(0);
 let cancelled = false;
 
 const loadPending = async () => {
@@ -113,6 +122,25 @@ const startBatch = async () => {
   cancelled = false;
   processed.value = 0;
   errors.value = 0;
+
+  // Serveur : mise en file par paquets, rien à garder ouvert.
+  if (serverMode.value) {
+    statusMessage.value = 'Envoi au serveur…';
+    queued.value = 0;
+    try {
+      for (let i = 0; i < pendingIds.value.length; i += 500) {
+        const { data } = await axios.post('/vision/batch/analyze', { ids: pendingIds.value.slice(i, i + 500) });
+        queued.value += data.queued;
+        processed.value = Math.min(total.value, i + 500);
+      }
+      done.value = true;
+    } catch (e) {
+      console.error('Envoi au serveur échoué :', e);
+      errors.value = total.value - processed.value;
+    }
+    running.value = false;
+    return;
+  }
 
   statusMessage.value = 'Chargement des modèles…';
   try {
