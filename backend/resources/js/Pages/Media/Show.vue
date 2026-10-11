@@ -396,8 +396,9 @@ const handleRegionDrawn = async (box) => {
 // La détection de visages marche sur photos ET vidéos (via l'image extraite).
 const supportsFaces = computed(() => ['photo', 'video'].includes(props.media.type));
 
-// Image support de la détection : l'original pour une photo, la frame extraite
-// (conversion medium) pour une vidéo.
+// Image support des cadres de visages : la photo affichée (conversion
+// large/medium) pour une photo, la frame extraite (conversion medium) pour
+// une vidéo.
 const faceImageUrl = computed(() =>
   props.media.type === 'video' ? thumbnailUrl.value : photoUrl.value
 );
