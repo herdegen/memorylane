@@ -450,6 +450,7 @@ import { personLabel } from '@/utils/personName';
 import { searchPeople } from '@/utils/personSearch';
 import { formatLongDate } from '@/utils/format';
 import { useToast } from '@/Composables/useToast';
+import { escapeHtml } from '@/utils/html';
 
 const toast = useToast();
 
@@ -636,19 +637,22 @@ function yearSpan(birth, death) {
 
 // Transforme le format backend (rels.father/mother) → format family-chart (rels.parents[])
 // en filtrant toute référence vers une personne absente du jeu de données.
+// ⚠️ family-chart construit ses cartes en innerHTML (texte ET <img src>) : les
+// champs affichés sont donc échappés ici. Ces données ne servent qu'au rendu
+// des cartes — le panneau et la recherche lisent les données brutes (rawById).
 function toChartData(raw) {
   const known = new Set(raw.map(n => n.id));
   return raw.map(n => ({
     id: n.id,
     data: {
       // Nom composé (Prénom Nom (nom de naissance)) pour des cartes lisibles.
-      name: personLabel(n.data),
+      name: escapeHtml(personLabel(n.data)),
       gender: n.data.gender,
       birth_date: n.data.birth_date,
-      years: yearSpan(n.data.birth_date, n.data.death_date),
+      years: escapeHtml(yearSpan(n.data.birth_date, n.data.death_date)),
       // Bug corrigé : l'avatar n'était pas transmis -> les photos ne
       // s'affichaient jamais sur les cartes.
-      avatar_url: n.data.avatar_url || null,
+      avatar_url: n.data.avatar_url ? escapeHtml(n.data.avatar_url) : null,
       // object-position centré sur le visage (issue #51), appliqué au DOM
       // par l'observer applyFacePositions (family-chart ne le gère pas).
       avatar_position: n.data.avatar_position || null,

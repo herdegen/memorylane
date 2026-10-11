@@ -148,6 +148,7 @@ import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { formatDate } from '@/utils/format';
+import { escapeHtml } from '@/utils/html';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.heat';
@@ -250,15 +251,18 @@ async function loadGeolocatedMedia() {
   }
 }
 
+// ⚠️ Leaflet insère icônes et popups en innerHTML : toute valeur venant des
+// données (noms, titres, URLs…) passe par escapeHtml, texte comme attribut.
+
 // Icône miniature (bordure blanche par défaut, teintée pour un album).
 function thumbIcon(thumbnailUrl, { badge = null, borderColor = '#fff' } = {}) {
   const badgeHtml = badge
-    ? `<div style="position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#f59e0b;color:#fff;font-size:11px;font-weight:600;line-height:18px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.3);">${badge}</div>`
+    ? `<div style="position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#f59e0b;color:#fff;font-size:11px;font-weight:600;line-height:18px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.3);">${escapeHtml(badge)}</div>`
     : '';
   return L.divIcon({
     className: 'custom-thumb-marker',
     html: `<div style="position:relative;width:48px;height:48px;border-radius:8px;overflow:hidden;border:3px solid ${borderColor};box-shadow:0 2px 8px rgba(0,0,0,0.3);background:#e5e7eb;">
-        <img src="${thumbnailUrl}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'" />
+        <img src="${escapeHtml(thumbnailUrl)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'" />
         ${badgeHtml}
       </div>
       <div style="width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:8px solid ${borderColor};margin:0 auto;filter:drop-shadow(0 2px 2px rgba(0,0,0,0.2));"></div>`,
@@ -281,13 +285,14 @@ function updateMarkers() {
       icon: thumbIcon(album.thumbnail_url, { badge: album.media_count, borderColor: '#f59e0b' }),
     });
 
+    const name = escapeHtml(album.name);
     marker.bindPopup(`
       <div class="text-center">
-        <img src="${album.thumbnail_url}" alt="${album.name}" class="w-32 h-32 object-cover rounded-sm mb-2" />
-        <div class="font-medium text-sm">📁 ${album.name}</div>
-        <div class="text-xs text-surface-500">${album.media_count} média(s)</div>
+        <img src="${escapeHtml(album.thumbnail_url)}" alt="${name}" class="w-32 h-32 object-cover rounded-sm mb-2" />
+        <div class="font-medium text-sm">📁 ${name}</div>
+        <div class="text-xs text-surface-500">${escapeHtml(album.media_count)} média(s)</div>
         <div class="mt-2">
-          <a href="/albums/${album.id}" class="text-brand-600 hover:text-brand-800 text-sm">Voir l'album</a>
+          <a href="/albums/${encodeURIComponent(album.id)}" class="text-brand-600 hover:text-brand-800 text-sm">Voir l'album</a>
         </div>
       </div>
     `);
@@ -301,13 +306,14 @@ function updateMarkers() {
       icon: thumbIcon(media.thumbnail_url),
     });
 
+    const name = escapeHtml(media.original_name);
     marker.bindPopup(`
       <div class="text-center">
-        <img src="${media.thumbnail_url}" alt="${media.original_name}" class="w-32 h-32 object-cover rounded-sm mb-2" />
-        <div class="font-medium text-sm">${media.original_name}</div>
-        ${media.taken_at ? `<div class="text-xs text-surface-500">${formatDate(media.taken_at)}</div>` : ''}
+        <img src="${escapeHtml(media.thumbnail_url)}" alt="${name}" class="w-32 h-32 object-cover rounded-sm mb-2" />
+        <div class="font-medium text-sm">${name}</div>
+        ${media.taken_at ? `<div class="text-xs text-surface-500">${escapeHtml(formatDate(media.taken_at))}</div>` : ''}
         <div class="mt-2">
-          <a href="/media/${media.id}" class="text-brand-600 hover:text-brand-800 text-sm">Voir le média</a>
+          <a href="/media/${encodeURIComponent(media.id)}" class="text-brand-600 hover:text-brand-800 text-sm">Voir le média</a>
         </div>
       </div>
     `);
@@ -434,7 +440,7 @@ function selectLocation(location) {
       popupAnchor: [0, -18],
     })
   })
-  .bindPopup(location.display_name)
+  .bindPopup(escapeHtml(location.display_name))
   .addTo(map);
 
   // Clear search
