@@ -392,13 +392,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, defineAsyncComponent } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import RelationshipPicker from '@/Components/RelationshipPicker.vue';
-import GeolocatePickerModal from '@/Components/GeolocatePickerModal.vue';
 import { useToast } from '@/Composables/useToast';
 import { useCircle } from '@/Composables/useCircle';
+
+// Chargé à l'ouverture seulement : la carte embarque Leaflet (~45 ko gzip).
+const GeolocatePickerModal = defineAsyncComponent(() => import('@/Components/GeolocatePickerModal.vue'));
 
 const toast = useToast();
 const { isFriends } = useCircle();

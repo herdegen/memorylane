@@ -149,10 +149,12 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, reactive } from 'vue';
+import { computed, onMounted, ref, reactive, defineAsyncComponent } from 'vue';
 import axios from 'axios';
 import BaseModal from '@/Components/BaseModal.vue';
-import GeolocatePickerModal from '@/Components/GeolocatePickerModal.vue';
+
+// Chargé à l'ouverture seulement : la carte embarque Leaflet (~45 ko gzip).
+const GeolocatePickerModal = defineAsyncComponent(() => import('@/Components/GeolocatePickerModal.vue'));
 
 const props = defineProps({
   personId: { type: String, required: true },

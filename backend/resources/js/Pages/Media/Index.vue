@@ -301,7 +301,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, reactive, onMounted, onUnmounted, watch, defineAsyncComponent } from 'vue';
 import axios from 'axios';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -309,10 +309,12 @@ import MediaGrid from '@/Components/MediaGrid.vue';
 import AddToAlbumModal from '@/Components/AddToAlbumModal.vue';
 import ShareToHouseholdModal from '@/Components/ShareToHouseholdModal.vue';
 import BulkDateModal from '@/Components/BulkDateModal.vue';
-import GeolocatePickerModal from '@/Components/GeolocatePickerModal.vue';
 import { usePhotoSwipe } from '@/composables/usePhotoSwipe';
 import { useToast } from '@/Composables/useToast';
 import { apiError } from '@/utils/apiError';
+
+// Chargé à l'ouverture seulement : la carte embarque Leaflet (~45 ko gzip).
+const GeolocatePickerModal = defineAsyncComponent(() => import('@/Components/GeolocatePickerModal.vue'));
 
 const props = defineProps({
   media: {
