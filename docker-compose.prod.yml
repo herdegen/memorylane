@@ -39,11 +39,13 @@ services:
     labels:
       traefik.enable: "true"
       traefik.docker.network: "traefik-proxy"
-      # Ancien domaine : reste servi (liens déjà envoyés : invité signé, tablette…)
+      # Ancien domaine : redirigé (301) vers memory-lane.fr depuis le 2026-10-11
+      # (lien invité expiré, aucune tablette sur l'ancien domaine).
       traefik.http.routers.memorylane.entrypoints: "websecure"
       traefik.http.routers.memorylane.rule: "Host(`memorylane.maxibestof.com`)"
       traefik.http.routers.memorylane.tls.certresolver: "le"
       traefik.http.routers.memorylane.service: "memorylane"
+      traefik.http.routers.memorylane.middlewares: "memorylane-olddomain"
       # Domaine principal
       traefik.http.routers.memorylane-fr.entrypoints: "websecure"
       traefik.http.routers.memorylane-fr.rule: "Host(`memory-lane.fr`)"
@@ -62,6 +64,9 @@ services:
       traefik.http.middlewares.memorylane-canonical.redirectregex.regex: "^https?://(?:www\\.)?memory-lane\\.fr/?(.*)"
       traefik.http.middlewares.memorylane-canonical.redirectregex.replacement: "https://memory-lane.fr/$${1}"
       traefik.http.middlewares.memorylane-canonical.redirectregex.permanent: "true"
+      traefik.http.middlewares.memorylane-olddomain.redirectregex.regex: "^https?://memorylane\\.maxibestof\\.com/?(.*)"
+      traefik.http.middlewares.memorylane-olddomain.redirectregex.replacement: "https://memory-lane.fr/$${1}"
+      traefik.http.middlewares.memorylane-olddomain.redirectregex.permanent: "true"
       traefik.http.services.memorylane.loadbalancer.server.port: "80"
       traefik.http.services.memorylane.loadbalancer.passhostheader: "true"
 
