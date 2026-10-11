@@ -11,7 +11,8 @@ use Illuminate\Http\Request;
  */
 class OnboardingController extends Controller
 {
-    public const STEPS = ['upload_tutorial', 'tour'];
+    // pwa : l'app a été ouverte depuis son icône (installée) au moins une fois.
+    public const STEPS = ['upload_tutorial', 'tour', 'pwa'];
 
     public function store(Request $request, string $step)
     {

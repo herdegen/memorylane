@@ -49,4 +49,17 @@ class OnboardingTest extends TestCase
         $tablet = User::factory()->create(['simple_mode' => true]);
         $this->actingAs($tablet)->postJson('/onboarding/tour')->assertForbidden();
     }
+
+    public function test_installed_app_is_recorded_and_shown_to_the_admin(): void
+    {
+        $member = User::factory()->create(['name' => 'Léa Martin']);
+        $this->actingAs($member)->postJson('/onboarding/pwa')->assertOk();
+        $this->assertNotNull(data_get($member->fresh()->preferences, 'onboarding.pwa'));
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $this->actingAs($admin)->get('/admin/users')
+            ->assertOk()
+            ->assertSee('App installée')
+            ->assertSee(now()->format('d/m/Y'));
+    }
 }

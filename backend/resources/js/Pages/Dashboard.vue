@@ -12,6 +12,9 @@
           <span class="text-sm text-surface-400">{{ formattedToday }}</span>
         </div>
 
+        <!-- Installer l'application (téléphone, hors appli installée) -->
+        <InstallAppBanner />
+
         <!-- ============ Souvenirs « Il y a N ans » ============ -->
         <div v-if="onThisDay.length > 0" class="space-y-4" data-tour="today">
           <div class="flex items-center justify-between">
@@ -246,6 +249,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import FullscreenSlideshow from '@/Components/FullscreenSlideshow.vue';
 import QuestCard from '@/Components/QuestCard.vue';
 import PushPromptCard from '@/Components/PushPromptCard.vue';
+import InstallAppBanner from '@/Components/InstallAppBanner.vue';
 import { useAuth } from '@/Composables/useAuth';
 import { thumbnailUrl } from '@/utils/media';
 

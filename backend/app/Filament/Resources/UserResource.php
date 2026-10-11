@@ -98,6 +98,12 @@ class UserResource extends Resource
                     ->label('Personne liée')
                     ->placeholder('—')
                     ->searchable(),
+                // Ouverte au moins une fois depuis l'icône de l'écran d'accueil.
+                TextColumn::make('app_installed')
+                    ->label('App installée')
+                    ->state(fn (User $record) => data_get($record->preferences, 'onboarding.pwa'))
+                    ->dateTime('d/m/Y')
+                    ->placeholder('—'),
                 TextColumn::make('email_verified_at')
                     ->label('Vérifié le')
                     ->dateTime('d/m/Y')

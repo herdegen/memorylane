@@ -147,6 +147,11 @@
                 @click="launchTour">
                 Visite guidée
               </button>
+              <button v-if="showInstallEntry" type="button"
+                class="block w-full text-left pl-3 pr-4 py-2.5 border-l-4 border-transparent text-base font-medium text-brand-700 hover:bg-brand-50 hover:border-brand-300 rounded-r-lg transition-all"
+                @click="openInstall">
+                Installer l'application
+              </button>
               <a v-if="isAdmin" href="/admin"
                 class="block pl-3 pr-4 py-2.5 border-l-4 border-transparent text-base font-medium
                        text-brand-700 hover:bg-brand-50 hover:border-brand-300 rounded-r-lg transition-all">
@@ -172,6 +177,7 @@
 
     <ToastContainer />
     <GuidedTour v-if="user" />
+    <InstallAppTutorial v-if="showInstallTutorial" :device="installDevice" @close="showInstallTutorial = false" />
   </div>
 </template>
 
@@ -185,6 +191,9 @@ import CircleSwitcher from '@/Components/CircleSwitcher.vue';
 import ToastContainer from '@/Components/ToastContainer.vue';
 import GuidedTour from '@/Components/GuidedTour.vue';
 import { startTour } from '@/Composables/useTour';
+import InstallAppTutorial from '@/Components/InstallAppTutorial.vue';
+import { useInstallApp } from '@/Composables/useInstallApp';
+import axios from 'axios';
 import { IconSettings, IconChevron, IconMenu, IconTheme } from '@/Components/Icons';
 import { useAuth } from '@/Composables/useAuth';
 import { useTheme } from '@/Composables/useTheme';
@@ -212,6 +221,18 @@ const launchTour = () => {
   showMobileMenu.value = false;
   startTour(page);
 };
+
+// Installation en application (PWA) : entrée du menu mobile tant que l'app
+// n'est pas ouverte depuis son icône ; on retient (une fois par compte) qu'elle
+// a été installée, pour le suivi dans le back-office.
+const { device: installDevice, isMobile, standalone, canPromptNative, promptInstall } = useInstallApp();
+const showInstallEntry = isMobile && !standalone;
+const showInstallTutorial = ref(false);
+const openInstall = async () => {
+  showMobileMenu.value = false;
+  if (canPromptNative.value && await promptInstall()) return;
+  showInstallTutorial.value = true;
+};
 const dropdownRef = ref(null);
 
 const handleClickOutside = (event) => {
@@ -227,6 +248,10 @@ onMounted(() => {
   startBackgroundFaceScan();
   // Resynchronise l'abonnement push de cet appareil (rotation d'endpoint).
   syncPushSubscription();
+  if (standalone && user.value && !user.value.onboarding?.pwa) {
+    user.value.onboarding = { ...(user.value.onboarding || {}), pwa: new Date().toISOString() };
+    axios.post('/onboarding/pwa').catch(() => {});
+  }
 });
 
 onUnmounted(() => {
