@@ -51,6 +51,12 @@ services:
       traefik.http.routers.memorylane-dev.middlewares: "memorylane-dev-auth"
       traefik.http.routers.memorylane-dev.service: "memorylane-dev"
       traefik.http.middlewares.memorylane-dev-auth.basicauth.users: "${DEV_BASIC_AUTH:?DEV_BASIC_AUTH doit être défini dans le .env racine du dev}"
+      # Manifeste et icônes de l'appli sans mot de passe : le navigateur les
+      # demande sans identifiants (sinon 401 à chaque page).
+      traefik.http.routers.memorylane-dev-public.entrypoints: "websecure"
+      traefik.http.routers.memorylane-dev-public.rule: "Host(`dev.memory-lane.fr`) && (Path(`/manifest.json`) || PathPrefix(`/icons/`))"
+      traefik.http.routers.memorylane-dev-public.tls.certresolver: "le"
+      traefik.http.routers.memorylane-dev-public.service: "memorylane-dev"
       traefik.http.services.memorylane-dev.loadbalancer.server.port: "80"
 
   horizon:
