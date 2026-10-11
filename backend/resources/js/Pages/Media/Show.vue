@@ -307,6 +307,7 @@ import FaceMatchPanel from '@/Components/FaceMatchPanel.vue';
 import VisionStatusBadge from '@/Components/VisionStatusBadge.vue';
 import VisionLabels from '@/Components/VisionLabels.vue';
 import VoiceNotesPanel from '@/Components/VoiceNotesPanel.vue';
+import VideoPlayer from '@/Components/VideoPlayer.vue';
 import { useFaceDetection } from '@/composables/useFaceDetection';
 import { useToast } from '@/Composables/useToast';
 import { apiError } from '@/utils/apiError';
@@ -315,9 +316,11 @@ import { backTarget } from '@/utils/navigation';
 import { conversionUrl, displayUrl } from '@/utils/media';
 import axios from 'axios';
 
-// Composants propres aux vidéos, chargés seulement pour une vidéo : le
-// lecteur embarque Plyr (JS + CSS).
-const VideoPlayer = defineAsyncComponent(() => import('@/Components/VideoPlayer.vue'));
+// Éditeur de découpe : chargé seulement pour une vidéo. (VideoPlayer, lui,
+// reste importé statiquement — il est minuscule et charge Plyr à son
+// montage : un composant asynchrone ne dépendant que du cœur de Vue
+// poussait Rolldown à scinder Vue dans un chunk à part, +7 ko gzip sur
+// toutes les pages.)
 const VideoClipEditor = defineAsyncComponent(() => import('@/Components/VideoClipEditor.vue'));
 
 const toast = useToast();
