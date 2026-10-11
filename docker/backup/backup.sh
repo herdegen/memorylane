@@ -18,6 +18,8 @@ set -eu
 
 ENV_FILE=${ENV_FILE:-/app/.env}
 LOG=${BACKUP_LOG:-/logs/backup-media.log}
+# Tout est configuré par variables d'environnement : pas de fichier rclone.conf.
+export RCLONE_CONFIG=/dev/null
 
 get() {
     grep -E "^$1=" "$ENV_FILE" | tail -n1 | cut -d= -f2- | sed -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'$/\1/"
