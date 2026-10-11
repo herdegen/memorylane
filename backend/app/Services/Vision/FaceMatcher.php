@@ -96,41 +96,39 @@ class FaceMatcher
             return [];
         }
 
-        $labelled = DetectedFace::query()
-            ->whereNotNull('person_id')
-            ->whereNotNull('embedding')
-            ->where('id', '!=', $face->id)
-            ->whereHas('media', fn ($q) => $q->where('user_id', $ownerId))
-            ->when($viewer, fn ($q) => $q->whereHas('person', fn ($p) => $p->visibleTo($viewer)))
-            ->with('person:id,name')
-            ->get();
+        // Références (visages labellisés du propriétaire) lues depuis le cache
+        // versionné, puis comparaison en mémoire : plus de relecture/décodage
+        // des ~2 000 empreintes en base à chaque visage analysé.
+        $bestDistance = [];
+        foreach ($this->references($ownerId) as [$faceId, $personId, $embedding]) {
+            if ($faceId === $face->id) {
+                continue;
+            }
+            $distance = $this->euclideanDistance($target, $embedding);
+            if ($distance <= $maxDistance && (! isset($bestDistance[$personId]) || $distance < $bestDistance[$personId])) {
+                $bestDistance[$personId] = $distance;
+            }
+        }
+
+        if ($bestDistance === []) {
+            return [];
+        }
+
+        // Fiches existantes (hors corbeille) et visibles du visiteur.
+        $names = \App\Models\Person::query()
+            ->whereIn('id', array_keys($bestDistance))
+            ->when($viewer, fn ($q) => $q->visibleTo($viewer))
+            ->pluck('name', 'id');
 
         $bestByPerson = [];
-
-        foreach ($labelled as $candidate) {
-            if (! $candidate->person) {
-                continue;
-            }
-
-            $distance = $this->euclideanDistance($target, $candidate->embedding);
-
-            if ($distance > $maxDistance) {
-                continue;
-            }
-
-            $personId = $candidate->person->id;
-
-            if (! isset($bestByPerson[$personId]) || $distance < $bestByPerson[$personId]['distance']) {
-                $bestByPerson[$personId] = [
-                    'person' => [
-                        'id' => $candidate->person->id,
-                        'name' => $candidate->person->name,
-                    ],
-                    'distance' => round($distance, 4),
-                    // Score de similarité (0..1) : 1 = identique, 0 = au seuil de suggestion.
-                    'score' => round(max(0, 1 - $distance / self::MATCH_THRESHOLD), 4),
-                ];
-            }
+        foreach ($names as $personId => $name) {
+            $distance = $bestDistance[$personId];
+            $bestByPerson[$personId] = [
+                'person' => ['id' => $personId, 'name' => $name],
+                'distance' => round($distance, 4),
+                // Score de similarité (0..1) : 1 = identique, 0 = au seuil de suggestion.
+                'score' => round(max(0, 1 - $distance / self::MATCH_THRESHOLD), 4),
+            ];
         }
 
         $candidates = array_values($bestByPerson);
@@ -142,6 +140,47 @@ class FaceMatcher
     /**
      * Associe un visage à une personne (statut matched + pivot media_person).
      */
+    /** Mémo par requête (plusieurs visages d'une même photo, quêtes…). */
+    private static array $referencesMemo = [];
+
+    /**
+     * Visages labellisés du propriétaire : [[face_id, person_id, embedding]…],
+     * en cache jusqu'à la prochaine modification d'une identification
+     * (version globale, cf. bumpReferences).
+     *
+     * @return array<int, array{0: string, 1: string, 2: array<int, float>}>
+     */
+    private function references(string $ownerId): array
+    {
+        $version = (int) \Illuminate\Support\Facades\Cache::get('face-refs-version', 0);
+        $key = "face-refs:{$ownerId}:v{$version}";
+
+        // Une seule entrée gardée en mémoire : les workers tournent longtemps,
+        // les anciennes versions ne doivent pas s'accumuler.
+        if (isset(self::$referencesMemo[$key])) {
+            return self::$referencesMemo[$key];
+        }
+
+        return (self::$referencesMemo = [$key => \Illuminate\Support\Facades\Cache::remember($key, now()->addDay(), fn () => DetectedFace::query()
+            ->whereNotNull('person_id')
+            ->whereNotNull('embedding')
+            ->whereHas('media', fn ($q) => $q->where('user_id', $ownerId))
+            ->get(['id', 'person_id', 'embedding'])
+            ->filter(fn (DetectedFace $f) => is_array($f->embedding) && count($f->embedding) === 128)
+            ->map(fn (DetectedFace $f) => [$f->id, $f->person_id, $f->embedding])
+            ->values()
+            ->all())])[$key];
+    }
+
+    /**
+     * Invalide les références en cache (une identification a changé).
+     */
+    public static function bumpReferences(): void
+    {
+        \Illuminate\Support\Facades\Cache::forever('face-refs-version', (int) \Illuminate\Support\Facades\Cache::get('face-refs-version', 0) + 1);
+        self::$referencesMemo = [];
+    }
+
     public function applyMatch(DetectedFace $face, string $personId): void
     {
         $face->update([

@@ -89,8 +89,9 @@ class DashboardController extends Controller
         $birthdays = $this->celebrations->upcomingBirthdays(
             $today,
             self::CELEBRATIONS_WINDOW_DAYS,
-            Person::inContext(auth()->user())->with('avatar.conversions')->withMatchedFacesCount(),
+            Person::inContext(auth()->user()),
         );
+        $this->loadAvatars($birthdays->pluck('person'));
 
         foreach ($birthdays as ['person' => $person, 'age' => $age, 'days_until' => $days]) {
             $entries->push([
@@ -112,8 +113,9 @@ class DashboardController extends Controller
         $memorials = $this->celebrations->upcomingMemorials(
             $today,
             self::CELEBRATIONS_WINDOW_DAYS,
-            $this->celebrations->closeCircleQuery(auth()->user())->with('avatar.conversions')->withMatchedFacesCount(),
+            $this->celebrations->closeCircleQuery(auth()->user()),
         );
+        $this->loadAvatars($memorials->pluck('person'));
 
         foreach ($memorials as ['person' => $person, 'years' => $years, 'days_until' => $days]) {
             $entries->push([
@@ -133,13 +135,12 @@ class DashboardController extends Controller
         $names = app(\App\Services\NameDayService::class)->namesFor($today);
         if ($names !== []) {
             $celebrated = Person::inContext(auth()->user())->whereNull('death_date')
-                ->with('avatar.conversions')
-                ->withMatchedFacesCount()
-                ->get()
+                ->get(['people.id', 'people.name', 'people.first_name', 'people.avatar_media_id'])
                 ->filter(function (Person $person) use ($names) {
                     $first = $person->first_name ?: strtok($person->name, ' ');
                     return $first && in_array(\App\Services\NameDayService::normalize($first), $names, true);
                 });
+            $this->loadAvatars($celebrated);
 
             foreach ($celebrated as $person) {
                 $first = $person->first_name ?: strtok($person->name, ' ');
@@ -253,6 +254,19 @@ class DashboardController extends Controller
      * Avatar d'une personne : photo de profil explicite, sinon recadrage du
      * visage tagué (miroir de PersonController::resolveAvatarUrl).
      */
+    /**
+     * Charge de quoi calculer l'avatar, seulement pour les quelques fiches
+     * retenues (et non pour tout le répertoire parcouru).
+     */
+    private function loadAvatars(\Illuminate\Support\Collection $people): void
+    {
+        if ($people->isNotEmpty()) {
+            (new \Illuminate\Database\Eloquent\Collection($people->all()))
+                ->load('avatar:id')
+                ->loadCount(Person::matchedFacesCountRelation());
+        }
+    }
+
     private function avatarUrl(Person $person): ?string
     {
         if ($person->avatar) {

@@ -15,6 +15,7 @@ use App\Services\MediaService;
 use App\Services\Vision\AvatarFacePositionService;
 use App\Services\Vision\FaceCropService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
@@ -47,7 +48,7 @@ class PersonController extends Controller
         $people = Person::inContext($request->user())
             ->withCount('media')
             ->withMatchedFacesCount()
-            ->with(['avatar.conversions'])
+            ->with('avatar:id')
             ->orderBy('name')
             ->get();
 
@@ -56,12 +57,17 @@ class PersonController extends Controller
         $selfPersonId = auth()->user()->person_id;
         $proximity = $this->genealogy->proximity($selfPersonId);
 
-        $people->transform(function ($person) use ($proximity) {
-            $person->avatar_url = $this->resolveAvatarUrl($person);
-            $person->proximity = $proximity['distance'][$person->id] ?? null;
-            $person->relatives_count = $proximity['degree'][$person->id] ?? 0;
-            return $person;
-        });
+        // Annuaire allégé : seuls les champs lus par la page et les sélecteurs
+        // de personne (plus de notes, lieux, ni photo de profil complète).
+        $people = $people->map(fn (Person $person) => [
+            ...Arr::only($person->attributesToArray(), [
+                'id', 'name', 'first_name', 'last_name', 'maiden_name', 'gender',
+                'birth_date', 'death_date', 'media_count', 'matched_faces_count',
+            ]),
+            'avatar_url' => $this->resolveAvatarUrl($person),
+            'proximity' => $proximity['distance'][$person->id] ?? null,
+            'relatives_count' => $proximity['degree'][$person->id] ?? 0,
+        ]);
 
         if ($request->wantsJson()) {
             return response()->json($people);
@@ -480,8 +486,13 @@ class PersonController extends Controller
             $items[] = $this->autoEvent('death', $person->death_date, 'Décès', $person->death_place);
         }
 
+        // Albums accessibles au visiteur : calculés une fois pour toute la
+        // frise (moments liés à un album, albums des photos).
+        $accessibleAlbumIds = Album::accessibleBy($viewer)->pluck('id');
+
         // Mariages / unions (dates portées par le pivot person_relationships)
-        $viewer = auth()->user();
+        $spouseRelations = fn ($q) => $q->with('avatar:id')->withMatchedFacesCount();
+        $person->load(['spousesAsFirst' => $spouseRelations, 'spousesAsSecond' => $spouseRelations]);
         foreach ($person->spouses as $spouse) {
             if (! $spouse->isVisibleTo($viewer)) {
                 continue;
@@ -500,6 +511,8 @@ class PersonController extends Controller
         $children = Person::visibleTo($viewer)
             ->where(fn ($q) => $q->where('father_id', $person->id)->orWhere('mother_id', $person->id))
             ->whereNotNull('birth_date')
+            ->with('avatar:id')
+            ->withMatchedFacesCount()
             ->get();
         foreach ($children as $child) {
             $items[] = array_merge(
@@ -532,7 +545,7 @@ class PersonController extends Controller
                 'photos' => $ev->photos->take(self::ALBUM_MEDIA_LIMIT)->map(fn (Media $m) => $this->mediaPayload($m))->values()->all(),
                 // Album lié (avec ses photos : la galerie du moment, pour la
                 // rafale du récit de vie), seulement s'il est accessible au visiteur.
-                'album' => $ev->album && $ev->album->isAccessibleBy(auth()->user())
+                'album' => $ev->album && $accessibleAlbumIds->contains($ev->album->id)
                     ? $this->albumPayload($ev->album)
                     : null,
                 'life_event_id' => $ev->id,
@@ -551,7 +564,6 @@ class PersonController extends Controller
 
         $albumsByMedia = collect();
         if ($photos->isNotEmpty()) {
-            $accessibleAlbumIds = Album::accessibleBy(auth()->user())->pluck('id');
             $albumsByMedia = DB::table('album_media')
                 ->join('albums', 'albums.id', '=', 'album_media.album_id')
                 ->whereIn('album_media.media_id', $photos->pluck('id'))
@@ -641,8 +653,11 @@ class PersonController extends Controller
 
     private function relatedPayload(Person $person): array
     {
-        $person->loadMissing('avatar.conversions');
-        $person->loadCount(self::matchedFacesCount());
+        // Relations préchargées par l'appelant quand il boucle (pas de N+1).
+        $person->loadMissing('avatar:id');
+        if (! array_key_exists('matched_faces_count', $person->getAttributes())) {
+            $person->loadCount(self::matchedFacesCount());
+        }
 
         return [
             'id' => $person->id,
@@ -1050,9 +1065,7 @@ class PersonController extends Controller
         $thumb = $media->conversions->firstWhere('conversion_name', 'small')
             ?? $media->conversions->firstWhere('conversion_name', 'thumbnail');
 
-        return redirect()
-            ->away($this->mediaService->getSignedUrl($media, $thumb?->file_path, 10))
-            ->header('Cache-Control', 'private, max-age=300');
+        return $this->mediaService->cachedFileRedirect($media, $thumb?->file_path);
     }
 
     /**
@@ -1062,9 +1075,7 @@ class PersonController extends Controller
      */
     private static function matchedFacesCount(): array
     {
-        return ['detectedFaces as matched_faces_count' => function ($q) {
-            $q->where('status', 'matched')->whereNotNull('bounding_box');
-        }];
+        return Person::matchedFacesCountRelation();
     }
 
     /**

@@ -233,6 +233,7 @@ class FaceRecognitionResource extends Resource
     protected static function resetDetection(Media $record, bool $notify = true): void
     {
         $record->detectedFaces()->delete();
+        FaceMatcher::bumpReferences(); // suppression en masse : pas d'événement modèle
 
         $record->metadata()->updateOrCreate([], [
             'vision_status' => 'pending',

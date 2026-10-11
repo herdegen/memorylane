@@ -26,6 +26,15 @@ class Person extends Model
         ];
     }
 
+    /**
+     * Réindexe seulement si un champ indexé a changé (Scout réindexait à
+     * chaque sauvegarde, même pour un compteur ou une date technique).
+     */
+    public function searchIndexShouldBeUpdated(): bool
+    {
+        return $this->wasRecentlyCreated || $this->wasChanged(['name', 'first_name', 'last_name', 'notes']);
+    }
+
     protected $table = 'people';
 
     protected $fillable = [
@@ -148,9 +157,15 @@ class Person extends Model
      */
     public function scopeWithMatchedFacesCount($query)
     {
-        return $query->withCount(['detectedFaces as matched_faces_count' => function ($q) {
+        return $query->withCount(self::matchedFacesCountRelation());
+    }
+
+    /** Compteur des visages validés et recadrables (avatar-visage). */
+    public static function matchedFacesCountRelation(): array
+    {
+        return ['detectedFaces as matched_faces_count' => function ($q) {
             $q->where('status', 'matched')->whereNotNull('bounding_box');
-        }]);
+        }];
     }
 
     /**

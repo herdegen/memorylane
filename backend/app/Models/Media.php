@@ -41,6 +41,15 @@ class Media extends Model
     }
 
     /**
+     * Réindexe seulement si un champ indexé a changé (Scout réindexait à
+     * chaque sauvegarde, même pour un compteur ou une date technique).
+     */
+    public function searchIndexShouldBeUpdated(): bool
+    {
+        return $this->wasRecentlyCreated || $this->wasChanged(['original_name', 'title', 'description']);
+    }
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<string>

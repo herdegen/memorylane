@@ -3,6 +3,7 @@
 namespace App\Services\Vision;
 
 use App\Models\DetectedFace;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -13,7 +14,28 @@ use Illuminate\Support\Facades\Storage;
  */
 class FaceCropService
 {
+    /**
+     * Recadrage carré du visage, en cache tant que le visage ne change pas
+     * (clé liée à sa date de mise à jour) : l'avatar n'est plus recalculé
+     * (téléchargement + découpe) à chaque affichage.
+     */
     public function cropJpeg(DetectedFace $face, int $size = 256): ?string
+    {
+        $key = "face-crop:{$face->id}:{$size}:".($face->updated_at?->timestamp ?? 0);
+        $cached = Cache::get($key);
+        if (is_string($cached)) {
+            return base64_decode($cached);
+        }
+
+        $blob = $this->renderCrop($face, $size);
+        if ($blob !== null) {
+            Cache::put($key, base64_encode($blob), now()->addDays(30));
+        }
+
+        return $blob;
+    }
+
+    private function renderCrop(DetectedFace $face, int $size): ?string
     {
         $face->loadMissing('media.conversions');
         $media = $face->media;
@@ -27,15 +49,16 @@ class FaceCropService
         $path = $conversion->file_path ?? $media->file_path;
 
         $disk = config('filesystems.default');
-        if (! Storage::disk($disk)->exists($path)) {
-            return null;
-        }
 
         $box = $face->bounding_box;
 
         try {
+            $blob = Storage::disk($disk)->get($path);
+            if (! $blob) {
+                return null;
+            }
             $img = new \Imagick();
-            $img->readImageBlob(Storage::disk($disk)->get($path));
+            $img->readImageBlob($blob);
 
             $w = $img->getImageWidth();
             $h = $img->getImageHeight();

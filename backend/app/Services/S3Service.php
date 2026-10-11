@@ -135,6 +135,41 @@ class S3Service
     }
 
     /**
+     * URL présignée STABLE : même adresse pour un même fichier pendant une
+     * fenêtre d'une heure (signature datée du début de l'heure), valable
+     * $validityMinutes. Le navigateur peut donc garder l'image en cache au
+     * lieu de la retélécharger à chaque affichage.
+     *
+     * @return array{0: string, 1: int} URL et secondes de validité restantes
+     */
+    public function getStableTemporaryUrl(string $path, int $windowMinutes = 60, int $validityMinutes = 120): array
+    {
+        if (in_array($this->disk, ['local', 'public'])) {
+            return [$this->url($path), $windowMinutes * 60];
+        }
+
+        // Disque simulé (tests) ou non-S3 : URL temporaire classique.
+        if (! Storage::disk($this->disk) instanceof \Illuminate\Filesystem\AwsS3V3Adapter) {
+            return [$this->getTemporaryUrl($path, $validityMinutes), $validityMinutes * 60];
+        }
+
+        $window = $windowMinutes * 60;
+        $start = intdiv(time(), $window) * $window;
+        $expires = $start + $validityMinutes * 60;
+
+        $client = $this->getClient();
+        $command = $client->getCommand('GetObject', [
+            'Bucket' => $this->getBucket(),
+            'Key' => $path,
+            // Fichiers immuables (clé unique par fichier) : cache navigateur.
+            'ResponseCacheControl' => 'private, max-age='.($validityMinutes * 60).', immutable',
+        ]);
+        $url = (string) $client->createPresignedRequest($command, $expires, ['start_time' => $start])->getUri();
+
+        return [$url, $expires - time()];
+    }
+
+    /**
      * Get a download URL with proper headers.
      * For local/public disks, returns a regular URL (headers handled by controller).
      *

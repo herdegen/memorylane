@@ -369,6 +369,21 @@ class MediaService
      * @param int $expirationMinutes
      * @return string
      */
+    /**
+     * Redirection vers le fichier sur le stockage, avec une URL stable sur
+     * l'heure et une redirection que le navigateur garde en cache (moins de
+     * passages par PHP pour chaque vignette affichée).
+     */
+    public function cachedFileRedirect(Media $media, ?string $conversionPath = null): \Illuminate\Http\RedirectResponse
+    {
+        [$url, $remaining] = $this->s3Service->getStableTemporaryUrl($conversionPath ?? $media->file_path);
+        // Marge de 5 min : la redirection gardée ne doit jamais pointer vers
+        // une URL échue.
+        $maxAge = max(60, $remaining - 300);
+
+        return redirect()->away($url)->header('Cache-Control', "private, max-age={$maxAge}");
+    }
+
     public function getSignedUrl(Media $media, ?string $conversionPath = null, int $expirationMinutes = 60): string
     {
         return $this->s3Service->getTemporaryUrl($conversionPath ?? $media->file_path, $expirationMinutes);

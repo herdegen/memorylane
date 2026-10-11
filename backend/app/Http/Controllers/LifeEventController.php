@@ -96,7 +96,7 @@ class LifeEventController extends Controller
             'album_id' => 'nullable|uuid|exists:albums,id',
             // Galerie du moment : plusieurs photos, dans l'ordre envoyé.
             'photos' => 'nullable|array|max:24',
-            'photos.*' => 'uuid|distinct|exists:media,id',
+            'photos.*' => 'uuid|distinct',
         ]);
 
         // Toutes les photos de la galerie doivent être accessibles au visiteur.

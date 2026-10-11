@@ -186,7 +186,7 @@ class MediaController extends Controller
     {
         $validated = $request->validate([
             'media_ids' => 'required|array|min:1|max:500',
-            'media_ids.*' => 'uuid|exists:media,id',
+            'media_ids.*' => 'uuid',
             'taken_at' => 'required|date',
         ]);
 
@@ -209,7 +209,7 @@ class MediaController extends Controller
     {
         $validated = $request->validate([
             'media_ids' => 'required|array|min:1|max:500',
-            'media_ids.*' => 'uuid|exists:media,id',
+            'media_ids.*' => 'uuid',
             'latitude' => 'required|numeric|between:-90,90',
             'longitude' => 'required|numeric|between:-180,180',
             'altitude' => 'nullable|numeric',
@@ -377,11 +377,8 @@ class MediaController extends Controller
             $conversionPath = $conversionModel->file_path;
         }
 
-        // Présignée de 10 min ; la redirection est réutilisable 5 min par le
-        // navigateur (Cache-Control) pour limiter les allers-retours.
-        return redirect()
-            ->away($this->mediaService->getSignedUrl($media, $conversionPath, 10))
-            ->header('Cache-Control', 'private, max-age=300');
+        // URL stable sur l'heure + redirection mise en cache par le navigateur.
+        return $this->mediaService->cachedFileRedirect($media, $conversionPath);
     }
 
     /**

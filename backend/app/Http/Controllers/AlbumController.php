@@ -427,9 +427,7 @@ class AlbumController extends Controller
             $conversionPath = $conversionModel->file_path;
         }
 
-        return redirect()
-            ->away($this->mediaService->getSignedUrl($media, $conversionPath, 10))
-            ->header('Cache-Control', 'private, max-age=300');
+        return $this->mediaService->cachedFileRedirect($media, $conversionPath);
     }
 
     /**

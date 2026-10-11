@@ -36,6 +36,25 @@ class DetectedFace extends Model
         'status',
     ];
 
+    /**
+     * Toute identification qui change invalide les références de
+     * reconnaissance en cache (FaceMatcher::references).
+     */
+    protected static function booted(): void
+    {
+        static::saved(function (DetectedFace $face) {
+            if ($face->person_id && ($face->wasRecentlyCreated || $face->wasChanged(['person_id', 'embedding']))
+                || $face->wasChanged('person_id')) {
+                \App\Services\Vision\FaceMatcher::bumpReferences();
+            }
+        });
+        static::deleted(function (DetectedFace $face) {
+            if ($face->person_id) {
+                \App\Services\Vision\FaceMatcher::bumpReferences();
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return [

@@ -98,6 +98,7 @@ class VisionController extends Controller
         // perdre les visages existants.
         \Illuminate\Support\Facades\DB::transaction(function () use ($media, $faces) {
             $media->detectedFaces()->delete();
+            FaceMatcher::bumpReferences(); // suppression en masse : pas d'événement modèle
 
             foreach ($faces as $face) {
                 $media->detectedFaces()->create([
