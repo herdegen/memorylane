@@ -216,6 +216,12 @@ class Media extends Model
                 // Branche foyer : média partagé dans un foyer dont le viewer
                 // est membre (pivot household_media).
                 ->orWhereHas('households', fn ($h) => $h->whereIn('households.id', $user->householdIds()));
+
+            // « Les photos de moi » : on voit les photos où sa fiche est
+            // identifiée, où qu'elles soient — mais pas le reste de l'album.
+            if ($user->person_id) {
+                $q->orWhereHas('people', fn ($p) => $p->where('people.id', $user->person_id));
+            }
         });
     }
 

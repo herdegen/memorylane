@@ -527,7 +527,8 @@ class AlbumController extends Controller
             }
         }
 
-        // Personnes taguées AVEC un compte lié.
+        // Personnes identifiées sur des photos de l'album, avec un compte :
+        // elles voient ces photos-là (pas l'album entier) — listées pour info.
         $listedIds = array_column($entries, 'user_id');
         $taggedPersonIds = Person::whereHas('media', fn ($m) => $m->whereHas('albums', fn ($a) => $a->whereKey($album->id)))->pluck('id');
         $taggedUsers = User::whereIn('person_id', $taggedPersonIds)

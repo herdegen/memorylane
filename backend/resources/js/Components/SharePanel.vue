@@ -305,7 +305,7 @@ const revoke = async (access) => {
 
 const originLabel = (a) => {
   if (a.origin === 'owner') return 'Propriétaire';
-  if (a.origin === 'tagged') return 'Tagué sur une photo';
+  if (a.origin === 'tagged') return 'Voit seulement les photos où il apparaît';
   return 'Ajouté' + (a.granted_by ? ` par ${a.granted_by}` : '');
 };
 

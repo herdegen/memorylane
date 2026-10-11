@@ -83,17 +83,49 @@ class AlbumAccessTest extends TestCase
         $this->actingAs($this->viewer)->getJson("/albums/{$album->id}")->assertForbidden();
     }
 
-    public function test_tagged_user_with_account_can_view_even_private_album(): void
+    public function test_tagged_user_sees_the_photos_of_them_but_not_the_whole_album(): void
     {
         [$album, $media] = $this->albumWithMedia();
+        $other = Media::factory()->create(['user_id' => $this->owner->id]);
+        $album->media()->attach($other->id);
 
-        // Une personne taguée sur la photo, reliée au compte du visiteur.
+        // Le visiteur est identifié sur UNE photo d'un album privé.
         $person = Person::factory()->create(['user_id' => $this->owner->id]);
         $media->people()->attach($person->id);
         $this->viewer->update(['person_id' => $person->id]);
+        $viewer = $this->viewer->fresh();
 
-        $this->assertTrue($album->fresh()->isAccessibleBy($this->viewer->fresh()));
-        $this->actingAs($this->viewer->fresh())->getJson("/albums/{$album->id}")->assertOk();
+        // Il voit cette photo-là…
+        $this->assertTrue(Media::accessibleBy($viewer)->whereKey($media->id)->exists());
+        $this->actingAs($viewer)->get("/media/{$media->id}/file")->assertStatus(302);
+
+        // … mais ni l'album, ni ses autres photos, ni le droit de le partager.
+        $this->assertFalse($album->fresh()->isAccessibleBy($viewer));
+        $this->actingAs($viewer)->getJson("/albums/{$album->id}")->assertForbidden();
+        $this->actingAs($viewer)->get("/media/{$other->id}/file")->assertForbidden();
+        $this->actingAs($viewer)
+            ->postJson("/albums/{$album->id}/access", ['user_id' => User::factory()->create()->id])
+            ->assertForbidden();
+    }
+
+    public function test_tagging_oneself_on_a_visible_photo_does_not_open_the_album(): void
+    {
+        // Album d'autrui dont UNE seule photo m'est partagée via un cercle.
+        [$album, $media] = $this->albumWithMedia();
+        $hidden = Media::factory()->create(['user_id' => $this->owner->id]);
+        $album->media()->attach($hidden->id);
+        $circle = \App\Models\Household::factory()->create(['created_by' => $this->owner->id]);
+        $circle->members()->attach([$this->owner->id, $this->viewer->id]);
+        $media->households()->attach($circle->id, ['added_by' => $this->owner->id]);
+
+        // Je m'identifie sur la photo que je vois : rien de plus ne s'ouvre.
+        $me = Person::factory()->create(['user_id' => $this->viewer->id]);
+        $this->viewer->update(['person_id' => $me->id]);
+        $media->people()->attach($me->id);
+        $viewer = $this->viewer->fresh();
+
+        $this->assertFalse($album->fresh()->isAccessibleBy($viewer));
+        $this->actingAs($viewer)->get("/media/{$hidden->id}/file")->assertForbidden();
     }
 
     public function test_tagged_person_without_account_does_not_leak(): void

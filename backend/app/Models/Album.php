@@ -124,15 +124,6 @@ class Album extends Model
     }
 
     /**
-     * Un album est accessible en lecture par :
-     *  - un lien anonyme valide (token) ;
-     *  - son propriétaire ;
-     *  - tout utilisateur connecté si l'album est public ;
-     *  - un compte à qui l'accès a été accordé (album_access) ;
-     *  - une personne taguée (avec compte lié) dans un média de l'album,
-     *    quelle que soit la visibilité.
-     */
-    /**
      * Cercles avec lesquels l'album est partagé.
      */
     public function households()
@@ -142,6 +133,15 @@ class Album extends Model
             ->withTimestamps();
     }
 
+    /**
+     * Un album est accessible en lecture par :
+     *  - un lien anonyme valide (token) ;
+     *  - son propriétaire ;
+     *  - un compte à qui l'accès a été accordé (album_access) ;
+     *  - les membres d'un cercle avec lequel il est partagé (album_household).
+     * Être identifié sur une photo ne donne accès qu'à cette photo
+     * (Media::scopeAccessibleBy), pas à l'album.
+     */
     public function isAccessibleBy(?User $user, ?string $token = null): bool
     {
         // Lien de partage anonyme (chemin séparé, non authentifié)
@@ -171,16 +171,13 @@ class Album extends Model
             return true;
         }
 
-        if ($user->person_id
-            && $this->media()->whereHas('people', fn ($q) => $q->where('people.id', $user->person_id))->exists()) {
-            return true;
-        }
-
+        // NB : être identifié sur une photo n'ouvre PAS l'album entier : on voit
+        // seulement les photos où l'on apparaît (Media::scopeAccessibleBy).
         return false;
     }
 
     /**
-     * Albums accessibles par $user (owner | accès accordé | cercle | tagué).
+     * Albums accessibles par $user (owner | accès accordé | cercle).
      * Il n'y a plus d'album « public pour tous » : on partage avec un cercle.
      * Sert à « Partagés avec moi » et aux agrégations (carte, médias accessibles).
      */
@@ -200,11 +197,6 @@ class Album extends Model
                 ->orWhereHas('accesses', fn ($a) => $a->where('user_id', $user->id))
                 // Branche cercle : album partagé avec un cercle du viewer.
                 ->orWhereHas('households', fn ($h) => $h->whereIn('households.id', $user->householdIds()));
-
-            if ($user->person_id) {
-                $q->orWhereHas('media.people', fn ($p) => $p->where('people.id', $user->person_id));
-            }
-
         });
     }
 }
