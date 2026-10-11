@@ -171,7 +171,9 @@ class HealthCheck
             $handle = fopen($file, 'r');
             fseek($handle, max(0, filesize($file) - 5 * 1024 * 1024));
             while (($line = fgets($handle)) !== false) {
-                if (preg_match('/^\[(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})[^\]]*\] \w+\.(ERROR|CRITICAL|ALERT|EMERGENCY): (.{0,140})/', $line, $m)
+                // Seulement l'environnement courant : des tests lancés sur ce
+                // serveur écrivent des lignes « testing.ERROR » volontaires.
+                if (preg_match('/^\[(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})[^\]]*\] '.preg_quote(app()->environment(), '/').'\.(ERROR|CRITICAL|ALERT|EMERGENCY): (.{0,140})/', $line, $m)
                     && CarbonImmutable::parse($m[1])->gte($since)) {
                     $count++;
                     $lastMessage = trim($m[3]);

@@ -153,6 +153,10 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      # Traefik n'envoie rien à un conteneur encore « starting » : on sonde
+      # toutes les 2 s au démarrage pour réduire la coupure (≈ 45 s sinon).
+      start_period: 30s
+      start_interval: 2s
 
   # Laravel Horizon (Queue Worker Dashboard)
   horizon:

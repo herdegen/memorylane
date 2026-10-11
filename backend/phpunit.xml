@@ -26,6 +26,8 @@
         <env name="APP_ROUTES_CACHE" value="/tmp/memorylane-tests-routes.php" force="true"/>
         <env name="APP_EVENTS_CACHE" value="/tmp/memorylane-tests-events.php" force="true"/>
         <env name="APP_ENV" value="testing" force="true"/>
+        <!-- Pas de journal : les tests lancés sur le serveur polluaient laravel.log -->
+        <env name="LOG_CHANNEL" value="null" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_STORE" value="array" force="true"/>

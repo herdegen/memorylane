@@ -124,13 +124,21 @@ class HealthCheckTest extends TestCase
             'payload' => json_encode(['displayName' => 'App\\Jobs\\ProcessMediaJob']),
             'exception' => 'boom', 'failed_at' => now(),
         ]);
-        $line = '['.now()->format('Y-m-d H:i:s').'] production.ERROR: Quelque chose a cassé';
+        $line = '['.now()->format('Y-m-d H:i:s').'] '.app()->environment().'.ERROR: Quelque chose a cassé';
         file_put_contents($this->dir.'/logs/laravel.log', implode("\n", array_fill(0, 25, $line))."\n");
         $this->horizon(null);
 
         $this->artisan('memorylane:health-check')->assertFailed();
 
         $this->assertEqualsCanonicalizing(['failed_jobs', 'errors', 'horizon'], $this->problemKeys());
+    }
+
+    public function test_errors_from_another_environment_are_ignored(): void
+    {
+        $line = '['.now()->format('Y-m-d H:i:s').'] other-env.ERROR: erreur volontaire d\'un test';
+        file_put_contents($this->dir.'/logs/laravel.log', implode("\n", array_fill(0, 30, $line))."\n");
+
+        $this->artisan('memorylane:health-check')->assertSuccessful();
     }
 
     public function test_alert_mail_lists_the_problems(): void

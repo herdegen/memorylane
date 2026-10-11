@@ -62,7 +62,10 @@ step "Caches Laravel"
 artisan optimize
 
 step "Conteneurs"
-if changed docker-compose.yml docker-compose.prod.yml docker/app; then
+if changed docker-compose.yml docker-compose.prod.yml docker/app docker/nginx; then
+    # Workers arrêtés d'abord : sinon ils perdent Redis/Postgres pendant leur
+    # recréation et remplissent le journal d'erreurs de connexion.
+    docker compose stop horizon scheduler
     docker compose up -d --build
 fi
 # Les workers gardent l'ancien code en mémoire : toujours redémarrés.
@@ -75,7 +78,11 @@ artisan up
 trap - ERR
 
 step "Contrôle"
-sleep 3
+# Traefik ne route vers nginx qu'une fois le conteneur « healthy ».
+for _ in $(seq 1 45); do
+    [ "$(docker inspect -f '{{.State.Health.Status}}' memorylane_nginx)" = healthy ] && break
+    sleep 2
+done
 fail=0
 for path in /up /login; do
     code=$(curl -s -o /dev/null -w '%{http_code}' "$URL$path" || true)
