@@ -392,16 +392,20 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, defineAsyncComponent } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import RelationshipPicker from '@/Components/RelationshipPicker.vue';
-import GeolocatePickerModal from '@/Components/GeolocatePickerModal.vue';
 import { useToast } from '@/Composables/useToast';
 import { useCircle } from '@/Composables/useCircle';
+import { usePeopleDirectory } from '@/Composables/usePeopleDirectory';
+
+// Chargé à l'ouverture seulement : la carte embarque Leaflet (~45 ko gzip).
+const GeolocatePickerModal = defineAsyncComponent(() => import('@/Components/GeolocatePickerModal.vue'));
 
 const toast = useToast();
 const { isFriends } = useCircle();
+const peopleDirectory = usePeopleDirectory();
 
 const joinNames = (names) => (names.length > 1 ? `${names.slice(0, -1).join(', ')} et ${names[names.length - 1]}` : names[0]);
 
@@ -575,6 +579,8 @@ const answer = async (kind, payload = null) => {
     });
     completedCount.value = data.completed_count;
     if (kind === 'answered') {
+      // Une réponse peut créer une fiche à la volée : annuaire partagé caduc.
+      peopleDirectory.invalidate();
       toast.success(`Merci ! ${data.completed_count} souvenir${data.completed_count > 1 ? 's' : ''} complété${data.completed_count > 1 ? 's' : ''}.`);
     }
     question.value = data.next;

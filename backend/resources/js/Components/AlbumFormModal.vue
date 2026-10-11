@@ -118,10 +118,11 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue';
 import { useForm } from '@inertiajs/vue3';
-import axios from 'axios';
 import BaseModal from '@/Components/BaseModal.vue';
 import FormField from '@/Components/Forms/FormField.vue';
 import FormButton from '@/Components/Forms/FormButton.vue';
+import { usePeopleDirectory } from '@/Composables/usePeopleDirectory';
+import { useTags } from '@/Composables/useTags';
 
 const props = defineProps({
   album: {
@@ -148,18 +149,17 @@ const form = useForm({
   },
 });
 
+const peopleDirectory = usePeopleDirectory();
+const tagList = useTags();
+
 // Les listes ne sont chargées que si la section intelligente est utilisée
+// (annuaire et tags partagés : souvent déjà en cache).
 let listsLoaded = false;
 const loadLists = async () => {
   if (listsLoaded) return;
   listsLoaded = true;
   try {
-    const [peopleRes, tagsRes] = await Promise.all([
-      axios.get('/people', { headers: { Accept: 'application/json' } }),
-      axios.get('/tags', { headers: { Accept: 'application/json' } }),
-    ]);
-    people.value = peopleRes.data.data || peopleRes.data;
-    tags.value = tagsRes.data;
+    [people.value, tags.value] = await Promise.all([peopleDirectory.load(), tagList.load()]);
   } catch (error) {
     console.error('Impossible de charger personnes/tags :', error);
   }

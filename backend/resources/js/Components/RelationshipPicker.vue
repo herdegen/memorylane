@@ -71,6 +71,7 @@ import axios from 'axios';
 import { personLabel } from '@/utils/personName';
 import { searchPeople } from '@/utils/personSearch';
 import { useToast } from '@/Composables/useToast';
+import { usePeopleDirectory } from '@/Composables/usePeopleDirectory';
 
 const props = defineProps({
   label: { type: String, required: true },
@@ -86,6 +87,7 @@ const props = defineProps({
 const emit = defineEmits(['select', 'remove']);
 
 const toast = useToast();
+const peopleDirectory = usePeopleDirectory();
 
 const query = ref('');
 const results = ref([]);
@@ -102,8 +104,8 @@ async function createPerson() {
       name: query.value.trim(),
       ...props.createDefaults,
     }, { headers: { Accept: 'application/json' } });
-    // La nouvelle fiche rejoint le cache local pour les recherches suivantes.
-    if (allPeople.value !== null) allPeople.value.push(data.person);
+    // Annuaire partagé caduc : la nouvelle fiche sera trouvée ensuite.
+    peopleDirectory.invalidate();
     selectPerson(data.person);
   } catch (error) {
     toast.error(error.response?.data?.message || 'Impossible de créer la fiche.');
@@ -112,34 +114,28 @@ async function createPerson() {
   }
 }
 
-// La liste complète est chargée UNE fois (comme PersonInput), le filtrage est
-// local — avant : un GET /people complet à chaque frappe.
-const allPeople = ref(null);
-
-async function loadPeople() {
-  if (allPeople.value !== null) return;
-  try {
-    const response = await axios.get('/people', {
-      headers: { Accept: 'application/json' },
-    });
-    allPeople.value = response.data;
-  } catch (error) {
-    console.error('Erreur chargement personnes:', error);
-    allPeople.value = [];
-  }
-}
-
+// La liste complète vient de l'annuaire partagé (une requête pour toute la
+// page, toutes instances confondues), le filtrage est local.
 async function search() {
   if (query.value.length < 2) {
     results.value = [];
     return;
   }
 
-  await loadPeople();
+  const q = query.value;
+  let allPeople;
+  try {
+    allPeople = await peopleDirectory.load();
+  } catch (error) {
+    console.error('Erreur chargement personnes:', error);
+    allPeople = [];
+  }
+  // Une frappe plus récente a lancé sa propre recherche.
+  if (query.value !== q) return;
 
   // Insensible aux accents + tolérant aux fautes (helper partagé).
-  const candidates = allPeople.value.filter(p => !props.excludeIds.includes(p.id));
-  results.value = searchPeople(query.value, candidates, p => p.name).slice(0, 8);
+  const candidates = allPeople.filter(p => !props.excludeIds.includes(p.id));
+  results.value = searchPeople(q, candidates, p => p.name).slice(0, 8);
 }
 
 function selectPerson(person) {

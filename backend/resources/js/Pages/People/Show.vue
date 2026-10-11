@@ -282,6 +282,8 @@
           <img
             :src="item.conversions?.find(c => c.conversion_name === 'thumbnail')?.url || item.url"
             class="w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
           />
         </button>
       </div>

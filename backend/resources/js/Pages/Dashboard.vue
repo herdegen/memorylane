@@ -36,10 +36,14 @@
               class="relative h-72 rounded-2xl overflow-hidden shadow-warm-md text-left group hover:shadow-warm-lg transition"
               @click="playMemories(memoryOffset(gi))"
             >
+              <!-- 1re couverture = image principale du haut de page : pas de lazy -->
               <img
                 v-if="coverUrl(group)"
                 :src="coverUrl(group)"
                 class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                :loading="gi === 0 ? 'eager' : 'lazy'"
+                :fetchpriority="gi === 0 ? 'high' : 'auto'"
+                decoding="async"
               />
               <div v-else class="absolute inset-0 bg-linear-to-br from-brand-200 to-surface-300"></div>
               <div class="absolute inset-0 bg-linear-to-b from-black/10 via-transparent to-black/60"></div>
@@ -57,7 +61,7 @@
                     :key="m.id"
                     class="w-10 h-10 rounded-lg border-2 border-white/85 overflow-hidden bg-surface-300"
                   >
-                    <img v-if="thumbnailUrl(m)" :src="thumbnailUrl(m)" class="w-full h-full object-cover" />
+                    <img v-if="thumbnailUrl(m)" :src="thumbnailUrl(m)" class="w-full h-full object-cover" loading="lazy" decoding="async" />
                   </div>
                   <div
                     v-if="group.media.length > 3"
@@ -96,7 +100,7 @@
                   :href="`/media/${p.id}`"
                   class="w-14 h-14 rounded-lg overflow-hidden bg-surface-100 hover:ring-2 hover:ring-brand-400 transition"
                 >
-                  <img v-if="thumbnailUrl(p)" :src="thumbnailUrl(p)" class="w-full h-full object-cover" />
+                  <img v-if="thumbnailUrl(p)" :src="thumbnailUrl(p)" class="w-full h-full object-cover" loading="lazy" decoding="async" />
                 </Link>
               </div>
               <div class="mt-3">
@@ -124,7 +128,7 @@
                 class="w-11 h-11 rounded-full overflow-hidden flex items-center justify-center shrink-0"
                 :class="c.kind === 'memorial' ? 'bg-surface-100' : 'bg-brand-100'"
               >
-                <img v-if="c.avatar_url" :src="c.avatar_url" class="w-full h-full object-cover" :class="{ grayscale: c.kind === 'memorial' }" />
+                <img v-if="c.avatar_url" :src="c.avatar_url" class="w-full h-full object-cover" :class="{ grayscale: c.kind === 'memorial' }" loading="lazy" decoding="async" />
                 <span v-else class="text-lg">{{ c.emoji }}</span>
               </div>
               <div>

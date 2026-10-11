@@ -1,5 +1,3 @@
-import { driver } from 'driver.js';
-import 'driver.js/dist/driver.css';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { escapeHtml } from '@/utils/html';
@@ -15,6 +13,22 @@ import { escapeHtml } from '@/utils/html';
 const STORAGE_KEY = 'ml_tour_step';
 let active = null; // instance driver.js courante
 let ctx = null; // { page } fourni par GuidedTour
+
+// driver.js (JS + CSS) n'est chargé qu'à l'affichage d'une étape : la visite
+// est rare, inutile de l'embarquer dans le layout de toutes les pages.
+let driverPromise = null;
+const loadDriver = () => {
+  driverPromise ??= Promise.all([
+    import('driver.js'),
+    import('driver.js/dist/driver.css'),
+  ])
+    .then(([mod]) => mod.driver)
+    .catch((error) => {
+      driverPromise = null; // nouvel essai à la prochaine étape
+      throw error;
+    });
+  return driverPromise;
+};
 
 const firstName = (name) => (name || '').trim().split(' ')[0] || '';
 
@@ -157,9 +171,19 @@ function goTo(i) {
 async function render(i, steps) {
   closeActive();
   const step = steps[i];
-  const el = await waitFor(step.element);
+  let el;
+  let driver;
+  try {
+    [el, driver] = await Promise.all([waitFor(step.element), loadDriver()]);
+  } catch (error) {
+    // Réseau coupé : la visite reprendra à la prochaine page (étape mémorisée).
+    console.error('Visite guidée indisponible :', error);
+    return;
+  }
   // La page a pu changer pendant l'attente.
   if (ctx.page.component !== step.component || readStep() !== i) return;
+  // Un autre rendu a pu aboutir pendant l'attente : une seule bulle à la fois.
+  closeActive();
 
   const isFirst = i === 0;
   const isLast = i === steps.length - 1;

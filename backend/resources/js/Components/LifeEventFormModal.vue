@@ -90,7 +90,7 @@
               class="w-14 h-14 rounded-lg overflow-hidden border-2 transition"
               :class="form.media_id === opt.media.id ? 'border-brand-500' : 'border-transparent hover:border-surface-300'"
             >
-              <img :src="opt.media.thumbnail_url || opt.media.url" class="w-full h-full object-cover" />
+              <img :src="opt.media.thumbnail_url || opt.media.url" class="w-full h-full object-cover" loading="lazy" decoding="async" />
             </button>
           </div>
         </div>
@@ -112,7 +112,7 @@
               :class="galleryIndex(opt.media.id) >= 0 ? 'border-brand-500' : 'border-transparent hover:border-surface-300'"
               :title="opt.title || ''"
             >
-              <img :src="opt.media.thumbnail_url || opt.media.url" class="w-full h-full object-cover" />
+              <img :src="opt.media.thumbnail_url || opt.media.url" class="w-full h-full object-cover" loading="lazy" decoding="async" />
               <span
                 v-if="galleryIndex(opt.media.id) >= 0"
                 class="absolute top-0.5 left-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-brand-600 text-white text-[11px] font-semibold flex items-center justify-center"
@@ -149,10 +149,12 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, reactive } from 'vue';
+import { computed, onMounted, ref, reactive, defineAsyncComponent } from 'vue';
 import axios from 'axios';
 import BaseModal from '@/Components/BaseModal.vue';
-import GeolocatePickerModal from '@/Components/GeolocatePickerModal.vue';
+
+// Chargé à l'ouverture seulement : la carte embarque Leaflet (~45 ko gzip).
+const GeolocatePickerModal = defineAsyncComponent(() => import('@/Components/GeolocatePickerModal.vue'));
 
 const props = defineProps({
   personId: { type: String, required: true },

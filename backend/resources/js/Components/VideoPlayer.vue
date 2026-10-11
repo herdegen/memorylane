@@ -2,9 +2,12 @@
   <div class="video-player-wrapper rounded-xl overflow-hidden bg-black">
     <!-- src directement sur <video> : le navigateur sniffe le contenu, alors qu'un
          <source type="..."> serait rejeté sans essai si le type déclaré (ex.
-         video/quicktime) n'est pas reconnu, même quand le codec interne est lisible -->
+         video/quicktime) n'est pas reconnu, même quand le codec interne est lisible.
+         `controls` : lecteur natif tant que Plyr se charge (ou s'il échoue) ;
+         Plyr retire l'attribut en prenant la main. -->
     <video
       ref="videoEl"
+      controls
       playsinline
       :src="src"
       :poster="poster || undefined"
@@ -17,8 +20,6 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue';
-import Plyr from 'plyr';
-import 'plyr/dist/plyr.css';
 
 const props = defineProps({
   src: { type: String, required: true },
@@ -27,8 +28,22 @@ const props = defineProps({
 
 const videoEl = ref(null);
 let player = null;
+let unmounted = false;
 
-onMounted(() => {
+// Plyr (JS + CSS, ~35 ko gzip) n'est chargé qu'au montage du lecteur, donc
+// seulement quand une vidéo est affichée.
+onMounted(async () => {
+  let Plyr;
+  try {
+    [Plyr] = await Promise.all([
+      import('plyr').then((m) => m.default),
+      import('plyr/dist/plyr.css'),
+    ]);
+  } catch (error) {
+    console.error('Lecteur vidéo enrichi indisponible :', error);
+    return; // le lecteur natif reste utilisable
+  }
+  if (unmounted || !videoEl.value) return;
   player = new Plyr(videoEl.value, {
     controls: [
       'play-large',
@@ -45,6 +60,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  unmounted = true;
   player?.destroy();
 });
 

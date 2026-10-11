@@ -75,6 +75,8 @@
                 :src="thumb(item)"
                 class="w-full h-full object-cover"
                 :class="{ 'cursor-pointer': item.media }"
+                loading="lazy"
+                decoding="async"
                 @click="playSlideshow"
               />
               <div v-else class="w-full h-full flex items-center justify-center bg-brand-50 dark:bg-brand-500/10 text-4xl">
@@ -132,18 +134,28 @@
       @saved="onSaved"
     />
 
-    <LifeStoryPlayer ref="storyPlayer" :events="storyEvents" :person-name="personName" />
+    <!-- Diaporama monté au premier lancement (module chargé à la demande) -->
+    <component
+      :is="storyPlayerComponent"
+      v-if="storyPlayerComponent"
+      ref="storyPlayer"
+      :events="storyEvents"
+      :person-name="personName"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
+import { ref, shallowRef, computed, onMounted, onBeforeUnmount, nextTick, watch, defineAsyncComponent } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import axios from 'axios';
-import LifeEventFormModal from '@/Components/LifeEventFormModal.vue';
-import LifeStoryPlayer from '@/Components/LifeStoryPlayer.vue';
 import { useToast } from '@/Composables/useToast';
 import { formatPartialDate } from '@/utils/format';
+
+// Modale d'un moment et diaporama chargés à la demande : tous deux embarquent
+// Leaflet (~45 ko gzip), inutile tant qu'on ne les ouvre pas.
+const LifeEventFormModal = defineAsyncComponent(() => import('@/Components/LifeEventFormModal.vue'));
+const storyPlayerComponent = shallowRef(null);
 
 const toast = useToast();
 
@@ -212,8 +224,20 @@ const removeEvent = async (item) => {
   }
 };
 
-const playSlideshow = () => {
-  if (storyEvents.value.length) storyPlayer.value?.start();
+const playSlideshow = async () => {
+  if (!storyEvents.value.length) return;
+  if (!storyPlayerComponent.value) {
+    try {
+      storyPlayerComponent.value = (await import('@/Components/LifeStoryPlayer.vue')).default;
+    } catch (e) {
+      console.error('Chargement du diaporama impossible :', e);
+      toast.error('Impossible de lancer le diaporama. Vérifiez votre connexion et réessayez.');
+      return;
+    }
+    // Le composant doit être monté (ref posée) avant d'appeler start().
+    await nextTick();
+  }
+  storyPlayer.value?.start();
 };
 
 // Le bouton « Diaporama de sa vie » vit dans l'en-tête de la fiche personne.

@@ -150,8 +150,10 @@ import axios from 'axios';
 import { matchesPerson, relevanceTier } from '@/utils/personSearch';
 import { useToast } from '@/Composables/useToast';
 import { apiError } from '@/utils/apiError';
+import { usePeopleDirectory } from '@/Composables/usePeopleDirectory';
 
 const toast = useToast();
+const peopleDirectory = usePeopleDirectory();
 
 const props = defineProps({
   face: {
@@ -179,13 +181,11 @@ const cropCanvas = ref(null);
 // nouvel essai la réutilise au lieu de créer un doublon.
 const createdPerson = ref(null);
 
+// Annuaire partagé : ouvrir un autre visage ne relance pas la requête.
 const loadPeople = async () => {
   loadingPeople.value = true;
   try {
-    const response = await axios.get('/people', {
-      headers: { Accept: 'application/json' },
-    });
-    people.value = Array.isArray(response.data) ? response.data : (response.data.data || []);
+    people.value = await peopleDirectory.load();
   } catch (error) {
     console.error('Failed to load people:', error);
     toast.error(apiError(error, 'Impossible de charger la liste des personnes.'));
@@ -311,6 +311,8 @@ const createAndMatch = async () => {
       const createResponse = await axios.post('/people', { name });
       person = createResponse.data.person || createResponse.data;
       createdPerson.value = { ...person, name: person.name || name };
+      // Annuaire partagé caduc : le prochain visage ouvert verra la fiche.
+      peopleDirectory.invalidate();
       // La nouvelle fiche devient sélectionnable dans la liste.
       if (!people.value.some((p) => p.id === person.id)) {
         people.value.push({ ...person, name: person.name || name });

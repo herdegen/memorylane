@@ -233,20 +233,20 @@
 
 <script setup>
 import { escapeHtml } from '@/utils/html';
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, defineAsyncComponent } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import MediaCard from '@/Components/MediaCard.vue';
 import AlbumFormModal from '@/Components/AlbumFormModal.vue';
 import SharePanel from '@/Components/SharePanel.vue';
 import MediaPickerModal from '@/Components/MediaPickerModal.vue';
-import GeolocatePickerModal from '@/Components/GeolocatePickerModal.vue';
 import FullscreenSlideshow from '@/Components/FullscreenSlideshow.vue';
 import { usePhotoSwipe } from '@/composables/usePhotoSwipe';
 import { useToast } from '@/Composables/useToast';
+
+// Chargé à l'ouverture seulement : la carte embarque Leaflet (~45 ko gzip).
+const GeolocatePickerModal = defineAsyncComponent(() => import('@/Components/GeolocatePickerModal.vue'));
 
 const props = defineProps({
   album: {
@@ -260,11 +260,26 @@ const toast = useToast();
 const showSharePanel = ref(false);
 
 // ---- Héro carte : fond Leaflet statique centré sur l'album --------------
+// Leaflet (JS + CSS) n'est chargé que pour un album géolocalisé.
 const heroMapEl = ref(null);
 let heroMap = null;
+let unmounted = false;
 
-onMounted(() => {
+onMounted(async () => {
   if (!props.album.hero_location || !heroMapEl.value) return;
+  let L;
+  try {
+    [L] = await Promise.all([
+      import('leaflet').then((m) => m.default),
+      import('leaflet/dist/leaflet.css'),
+    ]);
+  } catch (e) {
+    // Fond décoratif : sans la carte, le héros reste lisible (voile + titre).
+    console.error('Chargement de la carte impossible :', e);
+    return;
+  }
+  // La page a pu être quittée pendant le chargement.
+  if (unmounted || !heroMapEl.value) return;
   const { latitude, longitude, count } = props.album.hero_location;
 
   // Carte décorative : toutes les interactions sont coupées (le fond ne doit
@@ -304,6 +319,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  unmounted = true;
   heroMap?.remove();
   heroMap = null;
   document.removeEventListener('click', closeMenuOnOutsideClick);
