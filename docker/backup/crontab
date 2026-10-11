@@ -1,0 +1,4 @@
+# Heures UTC. Le dump de la base part vers 00:45 : la copie passe après.
+30 1 * * * sh /usr/local/bin/backup.sh copy > /proc/1/fd/1 2>&1
+# Test de restauration le 1er du mois.
+0 3 1 * * sh /usr/local/bin/backup.sh verify > /proc/1/fd/1 2>&1

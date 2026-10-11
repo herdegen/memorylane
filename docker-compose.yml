@@ -175,6 +175,21 @@ services:
       - app
     restart: unless-stopped
 
+  # Sauvegarde chiffrée des fichiers (médias + dumps de la base) vers OVH,
+  # chaque nuit, test de restauration mensuel — voir docker/backup/backup.sh.
+  backup:
+    image: docker.io/rclone/rclone:1.75.1
+    container_name: memorylane_backup
+    entrypoint: ["crond", "-f", "-l", "8"]
+    volumes:
+      - ./backend/.env:/app/.env:ro
+      - ./docker/backup/backup.sh:/usr/local/bin/backup.sh:ro
+      - ./docker/backup/crontab:/etc/crontabs/root:ro
+      - ./backend/storage/logs:/logs
+    networks:
+      - memorylane
+    restart: unless-stopped
+
 networks:
   memorylane:
     driver: bridge
