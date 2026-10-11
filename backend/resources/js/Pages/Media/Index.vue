@@ -13,7 +13,7 @@
           </div>
           <div class="flex items-center gap-2">
             <Link
-              :href="route('media.create')"
+              href="/media/upload"
               class="btn-primary"
             >
               <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -109,7 +109,7 @@
           <span>{{ albumFeedback.message }}</span>
           <Link
             v-if="albumFeedback.albumId"
-            :href="route('albums.show', albumFeedback.albumId)"
+            :href="`/albums/${albumFeedback.albumId}`"
             class="font-semibold underline shrink-0"
           >
             Voir l'album
@@ -440,7 +440,7 @@ const navigate = (extra = {}, options = {}) => {
 
   // preserveState garde l'état local (recherche, tags) ; on NE préserve PAS
   // le scroll : un changement de filtre réamorce la liste, on revient en haut.
-  router.get(route('media.index'), buildQuery(extra), {
+  router.get('/media', buildQuery(extra), {
     preserveState: true,
     preserveScroll: false,
     ...options,
@@ -515,7 +515,7 @@ const handleMediaClick = (media) => {
   // Quand une sélection est en cours, MediaGrid gère les clics (sélection).
   // Sinon : photo/vidéo → visionneuse ; document → page média.
   if (!openPhoto(media)) {
-    router.visit(route('media.show', media.id));
+    router.visit(`/media/${media.id}`);
   }
 };
 
@@ -524,7 +524,7 @@ const handleMediaClick = (media) => {
 const selectAll = async () => {
   selectingAll.value = true;
   try {
-    const { data } = await axios.get(route('media.ids'), {
+    const { data } = await axios.get('/media/ids', {
       params: buildQuery(),
       headers: { Accept: 'application/json' },
     });
@@ -619,7 +619,7 @@ const handleLoadMore = async () => {
 
   loadingMore.value = true;
   try {
-    const { data } = await axios.get(route('media.index'), {
+    const { data } = await axios.get('/media', {
       params: buildQuery({ page: page.value + 1 }),
       headers: { Accept: 'application/json' },
     });
