@@ -295,7 +295,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, defineAsyncComponent } from 'vue';
 import { Head, router, Link, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import TagInput from '@/Components/TagInput.vue';
@@ -306,8 +306,6 @@ import FaceDetectionOverlay from '@/Components/FaceDetectionOverlay.vue';
 import FaceMatchPanel from '@/Components/FaceMatchPanel.vue';
 import VisionStatusBadge from '@/Components/VisionStatusBadge.vue';
 import VisionLabels from '@/Components/VisionLabels.vue';
-import VideoPlayer from '@/Components/VideoPlayer.vue';
-import VideoClipEditor from '@/Components/VideoClipEditor.vue';
 import VoiceNotesPanel from '@/Components/VoiceNotesPanel.vue';
 import { useFaceDetection } from '@/composables/useFaceDetection';
 import { useToast } from '@/Composables/useToast';
@@ -315,6 +313,11 @@ import { apiError } from '@/utils/apiError';
 import { formatFileSize, formatDuration } from '@/utils/format';
 import { backTarget } from '@/utils/navigation';
 import axios from 'axios';
+
+// Composants propres aux vidéos, chargés seulement pour une vidéo : le
+// lecteur embarque Plyr (JS + CSS).
+const VideoPlayer = defineAsyncComponent(() => import('@/Components/VideoPlayer.vue'));
+const VideoClipEditor = defineAsyncComponent(() => import('@/Components/VideoClipEditor.vue'));
 
 const toast = useToast();
 
