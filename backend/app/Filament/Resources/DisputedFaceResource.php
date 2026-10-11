@@ -48,10 +48,12 @@ class DisputedFaceResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        $ids = array_keys(app(DisputedFaceResolver::class)->analysis());
+        // Ids triés du désaccord le plus franc au plus faible.
+        $ids = collect(app(DisputedFaceResolver::class)->analysis())->sortByDesc('strength')->keys()->all();
 
         return parent::getEloquentQuery()
             ->whereIn('detected_faces.id', $ids ?: ['00000000-0000-0000-0000-000000000000'])
+            ->when($ids, fn ($q) => $q->orderByRaw('array_position(?::uuid[], detected_faces.id)', ['{'.implode(',', $ids).'}']))
             ->with(['person:id,name', 'media:id,original_name,taken_at']);
     }
 

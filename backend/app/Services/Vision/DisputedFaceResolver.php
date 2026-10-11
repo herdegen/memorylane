@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Cache;
 class DisputedFaceResolver
 {
     /** Avance minimale d'une autre personne pour signaler (distance). */
-    public const OTHER_MARGIN = 0.05;
+    public const OTHER_MARGIN = 0.15;
 
     /** Au-delà, le visage ne ressemble pas à la personne associée. */
     public const UNLIKE_DISTANCE = 1.30;
@@ -97,6 +97,12 @@ class DisputedFaceResolver
             if ($reason) {
                 $out[$f->id] = [
                     'reason' => $reason,
+                    // Force du désaccord (tri : les cas les plus francs d'abord).
+                    'strength' => round(match ($reason) {
+                        'other' => $assigned - $best,
+                        'unlike' => $assigned - self::UNLIKE_DISTANCE + 0.1,
+                        default => abs($ageGap) / 100,
+                    }, 3),
                     'assigned' => round($assigned ?? 0, 3),
                     'best_person' => $bestPerson,
                     'best' => is_finite($best) ? round($best, 3) : null,

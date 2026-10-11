@@ -28,6 +28,9 @@
         <env name="APP_ENV" value="testing" force="true"/>
         <!-- Pas de journal : les tests lancés sur le serveur polluaient laravel.log -->
         <env name="LOG_CHANNEL" value="null" force="true"/>
+        <!-- Moteur de visages des tests : indépendant du .env (InsightFaceTest le change lui-même) -->
+        <env name="FACES_ENGINE" value="faceapi" force="true"/>
+        <env name="FACES_AUTO_MATCH" value="false" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_STORE" value="array" force="true"/>

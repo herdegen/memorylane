@@ -23,7 +23,8 @@ class ReanalyzeFaces extends Command
 
     public function handle(): int
     {
-        $query = Media::query()->whereIn('type', ['photo', 'video'])->orderBy('created_at');
+        // Corbeille comprise : une photo restaurée doit retrouver ses visages complets.
+        $query = Media::withTrashed()->whereIn('type', ['photo', 'video'])->orderBy('created_at');
 
         if ($ids = $this->option('media')) {
             $query->whereIn('id', $ids);
