@@ -12,8 +12,10 @@ import 'photoswipe/style.css';
  * @param {() => Array} getMedia  Renvoie la liste de médias courante (les
  *                                documents sont ignorés : ils ont leur page).
  * @param {object} options
- *   - watchSource : source réactive qui reconstruit la visionneuse quand la
- *     liste change (scroll infini, rechargement…)
+ *   - watchSource : source réactive (getter de la liste) ; la visionneuse
+ *     suit la liste quand sa référence ou sa longueur change (scroll infini,
+ *     rechargement…). Surveillance superficielle : modifier un média en
+ *     place ne la met pas à jour (remplacer la liste pour cela).
  *   - detailLink : ajoute un bouton « i » (infos) dans la barre du haut qui
  *     ferme la visionneuse et ouvre la fiche /media/{id} — pour les surfaces
  *     où la page média existe (pas l'album partagé anonyme).
@@ -182,6 +184,18 @@ export function usePhotoSwipe(getMedia, options = {}) {
     });
   };
 
+  // Même liste complétée (scroll infini) : on remplace seulement les slides
+  // de la visionneuse existante, sans la détruire (une visionneuse ouverte
+  // garde ses slides jusqu'à sa fermeture).
+  const updateSlides = () => {
+    const items = viewableItems();
+    if (!lightbox || items.length === 0) {
+      rebuild();
+      return;
+    }
+    lightbox.options.dataSource = items.map(toSlide);
+  };
+
   const rebuild = () => {
     destroy();
 
@@ -228,8 +242,14 @@ export function usePhotoSwipe(getMedia, options = {}) {
   onMounted(rebuild);
   onUnmounted(destroy);
 
+  // Surveillance superficielle (référence + longueur) : un `deep: true`
+  // reparcourait chaque média (conversions, visages…) à chaque page du
+  // défilement infini et recréait la visionneuse.
   if (options.watchSource) {
-    watch(options.watchSource, rebuild, { deep: true });
+    watch(
+      [options.watchSource, () => options.watchSource()?.length ?? 0],
+      ([list], [previousList]) => (list === previousList ? updateSlides() : rebuild()),
+    );
   }
 
   return { open, rebuild };
