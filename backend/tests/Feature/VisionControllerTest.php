@@ -21,6 +21,7 @@ class VisionControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config(['memorylane.faces.auto_match' => true]);
 
         $this->user = User::factory()->create();
         $this->media = Media::factory()->create([

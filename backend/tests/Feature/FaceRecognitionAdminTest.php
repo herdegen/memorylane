@@ -19,6 +19,12 @@ class FaceRecognitionAdminTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['memorylane.faces.auto_match' => true]);
+    }
+
     private function embedding(float $value): array
     {
         return array_fill(0, 128, $value);

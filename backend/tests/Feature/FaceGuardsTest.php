@@ -26,6 +26,7 @@ class FaceGuardsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config(['memorylane.faces.auto_match' => true]);
         $this->user = User::factory()->create();
     }
 
@@ -137,6 +138,16 @@ class FaceGuardsTest extends TestCase
 
         $this->assertNull(app(FaceMatcher::class)->autoMatch($target, $this->user->id));
         $this->assertNull($target->fresh()->person_id);
+    }
+
+    public function test_auto_match_is_off_by_default(): void
+    {
+        config(['memorylane.faces.auto_match' => false]);
+        $person = $this->person();
+        $this->face($this->photo('2010-01-02'), 0.11, $person);
+        $target = $this->face($this->photo('2011-01-01'), 0.110);
+
+        $this->assertNull(app(FaceMatcher::class)->autoMatch($target, $this->user->id));
     }
 
     public function test_unrelated_candidate_is_flagged_as_distant(): void

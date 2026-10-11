@@ -44,6 +44,11 @@ class FaceMatcher
      */
     public function autoMatch(DetectedFace $face, string $ownerId, ?\App\Models\User $viewer = null): ?array
     {
+        // Association automatique coupée par réglage (cf. config/memorylane.php).
+        if (! config('memorylane.faces.auto_match')) {
+            return null;
+        }
+
         // Ne jamais écraser une association existante.
         if ($face->person_id || $face->status !== 'unmatched') {
             return null;
