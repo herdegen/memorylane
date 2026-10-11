@@ -14,6 +14,7 @@
       :alt="media.original_name"
       class="w-full h-full object-cover"
       loading="lazy"
+      decoding="async"
     />
 
     <!-- Video Thumbnail -->
@@ -27,6 +28,7 @@
         :alt="media.original_name"
         class="w-full h-full object-cover"
         loading="lazy"
+        decoding="async"
       />
       <div
         v-else

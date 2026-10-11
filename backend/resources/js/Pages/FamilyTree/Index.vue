@@ -151,6 +151,8 @@
                   :alt="personLabel(member.data)"
                   class="w-7 h-7 rounded-full object-cover border border-surface-200 shrink-0"
                   :style="faceStyle(member)"
+                  loading="lazy"
+                  decoding="async"
                 />
                 <div v-else class="w-7 h-7 rounded-full bg-surface-200 text-surface-500 flex items-center justify-center text-xs font-semibold shrink-0">
                   {{ (member.data.name || '?').charAt(0).toUpperCase() }}

@@ -238,7 +238,7 @@
               class="w-full flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-surface-50 text-left"
               @click="select(l.id, true)"
             >
-              <img v-if="l.avatar_url" :src="l.avatar_url" alt="" class="w-8 h-8 rounded-full object-cover" />
+              <img v-if="l.avatar_url" :src="l.avatar_url" alt="" class="w-8 h-8 rounded-full object-cover" loading="lazy" decoding="async" />
               <span v-else class="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white" :style="{ background: l.color }">{{ initials(l.name) }}</span>
               <span class="flex-1 text-sm font-semibold text-surface-800 truncate">{{ l.is_self ? 'Moi' : l.name }}</span>
               <span class="text-xs text-surface-500">{{ l.weight }} photo{{ l.weight > 1 ? 's' : '' }}</span>

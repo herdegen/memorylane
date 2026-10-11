@@ -73,6 +73,8 @@
                 :src="person.avatar_url"
                 :alt="person.name"
                 class="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
               />
               <span
                 v-else

@@ -75,6 +75,8 @@
                 :src="thumb(item)"
                 class="w-full h-full object-cover"
                 :class="{ 'cursor-pointer': item.media }"
+                loading="lazy"
+                decoding="async"
                 @click="playSlideshow"
               />
               <div v-else class="w-full h-full flex items-center justify-center bg-brand-50 dark:bg-brand-500/10 text-4xl">
