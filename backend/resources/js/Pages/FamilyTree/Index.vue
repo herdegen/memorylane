@@ -451,6 +451,7 @@ import { searchPeople } from '@/utils/personSearch';
 import { formatLongDate } from '@/utils/format';
 import { useToast } from '@/Composables/useToast';
 import { escapeHtml } from '@/utils/html';
+import { apiError } from '@/utils/apiError';
 
 const toast = useToast();
 
@@ -618,7 +619,7 @@ async function saveEdit() {
     if (e.response?.status === 422) {
       editErrors.value = e.response.data.errors || {};
     } else {
-      toast.error(e.response?.data?.message || "Impossible d'enregistrer.");
+      toast.error(apiError(e, "Impossible d'enregistrer."));
     }
   } finally {
     saving.value = false;
@@ -814,6 +815,7 @@ async function loadKinship(personId) {
     if (data.found) startKinshipWalk();
   } catch (e) {
     console.error('Lien de parenté indisponible :', e);
+    toast.error(apiError(e, 'Impossible de retrouver le lien de parenté pour le moment.'));
   }
 }
 
@@ -918,6 +920,7 @@ onMounted(async () => {
     rawById = Object.fromEntries(treeNodes.value.map(n => [n.id, n]));
   } catch (error) {
     console.error('Erreur lors du chargement de l\'arbre:', error);
+    toast.error(apiError(error, "Impossible de charger l'arbre. Rechargez la page pour réessayer."));
   } finally {
     loading.value = false;
   }

@@ -149,10 +149,14 @@ import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { formatDate } from '@/utils/format';
 import { escapeHtml } from '@/utils/html';
+import { apiError } from '@/utils/apiError';
+import { useToast } from '@/Composables/useToast';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.heat';
 import axios from 'axios';
+
+const toast = useToast();
 
 const props = defineProps({
   filters: {
@@ -227,6 +231,7 @@ async function loadTags() {
     availableTags.value = response.data;
   } catch (error) {
     console.error('Failed to load tags:', error);
+    toast.error(apiError(error, 'Impossible de charger les tags pour le filtre.'));
   }
 }
 
@@ -248,6 +253,7 @@ async function loadGeolocatedMedia() {
     updateMarkers();
   } catch (error) {
     console.error('Failed to load geolocated media:', error);
+    toast.error(apiError(error, 'Impossible de charger les photos de la carte. Réessayez dans un instant.'));
   }
 }
 
@@ -347,6 +353,7 @@ async function toggleHeatmap() {
       ]);
     } catch (error) {
       console.error('Failed to load heatmap:', error);
+      toast.error(apiError(error, "Impossible d'afficher la couche « Où vit la famille »."));
       heatmapEnabled.value = false;
       return;
     }
@@ -412,6 +419,7 @@ async function searchLocation() {
     searchResults.value = response.data;
   } catch (error) {
     console.error('Location search failed:', error);
+    toast.error(apiError(error, "La recherche de lieu n'a pas abouti. Réessayez dans un instant."));
   }
 }
 
@@ -466,6 +474,7 @@ async function searchNearby() {
     updateMarkers();
   } catch (error) {
     console.error('Nearby search failed:', error);
+    toast.error(apiError(error, 'Impossible de rechercher les photos à proximité.'));
   }
 }
 
