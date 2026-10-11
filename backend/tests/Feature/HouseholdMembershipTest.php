@@ -88,11 +88,27 @@ class HouseholdMembershipTest extends TestCase
         $this->actingAs($this->admin)->get("/households/{$household->id}")->assertOk();
     }
 
+    public function test_cercle_ouvert_tout_membre_ajoute_mais_seul_l_admin_retire(): void
+    {
+        $member = User::factory()->create();
+        $target = User::factory()->create();
+        $household = $this->household([$member]); // famille : ouvert par défaut
+
+        $this->actingAs($member)
+            ->postJson("/households/{$household->id}/members", ['user_id' => $target->id])
+            ->assertCreated();
+
+        $this->actingAs($member)
+            ->deleteJson("/households/{$household->id}/members/{$target->id}")
+            ->assertForbidden();
+    }
+
     public function test_seul_l_admin_ajoute_et_retire_des_membres(): void
     {
         $member = User::factory()->create();
         $target = User::factory()->create();
         $household = $this->household([$member]);
+        $household->update(['invite_policy' => 'admin']);
 
         $this->actingAs($member)
             ->postJson("/households/{$household->id}/members", ['user_id' => $target->id])
@@ -125,6 +141,27 @@ class HouseholdMembershipTest extends TestCase
             ->assertCreated();
 
         $this->assertTrue($household->people()->whereKey($self->id)->exists());
+    }
+
+    public function test_reglage_qui_peut_inviter_par_l_admin(): void
+    {
+        $member = User::factory()->create();
+        $household = $this->household([$member]);
+
+        $this->actingAs($member)->patchJson("/households/{$household->id}", ['invite_policy' => 'admin'])->assertForbidden();
+        $this->actingAs($this->admin)->patchJson("/households/{$household->id}", ['invite_policy' => 'admin'])->assertOk();
+        $this->assertSame('admin', $household->fresh()->invite_policy);
+
+        $this->actingAs($this->admin)->patchJson("/households/{$household->id}", ['invite_policy' => 'n importe'])->assertUnprocessable();
+    }
+
+    public function test_reglage_par_defaut_selon_le_type(): void
+    {
+        $this->actingAs($this->admin)->postJson('/households', ['name' => 'Fam', 'kind' => 'family'])->assertCreated();
+        $this->actingAs($this->admin)->postJson('/households', ['name' => 'Potes', 'kind' => 'friends'])->assertCreated();
+
+        $this->assertSame('everyone', Household::where('name', 'Fam')->value('invite_policy'));
+        $this->assertSame('admin', Household::where('name', 'Potes')->value('invite_policy'));
     }
 
     public function test_un_membre_quitte_le_cercle(): void

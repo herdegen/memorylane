@@ -6,9 +6,9 @@ use App\Models\Household;
 use App\Models\User;
 
 /**
- * Cercles : les membres les voient ; seul un administrateur les crée, en
- * gère les membres et les supprime (activation volontaire, pas de réseau
- * social où chacun recrute).
+ * Cercles : les membres les voient ; seul un administrateur les crée, les
+ * règle, en retire des membres et les supprime. Faire entrer quelqu'un :
+ * l'admin, ou tout membre si le cercle est « ouvert » (invite_policy).
  */
 class HouseholdPolicy
 {
@@ -22,6 +22,13 @@ class HouseholdPolicy
         return $user->isAdmin();
     }
 
+    /** Ajouter un compte : l'admin, ou tout membre si le cercle l'autorise. */
+    public function addMembers(User $user, Household $household): bool
+    {
+        return $household->allowsInvitesFrom($user);
+    }
+
+    /** Retirer des membres, gérer les fiches du cercle : l'admin. */
     public function manageMembers(User $user, Household $household): bool
     {
         return $user->isAdmin();

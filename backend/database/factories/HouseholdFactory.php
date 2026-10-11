@@ -15,12 +15,13 @@ class HouseholdFactory extends Factory
         return [
             'name' => 'Foyer '.fake()->lastName(),
             'kind' => 'family',
+            'invite_policy' => 'everyone',
             'created_by' => User::factory(),
         ];
     }
 
     public function friends(): static
     {
-        return $this->state(fn () => ['name' => 'Amis '.fake()->city(), 'kind' => 'friends']);
+        return $this->state(fn () => ['name' => 'Amis '.fake()->city(), 'kind' => 'friends', 'invite_policy' => 'admin']);
     }
 }

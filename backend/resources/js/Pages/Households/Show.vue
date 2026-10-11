@@ -42,8 +42,28 @@
           </div>
         </div>
 
-        <!-- Ajouter un membre (administrateur) -->
-        <div v-if="household.can_manage" class="bg-white rounded-lg shadow-xs p-4 mb-6">
+        <!-- Réglage : qui peut faire entrer quelqu'un (administrateur) -->
+        <div v-if="household.can_manage" class="bg-white rounded-lg shadow-xs p-4 mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div class="text-sm font-medium text-surface-800">Qui peut inviter dans ce cercle ?</div>
+            <div class="text-xs text-surface-500">Invitations par mail et ajout de comptes existants. Retirer un membre reste réservé à l'admin.</div>
+          </div>
+          <div class="inline-flex rounded-full border border-surface-200 p-0.5 text-sm font-semibold" role="radiogroup" aria-label="Qui peut inviter">
+            <button
+              v-for="opt in [{ value: 'everyone', label: 'Tous les membres' }, { value: 'admin', label: 'Admin seulement' }]"
+              :key="opt.value"
+              type="button"
+              role="radio"
+              :aria-checked="invitePolicy === opt.value"
+              class="px-3.5 py-1.5 rounded-full transition-colors"
+              :class="invitePolicy === opt.value ? 'bg-brand-100 text-brand-800 dark:bg-brand-500/20 dark:text-brand-200' : 'text-surface-600 hover:text-surface-900'"
+              @click="setInvitePolicy(opt.value)"
+            >{{ opt.label }}</button>
+          </div>
+        </div>
+
+        <!-- Ajouter un membre (admin, ou tout membre si le cercle est ouvert) -->
+        <div v-if="household.can_invite" class="bg-white rounded-lg shadow-xs p-4 mb-6">
           <label class="block text-sm font-medium text-surface-700 mb-2">Ajouter un compte au cercle</label>
           <div class="relative">
             <input
@@ -253,6 +273,21 @@ const removeMember = async (member) => {
     router.reload();
   } catch (error) {
     toast.error(error.response?.data?.message || 'Erreur lors du retrait du membre.');
+  }
+};
+
+// ---- Qui peut inviter (administrateur) ----
+const invitePolicy = ref(props.household.invite_policy);
+
+const setInvitePolicy = async (value) => {
+  if (value === invitePolicy.value) return;
+  const previous = invitePolicy.value;
+  invitePolicy.value = value;
+  try {
+    await axios.patch(`/households/${props.household.id}`, { invite_policy: value });
+  } catch (error) {
+    invitePolicy.value = previous;
+    toast.error(error.response?.data?.message || 'Impossible de modifier le réglage.');
   }
 };
 

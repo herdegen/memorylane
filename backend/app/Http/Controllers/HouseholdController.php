@@ -39,6 +39,7 @@ class HouseholdController extends Controller
                 'id' => $h->id,
                 'name' => $h->name,
                 'kind' => $h->kind,
+                'invite_policy' => $h->invite_policy,
                 'members_count' => $h->members_count,
                 'is_member' => $h->isMember($user),
                 'is_creator' => $h->created_by === $request->user()->id,
@@ -69,9 +70,11 @@ class HouseholdController extends Controller
             'join' => ['nullable', 'boolean'],
         ]);
 
+        $kind = $validated['kind'] ?? config('memorylane.default_mode');
         $household = Household::create([
             'name' => $validated['name'],
-            'kind' => $validated['kind'] ?? config('memorylane.default_mode'),
+            'kind' => $kind,
+            'invite_policy' => Household::defaultInvitePolicy($kind),
             'created_by' => $request->user()->id,
         ]);
 
@@ -125,6 +128,8 @@ class HouseholdController extends Controller
                 'id' => $household->id,
                 'name' => $household->name,
                 'kind' => $household->kind,
+                'invite_policy' => $household->invite_policy,
+                'can_invite' => Gate::allows('addMembers', $household),
                 'is_creator' => $isCreator,
                 'is_member' => $household->isMember($request->user()),
                 'can_manage' => $canManage,
@@ -144,7 +149,7 @@ class HouseholdController extends Controller
      */
     public function inviteCandidates(Request $request, Household $household)
     {
-        Gate::authorize('manageMembers', $household);
+        Gate::authorize('addMembers', $household);
 
         $q = trim((string) $request->query('q', ''));
         if (strlen($q) < 2) {
@@ -167,7 +172,7 @@ class HouseholdController extends Controller
      */
     public function invite(Request $request, Household $household, PushNotifier $push)
     {
-        Gate::authorize('manageMembers', $household);
+        Gate::authorize('addMembers', $household);
 
         $validated = $request->validate([
             'user_id' => ['required', 'uuid', 'exists:users,id'],
@@ -228,6 +233,23 @@ class HouseholdController extends Controller
         }
 
         return redirect()->route('households.index');
+    }
+
+    /**
+     * Réglages du cercle (admin) : nom, qui peut inviter.
+     */
+    public function update(Request $request, Household $household)
+    {
+        Gate::authorize('update', $household);
+
+        $validated = $request->validate([
+            'name' => ['sometimes', 'string', 'max:120'],
+            'invite_policy' => ['sometimes', 'in:'.Household::INVITE_EVERYONE.','.Household::INVITE_ADMIN],
+        ]);
+
+        $household->update($validated);
+
+        return response()->json(['message' => 'Cercle mis à jour.']);
     }
 
     /**

@@ -84,6 +84,7 @@
             </div>
             <p class="mt-2 text-sm text-surface-500">
               {{ h.members_count }} membre{{ h.members_count > 1 ? 's' : '' }}
+              · {{ h.invite_policy === 'admin' ? "invitations par l'admin" : 'tout le monde invite' }}
               <span v-if="canManage && !h.is_member"> · vous n'en faites pas partie</span>
             </p>
           </Link>

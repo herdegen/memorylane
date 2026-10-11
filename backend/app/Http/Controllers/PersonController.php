@@ -962,7 +962,8 @@ class PersonController extends Controller
             ] : null,
             'canInvite' => ! $hasAccount && ! $pending
                 && $viewer?->canEditFamilyTree()
-                && app(InvitationService::class)->personIneligibility($person) === null,
+                && app(InvitationService::class)->personIneligibility($person) === null
+                && app(InvitationService::class)->canInvite($viewer, $person),
         ];
     }
 

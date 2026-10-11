@@ -57,6 +57,25 @@ class InvitationService
     }
 
     /**
+     * Le compte peut-il inviter cette fiche ? L'admin toujours ; sinon le
+     * cercle que rejoindrait l'invité doit être ouvert aux invitations de
+     * ses membres (réglage par cercle).
+     */
+    public function canInvite(User $inviter, Person $person): bool
+    {
+        if ($inviter->isAdmin()) {
+            return true;
+        }
+
+        $householdId = $this->householdFor($inviter, $person);
+        if ($householdId === null) {
+            return true;
+        }
+
+        return (bool) Household::find($householdId)?->allowsInvitesFrom($inviter);
+    }
+
+    /**
      * Cercle que rejoindra l'invité : le cercle d'amis commun à la fiche et
      * à la personne qui invite ; sinon le foyer d'accueil si elle voit la
      * famille ; sinon son cercle courant.
@@ -148,6 +167,12 @@ class InvitationService
 
         if (Invitation::open()->where('email', $email)->exists()) {
             throw ValidationException::withMessages(['email' => 'Une invitation est déjà en cours pour cette adresse.']);
+        }
+
+        if (! $this->canInvite($inviter, $person)) {
+            throw ValidationException::withMessages([
+                'person_id' => 'Dans ce cercle, seul un administrateur peut inviter de nouvelles personnes.',
+            ]);
         }
 
         // Seul un admin choisit le foyer ; sinon il se déduit de la fiche et

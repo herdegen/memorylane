@@ -288,4 +288,23 @@ class InvitationTest extends TestCase
 
         $this->assertSame($friends->id, $invitation->household_id);
     }
+
+    public function test_cercle_reserve_a_l_admin_refuse_l_invitation_d_un_membre(): void
+    {
+        $friends = Household::factory()->friends()->create(['created_by' => $this->admin->id]);
+        $friend = User::factory()->create(['role' => 'user']);
+        $friends->members()->attach($friend->id);
+        $buddy = Person::factory()->create(['user_id' => $friend->id, 'death_date' => null, 'birth_date' => '1991-01-01', 'in_family_directory' => false]);
+        $buddy->circles()->attach($friends->id);
+
+        $this->actingAs($friend)
+            ->postJson("/people/{$buddy->id}/invite", ['email' => 'buddy@example.fr'])
+            ->assertUnprocessable()->assertJsonValidationErrors('person_id');
+        $this->assertFalse(app(InvitationService::class)->canInvite($friend, $buddy));
+
+        // L'admin, lui, invite ; et un cercle ouvert laisse le membre inviter.
+        $this->assertTrue(app(InvitationService::class)->canInvite($this->admin, $buddy));
+        $friends->update(['invite_policy' => 'everyone']);
+        $this->assertTrue(app(InvitationService::class)->canInvite($friend->fresh(), $buddy));
+    }
 }

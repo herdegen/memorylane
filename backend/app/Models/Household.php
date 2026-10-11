@@ -19,9 +19,13 @@ class Household extends Model
     public const KIND_FAMILY = 'family';
     public const KIND_FRIENDS = 'friends';
 
+    public const INVITE_EVERYONE = 'everyone';
+    public const INVITE_ADMIN = 'admin';
+
     protected $fillable = [
         'name',
         'kind',
+        'invite_policy',
         'created_by',
         'is_default',
     ];
@@ -29,6 +33,31 @@ class Household extends Model
     public function isFriends(): bool
     {
         return $this->kind === self::KIND_FRIENDS;
+    }
+
+    /** Réglage par défaut selon le type : famille ouverte, amis via l'admin. */
+    public static function defaultInvitePolicy(string $kind): string
+    {
+        return $kind === self::KIND_FRIENDS ? self::INVITE_ADMIN : self::INVITE_EVERYONE;
+    }
+
+    /**
+     * Ce compte peut-il faire entrer quelqu'un dans le cercle (invitation
+     * par mail, ajout d'un compte existant) ? L'admin toujours ; sinon, si le
+     * cercle est ouvert à tous : ses membres — et, pour le cercle d'accueil
+     * familial, quiconque voit la famille (comptes historiques sans cercle).
+     */
+    public function allowsInvitesFrom(User $user): bool
+    {
+        if ($user->isAdmin()) {
+            return true;
+        }
+        if ($this->invite_policy !== self::INVITE_EVERYONE) {
+            return false;
+        }
+
+        return $this->isMember($user)
+            || ($this->is_default && ! $this->isFriends() && $user->canSeeFamilyDirectory());
     }
 
     /**

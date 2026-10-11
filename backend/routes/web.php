@@ -225,6 +225,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::get('/', [HouseholdController::class, 'index'])->name('index');
         Route::post('/', [HouseholdController::class, 'store'])->name('store');
         Route::get('/{household}', [HouseholdController::class, 'show'])->name('show');
+        Route::patch('/{household}', [HouseholdController::class, 'update'])->name('update');
         Route::delete('/{household}', [HouseholdController::class, 'destroy'])->name('destroy');
         Route::post('/{household}/leave', [HouseholdController::class, 'leave'])->name('leave');
 
