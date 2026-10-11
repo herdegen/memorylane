@@ -309,6 +309,7 @@
         <div
           v-show="!loading && treeNodes.length > 0"
           id="ml-family-chart"
+          data-tour="tree"
           ref="chartRef"
           class="f3 ml-tree w-full h-full"
         ></div>

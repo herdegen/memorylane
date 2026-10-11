@@ -1,189 +1,78 @@
 <template>
-  <Head title="Télécharger" />
+  <Head title="Ajouter des photos" />
   <AppLayout>
-    <div class="py-12">
-      <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-        <div class="mb-6">
-          <h1 class="text-display text-4xl text-surface-900">Télécharger des médias</h1>
-          <p class="mt-2 text-surface-600">
-            Ajoutez vos photos, vidéos et documents à votre bibliothèque familiale.
-          </p>
-        </div>
-
-        <div class="bg-white overflow-hidden shadow-xs sm:rounded-lg">
-          <div class="p-6">
-            <MediaUploader
-              @upload-complete="handleUploadComplete"
-              @album-attached="handleAlbumDone"
-            />
+    <div class="py-8 sm:py-12">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-start justify-between gap-4 mb-6">
+          <div>
+            <h1 class="text-display text-3xl sm:text-4xl text-surface-900">Ajouter des photos</h1>
+            <p class="mt-2 text-surface-600">
+              Depuis votre téléphone ou votre ordinateur : elles rejoignent la mémoire de la famille.
+            </p>
           </div>
+          <button
+            type="button"
+            class="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-white border border-surface-200 text-sm font-medium text-surface-700 hover:bg-surface-50 shadow-xs"
+            @click="showTutorial = true"
+          >
+            <span class="w-5 h-5 rounded-full bg-brand-100 text-brand-700 text-xs font-bold flex items-center justify-center">?</span>
+            <span class="hidden sm:inline">Comment faire</span>
+          </button>
         </div>
 
-        <!-- Import Google Photos -->
-        <Link
-          href="/google-photos"
-          class="mt-6 card card--padded flex items-center gap-4 group"
-        >
-          <span class="w-12 h-12 rounded-xl bg-brand-100 flex items-center justify-center shrink-0 group-hover:bg-brand-200 transition-colors">
-            <svg class="w-6 h-6 text-brand-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-            </svg>
-          </span>
-          <span class="flex-1">
-            <span class="font-semibold text-surface-900 block">Importer depuis Google Photos</span>
-            <span class="text-sm text-surface-500">Choisissez vos photos chez Google — par personne, lieu ou date — et rattachez-les directement.</span>
-          </span>
-          <svg class="w-5 h-5 text-surface-400 group-hover:text-brand-600 transition-colors shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </Link>
-
-        <!-- Import Takeout -->
-        <Link
-          href="/takeout"
-          class="mt-4 card card--padded flex items-center gap-4 group"
-        >
-          <span class="w-12 h-12 rounded-xl bg-teal-100 dark:bg-teal-500/15 flex items-center justify-center shrink-0 group-hover:bg-teal-200 dark:group-hover:bg-teal-500/25 transition-colors">
-            <svg class="w-6 h-6 text-teal-700 dark:text-teal-300" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-            </svg>
-          </span>
-          <span class="flex-1">
-            <span class="font-semibold text-surface-900 block">Importer une archive Takeout</span>
-            <span class="text-sm text-surface-500">Tout votre historique Google Photos, avec la géolocalisation — les photos déjà importées sont enrichies, pas dupliquées.</span>
-          </span>
-          <svg class="w-5 h-5 text-surface-400 group-hover:text-brand-600 transition-colors shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </Link>
-
-        <div v-if="recentUploads.length > 0" class="mt-6 bg-white overflow-hidden shadow-xs sm:rounded-lg">
-          <div class="p-6">
-            <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-              <h2 class="text-xl font-semibold text-surface-900">
-                Médias téléchargés
-                <span v-if="uploadedIds.length > recentUploads.length" class="text-sm font-normal text-surface-500">
-                  ({{ uploadedIds.length }} au total)
-                </span>
-              </h2>
-              <div class="flex items-center gap-3">
-                <button
-                  type="button"
-                  class="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium bg-brand-600 text-white hover:bg-brand-700 transition"
-                  @click="showAlbumModal = true"
-                >
-                  <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" />
-                  </svg>
-                  Ajouter ces {{ uploadedIds.length }} médias à un album
-                </button>
-                <Link
-                  href="/media"
-                  class="text-brand-600 hover:text-brand-700 text-sm font-medium"
-                >
-                  Voir mes photos →
-                </Link>
-              </div>
-            </div>
-
-            <!-- Confirmation après ajout -->
-            <div
-              v-if="albumFeedback"
-              class="mb-4 flex items-center justify-between gap-3 rounded-lg bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 px-4 py-3 text-sm text-green-800 dark:text-green-200"
-            >
-              <span>{{ albumFeedback.message }}</span>
-              <Link :href="`/albums/${albumFeedback.albumId}`" class="font-semibold underline shrink-0">
-                Voir l'album
-              </Link>
-            </div>
-            <div class="space-y-2">
-              <div
-                v-for="media in recentUploads"
-                :key="media.id"
-                class="flex items-center justify-between p-3 bg-surface-50 rounded-lg"
-              >
-                <div class="flex items-center space-x-3 flex-1 min-w-0">
-                  <div class="shrink-0">
-                    <div v-if="media.type === 'photo'" class="w-12 h-12 rounded-sm overflow-hidden bg-surface-200">
-                      <img
-                        :src="media.url"
-                        :alt="media.original_filename"
-                        class="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div v-else-if="media.type === 'video'" class="w-12 h-12 rounded-sm bg-violet-100 dark:bg-violet-500/15 flex items-center justify-center">
-                      <svg class="h-6 w-6 text-violet-600 dark:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <div v-else class="w-12 h-12 rounded-sm bg-surface-100 flex items-center justify-center">
-                      <svg class="h-6 w-6 text-surface-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-surface-900 truncate">
-                      {{ media.original_filename }}
-                    </p>
-                    <p class="text-xs text-surface-500">
-                      {{ formatFileSize(media.size) }} · {{ formatMediaType(media.type) }}
-                    </p>
-                  </div>
-                </div>
-                <div class="flex items-center space-x-2">
-                  <Link
-                    :href="`/media/${media.id}`"
-                    class="inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-medium text-brand-600 hover:text-brand-800 hover:bg-brand-50 transition"
-                  >
-                    <svg class="mr-1 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                    Éditer
-                  </Link>
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-500/15 text-green-800 dark:text-green-200">
-                    <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                    </svg>
-                    Téléchargé
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div class="card p-5 sm:p-8">
+          <MediaUploader @organize="openAlbumModal" />
         </div>
 
-        <div class="mt-6 bg-brand-50 border border-brand-200 rounded-lg p-4">
-          <div class="flex">
-            <div class="shrink-0">
-              <svg class="h-5 w-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <!-- Astuce selon l'appareil -->
+        <p v-if="device === 'ios'" class="mt-5 text-sm text-surface-500 px-1">
+          <strong class="text-surface-700">Astuce iPhone :</strong> ajoutez MemoryLane à votre écran d'accueil
+          (dans Safari, bouton Partager › « Sur l'écran d'accueil ») pour l'ouvrir comme une application.
+        </p>
+        <p v-else-if="device === 'android'" class="mt-5 text-sm text-surface-500 px-1">
+          <strong class="text-surface-700">Astuce Android :</strong> installez MemoryLane (menu ⋮ › « Installer l'application »),
+          puis depuis votre Galerie : Partager › MemoryLane.
+        </p>
+
+        <!-- Autres façons d'importer -->
+        <details class="mt-6 group">
+          <summary class="cursor-pointer list-none flex items-center gap-2 text-sm font-medium text-surface-600 hover:text-surface-900 px-1">
+            <svg class="w-4 h-4 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+            Autres façons d'importer (Google Photos, archive complète)
+          </summary>
+
+          <Link href="/google-photos" class="mt-3 card card--padded flex items-center gap-4 group/item">
+            <span class="w-11 h-11 rounded-xl bg-brand-100 flex items-center justify-center shrink-0">
+              <svg class="w-6 h-6 text-brand-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
               </svg>
-            </div>
-            <div class="ml-3">
-              <h3 class="text-sm font-medium text-brand-800">À propos du traitement des médias</h3>
-              <div class="mt-2 text-sm text-brand-700">
-                <p>
-                  Vos médias sont traités automatiquement en arrière-plan :
-                </p>
-                <ul class="list-disc list-inside mt-1 space-y-1">
-                  <li>Extraction des données EXIF (date, lieu, appareil photo)</li>
-                  <li>Génération de miniatures et versions optimisées</li>
-                  <li>Extraction des informations de géolocalisation</li>
-                </ul>
-                <p class="mt-2">
-                  Ce traitement peut prendre quelques minutes. Vous pouvez continuer à utiliser l'application.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+            </span>
+            <span class="flex-1">
+              <span class="font-semibold text-surface-900 block">Depuis Google Photos</span>
+              <span class="text-sm text-surface-500">Si vos photos sont déjà chez Google : choisissez-les par personne, lieu ou date.</span>
+            </span>
+          </Link>
+
+          <Link href="/takeout" class="mt-3 card card--padded flex items-center gap-4">
+            <span class="w-11 h-11 rounded-xl bg-teal-100 dark:bg-teal-500/15 flex items-center justify-center shrink-0">
+              <svg class="w-6 h-6 text-teal-700 dark:text-teal-300" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+              </svg>
+            </span>
+            <span class="flex-1">
+              <span class="font-semibold text-surface-900 block">Archive Google Takeout</span>
+              <span class="text-sm text-surface-500">Tout l'historique Google Photos d'un coup, avec les lieux (pour les gros volumes, sur ordinateur).</span>
+            </span>
+          </Link>
+        </details>
       </div>
     </div>
 
+    <UploadTutorial v-if="showTutorial" :device="device" @close="closeTutorial" />
+
     <AddToAlbumModal
       v-if="showAlbumModal"
-      :media-ids="uploadedIds"
+      :media-ids="organizeIds"
       @close="showAlbumModal = false"
       @done="handleAlbumDone"
     />
@@ -191,46 +80,43 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { ref, onMounted } from 'vue';
+import { Head, Link, usePage } from '@inertiajs/vue3';
+import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import MediaUploader from '@/Components/MediaUploader.vue';
+import UploadTutorial from '@/Components/UploadTutorial.vue';
 import AddToAlbumModal from '@/Components/AddToAlbumModal.vue';
-import { formatFileSize } from '@/utils/format';
+import { detectDevice } from '@/utils/device';
+import { useToast } from '@/Composables/useToast';
 
-const recentUploads = ref([]);
-// Tous les IDs uploadés dans la session (sans le plafond d'affichage de 10) :
-// permet de créer un album couvrant le lot entier, même volumineux.
-const uploadedIds = ref([]);
-const showAlbumModal = ref(false);
-const albumFeedback = ref(null);
+const page = usePage();
+const toast = useToast();
+const device = detectDevice();
 
-const handleUploadComplete = (uploadedMedia) => {
-  // Add newly uploaded media to recent uploads list
-  recentUploads.value.unshift(...uploadedMedia);
-  uploadedIds.value.push(...uploadedMedia.map((m) => m.id));
-
-  // Keep only the last 10 uploads for display
-  if (recentUploads.value.length > 10) {
-    recentUploads.value = recentUploads.value.slice(0, 10);
+// Mini-tuto : ouvert d'office à la première visite, puis via « Comment faire ».
+const showTutorial = ref(false);
+onMounted(() => {
+  if (!page.props.auth?.user?.onboarding?.upload_tutorial) showTutorial.value = true;
+});
+const closeTutorial = () => {
+  showTutorial.value = false;
+  if (!page.props.auth?.user?.onboarding?.upload_tutorial) {
+    axios.post('/onboarding/upload_tutorial').catch(() => {});
   }
 };
 
-const handleAlbumDone = ({ albumId, albumName, count, isNew }) => {
-  albumFeedback.value = {
-    albumId,
-    message: isNew
-      ? `Album « ${albumName} » créé avec ${count} média${count > 1 ? 's' : ''}.`
-      : `${count} média${count > 1 ? 's' : ''} ajouté${count > 1 ? 's' : ''} à « ${albumName} ».`,
-  };
+// Rangement en album après coup (depuis le bilan d'envoi).
+const showAlbumModal = ref(false);
+const organizeIds = ref([]);
+const openAlbumModal = (ids) => {
+  organizeIds.value = ids;
+  showAlbumModal.value = true;
 };
-
-const formatMediaType = (type) => {
-  const types = {
-    photo: 'Photo',
-    video: 'Vidéo',
-    document: 'Document'
-  };
-  return types[type] || type;
+const handleAlbumDone = ({ albumName, count, isNew }) => {
+  showAlbumModal.value = false;
+  toast.success(isNew
+    ? `Album « ${albumName} » créé avec ${count} élément${count > 1 ? 's' : ''}.`
+    : `${count} élément${count > 1 ? 's' : ''} ajouté${count > 1 ? 's' : ''} à « ${albumName} ».`);
 };
 </script>

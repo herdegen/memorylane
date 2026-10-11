@@ -44,6 +44,9 @@ class HandleInertiaRequests extends Middleware
                     'role' => $request->user()->role,
                     'person_id' => $request->user()->person_id,
                     'simple_mode' => (bool) $request->user()->simple_mode,
+                    'is_guest' => $request->user()->isGuest(),
+                    // Premiers pas déjà vus (mini-tuto d'envoi, visite guidée).
+                    'onboarding' => (object) ($request->user()->preferences['onboarding'] ?? []),
                 ] : null,
             ],
             // Notifications push : clé publique VAPID + état (profil, carte dashboard)

@@ -82,6 +82,10 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/dashboard/hide-guide', [DashboardController::class, 'hideGuide'])->name('dashboard.hideGuide');
+    // Premiers pas : mini-tuto d'envoi de photos, visite guidée (vus une fois)
+    Route::post('/onboarding/{step}', [\App\Http\Controllers\OnboardingController::class, 'store'])
+        ->whereIn('step', \App\Http\Controllers\OnboardingController::STEPS)
+        ->name('onboarding.done');
     // Guide d'utilisation (bloc « Bien démarrer » + menu avatar) ; les
     // captures illustratives sont servies authentifiées (photos de famille).
     Route::get('/guide', [GuideController::class, 'show'])->name('guide');

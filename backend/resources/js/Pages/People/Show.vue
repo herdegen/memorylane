@@ -160,6 +160,7 @@
     <!-- ================= Famille (mini-arbre) ================= -->
     <FamilyPanel
       v-if="!isFriends"
+      data-tour="family-panel"
       :person="person"
       :father="father"
       :mother="mother"

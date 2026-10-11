@@ -27,8 +27,8 @@
 
             <div class="hidden sm:ml-6 sm:flex sm:space-x-1">
               <NavLink href="/dashboard" :active="$page.component === 'Dashboard'">Accueil</NavLink>
-              <NavLink href="/media" :active="$page.component.startsWith('Media/')">Mes photos</NavLink>
-              <NavLink href="/media/upload" :active="$page.component === 'Media/Upload'">Télécharger</NavLink>
+              <NavLink href="/media" :active="$page.component.startsWith('Media/') && $page.component !== 'Media/Upload'">Mes photos</NavLink>
+              <NavLink href="/media/upload" :active="$page.component === 'Media/Upload'">Ajouter</NavLink>
               <NavLink href="/albums" :active="$page.component.startsWith('Albums/')">Albums</NavLink>
               <NavLink href="/people" :active="$page.component.startsWith('People/')">{{ peopleLabel }}</NavLink>
               <NavLink v-if="isFriends" href="/network" :active="$page.component.startsWith('Network/')">Réseau</NavLink>
@@ -79,6 +79,7 @@
                   <Link href="/households" class="dropdown-item" @click="showDropdown = false">Cercles</Link>
                   <Link href="/tags" class="dropdown-item" @click="showDropdown = false">Tags</Link>
                   <Link href="/guide" class="dropdown-item" @click="showDropdown = false">Guide d'utilisation</Link>
+                  <button type="button" class="dropdown-item w-full text-left" @click="launchTour">Visite guidée</button>
                   <hr class="dropdown-divider" />
                   <Link href="/logout" method="post" as="button" class="dropdown-item w-full text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-300">
                     Déconnexion
@@ -117,8 +118,8 @@
         </div>
         <div class="py-2 space-y-0.5 px-3">
           <MobileNavLink href="/dashboard" :active="$page.component === 'Dashboard'">Accueil</MobileNavLink>
-          <MobileNavLink href="/media" :active="$page.component.startsWith('Media/')">Mes photos</MobileNavLink>
-          <MobileNavLink href="/media/upload" :active="$page.component === 'Media/Upload'">Télécharger</MobileNavLink>
+          <MobileNavLink href="/media" :active="$page.component.startsWith('Media/') && $page.component !== 'Media/Upload'">Mes photos</MobileNavLink>
+          <MobileNavLink href="/media/upload" :active="$page.component === 'Media/Upload'">Ajouter des photos</MobileNavLink>
           <MobileNavLink href="/albums" :active="$page.component.startsWith('Albums/')">Albums</MobileNavLink>
           <MobileNavLink href="/people" :active="$page.component.startsWith('People/')">{{ peopleLabel }}</MobileNavLink>
           <MobileNavLink v-if="!isFriends" href="/family-tree" :active="$page.component.startsWith('FamilyTree/')">Arbre</MobileNavLink>
@@ -141,6 +142,11 @@
               <MobileNavLink href="/households" :active="$page.component.startsWith('Households/')">Cercles</MobileNavLink>
               <MobileNavLink href="/tags" :active="$page.component.startsWith('Tags/')">Tags</MobileNavLink>
               <MobileNavLink href="/guide" :active="$page.component === 'Guide'">Guide d'utilisation</MobileNavLink>
+              <button type="button"
+                class="block w-full text-left pl-3 pr-4 py-2.5 border-l-4 border-transparent text-base font-medium text-surface-600 hover:bg-surface-100 hover:border-surface-300 rounded-r-lg transition-all"
+                @click="launchTour">
+                Visite guidée
+              </button>
               <a v-if="isAdmin" href="/admin"
                 class="block pl-3 pr-4 py-2.5 border-l-4 border-transparent text-base font-medium
                        text-brand-700 hover:bg-brand-50 hover:border-brand-300 rounded-r-lg transition-all">
@@ -165,17 +171,20 @@
     </main>
 
     <ToastContainer />
+    <GuidedTour v-if="user" />
   </div>
 </template>
 
 <script setup>
 import { ref, watchEffect, onMounted, onUnmounted } from 'vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import NavLink from '@/Components/NavLink.vue';
 import MobileNavLink from '@/Components/MobileNavLink.vue';
 import SearchBar from '@/Components/SearchBar.vue';
 import CircleSwitcher from '@/Components/CircleSwitcher.vue';
 import ToastContainer from '@/Components/ToastContainer.vue';
+import GuidedTour from '@/Components/GuidedTour.vue';
+import { startTour } from '@/Composables/useTour';
 import { IconSettings, IconChevron, IconMenu, IconTheme } from '@/Components/Icons';
 import { useAuth } from '@/Composables/useAuth';
 import { useTheme } from '@/Composables/useTheme';
@@ -196,6 +205,13 @@ watchEffect(() => {
 
 const showDropdown = ref(false);
 const showMobileMenu = ref(false);
+
+const page = usePage();
+const launchTour = () => {
+  showDropdown.value = false;
+  showMobileMenu.value = false;
+  startTour(page);
+};
 const dropdownRef = ref(null);
 
 const handleClickOutside = (event) => {

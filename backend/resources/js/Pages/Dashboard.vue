@@ -13,7 +13,7 @@
         </div>
 
         <!-- ============ Souvenirs « Il y a N ans » ============ -->
-        <div v-if="onThisDay.length > 0" class="space-y-4">
+        <div v-if="onThisDay.length > 0" class="space-y-4" data-tour="today">
           <div class="flex items-center justify-between">
             <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400">Vos souvenirs du jour</h2>
             <button
@@ -69,7 +69,7 @@
         </div>
 
         <!-- ============ Personne du jour (repli sans souvenir daté) ============ -->
-        <div v-else-if="personOfTheDay" class="space-y-4">
+        <div v-else-if="personOfTheDay" class="space-y-4" data-tour="today">
           <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400">La personne du jour</h2>
           <div class="flex flex-col sm:flex-row bg-white border border-surface-200 rounded-2xl overflow-hidden shadow-warm-md">
             <div class="sm:w-72 h-52 sm:h-auto bg-brand-100 shrink-0 flex items-center justify-center overflow-hidden">
@@ -133,7 +133,7 @@
         </div>
 
         <!-- ============ Quêtes : complétez la mémoire familiale ============ -->
-        <QuestCard />
+        <QuestCard data-tour="quests" />
 
         <!-- ============ Notifications push (invitation, masquable) ============ -->
         <PushPromptCard />
@@ -180,8 +180,8 @@
                   </svg>
                 </div>
                 <div>
-                  <h3 class="font-semibold text-surface-900">Télécharger</h3>
-                  <p class="text-sm text-surface-500 mt-0.5">Ajouter des médias</p>
+                  <h3 class="font-semibold text-surface-900">Ajouter des photos</h3>
+                  <p class="text-sm text-surface-500 mt-0.5">Depuis le téléphone ou l'ordinateur</p>
                 </div>
               </div>
             </Link>

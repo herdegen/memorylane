@@ -125,9 +125,9 @@ import GuideImage from '@/Components/GuideImage.vue';
 const steps = [
   {
     title: 'Importez vos photos et vidéos',
-    body: 'Glissez vos fichiers dans la page Télécharger — les grosses vidéos passent aussi. Vous pouvez importer directement depuis Google Photos ou une archive Google Takeout. Les dates, lieux et autres informations sont lus automatiquement.',
+    body: 'Glissez vos fichiers dans la page « Ajouter des photos » — les grosses vidéos passent aussi. Vous pouvez importer directement depuis Google Photos ou une archive Google Takeout. Les dates, lieux et autres informations sont lus automatiquement.',
     image: 'upload',
-    link: { href: '/media/upload', label: 'Ouvrir Télécharger' },
+    link: { href: '/media/upload', label: 'Ajouter des photos' },
     more: 'importer',
   },
   {
@@ -214,11 +214,11 @@ const sections = [
     intro: 'Trois chemins pour faire entrer vos souvenirs, du plus simple au plus massif.',
     image: 'upload',
     points: [
-      { title: 'Glisser-déposer', text: 'Déposez photos et vidéos directement dans la page Télécharger, même par centaines.' },
+      { title: 'Glisser-déposer', text: 'Déposez photos et vidéos directement dans la page « Ajouter des photos », même par centaines.' },
       { title: 'Google Photos', text: 'Connectez votre compte et choisissez ce que vous rapatriez.' },
       { title: 'Archive Takeout', text: 'Pour tout récupérer d\'un coup, avec les lieux et les albums d\'origine. Les photos déjà présentes sont enrichies, pas dupliquées.' },
     ],
-    link: { href: '/media/upload', label: 'Ouvrir Télécharger' },
+    link: { href: '/media/upload', label: 'Ajouter des photos' },
   },
   {
     id: 'telephone',
@@ -226,9 +226,10 @@ const sections = [
     title: 'Depuis votre téléphone',
     intro: 'MemoryLane s\'installe comme une application et reçoit vos photos en deux gestes.',
     points: [
-      { title: 'Installer l\'app', text: 'Ouvrez le site sur votre téléphone puis « Ajouter à l\'écran d\'accueil » : MemoryLane se comporte comme une app.' },
-      { title: 'Partager → MemoryLane', text: 'Depuis la galerie du téléphone, bouton Partager puis MemoryLane : la photo part directement dans la bibliothèque.' },
-      { title: 'Connexion sans mot de passe', text: 'La connexion peut se faire par lien magique envoyé par l\'administrateur — rien à retenir.' },
+      { title: 'Installer l\'app', text: 'Ouvrez le site sur votre téléphone puis « Ajouter à l\'écran d\'accueil » (sur iPhone : bouton Partager de Safari) : MemoryLane se comporte comme une app.' },
+      { title: 'Envoyer ses photos', text: 'Page « Ajouter des photos » › « Choisir dans mes photos » : cochez-en autant que vous voulez, puis « Envoyer ». Un mini-tuto s\'affiche à la première visite.' },
+      { title: 'Partager → MemoryLane (Android)', text: 'Une fois l\'app installée sur Android, depuis la galerie : Partager puis MemoryLane. (Sur iPhone, passez par la page « Ajouter des photos ».)' },
+      { title: 'Connexion sans mot de passe', text: 'Mot de passe oublié ? La page de connexion vous envoie un lien par e-mail : rien à retenir.' },
     ],
   },
   {

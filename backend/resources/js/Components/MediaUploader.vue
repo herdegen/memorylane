@@ -1,315 +1,257 @@
 <template>
   <div class="media-uploader">
-    <div class="upload-area">
-      <div
-        ref="dropZone"
-        class="border-2 border-dashed border-surface-300 rounded-lg p-8 text-center hover:border-brand-400 transition-colors duration-200"
-        :class="{ 'border-brand-500 bg-brand-50': isDragging }"
-        @dragover.prevent="handleDragOver"
-        @dragleave="handleDragLeave"
-        @drop.prevent="handleDrop"
+    <!-- ================= 1. Choix des photos ================= -->
+    <div
+      v-if="phase === 'select' && items.length === 0"
+      class="rounded-2xl border-2 border-dashed px-5 py-10 sm:py-12 text-center transition-colors duration-200"
+      :class="isDragging ? 'border-brand-500 bg-brand-50' : 'border-surface-300'"
+      @dragover.prevent="isDragging = true"
+      @dragleave="isDragging = false"
+      @drop.prevent="handleDrop"
+    >
+      <div class="mx-auto w-16 h-16 rounded-2xl bg-brand-100 flex items-center justify-center">
+        <svg class="w-9 h-9 text-brand-600" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21zm9-12h.008v.008H12.75V9zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+        </svg>
+      </div>
+
+      <label
+        for="file-upload"
+        data-tour="upload-pick"
+        class="mt-6 inline-flex items-center justify-center gap-2 w-full sm:w-auto px-7 py-4 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-lg font-semibold shadow-warm-md cursor-pointer transition"
       >
-        <div v-if="!uploading && files.length === 0" class="space-y-4">
-          <svg
-            class="mx-auto h-12 w-12 text-surface-400"
-            stroke="currentColor"
-            fill="none"
-            viewBox="0 0 48 48"
-            aria-hidden="true"
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+        {{ isTouch ? 'Choisir dans mes photos' : 'Choisir des photos' }}
+      </label>
+      <input
+        id="file-upload"
+        ref="fileInput"
+        type="file"
+        class="sr-only"
+        multiple
+        accept="image/*,video/*"
+        @change="handleFileSelect"
+      />
+
+      <p v-if="!isTouch" class="mt-3 text-surface-500">ou glissez-les directement ici</p>
+      <p class="mt-4 text-sm text-surface-500">
+        Photos et vidéos, autant que vous voulez.
+        <label for="doc-upload" class="text-brand-700 dark:text-brand-300 underline underline-offset-2 cursor-pointer">Un document (PDF, Word) ?</label>
+      </p>
+      <input
+        id="doc-upload"
+        type="file"
+        class="sr-only"
+        multiple
+        accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        @change="handleFileSelect"
+      />
+    </div>
+
+    <!-- ================= 2. Sélection / envoi en cours ================= -->
+    <div v-else-if="phase !== 'done'">
+      <div class="flex flex-wrap items-baseline justify-between gap-2 mb-3">
+        <h2 class="text-lg font-semibold text-surface-900">
+          <template v-if="phase === 'uploading'">Envoi en cours… {{ doneCount }} / {{ items.length }}</template>
+          <template v-else>{{ items.length }} {{ plural(items.length, mediaNoun) }} {{ agree('choisi', items.length) }}</template>
+        </h2>
+        <label v-if="phase === 'select'" for="file-upload-more" class="text-sm font-medium text-brand-700 dark:text-brand-300 cursor-pointer">
+          + En ajouter
+        </label>
+        <input id="file-upload-more" type="file" class="sr-only" multiple accept="image/*,video/*" @change="handleFileSelect" />
+      </div>
+
+      <!-- Barre de progression globale -->
+      <div v-if="phase === 'uploading'" class="mb-4">
+        <div class="w-full bg-surface-200 rounded-full h-2.5 overflow-hidden">
+          <div class="bg-brand-600 h-2.5 rounded-full transition-all duration-300" :style="{ width: `${globalProgress}%` }"></div>
+        </div>
+        <p class="mt-2 text-sm text-surface-600 flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-brand-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" /></svg>
+          Gardez cette page ouverte jusqu'à la fin de l'envoi.
+        </p>
+      </div>
+
+      <!-- Vignettes -->
+      <div class="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-1.5 sm:gap-2 max-h-[52vh] overflow-y-auto pr-0.5">
+        <div
+          v-for="item in items"
+          :key="item.id"
+          class="relative aspect-square rounded-lg overflow-hidden bg-surface-100"
+        >
+          <img
+            v-if="item.previewUrl && !item.previewFailed"
+            :src="item.previewUrl"
+            :alt="item.name"
+            loading="lazy"
+            decoding="async"
+            class="w-full h-full object-cover"
+            @error="item.previewFailed = true"
+          />
+          <div v-else class="w-full h-full flex flex-col items-center justify-center gap-1 p-1"
+               :class="isVideo(item.type) ? 'bg-violet-50 dark:bg-violet-500/10' : 'bg-surface-50'">
+            <svg v-if="isVideo(item.type)" class="w-7 h-7 text-violet-500" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+            <svg v-else class="w-7 h-7 text-surface-400" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+            <span class="text-[10px] leading-tight text-surface-500 text-center line-clamp-2 break-all">{{ item.name }}</span>
+          </div>
+
+          <!-- Retirer (avant envoi) -->
+          <button
+            v-if="phase === 'select'"
+            type="button"
+            class="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/55 text-white flex items-center justify-center"
+            :aria-label="`Retirer ${item.name}`"
+            @click="removeItem(item.id)"
           >
-            <path
-              d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
-          <div>
-            <label
-              for="file-upload"
-              class="cursor-pointer text-brand-600 hover:text-brand-500 font-medium"
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+
+          <!-- État pendant l'envoi -->
+          <div v-if="item.status === 'uploading' || item.status === 'pending'" class="absolute inset-0 bg-white/45 dark:bg-black/40 flex items-end">
+            <div class="w-full h-1.5 bg-black/10">
+              <div class="h-1.5 bg-brand-600 transition-all duration-200" :style="{ width: `${Math.round(item.progress * 100)}%` }"></div>
+            </div>
+          </div>
+          <div v-else-if="item.status === 'done'" class="absolute top-1 right-1 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shadow-xs">
+            <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+          </div>
+          <div v-else-if="item.status === 'error'" class="absolute inset-0 bg-red-600/45 flex items-center justify-center" :title="item.error">
+            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Options avant envoi -->
+      <div v-if="phase === 'select'" class="mt-5 space-y-3">
+        <label
+          v-if="shareCircle"
+          class="flex items-start gap-3 rounded-xl border border-surface-200 px-4 py-3 cursor-pointer"
+          :class="shareWithCircle ? 'bg-brand-50 border-brand-200 dark:bg-brand-500/10 dark:border-brand-500/30' : ''"
+        >
+          <input v-model="shareWithCircle" type="checkbox" class="mt-0.5 h-5 w-5 rounded border-surface-300 text-brand-600 focus:ring-brand-500" />
+          <span>
+            <span class="block font-medium text-surface-900">Partager avec « {{ shareCircle.name }} »</span>
+            <span class="block text-sm text-surface-500">Les membres pourront les voir. Décochez pour les garder pour vous.</span>
+          </span>
+        </label>
+
+        <!-- Album (facultatif) -->
+        <div v-if="!targetAlbumId">
+          <button
+            v-if="!showAlbumOptions"
+            type="button"
+            class="text-sm font-medium text-brand-700 dark:text-brand-300"
+            @click="showAlbumOptions = true"
+          >
+            + Ranger dans un album (facultatif)
+          </button>
+          <div v-else class="rounded-xl border border-surface-200 px-4 py-3">
+            <p class="text-sm font-medium text-surface-700 mb-2">Ranger dans un album</p>
+            <div class="flex rounded-lg bg-surface-100 p-1 text-sm font-medium">
+              <button
+                v-for="opt in albumModeOptions"
+                :key="opt.value"
+                type="button"
+                class="flex-1 rounded-md px-3 py-1.5 transition"
+                :class="albumMode === opt.value ? 'bg-white text-surface-900 shadow-xs' : 'text-surface-500 hover:text-surface-700'"
+                @click="albumMode = opt.value"
+              >
+                {{ opt.label }}
+              </button>
+            </div>
+            <select
+              v-if="albumMode === 'existing'"
+              v-model="selectedAlbumId"
+              class="form-input mt-2 w-full"
             >
-              Choisir des fichiers
-            </label>
-            <span class="text-surface-600"> ou glisser-déposer</span>
+              <option :value="null" disabled>Choisir un album…</option>
+              <option v-for="album in ownedAlbums" :key="album.id" :value="album.id">
+                {{ album.name }} ({{ album.media_count }})
+              </option>
+            </select>
+            <p v-if="albumMode === 'existing' && !loadingAlbums && ownedAlbums.length === 0" class="mt-2 text-xs text-surface-500">
+              Aucun album pour l'instant : choisissez « Nouvel album ».
+            </p>
             <input
-              id="file-upload"
-              ref="fileInput"
-              type="file"
-              class="sr-only"
-              multiple
-              accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-              @change="handleFileSelect"
+              v-else-if="albumMode === 'new'"
+              v-model="newAlbumName"
+              type="text"
+              placeholder="Nom du nouvel album (ex. Noël 2025)"
+              class="form-input mt-2 w-full"
             />
           </div>
-          <p class="text-xs text-surface-500">
-            Photos/docs jusqu'à 2 Go · vidéos (MP4, MOV, AVI, MKV, WEBM) jusqu'à 20 Go
-          </p>
         </div>
 
-        <div v-else class="space-y-4">
-          <div v-if="uploading" class="space-y-2">
-            <div class="flex items-center justify-center space-x-2">
-              <svg
-                class="animate-spin h-5 w-5 text-brand-600"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  class="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  stroke-width="4"
-                ></circle>
-                <path
-                  class="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-              <span class="text-surface-700 font-medium">Téléchargement en cours...</span>
-            </div>
-            <div class="w-full bg-surface-200 rounded-full h-2">
-              <div
-                class="bg-brand-600 h-2 rounded-full transition-all duration-300"
-                :style="{ width: `${uploadProgress}%` }"
-              ></div>
-            </div>
-            <p class="text-sm text-surface-600">
-              {{ uploadedCount }} / {{ totalFiles }} fichier(s) téléchargé(s)
-            </p>
-            <p v-if="currentFileLabel" class="text-xs text-surface-500 truncate">
-              {{ currentFileLabel }}
-            </p>
-          </div>
-
-          <div v-else class="space-y-3">
-            <div
-              v-for="file in files"
-              :key="file.id"
-              class="flex items-center justify-between p-3 bg-white rounded-lg border border-surface-200"
-            >
-              <div class="flex items-center space-x-3 flex-1 min-w-0">
-                <div class="shrink-0">
-                  <svg
-                    v-if="isImage(file.type)"
-                    class="h-6 w-6 text-brand-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                  <svg
-                    v-else-if="isVideo(file.type)"
-                    class="h-6 w-6 text-violet-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                    />
-                  </svg>
-                  <svg
-                    v-else
-                    class="h-6 w-6 text-surface-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                    />
-                  </svg>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-surface-900 truncate">
-                    {{ file.name }}
-                  </p>
-                  <p class="text-xs text-surface-500">{{ formatFileSize(file.size) }}</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                class="ml-3 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
-                @click="removeFile(file.id)"
-              >
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-
-            <!-- Album de destination (choisi avant l'upload ; masqué quand
-                 l'album cible est imposé par le parent) -->
-            <div v-if="!targetAlbumId" class="pt-3 border-t border-surface-100 text-left">
-              <label class="block text-sm font-medium text-surface-700 mb-2">
-                Album de destination
-              </label>
-              <div class="flex rounded-lg bg-surface-100 p-1 text-sm font-medium">
-                <button
-                  v-for="opt in albumModeOptions"
-                  :key="opt.value"
-                  type="button"
-                  class="flex-1 rounded-md px-3 py-1.5 transition"
-                  :class="albumMode === opt.value ? 'bg-white text-surface-900 shadow-xs' : 'text-surface-500 hover:text-surface-700'"
-                  @click="albumMode = opt.value"
-                >
-                  {{ opt.label }}
-                </button>
-              </div>
-              <select
-                v-if="albumMode === 'existing'"
-                v-model="selectedAlbumId"
-                class="mt-2 block w-full px-3 py-2 border border-surface-300 rounded-md focus:outline-hidden focus:ring-1 focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
-              >
-                <option :value="null" disabled>Choisir un album…</option>
-                <option v-for="album in ownedAlbums" :key="album.id" :value="album.id">
-                  {{ album.name }} ({{ album.media_count }})
-                </option>
-              </select>
-              <p v-if="albumMode === 'existing' && !loadingAlbums && ownedAlbums.length === 0" class="mt-2 text-xs text-surface-500">
-                Aucun album existant. Choisissez « Nouvel album ».
-              </p>
-              <input
-                v-else-if="albumMode === 'new'"
-                v-model="newAlbumName"
-                type="text"
-                placeholder="Nom du nouvel album"
-                class="mt-2 block w-full px-3 py-2 border border-surface-300 rounded-md focus:outline-hidden focus:ring-1 focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
-              />
-            </div>
-
-            <div class="flex space-x-3 pt-2">
-              <button
-                type="button"
-                class="flex-1 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                :disabled="!canUpload"
-                @click="startUpload"
-              >
-                Télécharger {{ files.length }} fichier(s)
-              </button>
-              <button
-                type="button"
-                class="px-4 py-2 bg-surface-200 text-surface-700 rounded-lg hover:bg-surface-300 transition-colors"
-                @click="clearFiles"
-              >
-                Annuler
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div v-if="error" class="mt-4 p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg">
-        <div class="flex">
-          <svg
-            class="h-5 w-5 text-red-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <div class="flex flex-col-reverse sm:flex-row gap-3 pt-1">
+          <button type="button" class="btn-secondary sm:w-auto" @click="clearAll">Annuler</button>
+          <button
+            type="button"
+            class="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-base font-semibold shadow-warm-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
+            :disabled="!canUpload"
+            @click="startUpload"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <div class="ml-3">
-            <p class="text-sm text-red-700 dark:text-red-300">{{ error }}</p>
-          </div>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
+            Envoyer {{ items.length }} {{ plural(items.length, mediaNoun) }}
+          </button>
         </div>
+      </div>
+    </div>
+
+    <!-- ================= 3. Bilan ================= -->
+    <div v-else class="text-center py-6">
+      <div class="mx-auto w-16 h-16 rounded-full flex items-center justify-center"
+           :class="failedItems.length && !doneItems.length ? 'bg-red-100 dark:bg-red-500/15' : 'bg-green-100 dark:bg-green-500/15'">
+        <svg v-if="doneItems.length" class="w-9 h-9 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+        <svg v-else class="w-9 h-9 text-red-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+      </div>
+      <h2 class="mt-4 font-display text-2xl text-surface-900">
+        <template v-if="doneItems.length">{{ doneItems.length }} {{ plural(doneItems.length, mediaNoun) }} {{ agree('ajouté', doneItems.length) }} !</template>
+        <template v-else>L'envoi n'a pas abouti</template>
+      </h2>
+      <ul class="mt-3 space-y-1 text-surface-600">
+        <li v-if="summary.sharedWith">{{ capitalize(agree('partagé', doneItems.length)) }} avec « {{ summary.sharedWith }} ».</li>
+        <li v-if="summary.albumName">{{ capitalize(agree('rangé', doneItems.length)) }} dans l'album « {{ summary.albumName }} ».</li>
+        <li v-if="summary.warning" class="text-amber-700 dark:text-amber-300">{{ summary.warning }}</li>
+        <li v-if="doneItems.length" class="text-sm text-surface-500">Dates, lieux et visages sont reconnus automatiquement dans les minutes qui suivent.</li>
+      </ul>
+
+      <div v-if="failedItems.length" class="mt-5 mx-auto max-w-md rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 px-4 py-3 text-left">
+        <p class="text-sm font-medium text-red-800 dark:text-red-200">
+          {{ failedItems.length }} {{ plural(failedItems.length, mediaNoun) }} {{ failedItems.length > 1 ? "n'ont" : "n'a" }} pas pu être {{ agree('envoyé', failedItems.length) }}
+          (connexion coupée ?).
+        </p>
+        <button type="button" class="mt-2 btn-primary" @click="retryFailed">Réessayer</button>
       </div>
 
-      <div v-if="uploadedMedia.length > 0" class="mt-6">
-        <h3 class="text-lg font-medium text-surface-900 mb-3">
-          Fichiers téléchargés avec succès
-        </h3>
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          <div
-            v-for="media in uploadedMedia"
-            :key="media.id"
-            class="relative aspect-square rounded-lg overflow-hidden bg-surface-100"
-          >
-            <!-- Photo : aperçu réel -->
-            <img
-              v-if="media.type === 'photo'"
-              :src="media.url"
-              :alt="media.original_filename"
-              class="w-full h-full object-cover"
-            />
-            <!-- Vidéo : card violet avec icône play -->
-            <div
-              v-else-if="media.type === 'video'"
-              class="w-full h-full flex flex-col items-center justify-center bg-violet-50 dark:bg-violet-500/10 p-3"
-            >
-              <div class="rounded-full bg-violet-100 dark:bg-violet-500/15 p-3 mb-2">
-                <svg class="h-8 w-8 text-violet-500" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-              </div>
-              <p class="text-xs text-violet-700 dark:text-violet-300 text-center font-medium leading-tight line-clamp-2">
-                {{ media.original_filename }}
-              </p>
-            </div>
-            <!-- Document : card neutre avec icône fichier -->
-            <div
-              v-else
-              class="w-full h-full flex flex-col items-center justify-center bg-surface-50 p-3"
-            >
-              <div class="rounded-full bg-surface-200 p-3 mb-2">
-                <svg class="h-8 w-8 text-surface-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <p class="text-xs text-surface-600 text-center font-medium leading-tight line-clamp-2">
-                {{ media.original_filename }}
-              </p>
-            </div>
-            <!-- Badge succès permanent -->
-            <div class="absolute top-2 right-2 bg-green-500 rounded-full p-1 shadow-xs">
-              <svg class="h-3 w-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-          </div>
-        </div>
+      <div class="mt-6 flex flex-col sm:flex-row justify-center gap-3">
+        <Link v-if="doneItems.length && !targetAlbumId" href="/media" class="btn-primary">Voir mes photos</Link>
+        <button v-if="doneItems.length && !targetAlbumId && !summary.albumName" type="button" class="btn-secondary" @click="emit('organize', doneItems.map((i) => i.media.id))">
+          Ranger dans un album
+        </button>
+        <button type="button" class="btn-secondary" @click="clearAll">Ajouter d'autres photos</button>
       </div>
+    </div>
+
+    <!-- Fichiers refusés à la sélection -->
+    <div v-if="rejected.length" class="mt-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+      {{ rejected.length }} {{ plural(rejected.length, 'fichier') }} {{ rejected.length > 1 ? 'ignorés' : 'ignoré' }} :
+      {{ rejected.slice(0, 3).join(' · ') }}<span v-if="rejected.length > 3"> …</span>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { Link, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { fetchOwnedAlbums, createAlbumWithMedia, addMediaToAlbum } from '@/utils/albums';
-import { formatFileSize } from '@/utils/format';
+import { useCircle } from '@/Composables/useCircle';
 
-// `album-attached` : { albumId, albumName, count, isNew } — pour un retour parent.
-const emit = defineEmits(['upload-complete', 'album-attached']);
+// `album-attached` : { albumId, albumName, count, isNew } ; `organize` : ids
+// envoyés, pour proposer un rangement en album après coup.
+const emit = defineEmits(['upload-complete', 'album-attached', 'organize']);
 
 const props = defineProps({
   // Album cible imposé (ex. modale « Ajouter des médias » d'un album) :
@@ -320,27 +262,31 @@ const props = defineProps({
   },
 });
 
-// Album de destination choisi AVANT l'upload (rattaché une fois tout monté).
+// ---------------------------------------------------------------- appareil
+const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
+
+// ---------------------------------------------------------------- partage
+// Cercle courant : les photos y sont partagées par défaut (sinon personne
+// d'autre ne les voit). Sans objet dans la modale d'un album.
+const { current: currentCircle } = useCircle();
+const shareCircle = computed(() => (props.targetAlbumId ? null : currentCircle.value));
+const shareWithCircle = ref(true);
+
+// ---------------------------------------------------------------- album
 const albumModeOptions = [
   { value: 'none', label: 'Aucun' },
   { value: 'existing', label: 'Album existant' },
   { value: 'new', label: 'Nouvel album' },
 ];
+const showAlbumOptions = ref(false);
 const albumMode = ref('none');
 const selectedAlbumId = ref(null);
 const newAlbumName = ref('');
 const ownedAlbums = ref([]);
 const loadingAlbums = ref(false);
 
-// Empêche de lancer l'upload avec une destination album incomplète.
-const canUpload = computed(() => {
-  if (albumMode.value === 'existing') return !!selectedAlbumId.value;
-  if (albumMode.value === 'new') return newAlbumName.value.trim().length > 0;
-  return true;
-});
-
 onMounted(async () => {
-  if (props.targetAlbumId) return; // destination imposée, rien à charger
+  if (props.targetAlbumId) return;
   loadingAlbums.value = true;
   try {
     ownedAlbums.value = await fetchOwnedAlbums();
@@ -351,223 +297,278 @@ onMounted(async () => {
   }
 });
 
-// Rattache les médias tout juste uploadés à l'album choisi (créé si « nouveau »),
-// ou directement à l'album cible quand il est imposé par le parent.
-const attachToChosenAlbum = async (mediaIds) => {
-  if (mediaIds.length === 0) return;
+// ---------------------------------------------------------------- éléments
+const fileInput = ref(null);
+const isDragging = ref(false);
+const items = ref([]);
+const rejected = ref([]);
+const phase = ref('select'); // select | uploading | done
+const summary = ref({});
+let idCounter = 0;
 
-  if (props.targetAlbumId) {
-    try {
-      await addMediaToAlbum(props.targetAlbumId, mediaIds);
-      emit('album-attached', { albumId: props.targetAlbumId, albumName: '', count: mediaIds.length, isNew: false });
-    } catch (e) {
-      error.value = "Fichiers téléchargés, mais l'ajout à l'album a échoué.";
-    }
-    return;
-  }
-
-  if (albumMode.value === 'none') return;
-  try {
-    if (albumMode.value === 'new') {
-      const album = await createAlbumWithMedia(newAlbumName.value.trim(), mediaIds);
-      emit('album-attached', { albumId: album.id, albumName: album.name, count: mediaIds.length, isNew: true });
-    } else {
-      const album = ownedAlbums.value.find((a) => a.id === selectedAlbumId.value);
-      await addMediaToAlbum(selectedAlbumId.value, mediaIds);
-      emit('album-attached', { albumId: selectedAlbumId.value, albumName: album?.name ?? '', count: mediaIds.length, isNew: false });
-    }
-    // Réinitialise le choix pour le prochain lot.
-    albumMode.value = 'none';
-    selectedAlbumId.value = null;
-    newAlbumName.value = '';
-  } catch (e) {
-    error.value = "Fichiers téléchargés, mais l'ajout à l'album a échoué.";
-    console.error('Ajout à l\'album impossible :', e);
-  }
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
+const VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska', 'video/webm'];
+const DOC_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+];
+// Types dont file.type peut être vide selon le navigateur.
+const EXT_MIME = {
+  mp4: 'video/mp4', mov: 'video/quicktime', avi: 'video/x-msvideo',
+  mkv: 'video/x-matroska', webm: 'video/webm', m4v: 'video/mp4',
+  heic: 'image/heic', heif: 'image/heif',
 };
 
-const fileInput = ref(null);
-const dropZone = ref(null);
-const isDragging = ref(false);
-const files = ref([]);
-const uploading = ref(false);
-const uploadProgress = ref(0);
-const uploadedCount = ref(0);
-const totalFiles = ref(0);
-const error = ref(null);
-const uploadedMedia = ref([]);
-const currentFileLabel = ref('');
+const resolveMime = (file) => {
+  if (file.type) return file.type;
+  const ext = file.name.split('.').pop()?.toLowerCase();
+  return EXT_MIME[ext] || '';
+};
+const isVideo = (mime) => mime.startsWith('video/');
 
-let fileIdCounter = 0;
+const plural = (n, word) => (n > 1 ? `${word}s` : word);
+// « 3 photos choisies », « 2 vidéos ajoutées », « 4 éléments ajoutés ».
+const mediaNoun = computed(() => {
+  const all = items.value;
+  if (all.length && all.every((i) => i.type.startsWith('image/'))) return 'photo';
+  if (all.length && all.every((i) => isVideo(i.type))) return 'vidéo';
+  return 'élément';
+});
+const agree = (participle, n) =>
+  participle + (mediaNoun.value === 'élément' ? '' : 'e') + (n > 1 ? 's' : '');
+const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
-// Au-delà de ce seuil (ou pour toute vidéo), on passe par l'upload multipart
-// direct vers S3 (contourne les limites 2 Go de PHP/nginx, reprise part/part).
+// Au-delà de ce seuil (ou pour toute vidéo), upload multipart direct vers S3
+// (contourne les limites 2 Go de PHP/nginx, reprise part par part).
 const DIRECT_UPLOAD_THRESHOLD = 100 * 1024 * 1024; // 100 Mo
 const MAX_VIDEO_SIZE = 20 * 1024 * 1024 * 1024; // 20 Go
 const MAX_DEFAULT_SIZE = 2097152000; // 2 Go
 
-// Types vidéo dont file.type peut être vide selon le navigateur.
-const VIDEO_EXT_MIME = {
-  mp4: 'video/mp4', mov: 'video/quicktime', avi: 'video/x-msvideo',
-  mkv: 'video/x-matroska', webm: 'video/webm', m4v: 'video/mp4',
-};
-
-// Résout le type MIME (certains navigateurs renvoient '' pour .mkv).
-const resolveMime = (file) => {
-  if (file.type) return file.type;
-  const ext = file.name.split('.').pop()?.toLowerCase();
-  return VIDEO_EXT_MIME[ext] || '';
-};
-
-const needsDirectUpload = (file) => {
-  const mime = resolveMime(file);
-  return mime.startsWith('video/') || file.size > DIRECT_UPLOAD_THRESHOLD;
-};
-
-const isImage = (mimeType) => {
-  return mimeType.startsWith('image/');
-};
-
-const isVideo = (mimeType) => {
-  return mimeType.startsWith('video/');
-};
-
-const handleDragOver = (e) => {
-  isDragging.value = true;
-};
-
-const handleDragLeave = (e) => {
-  isDragging.value = false;
-};
+const needsDirectUpload = (file) => isVideo(resolveMime(file)) || file.size > DIRECT_UPLOAD_THRESHOLD;
 
 const handleDrop = (e) => {
   isDragging.value = false;
-  const droppedFiles = Array.from(e.dataTransfer.files);
-  addFiles(droppedFiles);
+  addFiles(Array.from(e.dataTransfer.files));
 };
 
 const handleFileSelect = (e) => {
-  const selectedFiles = Array.from(e.target.files);
-  addFiles(selectedFiles);
+  addFiles(Array.from(e.target.files));
+  e.target.value = '';
 };
 
-const addFiles = (newFiles) => {
-  error.value = null;
-
-  const validFiles = newFiles.filter(file => {
+const addFiles = (files) => {
+  rejected.value = [];
+  for (const file of files) {
     const mime = resolveMime(file);
-    const isVid = mime.startsWith('video/');
-    const maxSize = isVid ? MAX_VIDEO_SIZE : MAX_DEFAULT_SIZE;
-
-    if (file.size > maxSize) {
-      const label = isVid ? '20 Go' : '2 Go';
-      error.value = `Le fichier "${file.name}" dépasse la taille maximale de ${label}`;
-      return false;
+    const ok = IMAGE_TYPES.includes(mime) || VIDEO_TYPES.includes(mime) || DOC_TYPES.includes(mime);
+    if (!ok) {
+      rejected.value.push(`${file.name} (format non pris en charge)`);
+      continue;
     }
-
-    // Check file type
-    const allowedTypes = [
-      'image/jpeg',
-      'image/png',
-      'image/gif',
-      'image/webp',
-      'video/mp4',
-      'video/quicktime',
-      'video/x-msvideo',
-      'video/x-matroska',
-      'video/webm',
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    ];
-
-    if (!allowedTypes.includes(mime)) {
-      error.value = `Le type de fichier "${file.name}" n'est pas supporté`;
-      return false;
+    if (file.size > (isVideo(mime) ? MAX_VIDEO_SIZE : MAX_DEFAULT_SIZE)) {
+      rejected.value.push(`${file.name} (trop lourd)`);
+      continue;
     }
-
-    return true;
-  });
-
-  const filesWithIds = validFiles.map(file => ({
-    id: ++fileIdCounter,
-    file: file,
-    name: file.name,
-    size: file.size,
-    type: resolveMime(file)
-  }));
-
-  files.value.push(...filesWithIds);
-};
-
-const removeFile = (id) => {
-  files.value = files.value.filter(f => f.id !== id);
-};
-
-const clearFiles = () => {
-  files.value = [];
-  error.value = null;
-  if (fileInput.value) {
-    fileInput.value.value = '';
+    items.value.push({
+      id: ++idCounter,
+      file,
+      name: file.name,
+      size: file.size,
+      type: mime,
+      previewUrl: mime.startsWith('image/') ? URL.createObjectURL(file) : null,
+      previewFailed: false,
+      status: 'pending',
+      progress: 0,
+      error: null,
+      media: null,
+    });
   }
+};
+
+const revoke = (item) => item.previewUrl && URL.revokeObjectURL(item.previewUrl);
+
+const removeItem = (id) => {
+  const item = items.value.find((i) => i.id === id);
+  if (item) revoke(item);
+  items.value = items.value.filter((i) => i.id !== id);
+};
+
+const clearAll = () => {
+  items.value.forEach(revoke);
+  items.value = [];
+  rejected.value = [];
+  summary.value = {};
+  phase.value = 'select';
+  albumMode.value = 'none';
+  showAlbumOptions.value = false;
+  selectedAlbumId.value = null;
+  newAlbumName.value = '';
+  if (fileInput.value) fileInput.value.value = '';
+};
+
+onBeforeUnmount(() => items.value.forEach(revoke));
+
+const canUpload = computed(() => {
+  if (!items.value.length) return false;
+  if (albumMode.value === 'existing') return !!selectedAlbumId.value;
+  if (albumMode.value === 'new') return newAlbumName.value.trim().length > 0;
+  return true;
+});
+
+const doneItems = computed(() => items.value.filter((i) => i.status === 'done'));
+const failedItems = computed(() => items.value.filter((i) => i.status === 'error'));
+const doneCount = computed(() => doneItems.value.length + failedItems.value.length);
+const globalProgress = computed(() => {
+  if (!items.value.length) return 0;
+  const sum = items.value.reduce((acc, i) => acc + (i.status === 'done' || i.status === 'error' ? 1 : i.progress), 0);
+  return Math.round((sum / items.value.length) * 100);
+});
+
+// ---------------------------------------------------------------- envoi
+// Garde l'écran allumé pendant l'envoi (sinon le téléphone se verrouille et
+// coupe tout) et prévient avant de quitter la page.
+let wakeLock = null;
+const requestWakeLock = async () => {
+  try {
+    if ('wakeLock' in navigator && document.visibilityState === 'visible') {
+      wakeLock = await navigator.wakeLock.request('screen');
+    }
+  } catch (_) { /* non supporté ou refusé : sans gravité */ }
+};
+const releaseWakeLock = () => {
+  wakeLock?.release?.().catch(() => {});
+  wakeLock = null;
+};
+const onVisibility = () => {
+  if (phase.value === 'uploading' && document.visibilityState === 'visible') requestWakeLock();
+};
+const onBeforeUnload = (e) => {
+  if (phase.value === 'uploading') {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+};
+let removeRouterGuard = null;
+
+const guardOn = () => {
+  requestWakeLock();
+  document.addEventListener('visibilitychange', onVisibility);
+  window.addEventListener('beforeunload', onBeforeUnload);
+  removeRouterGuard = router.on('before', (event) => {
+    if (phase.value === 'uploading' && !window.confirm("L'envoi n'est pas terminé. Quitter quand même ?")) {
+      event.preventDefault();
+    }
+  });
+};
+const guardOff = () => {
+  releaseWakeLock();
+  document.removeEventListener('visibilitychange', onVisibility);
+  window.removeEventListener('beforeunload', onBeforeUnload);
+  removeRouterGuard?.();
+  removeRouterGuard = null;
+};
+onBeforeUnmount(guardOff);
+
+const CONCURRENCY = 3;
+
+const runQueue = async (queue) => {
+  let next = 0;
+  const worker = async () => {
+    while (next < queue.length) {
+      const item = queue[next++];
+      item.status = 'uploading';
+      item.progress = 0;
+      try {
+        item.media = needsDirectUpload(item.file)
+          ? await uploadViaMultipart(item.file, (f) => { item.progress = Math.min(f, 1); })
+          : await uploadViaPost(item.file, (f) => { item.progress = Math.min(f, 1); });
+        item.status = 'done';
+        item.progress = 1;
+      } catch (err) {
+        item.status = 'error';
+        item.error = err.response?.data?.error || err.response?.data?.message || err.message;
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, queue.length) }, worker));
 };
 
 const startUpload = async () => {
-  if (files.value.length === 0) return;
+  await sendItems(items.value);
+};
 
-  uploading.value = true;
-  uploadProgress.value = 0;
-  uploadedCount.value = 0;
-  totalFiles.value = files.value.length;
-  error.value = null;
-  uploadedMedia.value = [];
+const retryFailed = async () => {
+  const failed = failedItems.value;
+  failed.forEach((i) => { i.status = 'pending'; i.progress = 0; i.error = null; });
+  await sendItems(failed, { retry: true });
+};
 
+const sendItems = async (queue, { retry = false } = {}) => {
+  phase.value = 'uploading';
+  guardOn();
+  const before = new Set(doneItems.value.map((i) => i.id));
   try {
-    const total = files.value.length;
-    for (let i = 0; i < total; i++) {
-      const fileData = files.value[i];
-      currentFileLabel.value = total > 1 ? `${fileData.name} (${i + 1}/${total})` : fileData.name;
-
-      // Progression globale = fichiers déjà finis + fraction du fichier courant.
-      const onFraction = (frac) => {
-        uploadProgress.value = Math.round(((i + Math.min(frac, 1)) / total) * 100);
-      };
-      onFraction(0);
-
-      await uploadSingleFile(fileData.file, onFraction);
-      uploadedCount.value++;
-      uploadProgress.value = Math.round((uploadedCount.value / total) * 100);
-    }
-
-    currentFileLabel.value = '';
-
-    // Success - clear the form
-    clearFiles();
-
-    // Emit event to notify parent component
-    emit('upload-complete', uploadedMedia.value);
-
-    // Rattachement à l'album de destination choisi avant l'upload.
-    await attachToChosenAlbum(uploadedMedia.value.map((m) => m.id));
-
-  } catch (err) {
-    error.value = err.message || 'Une erreur est survenue lors du téléchargement';
+    await runQueue(queue);
   } finally {
-    uploading.value = false;
-    currentFileLabel.value = '';
+    guardOff();
+  }
+
+  const fresh = doneItems.value.filter((i) => !before.has(i.id));
+  const freshIds = fresh.map((i) => i.media.id);
+  const result = { ...(retry ? summary.value : {}) };
+
+  if (freshIds.length) {
+    await shareFresh(freshIds, result);
+    await attachToChosenAlbum(freshIds, result);
+    emit('upload-complete', fresh.map((i) => i.media));
+  }
+
+  summary.value = result;
+  phase.value = 'done';
+};
+
+const shareFresh = async (ids, result) => {
+  if (!shareCircle.value || !shareWithCircle.value) return;
+  try {
+    for (let i = 0; i < ids.length; i += 500) {
+      await axios.post('/media/bulk/household', {
+        media_ids: ids.slice(i, i + 500),
+        household_id: shareCircle.value.id,
+      });
+    }
+    result.sharedWith = shareCircle.value.name;
+  } catch (e) {
+    result.warning = "Photos envoyées, mais le partage avec la famille a échoué : réessayez depuis « Mes photos ».";
   }
 };
 
-const uploadSingleFile = async (file, onFraction) => {
+// Rattache les médias tout juste envoyés à l'album choisi (créé si « nouveau »),
+// ou directement à l'album cible quand il est imposé par le parent.
+const attachToChosenAlbum = async (mediaIds, result) => {
   try {
-    const media = needsDirectUpload(file)
-      ? await uploadViaMultipart(file, onFraction)
-      : await uploadViaPost(file, onFraction);
-
-    if (media) uploadedMedia.value.push(media);
-  } catch (err) {
-    const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message;
-    throw new Error(`Échec du téléchargement de "${file.name}": ${errorMessage}`);
+    if (props.targetAlbumId) {
+      await addMediaToAlbum(props.targetAlbumId, mediaIds);
+      emit('album-attached', { albumId: props.targetAlbumId, albumName: '', count: mediaIds.length, isNew: false });
+      return;
+    }
+    if (albumMode.value === 'new') {
+      const album = await createAlbumWithMedia(newAlbumName.value.trim(), mediaIds);
+      // Les envois suivants (réessai) vont dans le même album.
+      albumMode.value = 'existing';
+      selectedAlbumId.value = album.id;
+      ownedAlbums.value.push({ id: album.id, name: album.name, media_count: mediaIds.length });
+      result.albumName = album.name;
+      emit('album-attached', { albumId: album.id, albumName: album.name, count: mediaIds.length, isNew: true });
+    } else if (albumMode.value === 'existing' && selectedAlbumId.value) {
+      const album = ownedAlbums.value.find((a) => a.id === selectedAlbumId.value);
+      await addMediaToAlbum(selectedAlbumId.value, mediaIds);
+      result.albumName = album?.name ?? 'choisi';
+      emit('album-attached', { albumId: selectedAlbumId.value, albumName: album?.name ?? '', count: mediaIds.length, isNew: false });
+    }
+  } catch (e) {
+    console.error("Ajout à l'album impossible :", e);
+    result.warning = "Photos envoyées, mais l'ajout à l'album a échoué.";
   }
 };
 
