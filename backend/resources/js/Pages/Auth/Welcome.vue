@@ -8,10 +8,14 @@
         <div class="bg-linear-to-br from-brand-100 via-brand-50 to-white px-8 pt-8 pb-6 text-center">
           <div class="text-xs font-semibold uppercase tracking-widest text-brand-700">MemoryLane</div>
           <div class="mt-5 flex justify-center">
-            <div class="w-28 h-28 rounded-full overflow-hidden bg-brand-100 border-4 border-white shadow-warm-md flex items-center justify-center">
-              <img v-if="person.portrait" :src="person.portrait" :alt="person.name" class="w-full h-full object-cover" />
-              <span v-else class="font-display text-5xl text-brand-700">{{ person.first_name.charAt(0).toUpperCase() }}</span>
-            </div>
+            <PersonAvatar
+              :name="person.first_name"
+              :src="person.portrait"
+              :alt="person.name"
+              eager
+              class="w-28 h-28 bg-brand-100 border-4 border-white shadow-warm-md"
+              fallback-class="font-display text-5xl text-brand-700"
+            />
           </div>
           <h1 class="mt-4 font-display text-3xl font-bold text-surface-900">
             Bienvenue, {{ person.first_name }}&nbsp;!
@@ -99,6 +103,7 @@
 import { computed } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import FormField from '@/Components/Forms/FormField.vue';
+import PersonAvatar from '@/Components/PersonAvatar.vue';
 import FormError from '@/Components/Forms/FormError.vue';
 import FormButton from '@/Components/Forms/FormButton.vue';
 

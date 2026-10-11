@@ -63,9 +63,7 @@
                   class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-surface-700
                          hover:bg-surface-100 hover:text-surface-900 focus:outline-hidden transition-colors"
                 >
-                  <span class="w-7 h-7 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-xs font-bold">
-                    {{ user.name?.charAt(0)?.toUpperCase() }}
-                  </span>
+                  <PersonAvatar :name="user.name" :size="7" />
                   <span>{{ user.name }}</span>
                   <IconChevron class="w-4 h-4 text-surface-400 transition-transform" :class="{ 'rotate-180': showDropdown }" />
                 </button>
@@ -157,9 +155,7 @@
         <div class="pt-3 pb-4 border-t border-surface-200 mx-3">
           <template v-if="user">
             <div class="flex items-center gap-3 px-1 mb-3">
-              <span class="w-9 h-9 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-sm font-bold">
-                {{ user.name?.charAt(0)?.toUpperCase() }}
-              </span>
+              <PersonAvatar :name="user.name" :size="9" />
               <div>
                 <div class="text-sm font-semibold text-surface-900">{{ user.name }}</div>
                 <div class="text-xs text-surface-500">{{ user.email }}</div>
@@ -214,6 +210,7 @@
 import { ref, watchEffect, onMounted, onUnmounted } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import NavLink from '@/Components/NavLink.vue';
+import PersonAvatar from '@/Components/PersonAvatar.vue';
 import MobileNavLink from '@/Components/MobileNavLink.vue';
 import SearchBar from '@/Components/SearchBar.vue';
 import CircleSwitcher from '@/Components/CircleSwitcher.vue';

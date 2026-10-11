@@ -72,18 +72,13 @@
 
         <!-- Avatar (clic = choisir parmi les photos) -->
         <div class="relative group shrink-0">
-          <div class="w-32 h-32 rounded-full overflow-hidden bg-brand-100 border-4 border-white shadow-warm-md flex items-center justify-center">
-            <img
-              v-if="person.avatar_url"
-              :src="person.avatar_url"
-              :alt="person.name"
-              class="w-full h-full object-cover"
-              :style="person.avatar_position ? { objectPosition: person.avatar_position } : undefined"
-            />
-            <span v-else class="text-5xl font-bold text-brand-700">
-              {{ person.name.charAt(0).toUpperCase() }}
-            </span>
-          </div>
+          <PersonAvatar
+            :person="person"
+            :alt="person.name"
+            eager
+            class="w-32 h-32 bg-brand-100 border-4 border-white shadow-warm-md"
+            fallback-class="text-5xl font-bold text-brand-700"
+          />
           <button
             v-if="canManage && media.length > 0"
             @click="showAvatarPicker = true"
@@ -310,6 +305,7 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import BaseModal from '@/Components/BaseModal.vue';
+import PersonAvatar from '@/Components/PersonAvatar.vue';
 import MediaCard from '@/Components/MediaCard.vue';
 import { usePhotoSwipe } from '@/Composables/usePhotoSwipe';
 import PersonFormModal from '@/Components/PersonFormModal.vue';

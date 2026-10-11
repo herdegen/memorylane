@@ -70,19 +70,15 @@
         <div v-if="selectedPerson" class="mt-4 bg-surface-50 rounded-xl border border-surface-100 overflow-hidden max-md:hidden">
           <!-- Entête : avatar + identité + bascule édition -->
           <div class="flex items-start gap-3 p-4 pb-3">
-            <img
-              v-if="selectedPerson.data.avatar_url"
-              :src="selectedPerson.data.avatar_url"
+            <PersonAvatar
+              :person="selectedPerson.data"
               :alt="personLabel(selectedPerson.data)"
-              class="w-16 h-16 rounded-xl object-cover border border-surface-200 shrink-0"
-              :style="faceStyle(selectedPerson)"
+              shape="rounded"
+              eager
+              class="w-16 h-16"
+              photo-class="border border-surface-200"
+              fallback-class="bg-brand-100 text-brand-700 text-xl font-semibold"
             />
-            <div
-              v-else
-              class="w-16 h-16 rounded-xl bg-brand-100 text-brand-700 flex items-center justify-center text-xl font-semibold shrink-0"
-            >
-              {{ (selectedPerson.data.name || '?').charAt(0).toUpperCase() }}
-            </div>
             <div class="min-w-0 flex-1">
               <h3 class="font-semibold text-surface-900 leading-tight">{{ personLabel(selectedPerson.data) }}</h3>
               <p class="text-xs text-surface-500 mt-0.5">
@@ -145,18 +141,13 @@
                 @click="centerOnPerson(member)"
                 class="w-full flex items-center gap-2 px-2 py-1.5 -mx-2 rounded-lg text-left hover:bg-surface-100 transition-colors"
               >
-                <img
-                  v-if="member.data.avatar_url"
-                  :src="member.data.avatar_url"
+                <PersonAvatar
+                  :person="member.data"
                   :alt="personLabel(member.data)"
-                  class="w-7 h-7 rounded-full object-cover border border-surface-200 shrink-0"
-                  :style="faceStyle(member)"
-                  loading="lazy"
-                  decoding="async"
+                  :size="7"
+                  photo-class="border border-surface-200"
+                  fallback-class="bg-surface-200 text-surface-500 font-semibold"
                 />
-                <div v-else class="w-7 h-7 rounded-full bg-surface-200 text-surface-500 flex items-center justify-center text-xs font-semibold shrink-0">
-                  {{ (member.data.name || '?').charAt(0).toUpperCase() }}
-                </div>
                 <span class="text-sm text-surface-700 truncate">{{ personLabel(member.data) }}</span>
                 <span v-if="member.data.birth_date" class="ml-auto text-xs text-surface-400 shrink-0">
                   {{ member.data.birth_date.substring(0, 4) }}
@@ -340,19 +331,15 @@
             class="md:hidden absolute inset-x-3 bottom-3 z-20 bg-white/95 dark:bg-surface-100/95 backdrop-blur border border-surface-200 rounded-2xl shadow-warm-lg p-3"
           >
             <div class="flex items-center gap-3">
-              <img
-                v-if="selectedPerson.data.avatar_url"
-                :src="selectedPerson.data.avatar_url"
+              <PersonAvatar
+                :person="selectedPerson.data"
                 :alt="personLabel(selectedPerson.data)"
-                class="w-14 h-14 rounded-xl object-cover border border-surface-200 shrink-0"
-                :style="faceStyle(selectedPerson)"
+                shape="rounded"
+                eager
+                class="w-14 h-14"
+                photo-class="border border-surface-200"
+                fallback-class="bg-brand-100 text-brand-700 text-lg font-semibold"
               />
-              <div
-                v-else
-                class="w-14 h-14 rounded-xl bg-brand-100 text-brand-700 flex items-center justify-center text-lg font-semibold shrink-0"
-              >
-                {{ (selectedPerson.data.name || '?').charAt(0).toUpperCase() }}
-              </div>
               <div class="min-w-0 flex-1">
                 <p class="font-semibold text-surface-900 leading-tight truncate">{{ personLabel(selectedPerson.data) }}</p>
                 <p class="text-xs text-surface-500 mt-0.5 truncate">
@@ -455,6 +442,7 @@
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import PersonAvatar from '@/Components/PersonAvatar.vue';
 import axios from 'axios';
 import * as f3 from 'family-chart';
 import 'family-chart/styles/family-chart.css';
@@ -802,12 +790,6 @@ function watchFacePositions() {
   faceObserver = new MutationObserver(applyFacePositions);
   faceObserver.observe(chartRef.value, { childList: true, subtree: true });
   applyFacePositions();
-}
-
-// Style inline pour les <img> Vue (panneau, encart mobile, chips famille).
-function faceStyle(node) {
-  const position = node?.data?.avatar_position;
-  return position ? { objectPosition: position } : undefined;
 }
 
 // ---- Marche du lien de parenté (?kinship=<personId>) ----------------------

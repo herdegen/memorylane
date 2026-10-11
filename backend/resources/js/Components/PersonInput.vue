@@ -17,17 +17,7 @@
         :key="person.id"
         class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-brand-100 text-brand-700"
       >
-        <div
-          v-if="person.avatar_url"
-          class="w-5 h-5 rounded-full bg-cover bg-center"
-          :style="{ backgroundImage: `url(${person.avatar_url})` }"
-        ></div>
-        <div
-          v-else
-          class="w-5 h-5 rounded-full bg-brand-200 flex items-center justify-center text-xs font-bold text-brand-800"
-        >
-          {{ person.name.charAt(0).toUpperCase() }}
-        </div>
+        <PersonAvatar :person="person" :size="5" fallback-class="bg-brand-200 text-brand-800 font-bold" />
         <span :title="person.restricted ? 'Fiche d\'un autre cercle' : undefined">{{ personLabel(person) }}</span>
         <button
           v-if="!person.restricted"
@@ -78,17 +68,7 @@
           type="button"
           class="w-full px-4 py-2 text-left hover:bg-surface-50 transition flex items-center gap-2"
         >
-          <div
-            v-if="person.avatar_url"
-            class="w-6 h-6 rounded-full bg-cover bg-center"
-            :style="{ backgroundImage: `url(${person.avatar_url})` }"
-          ></div>
-          <div
-            v-else
-            class="w-6 h-6 rounded-full bg-brand-100 flex items-center justify-center text-xs font-bold text-brand-700"
-          >
-            {{ person.name.charAt(0).toUpperCase() }}
-          </div>
+          <PersonAvatar :person="person" :size="6" />
           <span class="text-sm text-surface-900">{{ personLabel(person) }}</span>
           <span class="text-xs text-surface-500 ml-auto">{{ person.media_count }} médias</span>
         </button>
@@ -123,6 +103,7 @@
 import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
 import PersonFormModal from '@/Components/PersonFormModal.vue';
+import PersonAvatar from '@/Components/PersonAvatar.vue';
 import { personLabel } from '@/utils/personName';
 import { searchPeople } from '@/utils/personSearch';
 import { useToast } from '@/Composables/useToast';

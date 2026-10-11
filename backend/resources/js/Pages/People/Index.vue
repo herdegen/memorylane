@@ -67,22 +67,13 @@
             @click="goToPerson(person)"
           >
             <!-- Avatar -->
-            <div class="aspect-square bg-brand-100 flex items-center justify-center">
-              <img
-                v-if="person.avatar_url"
-                :src="person.avatar_url"
-                :alt="person.name"
-                class="w-full h-full object-cover"
-                loading="lazy"
-                decoding="async"
-              />
-              <span
-                v-else
-                class="text-6xl font-bold text-brand-700"
-              >
-                {{ person.name.charAt(0).toUpperCase() }}
-              </span>
-            </div>
+            <PersonAvatar
+              :person="person"
+              :alt="person.name"
+              shape="none"
+              class="aspect-square bg-brand-100"
+              fallback-class="text-6xl font-bold text-brand-700"
+            />
 
             <!-- Info -->
             <div class="p-4">
@@ -149,6 +140,7 @@ import { ref, computed } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PersonFormModal from '@/Components/PersonFormModal.vue';
+import PersonAvatar from '@/Components/PersonAvatar.vue';
 import { personLabel } from '@/utils/personName';
 import { formatLongDate } from '@/utils/format';
 import { useCircle } from '@/Composables/useCircle';

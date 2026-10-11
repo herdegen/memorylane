@@ -71,9 +71,8 @@
           :disabled="matching"
           class="w-full px-3 py-2 text-left text-sm hover:bg-brand-50 flex items-center gap-2 border-b border-surface-100 last:border-b-0"
         >
-          <div class="w-8 h-8 bg-surface-200 rounded-full flex items-center justify-center text-xs font-medium text-surface-600">
-            {{ person.name.charAt(0).toUpperCase() }}
-          </div>
+          <!-- Initiale seule (pas de photo) : rendu historique de cette liste. -->
+          <PersonAvatar :name="person.name" :size="8" fallback-class="bg-surface-200 text-surface-600 font-medium" />
           <span>{{ person.name }}</span>
           <span
             v-if="person.score != null"
@@ -147,6 +146,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import axios from 'axios';
+import PersonAvatar from '@/Components/PersonAvatar.vue';
 import { matchesPerson, relevanceTier } from '@/utils/personSearch';
 import { useToast } from '@/Composables/useToast';
 import { apiError } from '@/utils/apiError';
