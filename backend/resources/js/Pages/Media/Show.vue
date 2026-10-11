@@ -25,7 +25,7 @@
               <!-- Image with face detection overlay -->
               <div v-if="media.type === 'photo'" class="relative bg-black">
                 <FaceDetectionOverlay
-                  :image-url="media.url"
+                  :image-url="photoUrl"
                   :alt="media.original_name"
                   :faces="media.detected_faces || []"
                   :draw-mode="addingFace"
@@ -312,6 +312,7 @@ import { useToast } from '@/Composables/useToast';
 import { apiError } from '@/utils/apiError';
 import { formatFileSize, formatDuration } from '@/utils/format';
 import { backTarget } from '@/utils/navigation';
+import { conversionUrl, displayUrl } from '@/utils/media';
 import axios from 'axios';
 
 // Composants propres aux vidéos, chargés seulement pour une vidéo : le
@@ -356,14 +357,12 @@ const playerGetCurrentTime = () => playerRef.value?.getCurrentTime?.() ?? 0;
 const playerSeekTo = (t) => playerRef.value?.seekTo?.(t);
 
 // Vignette d'un clip (conversion small/thumbnail, sinon l'original).
-const clipThumb = (clip) => {
-  const order = ['small', 'thumbnail', 'medium'];
-  for (const name of order) {
-    const conv = clip.conversions?.find((c) => c.conversion_name === name);
-    if (conv?.url) return conv.url;
-  }
-  return clip.url || null;
-};
+const clipThumb = (clip) => conversionUrl(clip, 'small', 'thumbnail', 'medium') || clip.url || null;
+
+// Photo affichée : conversion large/medium plutôt que l'original (plusieurs
+// Mo). Les cadres des visages sont en % : indépendants de la résolution.
+// L'original reste accessible via « Télécharger ».
+const photoUrl = computed(() => displayUrl(props.media));
 
 // Détection de visages côté navigateur.
 const { detectFaces, computeDescriptorForRegion, loading: detecting, progress: detectProgress, error: detectError } = useFaceDetection();
@@ -397,7 +396,7 @@ const supportsFaces = computed(() => ['photo', 'video'].includes(props.media.typ
 // Image support de la détection : l'original pour une photo, la frame extraite
 // (conversion medium) pour une vidéo.
 const faceImageUrl = computed(() =>
-  props.media.type === 'video' ? thumbnailUrl.value : props.media.url
+  props.media.type === 'video' ? thumbnailUrl.value : photoUrl.value
 );
 
 const notScanned = computed(
@@ -418,22 +417,11 @@ const runDetection = async () => {
 };
 
 // Poster URL for the video player (medium or small conversion thumbnail)
-const thumbnailUrl = computed(() => {
-  if (!props.media.conversions) return null;
-  const order = ['medium', 'small', 'thumbnail'];
-  for (const name of order) {
-    const conv = props.media.conversions.find(c => c.conversion_name === name);
-    if (conv?.url) return conv.url;
-  }
-  return null;
-});
+const thumbnailUrl = computed(() => conversionUrl(props.media, 'medium', 'small', 'thumbnail'));
 
 // Source du lecteur : la version web transcodée (MP4 H.264) si elle existe,
 // sinon l'original (les .mkv/.avi/HEVC ne se lisent pas nativement)
-const videoUrl = computed(() => {
-  const web = props.media.conversions?.find(c => c.conversion_name === 'web');
-  return web?.url || props.media.url;
-});
+const videoUrl = computed(() => conversionUrl(props.media, 'web') || props.media.url);
 
 const handleMediaUpdated = (updatedMedia) => {
   router.reload();
