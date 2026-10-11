@@ -1,10 +1,38 @@
 <template>
   <Head title="Carte" />
   <AppLayout title="Carte">
-    <div class="h-[calc(100vh-4rem)] flex">
-      <!-- Sidebar with filters and search -->
-      <div class="w-80 bg-white shadow-lg p-4 overflow-y-auto">
-        <h2 class="text-xl font-semibold mb-4">Recherche de lieu</h2>
+    <div class="h-[calc(100dvh-4rem)] flex relative">
+      <!-- Fond assombri (téléphone, panneau des filtres ouvert) -->
+      <div
+        v-if="filtersOpen"
+        @click="filtersOpen = false"
+        class="md:hidden fixed inset-x-0 top-16 bottom-0 z-20 bg-black/40"
+        aria-hidden="true"
+      ></div>
+
+      <!-- Barre latérale : colonne fixe sur ordinateur, tiroir par-dessus la
+           carte sur téléphone (sinon la carte ne fait que quelques pixels). -->
+      <aside
+        id="map-filters"
+        class="w-80 bg-white shadow-lg p-4 overflow-y-auto shrink-0
+               max-md:fixed max-md:top-16 max-md:bottom-0 max-md:left-0 max-md:z-30
+               max-md:w-[85%] max-md:max-w-xs max-md:shadow-warm-lg
+               max-md:transition-transform max-md:duration-300"
+        :class="filtersOpen ? 'max-md:translate-x-0' : 'max-md:-translate-x-full'"
+      >
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-semibold">Recherche de lieu</h2>
+          <button
+            type="button"
+            @click="filtersOpen = false"
+            class="md:hidden -mr-1 p-1 text-surface-500 hover:text-surface-800"
+            aria-label="Fermer les filtres"
+          >
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
 
         <!-- Location search -->
         <div class="mb-6">
@@ -116,13 +144,13 @@
         </div>
 
         <!-- Nearby search -->
-        <div v-if="selectedLocation" class="mt-4 p-3 bg-green-50 dark:bg-green-500/10 rounded-lg">
-          <div class="text-sm font-medium text-green-800 dark:text-green-200 mb-2">
+        <div v-if="selectedLocation" class="mt-4 p-3 bg-surface-100 border border-surface-200 rounded-lg">
+          <div class="text-sm font-medium text-surface-800 mb-2">
             Photos à proximité de {{ selectedLocation.name }}
           </div>
           <button
             @click="searchNearby"
-            class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            class="btn-primary w-full"
           >
             Rechercher (5km)
           </button>
@@ -133,25 +161,57 @@
             Effacer la sélection
           </button>
         </div>
-      </div>
+      </aside>
 
-      <!-- Map container -->
-      <div class="flex-1 relative">
+      <!-- Map container — `isolate` confine les z-index de Leaflet (400 à 1000)
+           pour que le tiroir et les menus restent au-dessus de la carte. -->
+      <div class="flex-1 relative isolate">
         <div ref="mapContainer" class="w-full h-full"></div>
+
+        <!-- Ouverture du panneau des filtres (téléphone) — en haut à droite,
+             le zoom Leaflet occupe le coin gauche. -->
+        <button
+          type="button"
+          @click="filtersOpen = true"
+          class="md:hidden absolute top-3 right-3 z-[1001] inline-flex items-center gap-1.5
+                 rounded-full bg-white/90 backdrop-blur px-3 py-2 text-sm font-medium
+                 text-surface-700 shadow-warm-md border border-surface-200
+                 dark:bg-surface-100/90"
+          aria-controls="map-filters"
+          :aria-expanded="filtersOpen"
+        >
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h18l-7 8v6l-4 2v-8L3 4z" />
+          </svg>
+          Filtres
+          <span
+            v-if="activeFilterCount"
+            class="ml-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-600 px-1 text-xs font-semibold text-white"
+          >{{ activeFilterCount }}</span>
+        </button>
       </div>
     </div>
   </AppLayout>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { formatDate } from '@/utils/format';
+import { escapeHtml } from '@/utils/html';
+import { apiError } from '@/utils/apiError';
+import { useToast } from '@/Composables/useToast';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.heat';
 import axios from 'axios';
+
+const toast = useToast();
+
+// Téléphone (< md) : la barre latérale devient un tiroir ouvert à la demande.
+const isMobile = () => window.matchMedia('(max-width: 767px)').matches;
+const filtersOpen = ref(false);
 
 const props = defineProps({
   filters: {
@@ -190,6 +250,14 @@ const filters = ref({
   tags: props.filters.tags || [],
 });
 
+// Pastille du bouton « Filtres » (téléphone) : rappelle qu'un filtre est actif.
+const activeFilterCount = computed(() =>
+  (filters.value.type ? 1 : 0)
+  + (filters.value.search ? 1 : 0)
+  + selectedTags.value.length
+  + (heatmapEnabled.value ? 1 : 0)
+  + (selectedLocation.value ? 1 : 0));
+
 // Initialize map
 onMounted(async () => {
   // Create map
@@ -226,6 +294,7 @@ async function loadTags() {
     availableTags.value = response.data;
   } catch (error) {
     console.error('Failed to load tags:', error);
+    toast.error(apiError(error, 'Impossible de charger les tags pour le filtre.'));
   }
 }
 
@@ -247,18 +316,22 @@ async function loadGeolocatedMedia() {
     updateMarkers();
   } catch (error) {
     console.error('Failed to load geolocated media:', error);
+    toast.error(apiError(error, 'Impossible de charger les photos de la carte. Réessayez dans un instant.'));
   }
 }
+
+// ⚠️ Leaflet insère icônes et popups en innerHTML : toute valeur venant des
+// données (noms, titres, URLs…) passe par escapeHtml, texte comme attribut.
 
 // Icône miniature (bordure blanche par défaut, teintée pour un album).
 function thumbIcon(thumbnailUrl, { badge = null, borderColor = '#fff' } = {}) {
   const badgeHtml = badge
-    ? `<div style="position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#f59e0b;color:#fff;font-size:11px;font-weight:600;line-height:18px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.3);">${badge}</div>`
+    ? `<div style="position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#f59e0b;color:#fff;font-size:11px;font-weight:600;line-height:18px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.3);">${escapeHtml(badge)}</div>`
     : '';
   return L.divIcon({
     className: 'custom-thumb-marker',
     html: `<div style="position:relative;width:48px;height:48px;border-radius:8px;overflow:hidden;border:3px solid ${borderColor};box-shadow:0 2px 8px rgba(0,0,0,0.3);background:#e5e7eb;">
-        <img src="${thumbnailUrl}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'" />
+        <img src="${escapeHtml(thumbnailUrl)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'" />
         ${badgeHtml}
       </div>
       <div style="width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:8px solid ${borderColor};margin:0 auto;filter:drop-shadow(0 2px 2px rgba(0,0,0,0.2));"></div>`,
@@ -281,13 +354,14 @@ function updateMarkers() {
       icon: thumbIcon(album.thumbnail_url, { badge: album.media_count, borderColor: '#f59e0b' }),
     });
 
+    const name = escapeHtml(album.name);
     marker.bindPopup(`
       <div class="text-center">
-        <img src="${album.thumbnail_url}" alt="${album.name}" class="w-32 h-32 object-cover rounded-sm mb-2" />
-        <div class="font-medium text-sm">📁 ${album.name}</div>
-        <div class="text-xs text-surface-500">${album.media_count} média(s)</div>
+        <img src="${escapeHtml(album.thumbnail_url)}" alt="${name}" class="w-32 h-32 object-cover rounded-sm mb-2" />
+        <div class="font-medium text-sm">📁 ${name}</div>
+        <div class="text-xs text-surface-500">${escapeHtml(album.media_count)} média(s)</div>
         <div class="mt-2">
-          <a href="/albums/${album.id}" class="text-brand-600 hover:text-brand-800 text-sm">Voir l'album</a>
+          <a href="/albums/${encodeURIComponent(album.id)}" class="text-brand-600 hover:text-brand-800 text-sm">Voir l'album</a>
         </div>
       </div>
     `);
@@ -301,13 +375,14 @@ function updateMarkers() {
       icon: thumbIcon(media.thumbnail_url),
     });
 
+    const name = escapeHtml(media.original_name);
     marker.bindPopup(`
       <div class="text-center">
-        <img src="${media.thumbnail_url}" alt="${media.original_name}" class="w-32 h-32 object-cover rounded-sm mb-2" />
-        <div class="font-medium text-sm">${media.original_name}</div>
-        ${media.taken_at ? `<div class="text-xs text-surface-500">${formatDate(media.taken_at)}</div>` : ''}
+        <img src="${escapeHtml(media.thumbnail_url)}" alt="${name}" class="w-32 h-32 object-cover rounded-sm mb-2" />
+        <div class="font-medium text-sm">${name}</div>
+        ${media.taken_at ? `<div class="text-xs text-surface-500">${escapeHtml(formatDate(media.taken_at))}</div>` : ''}
         <div class="mt-2">
-          <a href="/media/${media.id}" class="text-brand-600 hover:text-brand-800 text-sm">Voir le média</a>
+          <a href="/media/${encodeURIComponent(media.id)}" class="text-brand-600 hover:text-brand-800 text-sm">Voir le média</a>
         </div>
       </div>
     `);
@@ -341,6 +416,7 @@ async function toggleHeatmap() {
       ]);
     } catch (error) {
       console.error('Failed to load heatmap:', error);
+      toast.error(apiError(error, "Impossible d'afficher la couche « Où vit la famille »."));
       heatmapEnabled.value = false;
       return;
     }
@@ -406,6 +482,7 @@ async function searchLocation() {
     searchResults.value = response.data;
   } catch (error) {
     console.error('Location search failed:', error);
+    toast.error(apiError(error, "La recherche de lieu n'a pas abouti. Réessayez dans un instant."));
   }
 }
 
@@ -434,12 +511,16 @@ function selectLocation(location) {
       popupAnchor: [0, -18],
     })
   })
-  .bindPopup(location.display_name)
+  .bindPopup(escapeHtml(location.display_name))
   .addTo(map);
 
   // Clear search
   searchQuery.value = '';
   searchResults.value = [];
+
+  // Téléphone : on referme le tiroir pour montrer le lieu sur la carte
+  // (« Rechercher à proximité » reste accessible via le bouton Filtres).
+  if (isMobile()) filtersOpen.value = false;
 }
 
 // Search for nearby media
@@ -458,8 +539,11 @@ async function searchNearby() {
     geolocatedMedia.value = response.data;
     geolocatedAlbums.value = [];
     updateMarkers();
+    // Téléphone : on referme le tiroir pour montrer le résultat sur la carte.
+    if (isMobile()) filtersOpen.value = false;
   } catch (error) {
     console.error('Nearby search failed:', error);
+    toast.error(apiError(error, 'Impossible de rechercher les photos à proximité.'));
   }
 }
 

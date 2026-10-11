@@ -169,7 +169,14 @@ export function usePhotoSwipe(getMedia, options = {}) {
       onInit: (el) => {
         lb.pswp.on('change', () => {
           const caption = lb.pswp.currSlide?.data?.caption || '';
-          el.innerHTML = caption ? `<div class="pswp__custom-caption">${caption}</div>` : '';
+          // Titre / nom de fichier saisis par un membre : textContent, jamais innerHTML.
+          el.replaceChildren();
+          if (caption) {
+            const div = document.createElement('div');
+            div.className = 'pswp__custom-caption';
+            div.textContent = caption;
+            el.appendChild(div);
+          }
         });
       },
     });

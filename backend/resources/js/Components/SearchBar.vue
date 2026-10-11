@@ -1,5 +1,5 @@
 <template>
-  <div ref="rootEl" class="relative w-full max-w-xs">
+  <div ref="rootEl" class="relative w-full" :class="{ 'max-w-xs': !fullWidth }">
     <div class="relative">
       <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
         <svg class="h-4 w-4 text-surface-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -113,6 +113,13 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 
+const props = defineProps({
+  // Panneau de recherche mobile : occupe toute la largeur disponible.
+  fullWidth: { type: Boolean, default: false },
+  // Focus immédiat (panneau ouvert d'un toucher sur la loupe).
+  autofocus: { type: Boolean, default: false },
+});
+
 const rootEl = ref(null);
 const inputEl = ref(null);
 const query = ref('');
@@ -198,6 +205,7 @@ const handleShortcut = (e) => {
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
   document.addEventListener('keydown', handleShortcut);
+  if (props.autofocus) inputEl.value?.focus();
 });
 
 onBeforeUnmount(() => {

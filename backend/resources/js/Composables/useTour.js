@@ -2,6 +2,7 @@ import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
+import { escapeHtml } from '@/utils/html';
 
 /**
  * Visite guidée « premiers pas », page par page. Chaque étape vit sur une
@@ -26,7 +27,8 @@ function buildSteps(page) {
   const steps = [
     {
       component: 'Dashboard', path: '/dashboard',
-      title: `Bienvenue, ${firstName(user.name)} !`,
+      // driver.js insère le titre en innerHTML : le prénom (saisi) est échappé.
+      title: `Bienvenue, ${escapeHtml(firstName(user.name))} !`,
       text: 'Une petite visite de 2 minutes pour découvrir MemoryLane ? Vous pourrez la relancer à tout moment depuis le menu.',
     },
     {

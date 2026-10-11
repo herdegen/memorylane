@@ -248,6 +248,7 @@ import { Link, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { fetchOwnedAlbums, createAlbumWithMedia, addMediaToAlbum } from '@/utils/albums';
 import { useCircle } from '@/Composables/useCircle';
+import { apiError } from '@/utils/apiError';
 
 // `album-attached` : { albumId, albumName, count, isNew } ; `organize` : ids
 // envoyés, pour proposer un rangement en album après coup.
@@ -487,7 +488,10 @@ const runQueue = async (queue) => {
         item.progress = 1;
       } catch (err) {
         item.status = 'error';
-        item.error = err.response?.data?.error || err.response?.data?.message || err.message;
+        // Jamais de message technique (« Network Error », exception S3…) :
+        // seul un refus de validation (422) est détaillé, en français.
+        console.error(`Envoi de « ${item.file?.name} » impossible :`, err);
+        item.error = apiError(err, 'Envoi impossible');
       }
     }
   };

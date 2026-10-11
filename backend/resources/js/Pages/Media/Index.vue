@@ -312,6 +312,7 @@ import BulkDateModal from '@/Components/BulkDateModal.vue';
 import GeolocatePickerModal from '@/Components/GeolocatePickerModal.vue';
 import { usePhotoSwipe } from '@/composables/usePhotoSwipe';
 import { useToast } from '@/Composables/useToast';
+import { apiError } from '@/utils/apiError';
 
 const props = defineProps({
   media: {
@@ -401,12 +402,15 @@ const filterTabs = computed(() => [
 
 const emptyStateMessage = computed(() => {
   if (currentFilter.value !== 'all') {
-    return `Aucun ${currentFilter.value === 'photo' ? 'photo' : currentFilter.value === 'video' ? 'vidéo' : 'document'} trouvé.`;
+    return {
+      photo: 'Aucune photo trouvée.',
+      video: 'Aucune vidéo trouvée.',
+    }[currentFilter.value] || 'Aucun document trouvé.';
   }
   if (searchQuery.value) {
     return `Aucun résultat pour "${searchQuery.value}".`;
   }
-  return 'Commencez par télécharger vos premiers médias.';
+  return 'Commencez par ajouter vos premières photos.';
 });
 
 // Construit les paramètres de requête courants (type, recherche, tags et,
@@ -525,6 +529,7 @@ const selectAll = async () => {
     selectedIds.value = data.ids || [];
   } catch (error) {
     console.error('« Tout sélectionner » a échoué :', error);
+    toast.error(apiError(error, 'Impossible de sélectionner tous les médias. Réessayez.'));
   } finally {
     selectingAll.value = false;
   }
@@ -558,7 +563,7 @@ const applyBulkDate = async (takenAt) => {
     // La date change l'ordre de la galerie : on recharge avec les filtres courants.
     navigate();
   } catch (e) {
-    bulkError.value = e.response?.data?.message || "Impossible d'appliquer la date.";
+    bulkError.value = apiError(e, "Impossible d'appliquer la date.");
   } finally {
     bulkSaving.value = false;
   }
@@ -575,7 +580,7 @@ const applyBulkGeolocation = async ({ latitude, longitude }) => {
     });
     finishBulk(data);
   } catch (e) {
-    bulkError.value = e.response?.data?.message || "Impossible d'appliquer la position.";
+    bulkError.value = apiError(e, "Impossible d'appliquer la position.");
   } finally {
     bulkSaving.value = false;
   }
@@ -600,8 +605,15 @@ const handleAlbumDone = ({ albumId, albumName, count, isNew }) => {
 
 // Charge la page suivante et l'AJOUTE à l'accumulateur (scroll infini).
 // Ne touche pas à l'URL : les filtres courants sont repris via buildQuery.
+// Après un échec, MediaGrid relancerait aussitôt (sentinelle toujours
+// visible) : on laisse souffler quelques secondes pour éviter une rafale
+// de requêtes et de messages d'erreur.
+const LOAD_MORE_RETRY_MS = 3000;
+let loadMoreFailedAt = 0;
+
 const handleLoadMore = async () => {
   if (loadingMore.value || loading.value || !hasMorePages.value) return;
+  if (Date.now() - loadMoreFailedAt < LOAD_MORE_RETRY_MS) return;
 
   loadingMore.value = true;
   try {
@@ -615,6 +627,8 @@ const handleLoadMore = async () => {
     lastPage.value = data.last_page ?? lastPage.value;
   } catch (error) {
     console.error('Erreur lors du chargement de la page suivante :', error);
+    loadMoreFailedAt = Date.now();
+    toast.error(apiError(error, 'Impossible de charger la suite de la galerie. Faites défiler ou touchez « Charger plus » pour réessayer.'));
   } finally {
     loadingMore.value = false;
   }

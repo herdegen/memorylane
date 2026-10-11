@@ -148,6 +148,10 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import axios from 'axios';
 import { matchesPerson, relevanceTier } from '@/utils/personSearch';
+import { useToast } from '@/Composables/useToast';
+import { apiError } from '@/utils/apiError';
+
+const toast = useToast();
 
 const props = defineProps({
   face: {
@@ -171,6 +175,9 @@ const showCreatePerson = ref(false);
 const newPersonName = ref('');
 const topSuggestion = ref(null);
 const cropCanvas = ref(null);
+// Fiche créée par « Créer et associer » dont l'association a échoué : un
+// nouvel essai la réutilise au lieu de créer un doublon.
+const createdPerson = ref(null);
 
 const loadPeople = async () => {
   loadingPeople.value = true;
@@ -181,6 +188,7 @@ const loadPeople = async () => {
     people.value = Array.isArray(response.data) ? response.data : (response.data.data || []);
   } catch (error) {
     console.error('Failed to load people:', error);
+    toast.error(apiError(error, 'Impossible de charger la liste des personnes.'));
   } finally {
     loadingPeople.value = false;
   }
@@ -257,6 +265,7 @@ const matchToPerson = async (person) => {
     emit('matched', { face: props.face, person });
   } catch (error) {
     console.error('Failed to match face:', error);
+    toast.error(apiError(error, "L'identification du visage n'a pas pu être enregistrée. Réessayez."));
   } finally {
     matching.value = false;
   }
@@ -269,6 +278,7 @@ const dismissFace = async () => {
     emit('dismissed', props.face);
   } catch (error) {
     console.error('Failed to dismiss face:', error);
+    toast.error(apiError(error, "Impossible d'ignorer ce visage pour le moment. Réessayez."));
   } finally {
     matching.value = false;
   }
@@ -281,30 +291,51 @@ const resetFace = async () => {
     emit('reset', props.face);
   } catch (error) {
     console.error('Failed to reset face:', error);
+    toast.error(apiError(error, "Impossible de retirer l'identification pour le moment. Réessayez."));
   } finally {
     matching.value = false;
   }
 };
 
 const createAndMatch = async () => {
-  if (!newPersonName.value.trim()) return;
+  const name = newPersonName.value.trim();
+  if (!name) return;
 
   matching.value = true;
+  let person = null;
   try {
-    // Create person
-    const createResponse = await axios.post('/people', {
-      name: newPersonName.value.trim(),
-    });
-    const person = createResponse.data.person || createResponse.data;
+    // Fiche déjà créée lors d'un essai précédent (même nom) : on la réutilise.
+    if (createdPerson.value && createdPerson.value.name === name) {
+      person = createdPerson.value;
+    } else {
+      const createResponse = await axios.post('/people', { name });
+      person = createResponse.data.person || createResponse.data;
+      createdPerson.value = { ...person, name: person.name || name };
+      // La nouvelle fiche devient sélectionnable dans la liste.
+      if (!people.value.some((p) => p.id === person.id)) {
+        people.value.push({ ...person, name: person.name || name });
+      }
+    }
+  } catch (error) {
+    console.error('Failed to create person:', error);
+    toast.error(apiError(error, 'Impossible de créer la fiche. Réessayez.'));
+    matching.value = false;
+    return;
+  }
 
+  try {
     // Match face to new person
     await axios.post(`/vision/faces/${props.face.id}/match`, {
       person_id: person.id,
     });
-
+    createdPerson.value = null;
     emit('matched', { face: props.face, person });
   } catch (error) {
-    console.error('Failed to create and match:', error);
+    console.error('Failed to match new person:', error);
+    toast.error(apiError(
+      error,
+      `La fiche « ${name} » a été créée, mais l'association au visage a échoué. Réessayez : la même fiche sera utilisée.`,
+    ));
   } finally {
     matching.value = false;
   }
@@ -321,6 +352,7 @@ const loadSuggestion = async () => {
     topSuggestion.value = props.face.person ? null : (suggestions.value[0] || null);
   } catch (error) {
     console.error('Failed to load suggestion:', error);
+    toast.error(apiError(error, 'Les suggestions de reconnaissance sont indisponibles pour le moment.'));
   }
 };
 
@@ -358,6 +390,7 @@ const drawCrop = () => {
 };
 
 watch(() => props.face?.id, () => {
+  createdPerson.value = null;
   loadSuggestion();
   drawCrop();
 });

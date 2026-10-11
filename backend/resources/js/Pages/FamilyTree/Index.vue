@@ -262,6 +262,16 @@
           Rechercher
         </button>
 
+        <!-- Bascule Arbre | Réseau (mobile) : la bascule du panneau est masquée
+             sous md et le menu mobile n'affiche « Réseau » qu'en mode amis. -->
+        <div
+          class="md:hidden absolute top-3 right-3 z-10 inline-flex rounded-full border border-surface-200
+                 bg-white/90 backdrop-blur p-0.5 text-xs font-semibold shadow-warm-sm dark:bg-surface-100/90"
+        >
+          <span class="px-3 py-1.5 rounded-full bg-brand-100 text-brand-800 dark:bg-brand-500/20 dark:text-brand-200">Arbre</span>
+          <Link href="/network" class="px-3 py-1.5 rounded-full text-surface-600 hover:text-surface-900">Réseau</Link>
+        </div>
+
         <!-- Contrôles de vue : tout voir / recentrer -->
         <div
           v-show="!loading && treeNodes.length > 0"
@@ -450,6 +460,8 @@ import { personLabel } from '@/utils/personName';
 import { searchPeople } from '@/utils/personSearch';
 import { formatLongDate } from '@/utils/format';
 import { useToast } from '@/Composables/useToast';
+import { escapeHtml } from '@/utils/html';
+import { apiError } from '@/utils/apiError';
 
 const toast = useToast();
 
@@ -617,7 +629,7 @@ async function saveEdit() {
     if (e.response?.status === 422) {
       editErrors.value = e.response.data.errors || {};
     } else {
-      toast.error(e.response?.data?.message || "Impossible d'enregistrer.");
+      toast.error(apiError(e, "Impossible d'enregistrer."));
     }
   } finally {
     saving.value = false;
@@ -636,19 +648,22 @@ function yearSpan(birth, death) {
 
 // Transforme le format backend (rels.father/mother) → format family-chart (rels.parents[])
 // en filtrant toute référence vers une personne absente du jeu de données.
+// ⚠️ family-chart construit ses cartes en innerHTML (texte ET <img src>) : les
+// champs affichés sont donc échappés ici. Ces données ne servent qu'au rendu
+// des cartes — le panneau et la recherche lisent les données brutes (rawById).
 function toChartData(raw) {
   const known = new Set(raw.map(n => n.id));
   return raw.map(n => ({
     id: n.id,
     data: {
       // Nom composé (Prénom Nom (nom de naissance)) pour des cartes lisibles.
-      name: personLabel(n.data),
+      name: escapeHtml(personLabel(n.data)),
       gender: n.data.gender,
       birth_date: n.data.birth_date,
-      years: yearSpan(n.data.birth_date, n.data.death_date),
+      years: escapeHtml(yearSpan(n.data.birth_date, n.data.death_date)),
       // Bug corrigé : l'avatar n'était pas transmis -> les photos ne
       // s'affichaient jamais sur les cartes.
-      avatar_url: n.data.avatar_url || null,
+      avatar_url: n.data.avatar_url ? escapeHtml(n.data.avatar_url) : null,
       // object-position centré sur le visage (issue #51), appliqué au DOM
       // par l'observer applyFacePositions (family-chart ne le gère pas).
       avatar_position: n.data.avatar_position || null,
@@ -810,6 +825,7 @@ async function loadKinship(personId) {
     if (data.found) startKinshipWalk();
   } catch (e) {
     console.error('Lien de parenté indisponible :', e);
+    toast.error(apiError(e, 'Impossible de retrouver le lien de parenté pour le moment.'));
   }
 }
 
@@ -914,6 +930,7 @@ onMounted(async () => {
     rawById = Object.fromEntries(treeNodes.value.map(n => [n.id, n]));
   } catch (error) {
     console.error('Erreur lors du chargement de l\'arbre:', error);
+    toast.error(apiError(error, "Impossible de charger l'arbre. Rechargez la page pour réessayer."));
   } finally {
     loading.value = false;
   }
