@@ -311,7 +311,7 @@ import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import BaseModal from '@/Components/BaseModal.vue';
 import MediaCard from '@/Components/MediaCard.vue';
-import { usePhotoSwipe } from '@/composables/usePhotoSwipe';
+import { usePhotoSwipe } from '@/Composables/usePhotoSwipe';
 import PersonFormModal from '@/Components/PersonFormModal.vue';
 import FamilyPanel from '@/Components/FamilyPanel.vue';
 import HowWeMetPanel from '@/Components/HowWeMetPanel.vue';

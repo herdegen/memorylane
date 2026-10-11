@@ -308,7 +308,7 @@ import VisionStatusBadge from '@/Components/VisionStatusBadge.vue';
 import VisionLabels from '@/Components/VisionLabels.vue';
 import VoiceNotesPanel from '@/Components/VoiceNotesPanel.vue';
 import VideoPlayer from '@/Components/VideoPlayer.vue';
-import { useFaceDetection } from '@/composables/useFaceDetection';
+import { useFaceDetection } from '@/Composables/useFaceDetection';
 import { useToast } from '@/Composables/useToast';
 import { apiError } from '@/utils/apiError';
 import { formatFileSize, formatDuration } from '@/utils/format';

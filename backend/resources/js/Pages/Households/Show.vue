@@ -208,7 +208,7 @@ import CircleKindIcon from '@/Components/CircleKindIcon.vue';
 import { KIND_LABELS } from '@/Composables/useCircle';
 import MediaCard from '@/Components/MediaCard.vue';
 import { useToast } from '@/Composables/useToast';
-import { usePhotoSwipe } from '@/composables/usePhotoSwipe';
+import { usePhotoSwipe } from '@/Composables/usePhotoSwipe';
 
 const toast = useToast();
 

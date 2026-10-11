@@ -242,7 +242,7 @@ import AlbumFormModal from '@/Components/AlbumFormModal.vue';
 import SharePanel from '@/Components/SharePanel.vue';
 import MediaPickerModal from '@/Components/MediaPickerModal.vue';
 import FullscreenSlideshow from '@/Components/FullscreenSlideshow.vue';
-import { usePhotoSwipe } from '@/composables/usePhotoSwipe';
+import { usePhotoSwipe } from '@/Composables/usePhotoSwipe';
 import { useToast } from '@/Composables/useToast';
 
 // Chargé à l'ouverture seulement : la carte embarque Leaflet (~45 ko gzip).

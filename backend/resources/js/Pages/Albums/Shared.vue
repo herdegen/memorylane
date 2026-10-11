@@ -129,7 +129,7 @@
 
 <script setup>
 import { Head } from '@inertiajs/vue3';
-import { usePhotoSwipe } from '@/composables/usePhotoSwipe';
+import { usePhotoSwipe } from '@/Composables/usePhotoSwipe';
 import { thumbnailUrl } from '@/utils/media';
 
 const props = defineProps({

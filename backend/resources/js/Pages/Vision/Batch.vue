@@ -71,7 +71,7 @@
 import { ref, onMounted } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { useFaceDetection } from '@/composables/useFaceDetection';
+import { useFaceDetection } from '@/Composables/useFaceDetection';
 import axios from 'axios';
 
 const { detectFaces, ensureModelsLoaded } = useFaceDetection();

@@ -309,7 +309,7 @@ import MediaGrid from '@/Components/MediaGrid.vue';
 import AddToAlbumModal from '@/Components/AddToAlbumModal.vue';
 import ShareToHouseholdModal from '@/Components/ShareToHouseholdModal.vue';
 import BulkDateModal from '@/Components/BulkDateModal.vue';
-import { usePhotoSwipe } from '@/composables/usePhotoSwipe';
+import { usePhotoSwipe } from '@/Composables/usePhotoSwipe';
 import { useToast } from '@/Composables/useToast';
 import { apiError } from '@/utils/apiError';
 import { useTags } from '@/Composables/useTags';

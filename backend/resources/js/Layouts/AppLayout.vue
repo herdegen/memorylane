@@ -225,7 +225,7 @@ import axios from 'axios';
 import { IconSettings, IconChevron, IconMenu, IconTheme } from '@/Components/Icons';
 import { useAuth } from '@/Composables/useAuth';
 import { useTheme } from '@/Composables/useTheme';
-import { startBackgroundFaceScan } from '@/composables/useBackgroundFaceScan';
+import { startBackgroundFaceScan } from '@/Composables/useBackgroundFaceScan';
 import { usePush } from '@/Composables/usePush';
 import { useCircle } from '@/Composables/useCircle';
 
