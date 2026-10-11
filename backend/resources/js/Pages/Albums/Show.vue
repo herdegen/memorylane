@@ -232,6 +232,7 @@
 </template>
 
 <script setup>
+import { escapeHtml } from '@/utils/html';
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
@@ -288,7 +289,7 @@ onMounted(() => {
     ? `<div style="position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#f59e0b;color:#fff;font-size:11px;font-weight:600;line-height:18px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.3);">${count}</div>`
     : '';
   const thumb = props.album.cover_url
-    ? `<img src="${props.album.cover_url}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'" />`
+    ? `<img src="${escapeHtml(props.album.cover_url)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'" />`
     : '';
   L.marker([latitude, longitude], {
     icon: L.divIcon({
