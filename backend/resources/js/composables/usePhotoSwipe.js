@@ -185,15 +185,24 @@ export function usePhotoSwipe(getMedia, options = {}) {
   };
 
   // Même liste complétée (scroll infini) : on remplace seulement les slides
-  // de la visionneuse existante, sans la détruire (une visionneuse ouverte
-  // garde ses slides jusqu'à sa fermeture).
+  // de la visionneuse existante, sans la détruire. Ouverte, elle prend aussi
+  // les nouveaux slides (compteur, flèches, voisins en boucle) sans se fermer.
   const updateSlides = () => {
     const items = viewableItems();
     if (!lightbox || items.length === 0) {
       rebuild();
       return;
     }
-    lightbox.options.dataSource = items.map(toSlide);
+    const slides = items.map(toSlide);
+    lightbox.options.dataSource = slides;
+
+    const pswp = lightbox.pswp;
+    if (pswp) {
+      pswp.options.dataSource = slides;
+      [pswp.currIndex - 1, pswp.currIndex + 1].forEach((i) =>
+        pswp.refreshSlideContent(pswp.getLoopedIndex(i)),
+      );
+    }
   };
 
   const rebuild = () => {

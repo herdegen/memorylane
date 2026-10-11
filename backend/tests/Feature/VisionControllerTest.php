@@ -349,6 +349,41 @@ class VisionControllerTest extends TestCase
         $this->assertLessThan(0.6, $data[0]['distance']);
     }
 
+    public function test_suggestions_follow_identification_changes(): void
+    {
+        $alice = Person::create(['user_id' => $this->user->id, 'name' => 'Alice']);
+        $bob = Person::create(['user_id' => $this->user->id, 'name' => 'Bob']);
+
+        $other = Media::factory()->create(['user_id' => $this->user->id, 'type' => 'photo']);
+        $labelled = DetectedFace::create([
+            'media_id' => $other->id,
+            'bounding_box' => ['x' => 1, 'y' => 1, 'width' => 1, 'height' => 1],
+            'provider' => 'faceapi',
+            'status' => 'matched',
+            'person_id' => $alice->id,
+            'embedding' => $this->embedding(0.10),
+        ]);
+        $target = DetectedFace::create([
+            'media_id' => $this->media->id,
+            'bounding_box' => ['x' => 2, 'y' => 2, 'width' => 2, 'height' => 2],
+            'provider' => 'faceapi',
+            'status' => 'unmatched',
+            'embedding' => $this->embedding(0.11),
+        ]);
+
+        // 1er appel : les références (Alice) sont mises en cache.
+        $this->actingAs($this->user)->getJson("/vision/faces/{$target->id}/suggest")
+            ->assertJsonFragment(['name' => 'Alice']);
+
+        // Le visage de référence est réattribué à Bob : le cache est invalidé.
+        $labelled->update(['person_id' => $bob->id]);
+
+        $names = collect($this->actingAs($this->user)->getJson("/vision/faces/{$target->id}/suggest")
+            ->json('suggestions'))->pluck('person.name');
+        $this->assertContains('Bob', $names);
+        $this->assertNotContains('Alice', $names);
+    }
+
     public function test_auto_match_matches_when_very_close(): void
     {
         $person = Person::create(['user_id' => $this->user->id, 'name' => 'Alice']);

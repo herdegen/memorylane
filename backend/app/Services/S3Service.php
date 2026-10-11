@@ -123,7 +123,7 @@ class S3Service
     {
         // For local/public disks, use regular URL (they don't support temporaryUrl)
         if (in_array($this->disk, ['local', 'public'])) {
-            return $this->url($path);
+            return Storage::disk($this->disk)->url($path);
         }
 
         // For S3-compatible storage, use temporaryUrl with signature
@@ -145,7 +145,7 @@ class S3Service
     public function getStableTemporaryUrl(string $path, int $windowMinutes = 60, int $validityMinutes = 120): array
     {
         if (in_array($this->disk, ['local', 'public'])) {
-            return [$this->url($path), $windowMinutes * 60];
+            return [Storage::disk($this->disk)->url($path), $windowMinutes * 60];
         }
 
         // Disque simulé (tests) ou non-S3 : URL temporaire classique.
@@ -182,7 +182,7 @@ class S3Service
     {
         // For local/public disks, just return the URL (download headers handled by controller)
         if (in_array($this->disk, ['local', 'public'])) {
-            return $this->url($path);
+            return Storage::disk($this->disk)->url($path);
         }
 
         // For S3-compatible storage, add download headers to signed URL
