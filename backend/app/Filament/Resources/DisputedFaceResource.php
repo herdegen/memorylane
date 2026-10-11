@@ -112,7 +112,8 @@ class DisputedFaceResource extends Resource
             ])
             ->recordActions([
                 Action::make('confirm')
-                    ->label(fn (DetectedFace $r) => 'C\'est bien '.strtok((string) $r->person?->name, ' '))
+                    ->label('Confirmer')
+                    ->tooltip(fn (DetectedFace $r) => 'C\'est bien '.$r->person?->name)
                     ->icon('heroicon-o-check')->color('success')
                     ->action(function (DetectedFace $record) {
                         $record->forceFill(['verified_at' => now()])->save();

@@ -27,7 +27,8 @@ return [
         // du 2026-10-11). InsightFace : vecteurs normés, distance 0..2.
         'thresholds' => [
             'faceapi' => ['match' => 0.6, 'auto' => 0.45, 'margin' => 0.0],
-            'insightface' => ['match' => 1.25, 'auto' => 1.0, 'margin' => 0.15],
+            // 'strong' : distance affichée comme 100 % de ressemblance.
+            'insightface' => ['match' => 1.25, 'auto' => 1.0, 'margin' => 0.15, 'strong' => 0.75],
         ],
     ],
 ];

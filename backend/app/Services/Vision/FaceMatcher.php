@@ -152,7 +152,7 @@ class FaceMatcher
                 'person' => ['id' => $person->id, 'name' => $person->name],
                 'distance' => round($distance, 4),
                 // Score de similarité (0..1) : 1 = identique, 0 = au seuil de suggestion.
-                'score' => round(max(0, 1 - $distance / $this->matchThreshold()), 4),
+                'score' => $this->score($distance),
                 'doubts' => $media ? $plausibility->doubts($person, $media, $kin) : [],
             ];
         }
@@ -189,6 +189,19 @@ class FaceMatcher
     public function threshold(string $name): float
     {
         return (float) config("memorylane.faces.thresholds.{$this->engine()}.{$name}");
+    }
+
+    /**
+     * Ressemblance affichée (0..1) : 0 au seuil de suggestion ; 1 à distance
+     * nulle (face-api) ou dès la distance « forte » (InsightFace : 50 % au
+     * seuil d'association automatique).
+     */
+    public function score(float $distance): float
+    {
+        $match = $this->matchThreshold();
+        $strong = (float) config("memorylane.faces.thresholds.{$this->engine()}.strong", 0.0);
+
+        return round(max(0, min(1, ($match - $distance) / ($match - $strong))), 4);
     }
 
     public function matchThreshold(): float

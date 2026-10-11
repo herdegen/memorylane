@@ -43,6 +43,7 @@ class DuplicateFaceResource extends Resource
         return parent::getEloquentQuery()
             ->where('detected_faces.status', 'matched')
             ->whereNotNull('detected_faces.person_id')
+            ->whereHas('media')
             ->whereExists(function ($q) {
                 $q->selectRaw('1')->from('detected_faces as sib')
                     ->whereColumn('sib.media_id', 'detected_faces.media_id')
@@ -89,7 +90,7 @@ class DuplicateFaceResource extends Resource
                             return '—';
                         }
                         // Distance → pourcentage lisible (100 % = identique).
-                        return round(max(0, 1 - $row['score'] / app(FaceMatcher::class)->matchThreshold()) * 100).' %';
+                        return round(app(FaceMatcher::class)->score($row['score']) * 100).' %';
                     })
                     ->badge()
                     ->color(fn (DetectedFace $r) => ($analysis()[$r->id]['suggested'] ?? false) ? 'success' : 'gray'),

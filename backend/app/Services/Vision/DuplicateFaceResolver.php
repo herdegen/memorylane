@@ -36,9 +36,11 @@ class DuplicateFaceResolver
     public function pairs(): Collection
     {
         return DB::table('detected_faces')
-            ->whereNotNull('person_id')->where('status', 'matched')
-            ->select('media_id', 'person_id')
-            ->groupBy('media_id', 'person_id')
+            ->join('media', 'media.id', '=', 'detected_faces.media_id')
+            ->whereNull('media.deleted_at') // corbeille exclue
+            ->whereNotNull('detected_faces.person_id')->where('detected_faces.status', 'matched')
+            ->select('detected_faces.media_id', 'detected_faces.person_id')
+            ->groupBy('detected_faces.media_id', 'detected_faces.person_id')
             ->havingRaw('count(*) > 1')
             ->get();
     }

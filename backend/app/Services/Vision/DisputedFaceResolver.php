@@ -37,7 +37,9 @@ class DisputedFaceResolver
 
     private function compute(): array
     {
+        // Photos à la corbeille exclues : invisibles dans l'appli.
         $faces = DetectedFace::query()->where('status', 'matched')->whereNotNull('person_id')->whereNotNull('embedding_v2')
+            ->whereHas('media')
             ->with(['person:id,birth_date', 'media:id,taken_at'])
             ->get(['id', 'person_id', 'media_id', 'embedding_v2', 'age_estimate', 'verified_at'])
             ->filter(fn ($f) => is_array($f->embedding_v2) && count($f->embedding_v2) === 512)->values();
