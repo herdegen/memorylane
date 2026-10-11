@@ -185,7 +185,7 @@ memorylane/
 │   │   │   ├── Album.php            # Albums (share token, slug, soft delete)
 │   │   │   ├── DetectedFace.php     # Visages détectés par l'IA
 │   │   │   ├── Media.php            # Médias (titre, description, personnes)
-│   │   │   ├── MediaMetadata.php    # Métadonnées EXIF + vision
+│   │   │   ├── MediaMetadata.php    # Métadonnées EXIF (GPS, appareil)
 │   │   │   ├── Person.php           # Personnes (slug, dates, relations familiales)
 │   │   │   ├── PersonRelationship.php # Relations conjoints/partenaires
 │   │   │   ├── GedcomImport.php     # Sessions d'import GEDCOM
@@ -196,8 +196,9 @@ memorylane/
 │   │       ├── GedcomParserService.php  # Parseur GEDCOM custom (INDI + FAM)
 │   │       ├── GedcomImportService.php  # Matching + import GEDCOM
 │   │       └── Vision/
-│   │           ├── GoogleVisionService.php  # Implémentation Google
-│   │           └── NullVisionService.php    # No-op (vision désactivée)
+│   │           ├── FaceMatcher.php          # Suggestions de visage (descripteurs face-api.js)
+│   │           ├── FaceCropService.php      # Recadrage d'un visage (avatars, quêtes)
+│   │           └── AvatarFacePositionService.php
 │   ├── database/
 │   │   ├── migrations/              # Toutes les migrations (UUID)
 │   │   └── factories/               # Factories pour tests
@@ -244,7 +245,7 @@ memorylane/
 |-------|-------------|
 | `users` | Utilisateurs (UUID) |
 | `media` | Photos/vidéos/documents (titre, description, type, dimensions) |
-| `media_metadata` | Métadonnées EXIF (GPS, appareil, date) + champs vision IA |
+| `media_metadata` | Métadonnées EXIF (GPS, appareil, date) |
 | `media_conversions` | Thumbnails et versions optimisées |
 | `tags` | Tags avec couleur, slug et type (general/ai) |
 | `taggables` | Pivot polymorphique tags-médias |
@@ -361,55 +362,20 @@ podman-compose exec app php artisan test --coverage
 | POST | `/tags/attach` | Attacher à un média |
 | POST | `/tags/detach` | Détacher d'un média |
 
-### Vision IA (`/vision`)
+### Visages (`/vision`)
 | Méthode | Route | Description |
 |---------|-------|-------------|
 | GET | `/vision/media/{id}/faces` | Visages détectés (hors dismissed) |
 | POST | `/vision/faces/{id}/match` | Matcher un visage à une personne |
 | POST | `/vision/faces/{id}/dismiss` | Ignorer un visage détecté |
-| GET | `/vision/media/{id}/labels` | Labels IA détectés |
-| POST | `/vision/media/{id}/analyze` | (Re)lancer l'analyse IA |
-| GET | `/vision/media/{id}/status` | Statut du traitement IA |
 
-## Configuration Vision IA
+## Reconnaissance de visages
 
-L'analyse IA est optionnelle et désactivée par défaut. L'architecture utilise un pattern **provider-swappable** : une interface unique `VisionServiceInterface` avec des implémentations interchangeables.
-
-### Providers disponibles
-
-| Provider | Env `VISION_PROVIDER` | Description |
-|----------|----------------------|-------------|
-| Google Cloud Vision | `google` | API cloud payante, haute précision |
-| Null (désactivé) | — | No-op, retourne des résultats vides |
-| Local *(futur)* | `local` | Alternative gratuite via DeepFace/InsightFace |
-
-### Variables d'environnement
-
-```env
-# Activer/désactiver l'analyse IA
-VISION_ENABLED=false
-
-# Provider : google (par défaut)
-VISION_PROVIDER=google
-
-# Google Cloud Vision
-GOOGLE_CLOUD_PROJECT=your-project-id
-GOOGLE_APPLICATION_CREDENTIALS=/path/to/credentials.json
-
-# Seuils de confiance
-VISION_FACE_CONFIDENCE=0.75
-VISION_LABEL_CONFIDENCE=0.70
-VISION_LABEL_MAX=15
-
-# Auto-tagging : crée des tags automatiquement depuis les labels IA
-VISION_AUTO_TAG=true
-```
-
-### Ajouter un nouveau provider
-
-1. Créer une classe implémentant `VisionServiceInterface` dans `app/Services/Vision/`
-2. Ajouter le case dans le `match` de `AppServiceProvider`
-3. Configurer `VISION_PROVIDER=nom_du_provider` dans `.env`
+La détection et la reconnaissance se font **dans le navigateur** (face-api.js,
+modèles servis par l'application) : aucune photo n'est envoyée à un service
+tiers. Le serveur ne stocke que les cadres et les descripteurs (128 valeurs)
+des visages, et propose des correspondances (`FaceMatcher`) à partir des
+visages déjà identifiés.
 
 ## Développement
 

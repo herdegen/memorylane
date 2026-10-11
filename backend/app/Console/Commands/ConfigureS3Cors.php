@@ -11,7 +11,7 @@ use Illuminate\Console\Command;
  *
  * À lancer une fois (et à re-lancer si l'URL de l'app change) :
  *   php artisan s3:configure-cors
- *   php artisan s3:configure-cors https://memorylane.maxibestof.com http://localhost:8000
+ *   php artisan s3:configure-cors https://memory-lane.fr   (dev : https://dev.memory-lane.fr, sur son propre bucket)
  */
 class ConfigureS3Cors extends Command
 {
