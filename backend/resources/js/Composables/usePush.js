@@ -11,6 +11,24 @@ const urlBase64ToUint8Array = (base64String) => {
 };
 
 const SYNC_FLAG = 'ml:push-synced';
+// Id serveur de l'abonnement de CET appareil, appris des réponses de
+// POST /push/subscriptions : permet à la déconnexion de le supprimer.
+const SUB_ID_KEY = 'ml:push-sub-id';
+
+const rememberSubscriptionId = (endpoint, list) => {
+  const row = (list || []).find((s) => s.endpoint === endpoint);
+  if (!row) return;
+  try { sessionStorage.setItem(SUB_ID_KEY, String(row.id)); } catch { /* navigation privée */ }
+};
+const storedSubscriptionId = () => {
+  try { return sessionStorage.getItem(SUB_ID_KEY); } catch { return null; }
+};
+const forgetSession = () => {
+  try {
+    sessionStorage.removeItem(SUB_ID_KEY);
+    sessionStorage.removeItem(SYNC_FLAG);
+  } catch { /* idem */ }
+};
 
 /**
  * Abonnement Web Push de CET appareil (profil, carte du tableau de bord).
@@ -78,18 +96,27 @@ export function usePush() {
       content_encoding: (PushManager.supportedContentEncodings || ['aes128gcm'])[0],
     });
     currentEndpoint.value = sub.endpoint;
+    rememberSubscriptionId(sub.endpoint, data?.subscriptions);
     return data;
   };
 
-  /** Désabonne cet appareil (navigateur + serveur). */
-  const unsubscribeThisDevice = async (subscriptions = []) => {
+  /**
+   * Désabonne cet appareil (navigateur + serveur). L'id serveur est cherché
+   * dans `subscriptions` (liste du profil), sinon dans celui mémorisé pendant
+   * la session ; s'il reste inconnu, seul le navigateur est désabonné (le
+   * serveur supprime l'abonnement mort au prochain envoi).
+   * `background: true` : requête silencieuse (déconnexion), cf. bootstrap.js.
+   */
+  const unsubscribeThisDevice = async (subscriptions = [], { background = false } = {}) => {
     if (!supported) return null;
     const sub = await (await registration()).pushManager.getSubscription();
     const row = subscriptions.find((s) => s.endpoint === sub?.endpoint);
+    const id = row?.id ?? (sub ? storedSubscriptionId() : null);
     if (sub) await sub.unsubscribe().catch(() => {});
     currentEndpoint.value = null;
-    if (row) {
-      const { data } = await axios.delete(`/push/subscriptions/${row.id}`);
+    forgetSession();
+    if (id) {
+      const { data } = await axios.delete(`/push/subscriptions/${id}`, background ? { background: true } : {});
       return data;
     }
     return null;
@@ -105,7 +132,10 @@ export function usePush() {
     sessionStorage.setItem(SYNC_FLAG, '1');
     try {
       const sub = await (await registration()).pushManager.getSubscription();
-      if (sub) await axios.post('/push/subscriptions', { ...sub.toJSON() });
+      if (sub) {
+        const { data } = await axios.post('/push/subscriptions', { ...sub.toJSON() }, { background: true });
+        rememberSubscriptionId(sub.endpoint, data?.subscriptions);
+      }
     } catch {
       // Silencieux : au pire l'appareil sera réabonné depuis le profil.
     }

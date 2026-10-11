@@ -81,9 +81,9 @@
                   <Link href="/guide" class="dropdown-item" @click="showDropdown = false">Guide d'utilisation</Link>
                   <button type="button" class="dropdown-item w-full text-left" @click="launchTour">Visite guidée</button>
                   <hr class="dropdown-divider" />
-                  <Link href="/logout" method="post" as="button" class="dropdown-item w-full text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-300">
+                  <button type="button" @click="logout" :disabled="loggingOut" class="dropdown-item w-full text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-300">
                     Déconnexion
-                  </Link>
+                  </button>
                 </div>
               </div>
             </template>
@@ -94,6 +94,21 @@
 
           <!-- Mobile menu button -->
           <div class="flex items-center gap-1 sm:hidden">
+            <!-- Recherche (téléphone) : ouvre un panneau sous la barre -->
+            <button
+              v-if="user"
+              type="button"
+              @click="toggleMobileSearch"
+              class="p-2 rounded-lg text-surface-500 hover:text-surface-700 hover:bg-surface-100 focus:outline-hidden focus:ring-2 focus:ring-brand-500 transition-colors"
+              :class="{ 'bg-surface-100 text-surface-700': showMobileSearch }"
+              :aria-label="showMobileSearch ? 'Fermer la recherche' : 'Rechercher'"
+              :aria-expanded="showMobileSearch"
+              aria-controls="mobile-search"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
             <button
               @click="toggleTheme"
               class="p-2 rounded-lg text-surface-500 hover:text-surface-700 hover:bg-surface-100 focus:outline-hidden focus:ring-2 focus:ring-brand-500 transition-colors"
@@ -102,8 +117,12 @@
               <IconTheme :dark="isDark" icon-class="w-6 h-6" />
             </button>
             <button
-              @click="showMobileMenu = !showMobileMenu"
+              type="button"
+              @click="toggleMobileMenu"
               class="p-2 rounded-lg text-surface-500 hover:text-surface-700 hover:bg-surface-100 focus:outline-hidden focus:ring-2 focus:ring-brand-500 transition-colors"
+              :aria-label="showMobileMenu ? 'Fermer le menu' : 'Ouvrir le menu'"
+              :aria-expanded="showMobileMenu"
+              aria-controls="mobile-menu"
             >
               <IconMenu :open="showMobileMenu" />
             </button>
@@ -111,8 +130,17 @@
         </div>
       </div>
 
+      <!-- Recherche (téléphone) : la barre desktop est masquée sous sm -->
+      <div
+        v-if="user && showMobileSearch"
+        id="mobile-search"
+        class="sm:hidden border-t border-surface-100 bg-white px-4 py-3"
+      >
+        <SearchBar full-width autofocus />
+      </div>
+
       <!-- Mobile menu -->
-      <div v-show="showMobileMenu" class="sm:hidden border-t border-surface-100 bg-surface-50">
+      <div v-show="showMobileMenu" id="mobile-menu" class="sm:hidden border-t border-surface-100 bg-surface-50">
         <div v-if="user && circles.length > 1" class="px-3 pt-3">
           <CircleSwitcher />
         </div>
@@ -122,8 +150,8 @@
           <MobileNavLink href="/media/upload" :active="$page.component === 'Media/Upload'">Ajouter des photos</MobileNavLink>
           <MobileNavLink href="/albums" :active="$page.component.startsWith('Albums/')">Albums</MobileNavLink>
           <MobileNavLink href="/people" :active="$page.component.startsWith('People/')">{{ peopleLabel }}</MobileNavLink>
-          <MobileNavLink v-if="!isFriends" href="/family-tree" :active="$page.component.startsWith('FamilyTree/')">Arbre</MobileNavLink>
-          <MobileNavLink href="/network" :active="$page.component.startsWith('Network/')">Réseau</MobileNavLink>
+          <MobileNavLink v-if="isFriends" href="/network" :active="$page.component.startsWith('Network/')">Réseau</MobileNavLink>
+          <MobileNavLink v-else href="/family-tree" :active="$page.component.startsWith('FamilyTree/') || $page.component.startsWith('Network/')">Arbre</MobileNavLink>
           <MobileNavLink href="/map" :active="$page.component.startsWith('Map/')">Carte</MobileNavLink>
         </div>
         <div class="pt-3 pb-4 border-t border-surface-200 mx-3">
@@ -157,11 +185,11 @@
                        text-brand-700 hover:bg-brand-50 hover:border-brand-300 rounded-r-lg transition-all">
                 Administration
               </a>
-              <Link href="/logout" method="post" as="button"
+              <button type="button" @click="logout" :disabled="loggingOut"
                 class="block w-full text-left pl-3 pr-4 py-2.5 border-l-4 border-transparent text-base font-medium
                        text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:border-red-300 dark:hover:border-red-500/40 rounded-r-lg transition-all">
                 Déconnexion
-              </Link>
+              </button>
             </div>
           </template>
           <template v-else>
@@ -183,7 +211,7 @@
 
 <script setup>
 import { ref, watchEffect, onMounted, onUnmounted } from 'vue';
-import { Link, usePage } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import NavLink from '@/Components/NavLink.vue';
 import MobileNavLink from '@/Components/MobileNavLink.vue';
 import SearchBar from '@/Components/SearchBar.vue';
@@ -203,7 +231,7 @@ import { useCircle } from '@/Composables/useCircle';
 
 const { user, isAdmin } = useAuth();
 const { isDark, toggle: toggleTheme } = useTheme();
-const { syncOnce: syncPushSubscription } = usePush();
+const { syncOnce: syncPushSubscription, unsubscribeThisDevice, permission: pushPermission } = usePush();
 const { mode, isFriends, circles, peopleLabel } = useCircle();
 
 // Accent du mode (ambre famille, teal amis) : app.css recolore la palette
@@ -214,6 +242,42 @@ watchEffect(() => {
 
 const showDropdown = ref(false);
 const showMobileMenu = ref(false);
+const showMobileSearch = ref(false);
+
+// Téléphone : recherche et menu s'excluent (un seul panneau sous la barre).
+const toggleMobileSearch = () => {
+  showMobileSearch.value = !showMobileSearch.value;
+  if (showMobileSearch.value) showMobileMenu.value = false;
+};
+const toggleMobileMenu = () => {
+  showMobileMenu.value = !showMobileMenu.value;
+  if (showMobileMenu.value) showMobileSearch.value = false;
+};
+
+// Déconnexion : cet appareil ne doit plus recevoir les notifications du
+// compte. On le désabonne AVANT (le DELETE serveur exige encore la session),
+// sans jamais bloquer : un échec ou plus de 3 s d'attente → on se déconnecte
+// quand même (le serveur purge de lui-même un abonnement mort).
+const loggingOut = ref(false);
+const PUSH_UNSUBSCRIBE_TIMEOUT_MS = 3000;
+const logout = async () => {
+  if (loggingOut.value) return;
+  loggingOut.value = true;
+  showDropdown.value = false;
+  if (pushPermission.value === 'granted') {
+    try {
+      await Promise.race([
+        unsubscribeThisDevice([], { background: true }),
+        new Promise((resolve) => setTimeout(resolve, PUSH_UNSUBSCRIBE_TIMEOUT_MS)),
+      ]);
+    } catch {
+      /* sans gravité : la déconnexion passe avant */
+    }
+  }
+  router.post('/logout', {}, {
+    onFinish: () => { loggingOut.value = false; },
+  });
+};
 
 const page = usePage();
 const launchTour = () => {

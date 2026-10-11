@@ -262,6 +262,16 @@
           Rechercher
         </button>
 
+        <!-- Bascule Arbre | Réseau (mobile) : la bascule du panneau est masquée
+             sous md et le menu mobile n'affiche « Réseau » qu'en mode amis. -->
+        <div
+          class="md:hidden absolute top-3 right-3 z-10 inline-flex rounded-full border border-surface-200
+                 bg-white/90 backdrop-blur p-0.5 text-xs font-semibold shadow-warm-sm dark:bg-surface-100/90"
+        >
+          <span class="px-3 py-1.5 rounded-full bg-brand-100 text-brand-800 dark:bg-brand-500/20 dark:text-brand-200">Arbre</span>
+          <Link href="/network" class="px-3 py-1.5 rounded-full text-surface-600 hover:text-surface-900">Réseau</Link>
+        </div>
+
         <!-- Contrôles de vue : tout voir / recentrer -->
         <div
           v-show="!loading && treeNodes.length > 0"
