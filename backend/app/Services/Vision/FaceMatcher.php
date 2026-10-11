@@ -137,9 +137,6 @@ class FaceMatcher
         return $candidates;
     }
 
-    /**
-     * Associe un visage à une personne (statut matched + pivot media_person).
-     */
     /** Mémo par requête (plusieurs visages d'une même photo, quêtes…). */
     private static array $referencesMemo = [];
 
@@ -181,6 +178,9 @@ class FaceMatcher
         self::$referencesMemo = [];
     }
 
+    /**
+     * Associe un visage à une personne (statut matched + pivot media_person).
+     */
     public function applyMatch(DetectedFace $face, string $personId): void
     {
         $face->update([
