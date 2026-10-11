@@ -313,7 +313,7 @@ import { useToast } from '@/Composables/useToast';
 import { apiError } from '@/utils/apiError';
 import { formatFileSize, formatDuration } from '@/utils/format';
 import { backTarget } from '@/utils/navigation';
-import { conversionUrl, displayUrl } from '@/utils/media';
+import { conversionUrl, displayUrl, webVideoUrl } from '@/utils/media';
 import axios from 'axios';
 
 // Éditeur de découpe : chargé seulement pour une vidéo. (VideoPlayer, lui,
@@ -425,7 +425,7 @@ const thumbnailUrl = computed(() => conversionUrl(props.media, 'medium', 'small'
 
 // Source du lecteur : la version web transcodée (MP4 H.264) si elle existe,
 // sinon l'original (les .mkv/.avi/HEVC ne se lisent pas nativement)
-const videoUrl = computed(() => conversionUrl(props.media, 'web') || props.media.url);
+const videoUrl = computed(() => webVideoUrl(props.media));
 
 const handleMediaUpdated = (updatedMedia) => {
   router.reload();

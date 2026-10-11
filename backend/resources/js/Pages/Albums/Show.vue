@@ -244,6 +244,7 @@ import MediaPickerModal from '@/Components/MediaPickerModal.vue';
 import FullscreenSlideshow from '@/Components/FullscreenSlideshow.vue';
 import { usePhotoSwipe } from '@/Composables/usePhotoSwipe';
 import { useToast } from '@/Composables/useToast';
+import { slideUrl } from '@/utils/media';
 
 // Chargé à l'ouverture seulement : la carte embarque Leaflet (~45 ko gzip).
 const GeolocatePickerModal = defineAsyncComponent(() => import('@/Components/GeolocatePickerModal.vue'));
@@ -523,9 +524,7 @@ const slideshowSlides = computed(() =>
     .map((m) => ({
       key: m.id,
       type: m.type,
-      src: m.type === 'video'
-        ? (m.conversions?.find((c) => c.conversion_name === 'web')?.url || m.url)
-        : (m.conversions?.find((c) => c.conversion_name === 'medium')?.url || m.url),
+      src: slideUrl(m),
       label: m.title || m.original_name,
       weight: m.matched_faces_count > 0 ? 3 : 1,
     }))

@@ -280,7 +280,7 @@
           :class="person.avatar_media_id === item.id ? 'border-brand-500 ring-2 ring-brand-300' : 'border-surface-200'"
         >
           <img
-            :src="item.conversions?.find(c => c.conversion_name === 'thumbnail')?.url || item.url"
+            :src="conversionUrl(item, 'thumbnail') || item.url"
             class="w-full h-full object-cover"
             loading="lazy"
             decoding="async"
@@ -322,6 +322,7 @@ import { personLabel } from '@/utils/personName';
 import { formatLongDate } from '@/utils/format';
 import { useToast } from '@/Composables/useToast';
 import { apiError } from '@/utils/apiError';
+import { conversionUrl } from '@/utils/media';
 
 const toast = useToast();
 const { isFriends } = useCircle();

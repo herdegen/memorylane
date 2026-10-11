@@ -255,7 +255,7 @@ import QuestCard from '@/Components/QuestCard.vue';
 import PushPromptCard from '@/Components/PushPromptCard.vue';
 import InstallAppBanner from '@/Components/InstallAppBanner.vue';
 import { useAuth } from '@/Composables/useAuth';
-import { thumbnailUrl } from '@/utils/media';
+import { conversionUrl, slideUrl, thumbnailUrl } from '@/utils/media';
 
 const { user } = useAuth();
 
@@ -286,7 +286,7 @@ const formattedToday = computed(() =>
 const coverUrl = (group) => {
   const first = group.media[0];
   if (!first) return null;
-  return first.conversions?.find((c) => c.conversion_name === 'medium')?.url || thumbnailUrl(first);
+  return conversionUrl(first, 'medium') || thumbnailUrl(first);
 };
 
 // ---- Diaporama des souvenirs (toutes années confondues) ----
@@ -297,9 +297,7 @@ const memorySlides = computed(() =>
     group.media.map((m) => ({
       key: m.id,
       type: m.type === 'video' ? 'video' : 'photo',
-      src: m.type === 'video'
-        ? (m.conversions?.find((c) => c.conversion_name === 'web')?.url || m.url)
-        : (m.conversions?.find((c) => c.conversion_name === 'medium')?.url || m.url),
+      src: slideUrl(m),
       label: group.years_ago === 1 ? 'Il y a 1 an' : `Il y a ${group.years_ago} ans`,
     }))
   )

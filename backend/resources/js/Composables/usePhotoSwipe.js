@@ -2,6 +2,7 @@ import { onMounted, onUnmounted, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import PhotoSwipeLightbox from 'photoswipe/lightbox';
 import 'photoswipe/style.css';
+import { conversionUrl, findConversion, webVideoUrl } from '@/utils/media';
 
 /**
  * Visionneuse PhotoSwipe partagée (galerie, album, album partagé, fiche
@@ -32,19 +33,12 @@ export function usePhotoSwipe(getMedia, options = {}) {
   const viewableItems = () =>
     (getMedia() || []).filter((m) => m.type === 'photo' || m.type === 'video');
 
-  const conversion = (media, name) =>
-    media.conversions?.find((c) => c.conversion_name === name);
+  const imageUrl = (media) => conversionUrl(media, 'large', 'medium') || media.url;
 
-  const imageUrl = (media) =>
-    conversion(media, 'large')?.url || conversion(media, 'medium')?.url || media.url;
-
-  const videoUrl = (media) => conversion(media, 'web')?.url || media.url;
-
-  const posterUrl = (media) =>
-    conversion(media, 'medium')?.url || conversion(media, 'small')?.url || null;
+  const posterUrl = (media) => conversionUrl(media, 'medium', 'small');
 
   const imageDimensions = (media) => {
-    const large = conversion(media, 'large');
+    const large = findConversion(media, 'large');
     if (large?.width && large?.height) return { width: large.width, height: large.height };
     return { width: media.width || 1600, height: media.height || 1200 };
   };
@@ -52,7 +46,7 @@ export function usePhotoSwipe(getMedia, options = {}) {
   // Dimensions de la vidéo web (redimensionnée) sinon de l'original ; à
   // défaut un 16:9 générique — PhotoSwipe n'en a besoin que pour le cadrage.
   const videoDimensions = (media) => {
-    const web = conversion(media, 'web');
+    const web = findConversion(media, 'web');
     if (web?.width && web?.height) return { width: web.width, height: web.height };
     return { width: media.width || 1280, height: media.height || 720 };
   };
@@ -63,7 +57,7 @@ export function usePhotoSwipe(getMedia, options = {}) {
       const dims = videoDimensions(media);
       return {
         type: 'video',
-        videoSrc: videoUrl(media),
+        videoSrc: webVideoUrl(media),
         msrc: posterUrl(media),
         width: dims.width,
         height: dims.height,
