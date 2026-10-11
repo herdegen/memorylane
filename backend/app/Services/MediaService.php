@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Jobs\AnalyzeMediaWithVision;
 use App\Jobs\GenerateMediaConversions;
 use App\Jobs\ProcessUploadedMedia;
 use App\Models\Media;
@@ -28,7 +27,7 @@ class MediaService
     public function getPaginatedMedia(array $filters = [], int $perPage = 24, ?string $userId = null): LengthAwarePaginator
     {
         $media = $this->buildFilteredQuery($filters, $userId)
-            ->with(['user', 'conversions', 'metadata', 'tags'])
+            ->with(['user:id,name', 'conversions', 'metadata', 'tags'])
             ->paginate($perPage);
 
         $this->hydrateSignedUrls($media->getCollection());
@@ -204,12 +203,30 @@ class MediaService
      * @return Media
      * @throws \Exception
      */
+    /**
+     * Extension de stockage dérivée du type détecté — jamais du nom fourni par
+     * le client (un « photo.html » ne doit pas être servi comme une page web).
+     */
+    public const EXTENSIONS = [
+        'image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp',
+        'image/heic' => 'heic', 'image/heif' => 'heif',
+        'video/mp4' => 'mp4', 'video/quicktime' => 'mov', 'video/x-msvideo' => 'avi',
+        'video/x-matroska' => 'mkv', 'video/webm' => 'webm',
+        'application/pdf' => 'pdf', 'application/msword' => 'doc',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+    ];
+
+    public static function extensionForMime(?string $mime): string
+    {
+        return self::EXTENSIONS[$mime] ?? 'bin';
+    }
+
     public function uploadMedia(UploadedFile $file, string $userId): Media
     {
         $originalName = $file->getClientOriginalName();
         $mimeType = $file->getMimeType();
         $size = $file->getSize();
-        $extension = strtolower($file->getClientOriginalExtension());
+        $extension = self::extensionForMime($mimeType);
 
         // Determine visibility (public for local/public disks, private for S3)
         $visibility = in_array($this->s3Service->getDisk(), ['local', 'public']) ? 'public' : 'private';
@@ -235,7 +252,7 @@ class MediaService
         } else {
             $type = $this->determineMediaType($mimeType);
             $filePath = $this->s3Service->generateFilePath($type, $extension);
-            $this->s3Service->upload($file, $filePath, $visibility);
+            $this->s3Service->upload($file, $filePath, $visibility, $mimeType);
             $dimensions = $this->getImageDimensions($file, $mimeType);
             // Empreinte de contenu (dédup fiable, indépendante du nom)
             $contentHash = @hash_file('sha256', $file->getRealPath()) ?: null;
@@ -302,10 +319,6 @@ class MediaService
     {
         ProcessUploadedMedia::dispatch($media);
         GenerateMediaConversions::dispatch($media);
-
-        if (config('vision.enabled')) {
-            AnalyzeMediaWithVision::dispatch($media)->delay(now()->addSeconds(5));
-        }
     }
 
     /**
@@ -436,7 +449,9 @@ class MediaService
         $tmp = tempnam(sys_get_temp_dir(), 'heic_') . '.jpg';
 
         $image = new \Imagick();
-        $image->readImage($file->getRealPath());
+        // Format imposé : ImageMagick ne doit pas deviner le format d'un
+        // fichier non fiable (formats à scripts type MVG/MSL).
+        $image->readImage('heic:'.$file->getRealPath());
         $image->setIteratorIndex(0); // première image (ignore les frames Live Photo)
         $image->setImageFormat('jpeg');
         $image->setImageCompressionQuality(90);

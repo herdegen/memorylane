@@ -45,7 +45,7 @@ class WeeklyDigestTest extends TestCase
     /**
      * Un média partagé via un album public apparaît dans le digest des autres.
      */
-    public function test_digest_includes_media_shared_through_public_album(): void
+    public function test_digest_includes_media_shared_through_a_circle_album(): void
     {
         Notification::fake();
 
@@ -60,9 +60,11 @@ class WeeklyDigestTest extends TestCase
         $album = \App\Models\Album::create([
             'user_id' => $uploader->id,
             'name' => 'Vacances',
-            'is_public' => true,
         ]);
         $album->media()->attach($media->id);
+        $circle = \App\Models\Household::factory()->create(['created_by' => $uploader->id]);
+        $circle->members()->attach([$uploader->id, $grandma->id]);
+        $album->households()->attach($circle->id, ['granted_by' => $uploader->id]);
 
         $this->artisan('memorylane:weekly-digest')->assertSuccessful();
 

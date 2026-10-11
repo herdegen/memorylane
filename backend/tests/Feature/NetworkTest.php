@@ -72,15 +72,18 @@ class NetworkTest extends TestCase
         $this->assertSame([], $graph['nodes']);
     }
 
-    public function test_photo_dans_un_album_public_compte(): void
+    public function test_photo_dans_un_album_partage_avec_le_cercle_compte(): void
     {
         $owner = User::factory()->create();
         $viewer = User::factory()->create();
         [$a, $b] = Person::factory()->count(2)->create(['user_id' => $owner->id]);
 
         $media = $this->photoWith($owner, [$a, $b]);
-        $album = Album::factory()->create(['user_id' => $owner->id, 'is_public' => true]);
+        $album = Album::factory()->create(['user_id' => $owner->id]);
         $album->media()->attach($media->id);
+        $circle = \App\Models\Household::factory()->create(['created_by' => $owner->id]);
+        $circle->members()->attach([$owner->id, $viewer->id]);
+        $album->households()->attach($circle->id, ['granted_by' => $owner->id]);
 
         $graph = $this->actingAs($viewer)->getJson('/network/data')->assertOk()->json();
 

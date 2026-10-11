@@ -47,11 +47,23 @@ class AlbumAccessTest extends TestCase
         $this->assertFalse($album->isAccessibleBy($this->viewer));
     }
 
-    public function test_public_album_accessible_to_any_connected_user(): void
+    public function test_public_flag_no_longer_opens_an_album_to_everyone(): void
     {
+        // « Public » = par cercle désormais : l'ancien drapeau n'ouvre plus rien.
         [$album] = $this->albumWithMedia(['is_public' => true]);
+        $this->actingAs($this->viewer)->getJson("/albums/{$album->id}")->assertForbidden();
+        $this->assertFalse($album->isAccessibleBy($this->viewer));
+    }
+
+    public function test_album_shared_with_a_circle_is_open_to_its_members_only(): void
+    {
+        [$album] = $this->albumWithMedia();
+        $circle = \App\Models\Household::factory()->create(['created_by' => $album->user_id]);
+        $circle->members()->attach([$album->user_id, $this->viewer->id]);
+        $album->households()->attach($circle->id, ['granted_by' => $album->user_id]);
+
         $this->actingAs($this->viewer)->getJson("/albums/{$album->id}")->assertOk();
-        $this->assertTrue($album->isAccessibleBy($this->viewer));
+        $this->assertFalse($album->isAccessibleBy(User::factory()->create()));
     }
 
     public function test_granted_user_can_view_then_revoked(): void
@@ -177,7 +189,10 @@ class AlbumAccessTest extends TestCase
 
     public function test_albums_index_includes_owned_and_shared(): void
     {
-        [$publicAlbum] = $this->albumWithMedia(['is_public' => true]); // partagé (public)
+        [$publicAlbum] = $this->albumWithMedia(); // partagé avec un cercle du viewer
+        $circle = \App\Models\Household::factory()->create(['created_by' => $publicAlbum->user_id]);
+        $circle->members()->attach([$publicAlbum->user_id, $this->viewer->id]);
+        $publicAlbum->households()->attach($circle->id, ['granted_by' => $publicAlbum->user_id]);
         [$privateAlbum] = $this->albumWithMedia();                     // non accessible au viewer
         $ownAlbum = Album::factory()->create(['user_id' => $this->viewer->id]); // le sien
 

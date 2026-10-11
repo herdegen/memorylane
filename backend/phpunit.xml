@@ -18,15 +18,23 @@
         </include>
     </source>
     <php>
-        <env name="APP_ENV" value="testing"/>
+        <!-- Sur l'hôte de prod, `php artisan optimize` met en cache la config
+             PROD : on force des chemins de cache propres aux tests pour que
+             ces <env> s'appliquent toujours (sinon les tests tournent contre
+             la base de prod). Voir aussi Tests\TestCase::createApplication. -->
+        <env name="APP_CONFIG_CACHE" value="/tmp/memorylane-tests-config.php" force="true"/>
+        <env name="APP_ROUTES_CACHE" value="/tmp/memorylane-tests-routes.php" force="true"/>
+        <env name="APP_EVENTS_CACHE" value="/tmp/memorylane-tests-events.php" force="true"/>
+        <env name="APP_ENV" value="testing" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
-        <env name="CACHE_STORE" value="array"/>
-        <env name="DB_DATABASE" value="memorylane_test"/>
-        <env name="MAIL_MAILER" value="array"/>
+        <env name="CACHE_STORE" value="array" force="true"/>
+        <env name="DB_DATABASE" value="memorylane_test" force="true"/>
+        <env name="MAIL_MAILER" value="array" force="true"/>
         <env name="PULSE_ENABLED" value="false"/>
-        <env name="QUEUE_CONNECTION" value="sync"/>
-        <env name="SCOUT_DRIVER" value="database"/>
+        <env name="QUEUE_CONNECTION" value="sync" force="true"/>
+        <env name="SCOUT_DRIVER" value="database" force="true"/>
+        <env name="SCOUT_QUEUE" value="false" force="true"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
     </php>

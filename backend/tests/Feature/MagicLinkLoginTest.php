@@ -59,16 +59,37 @@ class MagicLinkLoginTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $url = URL::temporarySignedRoute(
-            'login.magic.verify',
-            now()->addMinutes(30),
-            ['user' => $user->id]
-        );
-
-        $response = $this->get($url);
+        $response = $this->get(\App\Notifications\MagicLoginLink::urlFor($user));
 
         $response->assertRedirect('/dashboard');
         $this->assertAuthenticatedAs($user);
+    }
+
+    /**
+     * Le lien ne sert qu'une fois : rouvert, il renvoie à la connexion.
+     */
+    public function test_link_works_only_once(): void
+    {
+        $user = User::factory()->create();
+        $url = \App\Notifications\MagicLoginLink::urlFor($user);
+
+        $this->get($url)->assertRedirect('/dashboard');
+        auth()->logout();
+
+        $this->get($url)->assertRedirect(route('login'));
+        $this->assertGuest();
+    }
+
+    /**
+     * Un lien signé sans jeton d'usage unique (ancien format) est refusé.
+     */
+    public function test_signed_link_without_nonce_is_refused(): void
+    {
+        $user = User::factory()->create();
+        $url = URL::temporarySignedRoute('login.magic.verify', now()->addMinutes(30), ['user' => $user->id]);
+
+        $this->get($url)->assertRedirect(route('login'));
+        $this->assertGuest();
     }
 
     /**

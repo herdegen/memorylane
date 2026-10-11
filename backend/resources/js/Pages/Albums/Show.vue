@@ -96,7 +96,7 @@
           <div class="mt-1.5 flex items-center gap-3 text-sm text-white/85">
             <span>{{ album.media_count || 0 }} médias</span>
             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 border border-white/30 text-white">
-              {{ album.is_public ? 'Public' : 'Privé' }}
+              {{ album.is_owner ? 'Mon album' : 'Partagé avec moi' }}
             </span>
             <span v-if="album.description" class="hidden sm:inline truncate">{{ album.description }}</span>
           </div>

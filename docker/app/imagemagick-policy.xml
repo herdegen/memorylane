@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Politique ImageMagick de MemoryLane : on ne traite que des formats photo,
+  jamais les formats à scripts (MVG, MSL, SVG, PS/PDF, TEXT…), ni d'accès
+  réseau ou fichier indirect (@fichier), avec des plafonds de ressources
+  contre les images piégées (« decompression bomb »).
+  Monté sur /etc/ImageMagick-7/policy.xml dans app, horizon et scheduler.
+-->
+<policymap>
+  <policy domain="resource" name="memory" value="1GiB"/>
+  <policy domain="resource" name="map" value="2GiB"/>
+  <policy domain="resource" name="disk" value="4GiB"/>
+  <policy domain="resource" name="width" value="32KP"/>
+  <policy domain="resource" name="height" value="32KP"/>
+  <policy domain="resource" name="area" value="256MP"/>
+  <policy domain="resource" name="time" value="180"/>
+  <policy domain="delegate" rights="none" pattern="*"/>
+  <policy domain="path" rights="none" pattern="@*"/>
+  <policy domain="coder" rights="none" pattern="*"/>
+  <policy domain="coder" rights="read|write" pattern="{JPEG,JPG,PJPEG,PNG,PNG8,PNG24,PNG32,GIF,WEBP,HEIC,HEIF,AVIF}"/>
+</policymap>

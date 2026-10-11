@@ -38,8 +38,7 @@ class AlbumController extends Controller
         return [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
-            'cover_media_id' => 'nullable|exists:media,id',
-            'is_public' => 'boolean',
+            'cover_media_id' => 'nullable|uuid|exists:media,id',
             'is_smart' => 'boolean',
             'smart_rules' => 'nullable|required_if:is_smart,true|array',
             'smart_rules.person_id' => ['nullable', 'uuid', new VisiblePerson],
@@ -51,9 +50,9 @@ class AlbumController extends Controller
 
     public function index(Request $request)
     {
-        // Mes albums + ceux partagés avec moi (public / accès accordé / tagué).
+        // Mes albums + ceux partagés avec moi (accès accordé / cercle / tagué).
         $albums = Album::accessibleBy(auth()->user())
-            ->withCount(['media', 'accesses'])
+            ->withCount(['media', 'accesses', 'households'])
             ->with(['coverMedia.conversions', 'user:id,name'])
             ->orderBy('updated_at', 'desc')
             ->get();
@@ -91,11 +90,15 @@ class AlbumController extends Controller
         if ($mediaIds !== []) {
             $this->ensureMediaAccessible($mediaIds);
         }
+        // Couverture : uniquement une photo que l'on peut voir (sinon ses
+        // métadonnées seraient servies à tous les lecteurs de l'album).
+        if (! empty($validated['cover_media_id'])) {
+            $this->ensureMediaAccessible([$validated['cover_media_id']]);
+        }
 
         $album = Album::create([
             ...$validated,
             'user_id' => auth()->id(),
-            'is_public' => $validated['is_public'] ?? false,
         ]);
 
         // Un album intelligent se remplit dès sa création
@@ -147,8 +150,9 @@ class AlbumController extends Controller
             $album->cover_url = $this->getCoverUrl($cover);
         }
 
-        $album->share_url = $album->getShareUrl();
         $album->is_owner = $album->user_id === auth()->id();
+        // Lien anonyme : son URL n'est donnée qu'au propriétaire.
+        $album->share_url = $album->is_owner ? $album->getShareUrl() : null;
 
         // Position du héro (fond carte) : barycentre des médias géolocalisés.
         $location = \App\Models\MediaMetadata::whereIn('media_id', $album->media->pluck('id'))
@@ -178,6 +182,9 @@ class AlbumController extends Controller
         Gate::authorize('update', $album);
 
         $validated = $request->validate($this->albumRules());
+        if (! empty($validated['cover_media_id']) && $validated['cover_media_id'] !== $album->cover_media_id) {
+            $this->ensureMediaAccessible([$validated['cover_media_id']]);
+        }
 
         $album->update($validated);
 
@@ -538,7 +545,8 @@ class AlbumController extends Controller
         return [
             'user_id' => $user->id,
             'name' => $user->name,
-            'email' => $user->email,
+            // Adresse e-mail : réservée à l'admin (pas d'annuaire pour tous).
+            'email' => auth()->user()?->isAdmin() ? $user->email : null,
             'origin' => $origin, // owner | granted | tagged
             'granted_by' => $grantedBy,
         ];
@@ -557,12 +565,21 @@ class AlbumController extends Controller
         }
 
         $excluded = $album->accesses()->pluck('user_id')->push($album->user_id)->all();
+        $viewer = $request->user();
+        $like = '%'.addcslashes($q, '%_\\').'%';
 
-        $users = User::whereNotIn('id', $excluded)
-            ->where(fn ($w) => $w->where('name', 'like', "%{$q}%")->orWhere('email', 'like', "%{$q}%"))
+        // Pas d'annuaire de tous les comptes : seulement les personnes qui
+        // partagent un cercle avec moi (l'admin voit tout le monde), et
+        // l'adresse e-mail n'est montrée qu'à l'admin.
+        $users = User::realPeople()
+            ->visibleTo($viewer)
+            ->whereNotIn('id', $excluded)
+            ->where(fn ($w) => $w->where('name', 'ilike', $like)
+                ->when($viewer->isAdmin(), fn ($w) => $w->orWhere('email', 'ilike', $like)))
             ->orderBy('name')
             ->limit(8)
-            ->get(['id', 'name', 'email']);
+            ->get(['id', 'name', 'email'])
+            ->map(fn (User $u) => ['id' => $u->id, 'name' => $u->name, 'email' => $viewer->isAdmin() ? $u->email : null]);
 
         return response()->json($users);
     }

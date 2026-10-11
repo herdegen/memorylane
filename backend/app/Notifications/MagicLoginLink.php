@@ -6,7 +6,10 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 
 class MagicLoginLink extends Notification implements ShouldQueue
 {
@@ -22,13 +25,30 @@ class MagicLoginLink extends Notification implements ShouldQueue
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    /**
+     * URL signée à usage unique (jeton gardé en cache le temps de validité).
+     */
+    public static function urlFor(User $user): string
     {
-        $url = URL::temporarySignedRoute(
+        $nonce = Str::random(40);
+        Cache::put("magic-link:{$nonce}", $user->id, now()->addMinutes(self::EXPIRATION_MINUTES));
+
+        return URL::temporarySignedRoute(
             'login.magic.verify',
             now()->addMinutes(self::EXPIRATION_MINUTES),
-            ['user' => $notifiable->id]
+            ['user' => $user->id, 'n' => $nonce]
         );
+    }
+
+    /** Consomme le jeton : vrai une seule fois, pour le bon compte. */
+    public static function consume(User $user, string $nonce): bool
+    {
+        return $nonce !== '' && Cache::pull("magic-link:{$nonce}") === $user->id;
+    }
+
+    public function toMail(object $notifiable): MailMessage
+    {
+        $url = self::urlFor($notifiable);
 
         return (new MailMessage)
             ->subject('Votre lien de connexion MemoryLane')

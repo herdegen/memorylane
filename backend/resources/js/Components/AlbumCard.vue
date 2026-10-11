@@ -69,10 +69,10 @@ const props = defineProps({
 defineEmits(['click']);
 
 const visibility = computed(() => {
-  if (props.album.is_public) {
-    return { label: 'Public', class: 'bg-teal-100/95 text-teal-800' };
+  if ((props.album.households_count || 0) > 0) {
+    return { label: 'Cercle', class: 'bg-teal-100/95 text-teal-800' };
   }
-  if ((props.album.accesses_count || 0) > 0 || props.album.share_token) {
+  if ((props.album.accesses_count || 0) > 0 || props.album.has_share_link) {
     return { label: 'Partagé', class: 'bg-amber-100/95 text-amber-800' };
   }
   return { label: 'Privé', class: 'bg-white/85 text-surface-600' };

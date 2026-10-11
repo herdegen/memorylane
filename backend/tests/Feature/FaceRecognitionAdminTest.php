@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Filament\Resources\FaceRecognitionResource\Pages\ListFaceRecognition;
 use App\Filament\Resources\PersonResource\Pages\EditPerson;
 use App\Filament\Resources\PersonResource\RelationManagers\IdentifiedPhotosRelationManager;
-use App\Jobs\AnalyzeMediaWithVision;
 use App\Models\DetectedFace;
 use App\Models\Media;
 use App\Models\Person;
@@ -96,10 +95,8 @@ class FaceRecognitionAdminTest extends TestCase
         $response->assertStatus(200);
     }
 
-    public function test_relancer_la_detection_reinitialise_et_redispatch(): void
+    public function test_relancer_la_detection_reinitialise(): void
     {
-        Queue::fake();
-
         $admin = User::factory()->admin()->create();
         $media = Media::factory()->photo()->create(['user_id' => $admin->id]);
         $this->unmatchedFace($media, $this->embedding(0.2));
@@ -110,8 +107,8 @@ class FaceRecognitionAdminTest extends TestCase
             ->callTableAction('reanalyzeDetection', $media);
 
         $this->assertSame(0, $media->detectedFaces()->count());
+        // Remis « en attente » : le scan de visages du navigateur le reprendra.
         $this->assertSame('pending', $media->metadata->fresh()->vision_status);
-        Queue::assertPushed(AnalyzeMediaWithVision::class);
     }
 
     public function test_relancer_auto_association_matche_les_visages(): void

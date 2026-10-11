@@ -144,13 +144,9 @@ class VisionAuthorizationTest extends TestCase
     {
         $member = $this->householdMember();
 
-        // Wipe + recreate et re-analyse : destructifs, propriétaire seul.
+        // Wipe + recreate : destructif, propriétaire seul.
         $this->actingAs($member)
             ->postJson("/vision/media/{$this->media->id}/faces", ['faces' => []])
-            ->assertStatus(403);
-
-        $this->actingAs($member)
-            ->postJson("/vision/media/{$this->media->id}/analyze")
             ->assertStatus(403);
 
         $this->assertNotNull($this->face->fresh());

@@ -113,7 +113,8 @@ class MediaController extends Controller
         Gate::authorize('view', $media);
 
         $media->load([
-            'user', 'tags', 'conversions', 'metadata', 'people', 'detectedFaces.person',
+            // Propriétaire : juste son nom (pas d'e-mail ni de préférences).
+            'user:id,name', 'tags', 'conversions', 'metadata', 'people', 'detectedFaces.person',
             'sourceMedia', 'clips.conversions',
         ]);
 

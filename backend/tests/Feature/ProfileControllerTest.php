@@ -43,6 +43,7 @@ class ProfileControllerTest extends TestCase
             ->put('/profile', [
                 'name' => 'Paul H.',
                 'email' => 'nouveau@example.com',
+                'current_password' => 'ancien-mdp-8car',
             ])
             ->assertRedirect()
             ->assertSessionHas('success');
@@ -50,6 +51,26 @@ class ProfileControllerTest extends TestCase
         $this->user->refresh();
         $this->assertEquals('Paul H.', $this->user->name);
         $this->assertEquals('nouveau@example.com', $this->user->email);
+    }
+
+    public function test_changing_email_requires_the_current_password(): void
+    {
+        $original = $this->user->email;
+
+        $this->actingAs($this->user)
+            ->put('/profile', ['name' => 'Paul H.', 'email' => 'pirate@example.com'])
+            ->assertSessionHasErrors('current_password');
+
+        $this->actingAs($this->user)
+            ->put('/profile', ['name' => 'Paul H.', 'email' => 'pirate@example.com', 'current_password' => 'faux'])
+            ->assertSessionHasErrors('current_password');
+
+        $this->assertSame($original, $this->user->fresh()->email);
+
+        // Changer seulement le nom ne demande rien.
+        $this->actingAs($this->user)
+            ->put('/profile', ['name' => 'Paul', 'email' => $original])
+            ->assertSessionHasNoErrors();
     }
 
     public function test_cannot_take_email_of_another_user(): void

@@ -33,9 +33,15 @@ class ProfileController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'pin_code' => ['nullable', 'string', 'max:6'],
             'share_address_with_household' => ['nullable', 'boolean'],
+            // Changer d'adresse e-mail (= identifiant et lien de connexion)
+            // demande le mot de passe actuel.
+            'current_password' => [Rule::requiredIf(fn () => strcasecmp((string) $request->input('email'), $user->email) !== 0), 'nullable', 'current_password'],
+        ], [
+            'current_password.required' => 'Saisissez votre mot de passe actuel pour changer d\'adresse e-mail.',
+            'current_password.current_password' => 'Mot de passe actuel incorrect.',
         ]);
+        unset($validated['current_password']);
 
         if ($request->has('share_address_with_household')) {
             $validated['preferences'] = array_merge($user->preferences ?? [], [

@@ -25,7 +25,7 @@ class TakeoutImportTest extends TestCase
 
         $this->user = User::factory()->create();
         Storage::fake('public');
-        Bus::fake([\App\Jobs\ProcessUploadedMedia::class, \App\Jobs\GenerateMediaConversions::class, \App\Jobs\AnalyzeMediaWithVision::class]);
+        Bus::fake([\App\Jobs\ProcessUploadedMedia::class, \App\Jobs\GenerateMediaConversions::class]);
     }
 
     /**

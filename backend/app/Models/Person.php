@@ -100,7 +100,8 @@ class Person extends Model
                 // Make unique if needed
                 $count = 1;
                 $originalSlug = $person->slug;
-                while (static::where('slug', $person->slug)->exists()) {
+                // withTrashed : la contrainte d'unicité couvre aussi la corbeille.
+                while (static::withTrashed()->where('slug', $person->slug)->exists()) {
                     $person->slug = $originalSlug . '-' . $count++;
                 }
             }
@@ -111,7 +112,7 @@ class Person extends Model
                 $person->slug = Str::slug($person->name);
                 $count = 1;
                 $originalSlug = $person->slug;
-                while (static::where('slug', $person->slug)->where('id', '!=', $person->id)->exists()) {
+                while (static::withTrashed()->where('slug', $person->slug)->where('id', '!=', $person->id)->exists()) {
                     $person->slug = $originalSlug . '-' . $count++;
                 }
             }

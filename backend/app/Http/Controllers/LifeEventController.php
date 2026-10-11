@@ -49,6 +49,8 @@ class LifeEventController extends Controller
 
     public function update(Request $request, LifeEvent $lifeEvent)
     {
+        // Le moment d'une fiche qu'on ne voit pas (cercle d'amis) n'existe pas.
+        abort_unless($lifeEvent->person?->isVisibleTo($request->user()), 404);
         $this->authorizeManage($lifeEvent->person);
 
         $data = $this->validated($request);
@@ -63,6 +65,7 @@ class LifeEventController extends Controller
 
     public function destroy(LifeEvent $lifeEvent)
     {
+        abort_unless($lifeEvent->person?->isVisibleTo(auth()->user()), 404);
         // Ajouter/modifier un moment : tout membre. Le supprimer (sans
         // historique) : son auteur, le créateur de la fiche ou un admin.
         $user = auth()->user();

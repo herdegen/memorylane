@@ -103,12 +103,15 @@ class MediaControllerTest extends TestCase
         $this->actingAs($viewer)->get("/media/{$media->id}/download")->assertForbidden();
     }
 
-    public function test_can_view_media_shared_via_public_album(): void
+    public function test_can_view_media_shared_via_a_circle_album(): void
     {
         $viewer = User::factory()->create();
         $media = Media::factory()->create(['user_id' => $this->user->id, 'type' => 'photo']);
-        $album = Album::factory()->create(['user_id' => $this->user->id, 'is_public' => true]);
+        $album = Album::factory()->create(['user_id' => $this->user->id]);
         $album->media()->attach($media->id, ['order' => 0]);
+        $circle = \App\Models\Household::factory()->create(['created_by' => $this->user->id]);
+        $circle->members()->attach([$this->user->id, $viewer->id]);
+        $album->households()->attach($circle->id, ['granted_by' => $this->user->id]);
 
         $this->actingAs($viewer)->get("/media/{$media->id}")->assertOk();
     }

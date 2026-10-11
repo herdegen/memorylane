@@ -51,7 +51,8 @@ class UploadController extends Controller
         ]);
 
         $type = $this->mediaService->determineMediaType($validated['mime_type']);
-        $ext = strtolower(pathinfo($validated['original_name'], PATHINFO_EXTENSION)) ?: 'bin';
+        // Extension dérivée du type annoncé (contrôlé ci-dessus), pas du nom.
+        $ext = MediaService::extensionForMime($validated['mime_type']);
         $key = $this->s3->generateFilePath($type, $ext);
 
         try {

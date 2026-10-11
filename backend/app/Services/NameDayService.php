@@ -27,11 +27,16 @@ class NameDayService
      */
     public function namesFor(Carbon $date): array
     {
-        return Cache::remember(
-            $this->cacheKey($date),
-            now()->addDays(self::CACHE_TTL_DAYS),
-            fn () => $this->fetch($date),
-        );
+        $cached = Cache::get($this->cacheKey($date));
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        $names = $this->fetch($date);
+        // Source injoignable : on ne retient le vide qu'une heure.
+        Cache::put($this->cacheKey($date), $names ?? [], $names === null ? now()->addHour() : now()->addDays(self::CACHE_TTL_DAYS));
+
+        return $names ?? [];
     }
 
     /**
@@ -40,6 +45,10 @@ class NameDayService
     public function refresh(Carbon $date): array
     {
         $names = $this->fetch($date);
+        // Une panne ne doit pas écraser une liste valide déjà en cache.
+        if ($names === null) {
+            return $this->namesFor($date);
+        }
         Cache::put($this->cacheKey($date), $names, now()->addDays(self::CACHE_TTL_DAYS));
 
         return $names;
@@ -66,7 +75,7 @@ class NameDayService
     /**
      * @return array<int, string>
      */
-    private function fetch(Carbon $date): array
+    private function fetch(Carbon $date): ?array
     {
         try {
             $response = Http::timeout(6)->get(self::ENDPOINT, [
@@ -75,7 +84,7 @@ class NameDayService
             ]);
 
             if (! $response->ok()) {
-                return [];
+                return null;
             }
 
             $prenoms = $response->json('response.prenoms') ?? [];
@@ -94,7 +103,7 @@ class NameDayService
                 'error' => $e->getMessage(),
             ]);
 
-            return [];
+            return null;
         }
     }
 

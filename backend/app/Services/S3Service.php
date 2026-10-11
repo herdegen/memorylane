@@ -24,14 +24,20 @@ class S3Service
      * @return string The path where the file was stored
      * @throws \Exception
      */
-    public function upload(UploadedFile $file, string $path, string $visibility = 'private'): string
+    public function upload(UploadedFile $file, string $path, string $visibility = 'private', ?string $contentType = null): string
     {
         try {
+            // Type de contenu explicite (sinon déduit de l'extension par le
+            // stockage) : c'est lui que S3 renverra au navigateur.
+            $options = ['visibility' => $visibility];
+            if ($contentType) {
+                $options['ContentType'] = $contentType;
+            }
             $stored = Storage::disk($this->disk)->putFileAs(
                 dirname($path),
                 $file,
                 basename($path),
-                $visibility
+                $options
             );
 
             // putFileAs renvoie false (sans exception) si l'écriture échoue :
@@ -146,7 +152,11 @@ class S3Service
 
         // For S3-compatible storage, add download headers to signed URL
         return $this->getTemporaryUrl($path, $expirationMinutes, [
-            'ResponseContentDisposition' => 'attachment; filename="' . $filename . '"'
+            'ResponseContentDisposition' => \Symfony\Component\HttpFoundation\HeaderUtils::makeDisposition(
+                'attachment',
+                $filename,
+                \Illuminate\Support\Str::ascii($filename) ?: 'fichier'
+            ),
         ]);
     }
 

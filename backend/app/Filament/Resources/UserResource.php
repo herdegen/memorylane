@@ -53,9 +53,6 @@ class UserResource extends Resource
                     ->required(fn (string $context): bool => $context === 'create')
                     ->label('Mot de passe')
                     ->helperText('Laissez vide pour ne pas modifier'),
-                TextInput::make('pin_code')
-                    ->maxLength(255)
-                    ->label('Code PIN'),
                 Select::make('role')
                     ->options([
                         'user' => 'Utilisateur',

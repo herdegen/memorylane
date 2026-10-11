@@ -2,8 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Contracts\VisionServiceInterface;
-use App\Jobs\AnalyzeMediaWithVision;
 use App\Models\DetectedFace;
 use App\Models\Media;
 use App\Models\MediaMetadata;
@@ -151,102 +149,9 @@ class VisionControllerTest extends TestCase
 
     // --- Labels endpoint ---
 
-    public function test_can_get_vision_labels(): void
-    {
-        MediaMetadata::create([
-            'media_id' => $this->media->id,
-            'vision_labels' => [
-                ['name' => 'Nature', 'score' => 0.95, 'topicality' => 0.9],
-                ['name' => 'Family', 'score' => 0.88, 'topicality' => 0.8],
-            ],
-            'vision_status' => 'completed',
-        ]);
-
-        $response = $this->actingAs($this->user)
-            ->getJson("/vision/media/{$this->media->id}/labels");
-
-        $response->assertOk();
-        $response->assertJsonCount(2, 'labels');
-        $response->assertJsonFragment(['status' => 'completed']);
-    }
-
     // --- Re-analyze ---
 
-    public function test_can_reanalyze_media(): void
-    {
-        Queue::fake();
-
-        DetectedFace::create([
-            'media_id' => $this->media->id,
-            'bounding_box' => ['x' => 10, 'y' => 15, 'width' => 20, 'height' => 25],
-            'confidence' => 0.95,
-            'provider' => 'google',
-            'status' => 'unmatched',
-        ]);
-
-        MediaMetadata::create([
-            'media_id' => $this->media->id,
-            'vision_status' => 'completed',
-            'vision_faces_count' => 1,
-        ]);
-
-        $response = $this->actingAs($this->user)
-            ->postJson("/vision/media/{$this->media->id}/analyze");
-
-        $response->assertOk();
-
-        // Old faces should be deleted
-        $this->assertEquals(0, DetectedFace::where('media_id', $this->media->id)->count());
-
-        // Status should be reset
-        $this->media->refresh();
-        $this->assertEquals('pending', $this->media->metadata->vision_status);
-
-        // Job should be dispatched
-        Queue::assertPushed(AnalyzeMediaWithVision::class);
-    }
-
-    public function test_cannot_reanalyze_non_photo(): void
-    {
-        $videoMedia = Media::factory()->create([
-            'user_id' => $this->user->id,
-            'type' => 'video',
-        ]);
-
-        $response = $this->actingAs($this->user)
-            ->postJson("/vision/media/{$videoMedia->id}/analyze");
-
-        $response->assertUnprocessable();
-    }
-
     // --- Status endpoint ---
-
-    public function test_can_get_vision_status(): void
-    {
-        MediaMetadata::create([
-            'media_id' => $this->media->id,
-            'vision_status' => 'processing',
-            'vision_provider' => 'google',
-        ]);
-
-        $response = $this->actingAs($this->user)
-            ->getJson("/vision/media/{$this->media->id}/status");
-
-        $response->assertOk();
-        $response->assertJsonFragment([
-            'status' => 'processing',
-            'provider' => 'google',
-        ]);
-    }
-
-    public function test_status_returns_null_when_no_metadata(): void
-    {
-        $response = $this->actingAs($this->user)
-            ->getJson("/vision/media/{$this->media->id}/status");
-
-        $response->assertOk();
-        $response->assertJsonFragment(['status' => null]);
-    }
 
     // --- Store faces (face-api.js, client-side) ---
 
@@ -555,10 +460,7 @@ class VisionControllerTest extends TestCase
         $this->getJson("/vision/media/{$this->media->id}/faces")
             ->assertUnauthorized();
 
-        $this->getJson("/vision/media/{$this->media->id}/status")
-            ->assertUnauthorized();
-
-        $this->postJson("/vision/media/{$this->media->id}/analyze")
+        $this->postJson("/vision/media/{$this->media->id}/faces", ['faces' => []])
             ->assertUnauthorized();
     }
 }

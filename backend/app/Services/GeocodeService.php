@@ -87,6 +87,15 @@ class GeocodeService
         }
 
         $result = $this->fetchBan($address);
+
+        // Panne du service (réseau, 5xx) : on ne retient l'échec qu'une heure,
+        // pour réessayer vite ; une adresse réellement introuvable, plus longtemps.
+        if ($result === false) {
+            Cache::put($key, 'miss', now()->addHour());
+
+            return null;
+        }
+
         Cache::put(
             $key,
             $result ?? 'miss',
@@ -97,9 +106,10 @@ class GeocodeService
     }
 
     /**
-     * @return array{latitude: float, longitude: float, city: ?string}|null
+     * @return array{latitude: float, longitude: float, city: ?string}|null|false
+     *         null = introuvable ; false = service indisponible
      */
-    private function fetchBan(string $address): ?array
+    private function fetchBan(string $address): array|null|false
     {
         try {
             $response = Http::withHeaders([
@@ -109,7 +119,10 @@ class GeocodeService
                 'limit' => 1,
             ]);
 
-            $feature = $response->ok() ? ($response->json('features')[0] ?? null) : null;
+            if (! $response->ok()) {
+                return false;
+            }
+            $feature = $response->json('features')[0] ?? null;
             // GeoJSON : coordinates = [longitude, latitude].
             $coords = $feature['geometry']['coordinates'] ?? null;
             if (! is_array($coords) || count($coords) < 2) {
@@ -124,7 +137,7 @@ class GeocodeService
         } catch (\Throwable $e) {
             Log::warning('GeocodeService: échec BAN', ['address' => $address, 'error' => $e->getMessage()]);
 
-            return null;
+            return false;
         }
     }
 

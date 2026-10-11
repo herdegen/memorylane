@@ -17,6 +17,10 @@ class ShareTargetController extends Controller
 
     public function store(Request $request)
     {
+        // Exempté de CSRF (le formulaire vient du téléphone, pas de la page) :
+        // on refuse au moins les envois déclenchés par un site tiers.
+        abort_if($request->header('Sec-Fetch-Site') === 'cross-site', 403);
+
         $request->validate([
             'media'   => ['required', 'array', 'min:1'],
             'media.*' => ['file', 'mimetypes:image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm', 'max:512000'],

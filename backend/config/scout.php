@@ -44,7 +44,8 @@ return [
     |
     */
 
-    'queue' => env('SCOUT_QUEUE', false),
+    // Indexation Meilisearch en tâche de fond (et non pendant la requête web).
+    'queue' => env('SCOUT_QUEUE', true),
 
     /*
     |--------------------------------------------------------------------------
@@ -57,7 +58,9 @@ return [
     |
     */
 
-    'after_commit' => false,
+    // N'indexer qu'après validation de la transaction (sinon des documents
+    // fantômes restent dans l'index si la transaction est annulée).
+    'after_commit' => true,
 
     /*
     |--------------------------------------------------------------------------

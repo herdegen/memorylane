@@ -67,7 +67,10 @@ return [
             'driver' => 'redis',
             'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),
             'queue' => env('REDIS_QUEUE', 'default'),
-            'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 90),
+            // Au-delà de ce délai, un job « en cours » est relancé par un autre
+            // worker : il doit dépasser le plus long timeout de job (1 h), sinon
+            // les longs traitements tournaient en double puis échouaient.
+            'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 3700),
             'block_for' => null,
             'after_commit' => false,
         ],

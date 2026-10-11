@@ -257,9 +257,6 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::post('/faces/{detectedFace}/auto-match', [VisionController::class, 'autoMatch'])->name('autoMatch');
         Route::get('/pending', [VisionController::class, 'pending'])->name('pending');
         Route::get('/batch', fn () => Inertia::render('Vision/Batch'))->name('batch');
-        Route::get('/media/{media}/labels', [VisionController::class, 'labels'])->name('labels');
-        Route::post('/media/{media}/analyze', [VisionController::class, 'reanalyze'])->name('reanalyze');
-        Route::get('/media/{media}/status', [VisionController::class, 'status'])->name('status');
     });
 
     // Gamification « quêtes » : complétion des données depuis le Dashboard

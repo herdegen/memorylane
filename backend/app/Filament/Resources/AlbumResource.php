@@ -58,9 +58,6 @@ class AlbumResource extends Resource
                 Textarea::make('description')
                     ->maxLength(1000)
                     ->label('Description'),
-                Toggle::make('is_public')
-                    ->label('Public')
-                    ->helperText('Rendre cet album accessible à tous'),
             ]);
     }
 
@@ -79,10 +76,6 @@ class AlbumResource extends Resource
                 TextColumn::make('media_count')
                     ->label('Médias')
                     ->counts('media')
-                    ->sortable(),
-                IconColumn::make('is_public')
-                    ->label('Public')
-                    ->boolean()
                     ->sortable(),
                 TextColumn::make('created_at')
                     ->label('Créé le')

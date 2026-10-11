@@ -195,22 +195,27 @@ class Media extends Model
             return $query->whereRaw('1 = 0');
         }
 
+        // Invité temporaire : UNIQUEMENT les médias de la fiche invitée
+        // (taggés, ou illustrant l'un de ses moments de vie) — ni albums
+        // partagés, ni cercles.
+        if ($user->isGuest()) {
+            $guestPerson = $user->guest_person_id ?? '';
+
+            return $query->where(function ($q) use ($guestPerson) {
+                $q->whereHas('people', fn ($p) => $p->where('people.id', $guestPerson))
+                    ->orWhereIn('id', DB::table('life_event_media')
+                        ->join('life_events', 'life_events.id', '=', 'life_event_media.life_event_id')
+                        ->where('life_events.person_id', $guestPerson)
+                        ->select('life_event_media.media_id'));
+            });
+        }
+
         return $query->where(function ($q) use ($user) {
             $q->where('user_id', $user->id)
                 ->orWhereHas('albums', fn ($a) => $a->accessibleBy($user))
                 // Branche foyer : média partagé dans un foyer dont le viewer
                 // est membre (pivot household_media).
                 ->orWhereHas('households', fn ($h) => $h->whereIn('households.id', $user->householdIds()));
-
-            // Invité temporaire : uniquement les médias de la fiche invitée
-            // (taggés, ou illustrant l'un de ses moments de vie).
-            if ($user->guest_person_id) {
-                $q->orWhereHas('people', fn ($p) => $p->where('people.id', $user->guest_person_id))
-                    ->orWhereIn('id', DB::table('life_event_media')
-                        ->join('life_events', 'life_events.id', '=', 'life_event_media.life_event_id')
-                        ->where('life_events.person_id', $user->guest_person_id)
-                        ->select('life_event_media.media_id'));
-            }
         });
     }
 

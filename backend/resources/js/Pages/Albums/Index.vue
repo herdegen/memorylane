@@ -115,7 +115,7 @@ const matchers = {
   all: () => true,
   mine: (a) => a.is_owner !== false,
   shared: (a) => a.is_owner === false,
-  public: (a) => !!a.is_public,
+  circles: (a) => (a.households_count || 0) > 0,
   smart: (a) => !!a.is_smart,
 };
 
@@ -123,7 +123,7 @@ const filters = computed(() => [
   { value: 'all', label: 'Tous', count: props.albums.length },
   { value: 'mine', label: 'Les miens', count: props.albums.filter(matchers.mine).length },
   { value: 'shared', label: 'Partagés avec moi', count: props.albums.filter(matchers.shared).length },
-  { value: 'public', label: 'Publics', count: props.albums.filter(matchers.public).length },
+  { value: 'circles', label: 'Partagés avec un cercle', count: props.albums.filter(matchers.circles).length },
   { value: 'smart', label: 'Intelligents', count: props.albums.filter(matchers.smart).length },
 ]);
 

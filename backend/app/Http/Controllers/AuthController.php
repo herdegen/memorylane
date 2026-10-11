@@ -33,11 +33,24 @@ class AuthController extends Controller
             'password.required' => 'Le mot de passe est requis.',
         ]);
 
+        // Anti force brute : 5 essais par adresse et par IP, puis attente.
+        $throttleKey = 'login:'.strtolower($credentials['email']).'|'.$request->ip();
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $minutes = (int) ceil(RateLimiter::availableIn($throttleKey) / 60);
+
+            return back()->withErrors([
+                'email' => "Trop de tentatives. Réessayez dans {$minutes} minute".($minutes > 1 ? 's' : '').', ou demandez un lien de connexion par e-mail.',
+            ])->onlyInput('email');
+        }
+
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
+            RateLimiter::clear($throttleKey);
             $request->session()->regenerate();
 
             return redirect()->intended('/dashboard');
         }
+
+        RateLimiter::hit($throttleKey, 300);
 
         // Return errors on both fields for better UX
         return back()->withErrors([
@@ -88,6 +101,13 @@ class AuthController extends Controller
      */
     public function loginWithMagicLink(Request $request, User $user)
     {
+        // Usage unique : le jeton du lien est consommé à la première ouverture.
+        if (! MagicLoginLink::consume($user, (string) $request->query('n'))) {
+            return redirect()->route('login')->withErrors([
+                'email' => 'Ce lien de connexion a déjà servi ou a expiré. Demandez-en un nouveau.',
+            ]);
+        }
+
         Auth::login($user, remember: true);
 
         $request->session()->regenerate();

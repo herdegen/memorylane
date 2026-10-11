@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\FaceRecognitionResource\Pages\ListFaceRecognition;
-use App\Jobs\AnalyzeMediaWithVision;
 use App\Models\Media;
 use App\Services\MediaService;
 use App\Services\Vision\FaceMatcher;
@@ -228,10 +227,8 @@ class FaceRecognitionResource extends Resource
     }
 
     /**
-     * Efface les visages, remet le média « en attente » et redispatche le job
-     * serveur (no-op si aucun service Vision n'est configuré : le scan
-     * navigateur reprendra le média via /vision/pending). Miroir de
-     * VisionController::reanalyze mais utilisable côté admin.
+     * Efface les visages et remet le média « en attente » : le scan de
+     * visages du navigateur le reprendra via /vision/pending.
      */
     protected static function resetDetection(Media $record, bool $notify = true): void
     {
@@ -244,8 +241,6 @@ class FaceRecognitionResource extends Resource
             'vision_faces_count' => 0,
             'vision_processed_at' => null,
         ]);
-
-        AnalyzeMediaWithVision::dispatch($record);
 
         if ($notify) {
             Notification::make()

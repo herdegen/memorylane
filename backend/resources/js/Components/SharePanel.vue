@@ -8,29 +8,6 @@
       <button type="button" class="text-red-500 hover:text-red-700 dark:hover:text-red-200" @click="errorMessage = null">✕</button>
     </div>
 
-    <!-- Public Toggle (propriétaire uniquement) -->
-    <div v-if="isOwner" class="flex items-center justify-between py-3 border-b border-surface-200">
-      <div>
-        <p class="text-sm font-medium text-surface-700">Album public</p>
-        <p class="text-xs text-surface-500">Visible par tous les utilisateurs connectés</p>
-      </div>
-      <button
-        type="button"
-        :class="[
-          'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:ring-offset-2',
-          isPublic ? 'bg-brand-600' : 'bg-surface-200'
-        ]"
-        @click="togglePublic"
-      >
-        <span
-          :class="[
-            'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out',
-            isPublic ? 'translate-x-5' : 'translate-x-0'
-          ]"
-        />
-      </button>
-    </div>
-
     <!-- Share Link Section (lien anonyme — propriétaire uniquement) -->
     <div v-if="isOwner" class="py-4">
       <p class="text-sm font-medium text-surface-700 mb-2">Lien de partage</p>
@@ -229,7 +206,6 @@ const props = defineProps({
 
 const emit = defineEmits(['updated']);
 
-const isPublic = ref(props.album.is_public);
 const shareUrl = ref(props.album.share_url);
 const copied = ref(false);
 const generating = ref(false);
@@ -338,20 +314,6 @@ onMounted(() => {
   loadCircles();
 });
 onUnmounted(() => clearTimeout(searchTimer));
-
-const togglePublic = async () => {
-  try {
-    const response = await axios.put(`/albums/${props.album.id}`, {
-      name: props.album.name,
-      description: props.album.description,
-      is_public: !isPublic.value,
-    });
-    isPublic.value = !isPublic.value;
-    emit('updated');
-  } catch (error) {
-    errorMessage.value = error.response?.data?.message || "Impossible de changer la visibilité de l'album.";
-  }
-};
 
 const generateLink = async () => {
   generating.value = true;

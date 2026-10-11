@@ -46,13 +46,16 @@
               />
 
               <FormField
-                v-model="profileForm.pin_code"
-                id="pin_code"
-                type="text"
-                label="Code PIN (optionnel)"
-                placeholder="Code PIN pour accès rapide"
-                :error="profileForm.errors.pin_code"
-                help="Maximum 6 caractères"
+                v-if="emailChanged"
+                v-model="profileForm.current_password"
+                id="current_password_email"
+                type="password"
+                label="Mot de passe actuel"
+                placeholder="••••••••"
+                :error="profileForm.errors.current_password"
+                autocomplete="current-password"
+                help="Nécessaire pour changer d'adresse e-mail."
+                required
               />
 
               <ToggleSwitch
@@ -137,6 +140,7 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FormField from '@/Components/Forms/FormField.vue';
@@ -155,9 +159,11 @@ const props = defineProps({
 const profileForm = useForm({
   name: props.user.name,
   email: props.user.email,
-  pin_code: props.user.pin_code || '',
+  current_password: '',
   share_address_with_household: !!props.user.preferences?.share_address_with_household,
 });
+// Changer d'adresse e-mail demande le mot de passe actuel.
+const emailChanged = computed(() => profileForm.email.trim().toLowerCase() !== (props.user.email || '').toLowerCase());
 
 const passwordForm = useForm({
   current_password: '',
@@ -166,7 +172,9 @@ const passwordForm = useForm({
 });
 
 const updateProfile = () => {
-  profileForm.put('/profile');
+  profileForm.put('/profile', {
+    onFinish: () => profileForm.reset('current_password'),
+  });
 };
 
 const updatePassword = () => {

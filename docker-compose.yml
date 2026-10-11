@@ -88,6 +88,8 @@ services:
     volumes:
       - ./backend:/var/www/html
       - ./docker/app/php.ini:/usr/local/etc/php/conf.d/custom.ini
+      - ./docker/app/imagemagick-policy.xml:/etc/ImageMagick-7/policy.xml:ro
+      - ./docker/app/zz-www.conf:/usr/local/etc/php-fpm.d/zz-www.conf:ro
     ports:
       - "${VITE_PORT:-5173}:5173"
     environment:
@@ -143,6 +145,7 @@ services:
       # Même config PHP que `app` (512M) — sinon les workers tournent au
       # défaut 128M et les gros téléchargements/conversions font OOM.
       - ./docker/app/php.ini:/usr/local/etc/php/conf.d/custom.ini
+      - ./docker/app/imagemagick-policy.xml:/etc/ImageMagick-7/policy.xml:ro
     networks:
       - memorylane
     depends_on:
@@ -165,6 +168,7 @@ services:
       - ./backend:/var/www/html
       # Même config PHP que `app` (512M) — cohérence avec le worker horizon.
       - ./docker/app/php.ini:/usr/local/etc/php/conf.d/custom.ini
+      - ./docker/app/imagemagick-policy.xml:/etc/ImageMagick-7/policy.xml:ro
     networks:
       - memorylane
     depends_on:

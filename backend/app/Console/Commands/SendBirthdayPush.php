@@ -27,7 +27,7 @@ class SendBirthdayPush extends Command
         $today = today(PushNotifier::TIMEZONE);
         $sent = 0;
 
-        User::each(function (User $user) use ($celebrations, $today, &$sent) {
+        User::realPeople()->each(function (User $user) use ($celebrations, $today, &$sent) {
             if (! $user->wantsPush('birthdays')) {
                 return;
             }

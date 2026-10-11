@@ -22,7 +22,8 @@ class SendWeeklyDigest extends Command
         // Chaque destinataire ne voit que les nouveaux médias auxquels il a
         // accès (galerie privée) : décompte, prénoms et vignettes sont
         // calculés par utilisateur.
-        User::each(function (User $user) use ($mediaService, $since, &$count) {
+        // Vrais comptes seulement (ni invités temporaires, ni tablettes).
+        User::realPeople()->each(function (User $user) use ($mediaService, $since, &$count) {
             $newMedia = Media::accessibleBy($user)
                 ->with(['user', 'conversions'])
                 ->where('uploaded_at', '>=', $since)

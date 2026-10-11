@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Rules\VisiblePerson;
-use App\Jobs\AnalyzeMediaWithVision;
 use App\Models\DetectedFace;
 use App\Models\Media;
 use App\Services\Vision\FaceCropService;
@@ -37,6 +36,7 @@ class VisionController extends Controller
         $this->authorizeMedia($media);
 
         $path = $media->file_path;
+        $contentType = $media->mime_type;
 
         if ($requested = $request->query('conversion')) {
             $conversion = $media->conversions()
@@ -48,10 +48,19 @@ class VisionController extends Controller
 
             if ($conversion) {
                 $path = $conversion->file_path;
+                $contentType = $conversion->mime_type ?: 'image/jpeg';
             }
         }
 
-        return Storage::disk(config('filesystems.default'))->response($path);
+        // Servi sur le domaine de l'app : uniquement des images, avec un type
+        // imposé (jamais celui stocké avec le fichier) et sans interprétation.
+        abort_unless(is_string($contentType) && in_array($contentType, ['image/jpeg', 'image/png', 'image/gif', 'image/webp'], true), 404);
+
+        return Storage::disk(config('filesystems.default'))->response($path, null, [
+            'Content-Type' => $contentType,
+            'X-Content-Type-Options' => 'nosniff',
+            'Content-Security-Policy' => "default-src 'none'",
+        ]);
     }
 
     /**
@@ -306,70 +315,6 @@ class VisionController extends Controller
         $this->faceMatcher->disassociate($detectedFace, 'dismissed');
 
         return response()->json(['message' => 'Face dismissed']);
-    }
-
-    /**
-     * Get vision labels for a media.
-     */
-    public function labels(Media $media): JsonResponse
-    {
-        $this->authorizeMedia($media);
-
-        $metadata = $media->metadata;
-
-        return response()->json([
-            'labels' => $metadata?->vision_labels ?? [],
-            'status' => $metadata?->vision_status,
-        ]);
-    }
-
-    /**
-     * Re-run vision analysis on a media.
-     */
-    public function reanalyze(Media $media): JsonResponse
-    {
-        $this->authorizeMediaOwner($media);
-
-        if ($media->type !== 'photo') {
-            return response()->json(['message' => 'Only photos can be analyzed'], 422);
-        }
-
-        // Delete existing detected faces
-        $media->detectedFaces()->delete();
-
-        // Reset vision status
-        if ($media->metadata) {
-            $media->metadata->update([
-                'vision_status' => 'pending',
-                'vision_labels' => null,
-                'vision_error' => null,
-                'vision_faces_count' => 0,
-                'vision_processed_at' => null,
-            ]);
-        }
-
-        // Re-dispatch the analysis job
-        AnalyzeMediaWithVision::dispatch($media);
-
-        return response()->json(['message' => 'Analysis re-queued']);
-    }
-
-    /**
-     * Get vision processing status for a media.
-     */
-    public function status(Media $media): JsonResponse
-    {
-        $this->authorizeMedia($media);
-
-        $metadata = $media->metadata;
-
-        return response()->json([
-            'status' => $metadata?->vision_status,
-            'provider' => $metadata?->vision_provider,
-            'processed_at' => $metadata?->vision_processed_at,
-            'error' => $metadata?->vision_error,
-            'faces_count' => $metadata?->vision_faces_count ?? 0,
-        ]);
     }
 
     /**

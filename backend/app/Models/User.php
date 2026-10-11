@@ -88,6 +88,27 @@ class User extends Authenticatable implements FilamentUser
         return ! $this->isGuest() && ! $this->simple_mode;
     }
 
+    /**
+     * Comptes de vraies personnes : ni invités temporaires, ni tablettes.
+     */
+    public function scopeRealPeople($query)
+    {
+        return $query->whereNull('guest_expires_at')->where('simple_mode', false);
+    }
+
+    /**
+     * Comptes que $viewer peut voir dans une liste : ceux avec qui il partage
+     * au moins un cercle (tous pour un admin).
+     */
+    public function scopeVisibleTo($query, User $viewer)
+    {
+        if ($viewer->isAdmin()) {
+            return $query;
+        }
+
+        return $query->whereHas('households', fn ($h) => $h->whereIn('households.id', $viewer->householdIds()));
+    }
+
     public function isGuest(): bool
     {
         return $this->guest_expires_at !== null;

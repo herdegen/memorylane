@@ -102,7 +102,8 @@ class HouseholdController extends Controller
         $members = $household->members()->orderBy('name')->get()->map(fn (User $u) => [
             'user_id' => $u->id,
             'name' => $u->name,
-            'email' => $u->email,
+            // E-mail des membres : visible de ceux qui gèrent le cercle seulement.
+            'email' => $canManage ? $u->email : null,
             'is_creator' => $u->id === $household->created_by,
         ]);
 
@@ -157,12 +158,20 @@ class HouseholdController extends Controller
         }
 
         $excluded = $household->members()->pluck('users.id')->all();
+        $viewer = $request->user();
+        $like = '%'.addcslashes($q, '%_\\').'%';
 
-        $users = User::whereNotIn('id', $excluded)
-            ->where(fn ($w) => $w->where('name', 'like', "%{$q}%")->orWhere('email', 'like', "%{$q}%"))
+        // Seulement des personnes qui partagent déjà un cercle avec moi
+        // (tous pour l'admin) ; e-mail visible de l'admin seul.
+        $users = User::realPeople()
+            ->visibleTo($viewer)
+            ->whereNotIn('id', $excluded)
+            ->where(fn ($w) => $w->where('name', 'ilike', $like)
+                ->when($viewer->isAdmin(), fn ($w) => $w->orWhere('email', 'ilike', $like)))
             ->orderBy('name')
             ->limit(8)
-            ->get(['id', 'name', 'email']);
+            ->get(['id', 'name', 'email'])
+            ->map(fn (User $u) => ['id' => $u->id, 'name' => $u->name, 'email' => $viewer->isAdmin() ? $u->email : null]);
 
         return response()->json($users);
     }

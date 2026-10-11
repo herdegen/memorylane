@@ -90,11 +90,9 @@ class MediaFileAccessTest extends TestCase
     public function test_user_with_album_access_can_load_file(): void
     {
         $other = User::factory()->create();
-        $album = Album::factory()->create([
-            'user_id' => $this->owner->id,
-            'is_public' => true,
-        ]);
+        $album = Album::factory()->create(['user_id' => $this->owner->id]);
         $album->media()->attach($this->media->id);
+        $album->accesses()->create(['user_id' => $other->id, 'granted_by' => $this->owner->id]);
 
         $this->actingAs($other)
             ->get("/media/{$this->media->id}/file")

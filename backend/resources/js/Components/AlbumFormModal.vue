@@ -26,17 +26,9 @@
         </p>
       </div>
 
-      <div class="flex items-center">
-        <input
-          id="is-public"
-          v-model="form.is_public"
-          type="checkbox"
-          class="h-4 w-4 text-brand-600 focus:ring-brand-500 border-surface-300 rounded-sm"
-        />
-        <label for="is-public" class="ml-2 block text-sm text-surface-700">
-          Album public (visible par tous les utilisateurs)
-        </label>
-      </div>
+      <p class="text-xs text-surface-500">
+        L'album est privé à sa création ; partagez-le ensuite avec un cercle ou des personnes depuis sa page.
+      </p>
 
       <!-- Album intelligent -->
       <div class="border-t border-surface-200 pt-4">
@@ -146,7 +138,6 @@ const tags = ref([]);
 const form = useForm({
   name: props.album?.name || '',
   description: props.album?.description || '',
-  is_public: props.album?.is_public || false,
   cover_media_id: props.album?.cover_media_id || null,
   is_smart: props.album?.is_smart || false,
   smart_rules: {

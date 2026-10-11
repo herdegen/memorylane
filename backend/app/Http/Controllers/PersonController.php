@@ -79,9 +79,7 @@ class PersonController extends Controller
      */
     public function setSelf(Request $request, Person $person)
     {
-        if ($person->user_id !== auth()->id()) {
-            abort(403);
-        }
+        abort_unless($this->canSetSelf($person), 403);
 
         $user = auth()->user();
         $user->person_id = $user->person_id === $person->id ? null : $person->id;
@@ -138,6 +136,12 @@ class PersonController extends Controller
     public function store(Request $request)
     {
         $validated = $this->normalizeNameFields($request->validate($this->personRules()));
+
+        // Photo de profil : uniquement une photo que l'on peut voir (elle est
+        // ensuite servie à tous les comptes qui voient la fiche).
+        if (! empty($validated['avatar_media_id'])) {
+            Gate::authorize('view', Media::findOrFail($validated['avatar_media_id']));
+        }
 
         // Créée depuis un cercle d'amis : la fiche lui appartient (visible de
         // ses membres) et reste hors du répertoire familial.
@@ -285,7 +289,7 @@ class PersonController extends Controller
             'isSelf' => auth()->user()->person_id === $person->id,
             'canManage' => $this->canManage($person),
             'canDelete' => $this->isOwnerOrAdmin($person),
-            'canSetSelf' => $this->isOwnerOrAdmin($person),
+            'canSetSelf' => $this->canSetSelf($person),
             'account' => $this->accountPayload($person),
         ]);
     }
@@ -506,7 +510,8 @@ class PersonController extends Controller
 
         // Moments libres
         $lifeEvents = $person->lifeEvents()->with([
-            'media.conversions',
+            // Photo principale du moment : seulement si le visiteur la voit.
+            'media' => fn ($q) => $q->accessibleBy(auth()->user())->with('conversions'),
             'album',
             'photos' => fn ($q) => $q->accessibleBy(auth()->user())->where('type', 'photo')->with('conversions'),
         ])->get();
@@ -925,8 +930,27 @@ class PersonController extends Controller
     }
 
     /**
-     * Droits « forts » (suppression, adresse, « c'est moi ») : le créateur de
-     * la fiche ou un admin.
+     * « C'est moi » : on peut toujours se délier de sa propre fiche ; se lier
+     * à une fiche demande d'en être le créateur (ou admin) et qu'elle ne soit
+     * pas déjà celle d'un autre compte.
+     */
+    private function canSetSelf(Person $person): bool
+    {
+        $user = auth()->user();
+        if (! $user || $user->isGuest() || $user->simple_mode) {
+            return false;
+        }
+        if ($user->person_id === $person->id) {
+            return true;
+        }
+
+        return $this->isOwnerOrAdmin($person)
+            && ! User::where('person_id', $person->id)->where('id', '!=', $user->id)->exists();
+    }
+
+    /**
+     * Droits « forts » (suppression, adresse) : le créateur de la fiche ou un
+     * admin.
      */
     private function isOwnerOrAdmin(Person $person): bool
     {
