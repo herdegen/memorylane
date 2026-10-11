@@ -14,7 +14,7 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\Drivers\Imagick\Driver;
 use Intervention\Image\ImageManager;
 
 class GenerateMediaConversions implements ShouldQueue
@@ -113,13 +113,18 @@ class GenerateMediaConversions implements ShouldQueue
                 return;
             }
 
-            // Create image manager
+            // Décodage UNIQUE de l'original, réduit d'emblée à la plus grande
+            // taille utile ; chaque conversion part ensuite de cette copie
+            // légère. Imagick : la mémoire de l'image est hors memory_limit PHP
+            // (bornée par la policy ImageMagick). Avant : 4 décodages GD pleine
+            // taille + rotation EXIF → mémoire PHP épuisée dès ~40 Mpx.
             $manager = new ImageManager(new Driver);
+            $max = max(array_merge(array_column($this->imageConversions, 'width'), array_column($this->imageConversions, 'height')));
+            $base = $manager->decode($tempOriginalPath)->scaleDown(width: $max, height: $max);
 
             foreach ($this->imageConversions as $conversionName => $config) {
                 try {
-                    // Read the image (v4 : read() → decode())
-                    $image = $manager->decode($tempOriginalPath);
+                    $image = clone $base;
 
                     // Apply conversion based on fit type
                     if ($config['fit'] === 'cover') {
