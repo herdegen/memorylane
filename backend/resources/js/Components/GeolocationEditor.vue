@@ -151,8 +151,10 @@ import { ref, computed, watch, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useToast } from '@/Composables/useToast';
+import { useConfirm } from '@/Composables/useConfirm';
 
 const toast = useToast();
+const { confirm } = useConfirm();
 
 const props = defineProps({
   mediaId: {
@@ -276,9 +278,13 @@ async function saveLocation() {
 }
 
 async function removeLocation() {
-  if (!confirm('Êtes-vous sûr de vouloir supprimer la géolocalisation ?')) {
-    return;
-  }
+  const ok = await confirm({
+    title: 'Supprimer la géolocalisation',
+    message: 'Êtes-vous sûr de vouloir supprimer la géolocalisation de ce média ?',
+    confirmLabel: 'Supprimer',
+    danger: true,
+  });
+  if (!ok) return;
 
   try {
     await axios.delete(`/map/media/${props.mediaId}/geolocation`);

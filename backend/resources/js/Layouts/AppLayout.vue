@@ -204,6 +204,7 @@
     </main>
 
     <ToastContainer />
+    <ConfirmDialog />
     <GuidedTour v-if="user" />
     <InstallAppTutorial v-if="showInstallTutorial" :device="installDevice" @close="showInstallTutorial = false" />
   </div>
@@ -217,6 +218,7 @@ import MobileNavLink from '@/Components/MobileNavLink.vue';
 import SearchBar from '@/Components/SearchBar.vue';
 import CircleSwitcher from '@/Components/CircleSwitcher.vue';
 import ToastContainer from '@/Components/ToastContainer.vue';
+import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import GuidedTour from '@/Components/GuidedTour.vue';
 import { startTour } from '@/Composables/useTour';
 import InstallAppTutorial from '@/Components/InstallAppTutorial.vue';

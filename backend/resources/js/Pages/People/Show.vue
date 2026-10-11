@@ -321,10 +321,12 @@ import InviteToMemoryLaneModal from '@/Components/InviteToMemoryLaneModal.vue';
 import { personLabel } from '@/utils/personName';
 import { formatLongDate } from '@/utils/format';
 import { useToast } from '@/Composables/useToast';
+import { useConfirm } from '@/Composables/useConfirm';
 import { apiError } from '@/utils/apiError';
 import { conversionUrl } from '@/utils/media';
 
 const toast = useToast();
+const { confirm } = useConfirm();
 const { isFriends } = useCircle();
 
 const props = defineProps({
@@ -475,9 +477,13 @@ const handlePersonUpdated = () => {
 };
 
 const deletePerson = async () => {
-  if (!confirm(`Êtes-vous sûr de vouloir supprimer ${props.person.name} ? Cette action ne supprimera pas les médias.`)) {
-    return;
-  }
+  const ok = await confirm({
+    title: 'Supprimer cette fiche',
+    message: `Êtes-vous sûr de vouloir supprimer ${props.person.name} ? Cette action ne supprimera pas les médias.`,
+    confirmLabel: 'Supprimer',
+    danger: true,
+  });
+  if (!ok) return;
 
   try {
     await axios.delete(`/people/${props.person.id}`);

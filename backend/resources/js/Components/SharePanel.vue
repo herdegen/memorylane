@@ -190,6 +190,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import CircleKindIcon from '@/Components/CircleKindIcon.vue';
 import axios from 'axios';
+import { useConfirm } from '@/Composables/useConfirm';
 
 const props = defineProps({
   album: {
@@ -205,6 +206,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['updated']);
+const { confirm } = useConfirm();
 
 const shareUrl = ref(props.album.share_url);
 const copied = ref(false);
@@ -329,9 +331,13 @@ const generateLink = async () => {
 };
 
 const revokeLink = async () => {
-  if (!confirm('Êtes-vous sûr de vouloir révoquer ce lien ? Les personnes ayant le lien ne pourront plus accéder à l\'album.')) {
-    return;
-  }
+  const ok = await confirm({
+    title: 'Révoquer le lien de partage',
+    message: "Les personnes ayant le lien ne pourront plus accéder à l'album.",
+    confirmLabel: 'Révoquer',
+    danger: true,
+  });
+  if (!ok) return;
   try {
     await axios.delete(`/albums/${props.album.id}/share`);
     shareUrl.value = null;

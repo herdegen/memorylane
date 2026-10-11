@@ -208,9 +208,11 @@ import CircleKindIcon from '@/Components/CircleKindIcon.vue';
 import { KIND_LABELS } from '@/Composables/useCircle';
 import MediaCard from '@/Components/MediaCard.vue';
 import { useToast } from '@/Composables/useToast';
+import { useConfirm } from '@/Composables/useConfirm';
 import { usePhotoSwipe } from '@/Composables/usePhotoSwipe';
 
 const toast = useToast();
+const { confirm } = useConfirm();
 
 const props = defineProps({
   household: { type: Object, required: true },
@@ -267,7 +269,13 @@ const invite = async (candidate) => {
 };
 
 const removeMember = async (member) => {
-  if (!confirm(`Retirer ${member.name} du cercle ?`)) return;
+  const ok = await confirm({
+    title: 'Retirer ce membre',
+    message: `Retirer ${member.name} du cercle ?`,
+    confirmLabel: 'Retirer',
+    danger: true,
+  });
+  if (!ok) return;
   try {
     await axios.delete(`/households/${props.household.id}/members/${member.user_id}`);
     router.reload();
@@ -326,7 +334,13 @@ const addPerson = async (p) => {
 };
 
 const removePerson = async (p) => {
-  if (!confirm(`Retirer la fiche ${p.name} du cercle ? Ses membres ne la verront plus.`)) return;
+  const ok = await confirm({
+    title: 'Retirer cette fiche',
+    message: `Retirer la fiche ${p.name} du cercle ? Ses membres ne la verront plus.`,
+    confirmLabel: 'Retirer',
+    danger: true,
+  });
+  if (!ok) return;
   try {
     await axios.delete(`/households/${props.household.id}/people/${p.id}`);
     router.reload({ only: ['people'] });
@@ -336,7 +350,13 @@ const removePerson = async (p) => {
 };
 
 const leaveHousehold = async () => {
-  if (!confirm('Quitter ce cercle ?')) return;
+  const ok = await confirm({
+    title: 'Quitter ce cercle',
+    message: 'Quitter ce cercle ?',
+    confirmLabel: 'Quitter',
+    danger: true,
+  });
+  if (!ok) return;
   try {
     await axios.post(`/households/${props.household.id}/leave`);
     router.visit('/households');
@@ -346,7 +366,13 @@ const leaveHousehold = async () => {
 };
 
 const destroyHousehold = async () => {
-  if (!confirm('Supprimer ce cercle ? Cette action est irréversible.')) return;
+  const ok = await confirm({
+    title: 'Supprimer ce cercle',
+    message: 'Supprimer ce cercle ? Cette action est irréversible.',
+    confirmLabel: 'Supprimer',
+    danger: true,
+  });
+  if (!ok) return;
   try {
     await axios.delete(`/households/${props.household.id}`);
     router.visit('/households');

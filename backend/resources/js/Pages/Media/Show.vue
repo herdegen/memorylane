@@ -310,6 +310,7 @@ import VoiceNotesPanel from '@/Components/VoiceNotesPanel.vue';
 import VideoPlayer from '@/Components/VideoPlayer.vue';
 import { useFaceDetection } from '@/Composables/useFaceDetection';
 import { useToast } from '@/Composables/useToast';
+import { useConfirm } from '@/Composables/useConfirm';
 import { apiError } from '@/utils/apiError';
 import { formatFileSize, formatDuration } from '@/utils/format';
 import { backTarget } from '@/utils/navigation';
@@ -324,6 +325,7 @@ import axios from 'axios';
 const VideoClipEditor = defineAsyncComponent(() => import('@/Components/VideoClipEditor.vue'));
 
 const toast = useToast();
+const { confirm } = useConfirm();
 
 // Bouton « Retour » : page précédente dans l'app (history.back() restaure
 // le scroll de la galerie), sinon la galerie « Mes photos ».
@@ -458,9 +460,13 @@ const handleFaceReset = () => {
 const deleteMedia = async () => {
   // Suppression douce : le média part dans la corbeille (restaurable).
   const what = { photo: 'La photo', video: 'La vidéo', document: 'Le document' }[props.media.type] || 'Le média';
-  if (!confirm(`Êtes-vous sûr de vouloir supprimer ce média ? ${what} ira dans la corbeille.`)) {
-    return;
-  }
+  const ok = await confirm({
+    title: 'Supprimer ce média',
+    message: `Êtes-vous sûr de vouloir supprimer ce média ? ${what} ira dans la corbeille.`,
+    confirmLabel: 'Supprimer',
+    danger: true,
+  });
+  if (!ok) return;
 
   try {
     await axios.delete(`/media/${props.media.id}`);
