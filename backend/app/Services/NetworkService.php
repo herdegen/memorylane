@@ -40,10 +40,24 @@ class NetworkService
         Cache::forget($this->cacheKey($user));
     }
 
-    /** Le graphe dépend du cercle courant (fiches du contexte). */
+    /**
+     * Le graphe dépend du cercle courant ET de l'état des données : une
+     * empreinte des tables qui le tissent (identifications, fiches de
+     * cercle, partages, albums) change dès qu'on identifie quelqu'un ou
+     * qu'on partage — le cache n'affiche jamais un réseau périmé.
+     */
     private function cacheKey(User $user): string
     {
-        return "network:graph:{$user->id}:".($user->currentCircle()?->id ?? 'none');
+        return "network:graph:{$user->id}:".($user->currentCircle()?->id ?? 'none').':'.self::dataFingerprint();
+    }
+
+    /** Empreinte des tables qui relient personnes et photos (cf. cacheKey). */
+    public static function dataFingerprint(): string
+    {
+        return md5(json_encode(array_map(
+            fn ($table) => [DB::table($table)->count(), DB::table($table)->max('updated_at')],
+            ['media_person', 'household_person', 'household_media', 'album_household', 'album_media', 'album_access'],
+        )));
     }
 
     /**

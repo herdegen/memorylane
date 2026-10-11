@@ -155,4 +155,18 @@ class NetworkTest extends TestCase
         $this->actingAs($user)->get('/network')->assertOk()
             ->assertInertia(fn ($page) => $page->component('Network/Index', false));
     }
+
+    public function test_une_nouvelle_identification_apparait_tout_de_suite(): void
+    {
+        $user = User::factory()->create();
+        [$a, $b] = Person::factory()->count(2)->create(['user_id' => $user->id]);
+
+        // Premier affichage : réseau vide, mis en cache.
+        $this->actingAs($user)->getJson('/network/data')->assertOk()->assertJsonCount(0, 'edges');
+
+        // On identifie deux personnes ensemble : le réseau suit sans attendre le cache.
+        $this->photoWith($user, [$a, $b]);
+
+        $this->actingAs($user)->getJson('/network/data')->assertOk()->assertJsonCount(1, 'edges');
+    }
 }

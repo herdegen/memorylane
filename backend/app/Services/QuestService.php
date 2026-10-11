@@ -170,8 +170,9 @@ class QuestService
 
     private function cacheKey(User $user): string
     {
-        // Le lot dépend du cercle courant (fiches du contexte).
-        return "quests:batch:{$user->id}:".($user->currentCircle()?->id ?? 'none');
+        // Le lot dépend du cercle courant (fiches du contexte) et des
+        // identifications (« comment as-tu connu X ? » dès que X est tagué).
+        return "quests:batch:{$user->id}:".($user->currentCircle()?->id ?? 'none').':'.NetworkService::dataFingerprint();
     }
 
     /**
