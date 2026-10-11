@@ -35,6 +35,10 @@ return [
     |
     */
 
+    // Environnement de dev (copie des données de prod) : tous les mailers,
+    // y compris le Gmail des invitations, écrivent dans le journal.
+    'force_log' => (bool) env('MAIL_FORCE_LOG', false),
+
     'mailers' => [
 
         'smtp' => [

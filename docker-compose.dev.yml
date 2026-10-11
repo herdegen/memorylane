@@ -1,0 +1,73 @@
+# Environnement de DEV : copie isolée de la prod, sur le même serveur.
+#
+#   ~/memorylane-dev (worktree git, branche `dev`), projet compose
+#   « memorylane-dev » ; .env racine : COMPOSE_FILE=docker-compose.yml:docker-compose.dev.yml
+#
+# Conteneurs, volumes et réseau distincts de la prod ; aucun port publié :
+# joignable seulement via Traefik sur dev.memory-lane.fr, derrière un mot de
+# passe (DEV_BASIC_AUTH). Données : copie de la prod (scripts/dev-refresh.sh),
+# photos dans un bucket séparé, mails et notifications neutralisés
+# (MAIL_FORCE_LOG, pas de clés VAPID ni d'abonnements push).
+# Les tests tournent ICI (base memorylane_test du postgres de dev), jamais en prod.
+
+services:
+  postgres:
+    container_name: memorylane_dev_postgres
+    ports: !override []
+    restart: unless-stopped
+
+  redis:
+    container_name: memorylane_dev_redis
+    ports: !override []
+    restart: unless-stopped
+
+  meilisearch:
+    container_name: memorylane_dev_meilisearch
+    ports: !override []
+    restart: unless-stopped
+
+  mailpit:
+    container_name: memorylane_dev_mailpit
+    ports: !override []
+
+  app:
+    container_name: memorylane_dev_app
+    ports: !override []
+    restart: unless-stopped
+
+  nginx:
+    container_name: memorylane_dev_nginx
+    ports: !override []
+    restart: unless-stopped
+    networks:
+      - memorylane
+      - traefik-proxy
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "traefik-proxy"
+      traefik.http.routers.memorylane-dev.entrypoints: "websecure"
+      traefik.http.routers.memorylane-dev.rule: "Host(`dev.memory-lane.fr`)"
+      traefik.http.routers.memorylane-dev.tls.certresolver: "le"
+      traefik.http.routers.memorylane-dev.middlewares: "memorylane-dev-auth"
+      traefik.http.routers.memorylane-dev.service: "memorylane-dev"
+      traefik.http.middlewares.memorylane-dev-auth.basicauth.users: "${DEV_BASIC_AUTH:?DEV_BASIC_AUTH doit être défini dans le .env racine du dev}"
+      traefik.http.services.memorylane-dev.loadbalancer.server.port: "80"
+
+  horizon:
+    container_name: memorylane_dev_horizon
+    restart: unless-stopped
+
+  # Pas de tâches planifiées en dev (résumés, anniversaires, sauvegardes,
+  # supervision) : `docker compose --profile scheduler up -d scheduler` au besoin.
+  scheduler:
+    container_name: memorylane_dev_scheduler
+    profiles: ["scheduler"]
+
+  # La sauvegarde ne concerne que la prod.
+  backup:
+    container_name: memorylane_dev_backup
+    profiles: ["prod-only"]
+
+networks:
+  traefik-proxy:
+    external: true

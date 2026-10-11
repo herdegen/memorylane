@@ -23,7 +23,8 @@ class ImageConversionsTest extends TestCase
         Storage::fake($disk);
 
         $img = new \Imagick();
-        $img->newPseudoImage(8000, 6000, 'gradient:#88aacc-#223344');
+        // newImage (aucun « coder ») : compatible avec la policy ImageMagick restrictive des conteneurs.
+        $img->newImage(8000, 6000, new \ImagickPixel('#88aacc'));
         $img->setImageFormat('jpeg');
         $img->setImageCompressionQuality(80);
         Storage::disk($disk)->put('media/photos/2026/10/grande.jpg', $img->getImageBlob());

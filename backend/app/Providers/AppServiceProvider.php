@@ -30,6 +30,13 @@ class AppServiceProvider extends ServiceProvider
         // (incident du 07/10 : rollback qui a supprimé une table).
         DB::prohibitDestructiveCommands($this->app->isProduction());
 
+        // Dev sur une copie des données réelles : aucun mail ne doit partir.
+        if (config('mail.force_log')) {
+            foreach (array_keys(config('mail.mailers')) as $mailer) {
+                config(["mail.mailers.{$mailer}" => ['transport' => 'log']]);
+            }
+        }
+
         // Tableau de bord des tâches de fond (/horizon) : admins seulement.
         \Laravel\Horizon\Horizon::auth(fn ($request) => (bool) $request->user()?->isAdmin());
 

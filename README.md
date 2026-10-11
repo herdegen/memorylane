@@ -429,6 +429,25 @@ podman-compose logs -f app
 podman-compose restart
 ```
 
+### Environnement de dev et déploiement (serveur unique)
+
+Le serveur héberge la prod (`~/memorylane`, branche `main`) **et** un
+environnement de dev isolé (`~/memorylane-dev`, worktree sur la branche `dev`,
+projet compose `memorylane-dev`, cf. `docker-compose.dev.yml`) : conteneurs,
+base, Redis, Meilisearch et bucket photos distincts, mails forcés vers le
+journal (`MAIL_FORCE_LOG=true`), aucune notification push, accès protégé par
+mot de passe sur `dev.memory-lane.fr`.
+
+```bash
+cd ~/memorylane-dev
+scripts/dev-refresh.sh            # recopie base + photos de la prod (lecture seule côté prod)
+docker compose exec app php -d memory_limit=512M vendor/bin/phpunit   # tests : ici, jamais en prod
+cd backend && npm run build       # front du dev
+
+cd ~/memorylane
+scripts/deploy.sh <branche>       # mise en prod (dump, maintenance, fast-forward, build, contrôle)
+```
+
 ## Roadmap
 
 ### Phase 1 : Fondations
