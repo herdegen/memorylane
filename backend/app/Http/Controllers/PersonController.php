@@ -771,6 +771,7 @@ class PersonController extends Controller
 
         // Le média doit être à soi ; les fiches sont communes à la famille.
         abort_unless($media->user_id === auth()->id(), 403);
+        app(\App\Services\Vision\FacePlausibility::class)->assertPossible($person, $media);
 
         if (!$media->people()->where('person_id', $person->id)->exists()) {
             $media->people()->attach($person->id);

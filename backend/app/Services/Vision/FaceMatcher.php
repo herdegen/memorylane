@@ -69,7 +69,9 @@ class FaceMatcher
             }
         }
 
-        if (! $best) {
+        // Garde-fou : un candidat douteux (bébé, parenté lointaine) n'est
+        // jamais associé sans un humain.
+        if (! $best || $best['doubts'] !== []) {
             return null;
         }
 
@@ -115,24 +117,36 @@ class FaceMatcher
         }
 
         // Fiches existantes (hors corbeille) et visibles du visiteur.
-        $names = \App\Models\Person::query()
+        $people = \App\Models\Person::query()
             ->whereIn('id', array_keys($bestDistance))
             ->when($viewer, fn ($q) => $q->visibleTo($viewer))
-            ->pluck('name', 'id');
+            ->get(['id', 'name', 'gender', 'birth_date', 'death_date']);
+
+        // Garde-fous : jamais une personne pas encore née (ou déjà décédée) à
+        // la date de la photo ; les doutes (bébé, parenté lointaine) sont
+        // signalés et légèrement pénalisés dans le classement.
+        $media = $this->mediaOf($face);
+        $plausibility = app(FacePlausibility::class);
+        $kin = $media ? $plausibility->kinDistances($media, $face->person_id) : null;
 
         $bestByPerson = [];
-        foreach ($names as $personId => $name) {
-            $distance = $bestDistance[$personId];
-            $bestByPerson[$personId] = [
-                'person' => ['id' => $personId, 'name' => $name],
+        foreach ($people as $person) {
+            if ($media && $plausibility->impossibility($person, $media)) {
+                continue;
+            }
+            $distance = $bestDistance[$person->id];
+            $bestByPerson[$person->id] = [
+                'person' => ['id' => $person->id, 'name' => $person->name],
                 'distance' => round($distance, 4),
                 // Score de similarité (0..1) : 1 = identique, 0 = au seuil de suggestion.
                 'score' => round(max(0, 1 - $distance / self::MATCH_THRESHOLD), 4),
+                'doubts' => $media ? $plausibility->doubts($person, $media, $kin) : [],
             ];
         }
 
         $candidates = array_values($bestByPerson);
-        usort($candidates, fn ($a, $b) => $a['distance'] <=> $b['distance']);
+        $rank = fn ($c) => $c['distance'] + 0.05 * count($c['doubts']);
+        usort($candidates, fn ($a, $b) => $rank($a) <=> $rank($b));
 
         return $candidates;
     }
@@ -181,14 +195,27 @@ class FaceMatcher
     /**
      * Associe un visage à une personne (statut matched + pivot media_person).
      */
-    public function applyMatch(DetectedFace $face, string $personId): void
+    public function applyMatch(DetectedFace $face, string $personId, bool $allowDuplicate = false): void
     {
+        $person = \App\Models\Person::findOrFail($personId);
+        $media = $this->mediaOf($face);
+
+        // Garde-fous : personne née (et pas décédée) à la date de la photo, et
+        // une seule fois par photo sauf confirmation (miroir, montage).
+        app(FacePlausibility::class)->assertPossible($person, $media);
+        if (! $allowDuplicate && DetectedFace::where('media_id', $face->media_id)
+            ->where('person_id', $personId)->where('id', '!=', $face->id)->exists()) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'duplicate' => "{$person->name} est déjà identifié(e) sur un autre visage de cette photo.",
+            ]);
+        }
+
         $face->update([
             'person_id' => $personId,
             'status' => 'matched',
         ]);
 
-        $face->media->people()->syncWithoutDetaching([
+        $media->people()->syncWithoutDetaching([
             $personId => [
                 'face_coordinates' => json_encode($face->bounding_box),
             ],
@@ -213,8 +240,14 @@ class FaceMatcher
         ]);
 
         if ($personId) {
-            $this->reconcileMediaPersonPivot($face->media, $personId);
+            $this->reconcileMediaPersonPivot($this->mediaOf($face), $personId);
         }
+    }
+
+    /** Média du visage, y compris à la corbeille (la relation l'ignorerait). */
+    private function mediaOf(DetectedFace $face): ?Media
+    {
+        return $face->media ?? Media::withTrashed()->find($face->media_id);
     }
 
     /**

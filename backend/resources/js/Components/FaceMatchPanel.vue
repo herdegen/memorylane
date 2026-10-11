@@ -39,6 +39,10 @@
         <span class="font-semibold text-surface-900">{{ topSuggestion.person.name }}</span>
         <span class="text-surface-500">({{ Math.round(topSuggestion.score * 100) }}%)</span>
       </p>
+      <!-- Garde-fous : raisons de douter (bébé, parenté lointaine) -->
+      <p v-for="d in topSuggestion.doubts || []" :key="d.code" class="mb-2 inline-flex items-center gap-1 mr-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
+        ⚠ {{ d.label }}
+      </p>
       <button
         @click="matchToPerson(topSuggestion.person)"
         :disabled="matching"
@@ -74,6 +78,12 @@
           <!-- Initiale seule (pas de photo) : rendu historique de cette liste. -->
           <PersonAvatar :name="person.name" :size="8" fallback-class="bg-surface-200 text-surface-600 font-medium" />
           <span>{{ person.name }}</span>
+          <span
+            v-for="d in person.doubts || []"
+            :key="d.code"
+            :title="d.label"
+            class="px-1.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
+          >⚠ {{ d.label }}</span>
           <span
             v-if="person.score != null"
             class="ml-auto text-xs font-medium text-brand-600"
@@ -149,10 +159,12 @@ import axios from 'axios';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
 import { matchesPerson, relevanceTier } from '@/utils/personSearch';
 import { useToast } from '@/Composables/useToast';
+import { useConfirm } from '@/Composables/useConfirm';
 import { apiError } from '@/utils/apiError';
 import { usePeopleDirectory } from '@/Composables/usePeopleDirectory';
 
 const toast = useToast();
+const { confirm } = useConfirm();
 const peopleDirectory = usePeopleDirectory();
 
 const props = defineProps({
@@ -245,6 +257,7 @@ const filteredPeople = computed(() => {
     id: s.person.id,
     name: s.person.name,
     score: s.score,
+    doubts: s.doubts || [],
   }));
   const rankedIds = new Set(ranked.map((p) => p.id));
 
@@ -256,14 +269,29 @@ const filteredPeople = computed(() => {
   return [...ranked, ...others];
 });
 
-const matchToPerson = async (person) => {
+const matchToPerson = async (person, allowDuplicate = false) => {
   matching.value = true;
   try {
     await axios.post(`/vision/faces/${props.face.id}/match`, {
       person_id: person.id,
+      ...(allowDuplicate ? { allow_duplicate: true } : {}),
     });
     emit('matched', { face: props.face, person });
   } catch (error) {
+    // Déjà identifiée sur un autre visage de la photo : seulement si c'est
+    // voulu (miroir, montage) — sinon c'est presque toujours une erreur.
+    const duplicate = error?.response?.status === 422 && error.response.data?.errors?.duplicate?.[0];
+    if (duplicate && !allowDuplicate) {
+      matching.value = false;
+      const ok = await confirm({
+        title: 'Déjà sur cette photo',
+        message: `${duplicate} Est-ce une photo avec un miroir ou un montage ? Sinon, choisissez une autre personne.`,
+        confirmLabel: 'Oui, identifier quand même',
+        cancelLabel: 'Non',
+      });
+      if (ok) await matchToPerson(person, true);
+      return;
+    }
     console.error('Failed to match face:', error);
     toast.error(apiError(error, "L'identification du visage n'a pas pu être enregistrée. Réessayez."));
   } finally {

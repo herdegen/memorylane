@@ -19,6 +19,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // Analyse des visages en double : calculée une fois par requête (la
+        // page admin la consulte pour chaque cellule du tableau).
+        $this->app->scoped(\App\Services\Vision\DuplicateFaceResolver::class);
+
     }
 
     /**

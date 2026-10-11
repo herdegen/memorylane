@@ -228,10 +228,10 @@ class FaceRecognitionAdminTest extends TestCase
     }
 
     /**
-     * L'association MANUELLE reste permissive (montage/reflet) : la même personne
-     * peut être associée à deux visages d'un même média.
+     * L'association manuelle d'une même personne à deux visages d'un média
+     * n'est acceptée qu'avec confirmation explicite (miroir, montage).
      */
-    public function test_association_manuelle_autorise_le_doublon(): void
+    public function test_association_manuelle_du_doublon_seulement_sur_confirmation(): void
     {
         $owner = User::factory()->create();
         $person = Person::factory()->create(['user_id' => $owner->id]);
@@ -246,7 +246,14 @@ class FaceRecognitionAdminTest extends TestCase
 
         $matcher = app(FaceMatcher::class);
         $matcher->applyMatch($face1->load('media'), $person->id);
-        $matcher->applyMatch($face2->load('media'), $person->id);
+
+        try {
+            $matcher->applyMatch($face2->load('media'), $person->id);
+            $this->fail('Le doublon aurait dû être refusé sans confirmation.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->assertArrayHasKey('duplicate', $e->errors());
+        }
+        $matcher->applyMatch($face2, $person->id, allowDuplicate: true);
 
         $this->assertSame($person->id, $face1->fresh()->person_id);
         $this->assertSame($person->id, $face2->fresh()->person_id);

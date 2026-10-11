@@ -255,9 +255,12 @@ class VisionController extends Controller
 
         $validated = $request->validate([
             'person_id' => ['required', 'uuid', new VisiblePerson],
+            // Même personne déjà sur un autre visage de la photo : seulement
+            // après confirmation (miroir, montage).
+            'allow_duplicate' => ['sometimes', 'boolean'],
         ]);
 
-        $this->faceMatcher->applyMatch($detectedFace, $validated['person_id']);
+        $this->faceMatcher->applyMatch($detectedFace, $validated['person_id'], (bool) ($validated['allow_duplicate'] ?? false));
         $detectedFace->load('person');
 
         return response()->json($detectedFace);
