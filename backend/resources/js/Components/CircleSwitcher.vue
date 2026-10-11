@@ -4,7 +4,8 @@
     <button
       type="button"
       class="flex items-center gap-2 h-9 pl-1 pr-2.5 rounded-full border border-brand-300 bg-brand-100 text-sm font-semibold text-surface-900
-             hover:bg-brand-200 focus:outline-hidden focus:ring-2 focus:ring-brand-500 transition-colors max-w-56"
+             hover:bg-brand-200 dark:border-brand-500/40 dark:bg-brand-500/15 dark:hover:bg-brand-500/25
+             focus:outline-hidden focus:ring-2 focus:ring-brand-500 transition-colors max-w-56"
       :aria-expanded="open"
       aria-haspopup="menu"
       @click="open = !open"
