@@ -110,6 +110,7 @@ import FormField from '@/Components/Forms/FormField.vue';
 import FormError from '@/Components/Forms/FormError.vue';
 import FormButton from '@/Components/Forms/FormButton.vue';
 import TrashIcon from '@/Components/Icons/TrashIcon.vue';
+import { useConfirm } from '@/Composables/useConfirm';
 
 const props = defineProps({
   tags: {
@@ -117,6 +118,8 @@ const props = defineProps({
     required: true,
   },
 });
+
+const { confirm } = useConfirm();
 
 // Les tags sont globaux : seuls les admins peuvent les supprimer (aligné sur TagController)
 const isAdmin = computed(() => usePage().props.auth?.user?.role === 'admin');
@@ -142,10 +145,14 @@ const createTag = () => {
   });
 };
 
-const deleteTag = (tag) => {
-  if (!confirm(`Supprimer le tag "${tag.name}" ? Il sera retiré de tous les médias.`)) {
-    return;
-  }
+const deleteTag = async (tag) => {
+  const ok = await confirm({
+    title: 'Supprimer le tag',
+    message: `Supprimer le tag « ${tag.name} » ? Il sera retiré de tous les médias.`,
+    confirmLabel: 'Supprimer',
+    danger: true,
+  });
+  if (!ok) return;
 
   router.delete(`/tags/${tag.id}`, {
     onError: (errors) => {

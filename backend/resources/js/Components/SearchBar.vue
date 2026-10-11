@@ -38,13 +38,7 @@
             @mousedown.prevent="go(`/people/${person.id}`)"
             class="w-full px-4 py-2 text-left hover:bg-surface-50 transition flex items-center gap-3"
           >
-            <span
-              v-if="!person.avatar_url"
-              class="w-7 h-7 rounded-full bg-brand-100 text-brand-700 text-xs font-bold flex items-center justify-center shrink-0"
-            >
-              {{ person.name.charAt(0).toUpperCase() }}
-            </span>
-            <img v-else :src="person.avatar_url" class="w-7 h-7 rounded-full object-cover shrink-0" alt="" />
+            <PersonAvatar :person="person" :size="7" />
             <span class="text-sm text-surface-900 truncate">{{ person.name }}</span>
           </button>
         </div>
@@ -112,6 +106,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
+import PersonAvatar from '@/Components/PersonAvatar.vue';
 
 const props = defineProps({
   // Panneau de recherche mobile : occupe toute la largeur disponible.

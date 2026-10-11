@@ -159,7 +159,7 @@
 <script setup>
 import { computed } from 'vue';
 import { formatDuration } from '@/utils/format';
-import { thumbnailUrl as mediaThumbnailUrl } from '@/utils/media';
+import { conversionUrl, thumbnailUrl as mediaThumbnailUrl } from '@/utils/media';
 
 const props = defineProps({
   media: {
@@ -186,13 +186,9 @@ const emit = defineEmits(['click', 'toggle-selection']);
 
 // En mosaïque (fill), les cellules 2x2 dépassent la conversion `small` :
 // on préfère `medium` pour rester net.
-const thumbnailUrl = computed(() => {
-  if (props.fill) {
-    const medium = props.media.conversions?.find((c) => c.conversion_name === 'medium');
-    if (medium?.url) return medium.url;
-  }
-  return mediaThumbnailUrl(props.media);
-});
+const thumbnailUrl = computed(() =>
+  (props.fill && conversionUrl(props.media, 'medium')) || mediaThumbnailUrl(props.media)
+);
 
 const fileExtension = computed(() => {
   if (!props.media.original_name) return '';

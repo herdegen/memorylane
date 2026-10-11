@@ -79,14 +79,15 @@
         <div v-else-if="personOfTheDay" class="space-y-4" data-tour="today">
           <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400">La personne du jour</h2>
           <div class="flex flex-col sm:flex-row bg-white border border-surface-200 rounded-2xl overflow-hidden shadow-warm-md">
-            <div class="sm:w-72 h-52 sm:h-auto bg-brand-100 shrink-0 flex items-center justify-center overflow-hidden">
-              <img
-                v-if="personOfTheDay.avatar_url || personOfTheDay.photos[0]"
-                :src="personOfTheDay.avatar_url || thumbnailUrl(personOfTheDay.photos[0])"
-                class="w-full h-full object-cover"
-              />
-              <span v-else class="text-6xl font-bold text-brand-700">{{ personOfTheDay.name.charAt(0).toUpperCase() }}</span>
-            </div>
+            <!-- Avatar, sinon la première photo où la personne apparaît. -->
+            <PersonAvatar
+              :name="personOfTheDay.name"
+              :src="personOfTheDay.avatar_url || (personOfTheDay.photos[0] && thumbnailUrl(personOfTheDay.photos[0]))"
+              shape="none"
+              eager
+              class="sm:w-72 h-52 sm:h-auto bg-brand-100"
+              fallback-class="text-6xl font-bold text-brand-700"
+            />
             <div class="flex-1 p-6 sm:p-7 flex flex-col justify-center gap-2">
               <div class="text-xs font-semibold uppercase tracking-widest text-brand-700">Personne du jour</div>
               <div class="font-display text-3xl font-semibold text-surface-900">{{ personOfTheDay.name }}</div>
@@ -252,10 +253,11 @@ import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FullscreenSlideshow from '@/Components/FullscreenSlideshow.vue';
 import QuestCard from '@/Components/QuestCard.vue';
+import PersonAvatar from '@/Components/PersonAvatar.vue';
 import PushPromptCard from '@/Components/PushPromptCard.vue';
 import InstallAppBanner from '@/Components/InstallAppBanner.vue';
 import { useAuth } from '@/Composables/useAuth';
-import { thumbnailUrl } from '@/utils/media';
+import { conversionUrl, slideUrl, thumbnailUrl } from '@/utils/media';
 
 const { user } = useAuth();
 
@@ -286,7 +288,7 @@ const formattedToday = computed(() =>
 const coverUrl = (group) => {
   const first = group.media[0];
   if (!first) return null;
-  return first.conversions?.find((c) => c.conversion_name === 'medium')?.url || thumbnailUrl(first);
+  return conversionUrl(first, 'medium') || thumbnailUrl(first);
 };
 
 // ---- Diaporama des souvenirs (toutes années confondues) ----
@@ -297,9 +299,7 @@ const memorySlides = computed(() =>
     group.media.map((m) => ({
       key: m.id,
       type: m.type === 'video' ? 'video' : 'photo',
-      src: m.type === 'video'
-        ? (m.conversions?.find((c) => c.conversion_name === 'web')?.url || m.url)
-        : (m.conversions?.find((c) => c.conversion_name === 'medium')?.url || m.url),
+      src: slideUrl(m),
       label: group.years_ago === 1 ? 'Il y a 1 an' : `Il y a ${group.years_ago} ans`,
     }))
   )

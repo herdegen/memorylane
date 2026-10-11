@@ -72,18 +72,13 @@
 
         <!-- Avatar (clic = choisir parmi les photos) -->
         <div class="relative group shrink-0">
-          <div class="w-32 h-32 rounded-full overflow-hidden bg-brand-100 border-4 border-white shadow-warm-md flex items-center justify-center">
-            <img
-              v-if="person.avatar_url"
-              :src="person.avatar_url"
-              :alt="person.name"
-              class="w-full h-full object-cover"
-              :style="person.avatar_position ? { objectPosition: person.avatar_position } : undefined"
-            />
-            <span v-else class="text-5xl font-bold text-brand-700">
-              {{ person.name.charAt(0).toUpperCase() }}
-            </span>
-          </div>
+          <PersonAvatar
+            :person="person"
+            :alt="person.name"
+            eager
+            class="w-32 h-32 bg-brand-100 border-4 border-white shadow-warm-md"
+            fallback-class="text-5xl font-bold text-brand-700"
+          />
           <button
             v-if="canManage && media.length > 0"
             @click="showAvatarPicker = true"
@@ -280,7 +275,7 @@
           :class="person.avatar_media_id === item.id ? 'border-brand-500 ring-2 ring-brand-300' : 'border-surface-200'"
         >
           <img
-            :src="item.conversions?.find(c => c.conversion_name === 'thumbnail')?.url || item.url"
+            :src="conversionUrl(item, 'thumbnail') || item.url"
             class="w-full h-full object-cover"
             loading="lazy"
             decoding="async"
@@ -310,8 +305,9 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import BaseModal from '@/Components/BaseModal.vue';
+import PersonAvatar from '@/Components/PersonAvatar.vue';
 import MediaCard from '@/Components/MediaCard.vue';
-import { usePhotoSwipe } from '@/composables/usePhotoSwipe';
+import { usePhotoSwipe } from '@/Composables/usePhotoSwipe';
 import PersonFormModal from '@/Components/PersonFormModal.vue';
 import FamilyPanel from '@/Components/FamilyPanel.vue';
 import HowWeMetPanel from '@/Components/HowWeMetPanel.vue';
@@ -321,9 +317,12 @@ import InviteToMemoryLaneModal from '@/Components/InviteToMemoryLaneModal.vue';
 import { personLabel } from '@/utils/personName';
 import { formatLongDate } from '@/utils/format';
 import { useToast } from '@/Composables/useToast';
+import { useConfirm } from '@/Composables/useConfirm';
 import { apiError } from '@/utils/apiError';
+import { conversionUrl } from '@/utils/media';
 
 const toast = useToast();
+const { confirm } = useConfirm();
 const { isFriends } = useCircle();
 
 const props = defineProps({
@@ -474,9 +473,13 @@ const handlePersonUpdated = () => {
 };
 
 const deletePerson = async () => {
-  if (!confirm(`Êtes-vous sûr de vouloir supprimer ${props.person.name} ? Cette action ne supprimera pas les médias.`)) {
-    return;
-  }
+  const ok = await confirm({
+    title: 'Supprimer cette fiche',
+    message: `Êtes-vous sûr de vouloir supprimer ${props.person.name} ? Cette action ne supprimera pas les médias.`,
+    confirmLabel: 'Supprimer',
+    danger: true,
+  });
+  if (!ok) return;
 
   try {
     await axios.delete(`/people/${props.person.id}`);

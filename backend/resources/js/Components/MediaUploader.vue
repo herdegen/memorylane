@@ -248,6 +248,7 @@ import { Link, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { fetchOwnedAlbums, createAlbumWithMedia, addMediaToAlbum } from '@/utils/albums';
 import { useCircle } from '@/Composables/useCircle';
+import { useConfirm } from '@/Composables/useConfirm';
 import { apiError } from '@/utils/apiError';
 
 // `album-attached` : { albumId, albumName, count, isNew } ; `organize` : ids
@@ -451,15 +452,34 @@ const onBeforeUnload = (e) => {
   }
 };
 let removeRouterGuard = null;
+const { confirm } = useConfirm();
+// Départ confirmé : la visite relancée ne doit pas redemander.
+let leaveConfirmed = false;
 
 const guardOn = () => {
   requestWakeLock();
   document.addEventListener('visibilitychange', onVisibility);
   window.addEventListener('beforeunload', onBeforeUnload);
+  leaveConfirmed = false;
   removeRouterGuard = router.on('before', (event) => {
-    if (phase.value === 'uploading' && !window.confirm("L'envoi n'est pas terminé. Quitter quand même ?")) {
-      event.preventDefault();
-    }
+    const visit = event.detail.visit;
+    if (phase.value !== 'uploading' || leaveConfirmed || visit.prefetch) return;
+    // Le garde Inertia est synchrone : on suspend la navigation le temps de
+    // la confirmation, puis on la relance à l'identique si l'on confirme.
+    event.preventDefault();
+    confirm({
+      title: 'Envoi en cours',
+      message: "L'envoi n'est pas terminé. Quitter quand même ?",
+      confirmLabel: 'Quitter',
+      cancelLabel: 'Rester',
+      danger: true,
+    }).then((ok) => {
+      if (!ok) return;
+      leaveConfirmed = true;
+      const { id, url, completed, cancelled, interrupted, ...options } = visit;
+      // Visite échouée ou annulée : on resterait sur la page, le garde reprend.
+      router.visit(url.href, { ...options, onFinish: () => { leaveConfirmed = false; } });
+    });
   });
 };
 const guardOff = () => {

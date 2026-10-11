@@ -21,17 +21,13 @@
         :href="`/simple/photos?person=${m.id}`"
         class="rounded-[26px] overflow-hidden bg-white border-2 border-surface-200 shadow-warm-md flex flex-col"
       >
-        <div class="relative aspect-[4/3] overflow-hidden bg-surface-200 flex items-center justify-center text-5xl font-bold text-surface-500">
-          <img
-            v-if="m.avatar_url"
-            :src="m.avatar_url"
-            alt=""
-            class="absolute inset-0 w-full h-full object-cover"
-            :class="{ grayscale: m.deceased }"
-            loading="lazy"
-          />
-          <span v-else>{{ m.name.charAt(0) }}</span>
-        </div>
+        <PersonAvatar
+          :person="m"
+          shape="none"
+          class="relative aspect-[4/3] bg-surface-200"
+          :img-class="['absolute inset-0', { grayscale: m.deceased }]"
+          fallback-class="text-5xl font-bold text-surface-500"
+        />
         <div class="px-5 py-4 flex flex-col gap-0.5">
           <div class="text-[28px] font-bold leading-tight">{{ m.name }}</div>
           <div class="text-[21px] text-surface-600">{{ m.relation }}</div>
@@ -43,6 +39,7 @@
 
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
+import PersonAvatar from '@/Components/PersonAvatar.vue';
 
 defineProps({
   members: { type: Array, default: () => [] },

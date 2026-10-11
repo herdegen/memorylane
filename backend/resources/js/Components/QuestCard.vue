@@ -38,12 +38,13 @@
               </svg>
             </span>
           </component>
-          <div
+          <PersonAvatar
             v-else-if="question.person"
-            class="w-24 h-24 rounded-xl bg-brand-100 flex items-center justify-center text-3xl font-bold text-brand-700"
-          >
-            {{ question.person.name.charAt(0).toUpperCase() }}
-          </div>
+            :name="question.person.name"
+            shape="rounded"
+            class="w-24 h-24"
+            fallback-class="bg-brand-100 text-brand-700 text-3xl font-bold"
+          />
         </div>
 
         <!-- Question + saisie -->
@@ -396,6 +397,7 @@ import { ref, computed, onMounted, onUnmounted, watch, defineAsyncComponent } fr
 import { Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import RelationshipPicker from '@/Components/RelationshipPicker.vue';
+import PersonAvatar from '@/Components/PersonAvatar.vue';
 import { useToast } from '@/Composables/useToast';
 import { useCircle } from '@/Composables/useCircle';
 import { usePeopleDirectory } from '@/Composables/usePeopleDirectory';

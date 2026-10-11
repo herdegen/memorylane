@@ -9,9 +9,7 @@
         <h1 class="font-display text-5xl sm:text-6xl font-bold leading-tight">Bonjour {{ firstName }}</h1>
       </div>
       <div class="flex items-center gap-3">
-        <div v-if="avatarUrl" class="w-16 h-16 rounded-full overflow-hidden bg-surface-200 shadow-warm-md">
-          <img :src="avatarUrl" alt="" class="w-full h-full object-cover" />
-        </div>
+        <PersonAvatar v-if="avatarUrl" :src="avatarUrl" eager class="w-16 h-16 bg-surface-200 shadow-warm-md" />
         <Link
           v-if="!isSimpleAccount"
           href="/dashboard"
@@ -44,10 +42,11 @@
       >
         <div class="text-[22px] font-bold text-brand-800 uppercase tracking-wide">{{ celebrationWhen }}</div>
         <div class="flex items-center gap-5">
-          <div class="w-24 h-24 rounded-full overflow-hidden bg-surface-200 shrink-0 flex items-center justify-center text-3xl font-bold text-surface-600">
-            <img v-if="celebration.avatar_url" :src="celebration.avatar_url" alt="" class="w-full h-full object-cover" />
-            <span v-else>{{ celebration.name.charAt(0) }}</span>
-          </div>
+          <PersonAvatar
+            :person="celebration"
+            class="w-24 h-24 bg-surface-200"
+            fallback-class="text-3xl font-bold text-surface-600"
+          />
           <div class="flex flex-col gap-1">
             <div class="text-3xl font-bold leading-tight">{{ celebrationTitle }}</div>
             <div v-if="celebration.relation" class="text-[22px] text-surface-600">{{ celebration.relation }}</div>
@@ -92,6 +91,7 @@
 <script setup>
 import { computed } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
+import PersonAvatar from '@/Components/PersonAvatar.vue';
 import { useAuth } from '@/Composables/useAuth';
 
 const props = defineProps({

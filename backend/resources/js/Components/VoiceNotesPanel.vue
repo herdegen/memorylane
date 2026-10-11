@@ -64,6 +64,7 @@ import { ref, watch } from 'vue';
 import axios from 'axios';
 import { useVoiceRecorder } from '@/Composables/useVoiceRecorder';
 import { useToast } from '@/Composables/useToast';
+import { useConfirm } from '@/Composables/useConfirm';
 import { formatDate } from '@/utils/format';
 
 const props = defineProps({
@@ -72,6 +73,7 @@ const props = defineProps({
 });
 
 const toast = useToast();
+const { confirm } = useConfirm();
 const notes = ref([...props.initialNotes]);
 const { state, elapsedLabel, error, blob, start, stop, send, reset } = useVoiceRecorder();
 
@@ -87,7 +89,13 @@ watch(state, async (s) => {
 });
 
 async function remove(note) {
-  if (!confirm(`Supprimer le souvenir raconté par ${note.narrator} ?`)) return;
+  const ok = await confirm({
+    title: 'Supprimer ce souvenir',
+    message: `Supprimer le souvenir raconté par ${note.narrator} ?`,
+    confirmLabel: 'Supprimer',
+    danger: true,
+  });
+  if (!ok) return;
   try {
     await axios.delete(`/voice-notes/${note.id}`);
     notes.value = notes.value.filter((n) => n.id !== note.id);

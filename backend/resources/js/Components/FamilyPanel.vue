@@ -19,17 +19,12 @@
               :href="`/people/${(slot === 'father' ? father : mother).id}`"
               class="relative block w-36 aspect-[3/4] rounded-xl overflow-hidden bg-brand-100 shadow-warm-sm hover:shadow-warm-md hover:scale-[1.02] transition"
             >
-              <img
-                v-if="(slot === 'father' ? father : mother).avatar_url"
-                :src="(slot === 'father' ? father : mother).avatar_url"
-                class="absolute inset-0 w-full h-full object-cover"
-                :style="faceStyle(slot === 'father' ? father : mother)"
-                loading="lazy"
-                decoding="async"
+              <PersonAvatar
+                :person="slot === 'father' ? father : mother"
+                shape="none"
+                class="absolute inset-0"
+                fallback-class="text-4xl font-bold text-brand-700"
               />
-              <div v-else class="absolute inset-0 flex items-center justify-center text-4xl font-bold text-brand-700">
-                {{ (slot === 'father' ? father : mother).name.charAt(0).toUpperCase() }}
-              </div>
               <div class="absolute inset-x-1.5 bottom-1.5 rounded-lg bg-white/80 backdrop-blur-sm px-2 py-1.5 text-center">
                 <p class="text-[13px] font-semibold text-surface-900 leading-tight line-clamp-2">{{ personLabel(slot === 'father' ? father : mother) }}</p>
                 <p class="text-[11px] text-surface-600">{{ lifeYears(slot === 'father' ? father : mother) || (slot === 'father' ? 'père' : 'mère') }}</p>
@@ -80,10 +75,7 @@
           :href="`/people/${sibling.id}`"
           class="relative block w-32 aspect-[3/4] rounded-xl overflow-hidden bg-surface-100 shadow-warm-sm opacity-85 hover:opacity-100 hover:shadow-warm-md hover:scale-[1.02] transition self-center"
         >
-          <img v-if="sibling.avatar_url" :src="sibling.avatar_url" class="absolute inset-0 w-full h-full object-cover" :style="faceStyle(sibling)" loading="lazy" decoding="async" />
-          <div v-else class="absolute inset-0 flex items-center justify-center text-3xl font-bold text-surface-400">
-            {{ sibling.name.charAt(0).toUpperCase() }}
-          </div>
+          <PersonAvatar :person="sibling" shape="none" class="absolute inset-0" fallback-class="text-3xl font-bold text-surface-400" />
           <div class="absolute inset-x-1.5 bottom-1.5 rounded-lg bg-white/80 backdrop-blur-sm px-2 py-1.5 text-center">
             <p class="text-[13px] font-medium text-surface-900 leading-tight line-clamp-2">{{ personLabel(sibling) }}</p>
             <p class="text-[11px] text-surface-600">{{ siblingSub(sibling) }}</p>
@@ -92,10 +84,7 @@
 
         <!-- La personne, mise en avant -->
         <div class="relative w-40 aspect-[3/4] rounded-xl overflow-hidden bg-brand-100 ring-2 ring-brand-500 shadow-warm-md">
-          <img v-if="person.avatar_url" :src="person.avatar_url" class="absolute inset-0 w-full h-full object-cover" :style="faceStyle(person)" loading="lazy" decoding="async" />
-          <div v-else class="absolute inset-0 flex items-center justify-center text-5xl font-bold text-brand-700">
-            {{ person.name.charAt(0).toUpperCase() }}
-          </div>
+          <PersonAvatar :person="person" shape="none" class="absolute inset-0" fallback-class="text-5xl font-bold text-brand-700" />
           <div class="absolute inset-x-1.5 bottom-1.5 rounded-lg bg-white/85 backdrop-blur-sm px-2 py-1.5 text-center">
             <p class="text-sm font-bold text-surface-900 leading-tight line-clamp-2">{{ personLabel(person) }}</p>
             <p class="text-[11px] font-medium text-brand-700">{{ lifeYears(person) }}</p>
@@ -109,10 +98,7 @@
             :href="`/people/${spouse.id}`"
             class="relative block w-36 aspect-[3/4] rounded-xl overflow-hidden bg-brand-100 shadow-warm-sm hover:shadow-warm-md hover:scale-[1.02] transition"
           >
-            <img v-if="spouse.avatar_url" :src="spouse.avatar_url" class="absolute inset-0 w-full h-full object-cover" :style="faceStyle(spouse)" loading="lazy" decoding="async" />
-            <div v-else class="absolute inset-0 flex items-center justify-center text-4xl font-bold text-brand-700">
-              {{ spouse.name.charAt(0).toUpperCase() }}
-            </div>
+            <PersonAvatar :person="spouse" shape="none" class="absolute inset-0" fallback-class="text-4xl font-bold text-brand-700" />
             <div class="absolute inset-x-1.5 bottom-1.5 rounded-lg bg-white/80 backdrop-blur-sm px-2 py-1.5 text-center">
               <p class="text-[13px] font-semibold text-surface-900 leading-tight line-clamp-2">{{ personLabel(spouse) }}</p>
               <p class="text-[11px] text-surface-600">{{ spouseLabel(spouse) }}</p>
@@ -173,10 +159,7 @@
           :href="`/people/${child.id}`"
           class="relative block w-36 aspect-[3/4] rounded-xl overflow-hidden bg-brand-100 shadow-warm-sm hover:shadow-warm-md hover:scale-[1.02] transition"
         >
-          <img v-if="child.avatar_url" :src="child.avatar_url" class="absolute inset-0 w-full h-full object-cover" :style="faceStyle(child)" loading="lazy" decoding="async" />
-          <div v-else class="absolute inset-0 flex items-center justify-center text-4xl font-bold text-brand-700">
-            {{ child.name.charAt(0).toUpperCase() }}
-          </div>
+          <PersonAvatar :person="child" shape="none" class="absolute inset-0" fallback-class="text-4xl font-bold text-brand-700" />
           <div class="absolute inset-x-1.5 bottom-1.5 rounded-lg bg-white/80 backdrop-blur-sm px-2 py-1.5 text-center">
             <p class="text-[13px] font-semibold text-surface-900 leading-tight line-clamp-2">{{ personLabel(child) }}</p>
             <p class="text-[11px] text-surface-600">{{ lifeYears(child) }}</p>
@@ -242,6 +225,7 @@
 import { ref, computed } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import RelationshipPicker from '@/Components/RelationshipPicker.vue';
+import PersonAvatar from '@/Components/PersonAvatar.vue';
 import axios from 'axios';
 import { useToast } from '@/Composables/useToast';
 import { personLabel } from '@/utils/personName';
@@ -277,10 +261,6 @@ const toggleAdding = (what) => {
     coParentId.value = props.spouses.length === 1 ? props.spouses[0].id : '';
   }
 };
-
-// Cadrage intelligent (issue #51) : object-position centré sur le visage
-// quand le serveur l'a calculé (avatar « photo entière » + visage détecté).
-const faceStyle = (p) => (p?.avatar_position ? { objectPosition: p.avatar_position } : undefined);
 
 // « 1954 – 1998 » / « 1988 » — années de vie pour le sous-titre des cartes.
 const lifeYears = (p) => {

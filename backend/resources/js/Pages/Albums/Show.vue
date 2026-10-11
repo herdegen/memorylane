@@ -242,8 +242,10 @@ import AlbumFormModal from '@/Components/AlbumFormModal.vue';
 import SharePanel from '@/Components/SharePanel.vue';
 import MediaPickerModal from '@/Components/MediaPickerModal.vue';
 import FullscreenSlideshow from '@/Components/FullscreenSlideshow.vue';
-import { usePhotoSwipe } from '@/composables/usePhotoSwipe';
+import { usePhotoSwipe } from '@/Composables/usePhotoSwipe';
 import { useToast } from '@/Composables/useToast';
+import { useConfirm } from '@/Composables/useConfirm';
+import { slideUrl } from '@/utils/media';
 
 // Chargé à l'ouverture seulement : la carte embarque Leaflet (~45 ko gzip).
 const GeolocatePickerModal = defineAsyncComponent(() => import('@/Components/GeolocatePickerModal.vue'));
@@ -256,6 +258,7 @@ const props = defineProps({
 });
 
 const toast = useToast();
+const { confirm } = useConfirm();
 
 const showSharePanel = ref(false);
 
@@ -482,9 +485,13 @@ const removeSelectedMedia = async () => {
   const ids = removableSelectedIds.value;
   if (ids.length === 0) return;
 
-  if (!confirm(`Retirer ${ids.length} média(s) de l'album ?`)) {
-    return;
-  }
+  const ok = await confirm({
+    title: "Retirer de l'album",
+    message: `Retirer ${ids.length} média${ids.length > 1 ? 's' : ''} de l'album ? Les médias ne seront pas supprimés.`,
+    confirmLabel: 'Retirer',
+    danger: true,
+  });
+  if (!ok) return;
 
   try {
     await axios.delete(`/albums/${props.album.id}/media`, {
@@ -498,9 +505,13 @@ const removeSelectedMedia = async () => {
 };
 
 const deleteAlbum = async () => {
-  if (!confirm('Êtes-vous sûr de vouloir supprimer cet album ? Les médias ne seront pas supprimés.')) {
-    return;
-  }
+  const ok = await confirm({
+    title: 'Supprimer cet album',
+    message: 'Êtes-vous sûr de vouloir supprimer cet album ? Les médias ne seront pas supprimés.',
+    confirmLabel: 'Supprimer',
+    danger: true,
+  });
+  if (!ok) return;
 
   try {
     await axios.delete(`/albums/${props.album.id}`);
@@ -523,9 +534,7 @@ const slideshowSlides = computed(() =>
     .map((m) => ({
       key: m.id,
       type: m.type,
-      src: m.type === 'video'
-        ? (m.conversions?.find((c) => c.conversion_name === 'web')?.url || m.url)
-        : (m.conversions?.find((c) => c.conversion_name === 'medium')?.url || m.url),
+      src: slideUrl(m),
       label: m.title || m.original_name,
       weight: m.matched_faces_count > 0 ? 3 : 1,
     }))

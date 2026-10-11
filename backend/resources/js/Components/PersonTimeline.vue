@@ -150,6 +150,7 @@ import { ref, shallowRef, computed, onMounted, onBeforeUnmount, nextTick, watch,
 import { Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useToast } from '@/Composables/useToast';
+import { useConfirm } from '@/Composables/useConfirm';
 import { formatPartialDate } from '@/utils/format';
 
 // Modale d'un moment et diaporama chargés à la demande : tous deux embarquent
@@ -158,6 +159,7 @@ const LifeEventFormModal = defineAsyncComponent(() => import('@/Components/LifeE
 const storyPlayerComponent = shallowRef(null);
 
 const toast = useToast();
+const { confirm } = useConfirm();
 
 const props = defineProps({
   personId: { type: String, required: true },
@@ -215,7 +217,13 @@ const openEdit = (item) => { editing.value = item; showModal.value = true; };
 const onSaved = () => { showModal.value = false; load(); };
 
 const removeEvent = async (item) => {
-  if (!confirm('Supprimer ce moment ?')) return;
+  const ok = await confirm({
+    title: 'Supprimer ce moment',
+    message: 'Ce moment sera définitivement supprimé de la frise.',
+    confirmLabel: 'Supprimer',
+    danger: true,
+  });
+  if (!ok) return;
   try {
     await axios.delete(`/life-events/${item.life_event_id}`);
     load();
