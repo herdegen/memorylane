@@ -253,6 +253,40 @@ class InsightFaceTest extends TestCase
         $this->assertSame(4, $media->detectedFaces()->count());
     }
 
+    public function test_hd_recheck_keeps_confirmed_names_and_reidentifies_the_rest(): void
+    {
+        $lea = Person::create(['user_id' => $this->user->id, 'name' => 'Léa']);
+        $tom = Person::create(['user_id' => $this->user->id, 'name' => 'Tom']);
+        foreach ([0.0, 0.1, 0.2] as $n) {
+            $this->face($this->photo(), ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5], $tom, v2: $this->vec(2, $n));
+        }
+        $this->face($this->photo(), ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5], $lea, v2: $this->vec(1));
+        $media = $this->photo();
+        $box = fn (int $x) => ['x' => $x, 'y' => 10, 'width' => 10, 'height' => 10];
+        $tomA = $this->face($media, $box(10), $tom);
+        $tomB = $this->face($media, $box(30), $tom);      // Tom une 2e fois : moins ressemblant
+        $leaWrong = $this->face($media, $box(50), $lea);  // ressemble à Tom, pas à Léa
+        $leaHuman = $this->face($media, $box(70), $lea);
+        $leaHuman->forceFill(['verified_at' => now()])->save();
+        $this->fakeService([
+            $this->detection([100, 100, 200, 200], $this->vec(2, 0.1)),
+            $this->detection([300, 100, 400, 200], $this->vec(2, 0.35)),
+            $this->detection([500, 100, 600, 200], $this->vec(2, 0.05)),
+            $this->detection([700, 100, 800, 200], $this->vec(2, 0.3)),
+        ]);
+
+        $stats = app(\App\Services\Vision\FaceReconciler::class)
+            ->rebuild($media, app(\App\Services\Vision\FaceEngine::class)->analyze($media), recheck: true);
+
+        $this->assertSame(2, $stats['rechecked']);
+        $this->assertSame($tom->id, $tomA->fresh()->person_id, 'confirmé par la reconnaissance');
+        $this->assertNull($tomB->fresh()->person_id, 'doublon moins ressemblant');
+        $this->assertSame('unmatched', $leaWrong->fresh()->status);
+        $this->assertNull($leaWrong->fresh()->person_id);
+        $this->assertSame($lea->id, $leaHuman->fresh()->person_id, 'validé par un humain : intouchable');
+        $this->assertEqualsWithDelta(70.0, $leaHuman->fresh()->bounding_box['x'], 0.01);
+    }
+
     public function test_server_analysis_is_refused_with_the_browser_engine(): void
     {
         config(['memorylane.faces.engine' => 'faceapi']);

@@ -138,30 +138,69 @@ class FaceReconciler
      * les nouvelles détections sont ajoutées puis associées automatiquement
      * si c'est sûr.
      *
-     * @return array{updated: int, kept: int, deleted: int, added: int}
+     * $recheck (remplacement par une version haute définition) : un nom non
+     * validé retrouvé n'est gardé que si la reconnaissance le confirme (une
+     * seule fois par personne) ; sinon le visage repasse « à identifier » et
+     * l'association automatique retente sa chance.
+     *
+     * @return array{updated: int, kept: int, deleted: int, added: int, rechecked: int}
      */
-    public function rebuild(Media $media, array $detections): array
+    public function rebuild(Media $media, array $detections, bool $recheck = false): array
     {
         $detections = array_values(array_filter($detections, fn ($d) => $d['px'] >= self::MIN_FACE_PX));
         $existing = $media->detectedFaces()->get();
         $keepable = $existing->filter(fn ($f) => $f->person_id !== null || $f->status === FaceMatcher::REJECTED_STATUS)->values();
         $pairs = $this->pair($keepable->all(), $detections);
-        $stats = ['updated' => 0, 'kept' => 0, 'deleted' => 0, 'added' => 0];
+        $stats = ['updated' => 0, 'kept' => 0, 'deleted' => 0, 'added' => 0, 'rechecked' => 0];
 
-        DB::transaction(function () use ($media, $existing, $keepable, $detections, $pairs, &$stats) {
+        DB::transaction(function () use ($media, $existing, $keepable, $detections, $pairs, $recheck, &$stats) {
             $kept = [];
             $untagged = [];
             foreach ($keepable as $i => $face) {
                 if (isset($pairs[$i])) {
                     $d = $detections[$pairs[$i]];
-                    $face->forceFill(['bounding_box' => $d['box'], 'confidence' => $d['score'], 'embedding_v2' => $d['embedding'], 'age_estimate' => $d['age'], 'engine' => 'insightface'])->save();
+                    // Enregistré plus bas : chaque enregistrement invalide les
+                    // références, lues une seule fois pour la revérification.
+                    $face->forceFill(['bounding_box' => $d['box'], 'confidence' => $d['score'], 'embedding_v2' => $d['embedding'], 'age_estimate' => $d['age'], 'engine' => 'insightface']);
                     $stats['updated']++;
                     $kept[$face->id] = true;
-                } elseif ($face->person_id !== null && ($face->verified_at !== null || $face->provider === 'manual')) {
+                } elseif ($face->person_id !== null && self::humanMade($face)) {
                     $stats['kept']++;
                     $kept[$face->id] = true;
                 }
             }
+
+            if ($recheck) {
+                $confirmed = [];
+                foreach ($keepable as $face) {
+                    if (! isset($kept[$face->id]) || $face->person_id === null || self::humanMade($face)) {
+                        continue;
+                    }
+                    $distance = $this->matcher->confirmation($face, $media->user_id);
+                    if ($distance === null) {
+                        $untagged[$face->person_id] = true;
+                        $face->forceFill(['person_id' => null, 'status' => 'unmatched', 'verified_at' => null]);
+                        $stats['rechecked']++;
+                    } else {
+                        $confirmed[$face->person_id][] = [$distance, $face];
+                    }
+                }
+                // Même personne confirmée sur plusieurs visages : seul le plus
+                // ressemblant garde le nom.
+                foreach ($confirmed as $personId => $rows) {
+                    usort($rows, fn ($a, $b) => $a[0] <=> $b[0]);
+                    foreach (array_slice($rows, 1) as [, $face]) {
+                        $face->forceFill(['person_id' => null, 'status' => 'unmatched', 'verified_at' => null]);
+                        $stats['rechecked']++;
+                    }
+                }
+            }
+            foreach ($keepable as $face) {
+                if (isset($kept[$face->id]) && $face->isDirty()) {
+                    $face->save();
+                }
+            }
+
             foreach ($existing as $face) {
                 if (! isset($kept[$face->id])) {
                     $face->delete();
@@ -199,6 +238,12 @@ class FaceReconciler
         }
 
         return $stats;
+    }
+
+    /** Nom posé ou validé par un humain, ou cadre dessiné à la main. */
+    public static function humanMade(DetectedFace $face): bool
+    {
+        return $face->verified_at !== null || $face->provider === 'manual';
     }
 
     /**

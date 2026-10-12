@@ -58,7 +58,8 @@ class GenerateMediaConversions implements ShouldQueue
      * Create a new job instance.
      */
     public function __construct(
-        public Media $media
+        public Media $media,
+        public bool $analyzeFaces = true,
     ) {
         //
     }
@@ -88,7 +89,7 @@ class GenerateMediaConversions implements ShouldQueue
             ]);
 
             // Visages : analysés côté serveur une fois les conversions prêtes.
-            if (\App\Services\Vision\FaceEngine::enabled()) {
+            if ($this->analyzeFaces && \App\Services\Vision\FaceEngine::enabled()) {
                 AnalyzeFaces::dispatch($this->media);
             }
         } catch (\Exception $e) {

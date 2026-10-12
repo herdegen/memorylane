@@ -164,6 +164,37 @@ class FaceMatcher
         return $candidates;
     }
 
+    /**
+     * Distance de l'identification actuelle du visage si la reconnaissance la
+     * confirme, sinon null. Les autres visages de la même photo ne comptent
+     * pas comme références (un nom posé plusieurs fois se confirmerait
+     * lui-même) ; la personne doit être sous le seuil de suggestion et la plus
+     * proche, ou à moins de la marge de la plus proche.
+     */
+    public function confirmation(DetectedFace $face, string $ownerId): ?float
+    {
+        $target = $this->embeddingOf($face);
+        if ($target === null || $face->person_id === null) {
+            return null;
+        }
+        $best = [];
+        foreach ($this->references($ownerId) as [$faceId, $personId, $embedding, $mediaId]) {
+            if ($mediaId === $face->media_id) {
+                continue;
+            }
+            $distance = $this->euclideanDistance($target, $embedding);
+            if (! isset($best[$personId]) || $distance < $best[$personId]) {
+                $best[$personId] = $distance;
+            }
+        }
+        $own = $best[$face->person_id] ?? null;
+        if ($own === null || $own > $this->matchThreshold()) {
+            return null;
+        }
+
+        return $own - min($best) <= $this->threshold('margin') ? $own : null;
+    }
+
     /** Moteur de reconnaissance actif (config memorylane.faces.engine). */
     public function engine(): string
     {
@@ -218,17 +249,17 @@ class FaceMatcher
     private static array $referencesMemo = [];
 
     /**
-     * Visages labellisés du propriétaire : [[face_id, person_id, embedding]…],
+     * Visages labellisés du propriétaire : [[face_id, person_id, embedding, media_id]…],
      * en cache jusqu'à la prochaine modification d'une identification
      * (version globale, cf. bumpReferences).
      *
-     * @return array<int, array{0: string, 1: string, 2: array<int, float>}>
+     * @return array<int, array{0: string, 1: string, 2: array<int, float>, 3: string}>
      */
     private function references(string $ownerId): array
     {
         $version = (int) \Illuminate\Support\Facades\Cache::get('face-refs-version', 0);
         $engine = $this->engine();
-        $key = "face-refs:{$engine}:{$ownerId}:v{$version}";
+        $key = "face-refs2:{$engine}:{$ownerId}:v{$version}";
 
         // Une seule entrée gardée en mémoire : les workers tournent longtemps,
         // les anciennes versions ne doivent pas s'accumuler.
@@ -240,8 +271,8 @@ class FaceMatcher
             ->whereNotNull('person_id')
             ->whereNotNull($this->embeddingColumn())
             ->whereHas('media', fn ($q) => $q->where('user_id', $ownerId))
-            ->get(['id', 'person_id', 'embedding', 'embedding_v2'])
-            ->map(fn (DetectedFace $f) => [$f->id, $f->person_id, $this->embeddingOf($f)])
+            ->get(['id', 'media_id', 'person_id', 'embedding', 'embedding_v2'])
+            ->map(fn (DetectedFace $f) => [$f->id, $f->person_id, $this->embeddingOf($f), $f->media_id])
             ->filter(fn ($row) => $row[2] !== null)
             ->values()
             ->all())])[$key];
