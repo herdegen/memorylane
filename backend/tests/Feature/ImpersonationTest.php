@@ -26,10 +26,15 @@ class ImpersonationTest extends TestCase
         $this->assertTrue(auth()->user()->is($member));
         $this->assertSame($admin->id, session(Impersonation::SESSION_KEY));
         $this->get('/dashboard')->assertInertia(fn ($page) => $page->where('impersonating.name', $member->name));
+        $this->get('/admin/users')->assertForbidden();
 
         $this->post('/impersonate/leave')->assertRedirect('/admin/users');
         $this->assertTrue(auth()->user()->is($admin));
         $this->assertNull(session(Impersonation::SESSION_KEY));
+        // Retour dans l'admin sans être déconnecté par le contrôle de session.
+        $this->get('/admin/users')->assertOk();
+        $this->assertTrue(auth()->user()->is($admin));
+        $this->get('/dashboard')->assertInertia(fn ($page) => $page->where('impersonating', null));
     }
 
     public function test_a_member_cannot_impersonate(): void
