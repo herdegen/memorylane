@@ -86,14 +86,14 @@ class DisputedFaceResource extends Resource
                     ->label('')
                     ->getStateUsing(fn (DetectedFace $r) => url("/vision/faces/{$r->id}/crop"))
                     ->height(64)->square(),
-                TextColumn::make('person.name')->label('Identifié comme')
+                TextColumn::make('person.name')->label('Identifié comme')->wrap()
                     ->description(fn (DetectedFace $r) => $r->media?->original_name.($r->media?->taken_at ? ' · '.$r->media->taken_at->format('Y') : '')),
                 TextColumn::make('reason')->label('Pourquoi')
                     ->getStateUsing(fn (DetectedFace $r) => self::REASONS[self::row($r)['reason'] ?? ''] ?? '')
                     ->description(function (DetectedFace $r) {
                         $row = self::row($r);
                         if (($row['reason'] ?? null) === 'noface') {
-                            return 'InsightFace ne trouve pas de visage exploitable dans ce cadre : à confirmer ou retirer';
+                            return 'Pas de visage net dans ce cadre';
                         }
                         if (($row['reason'] ?? null) === 'age') {
                             return 'Écart de '.abs($row['age_gap']).' ans (âge estimé '.$r->age_estimate.' ans)';
@@ -101,7 +101,7 @@ class DisputedFaceResource extends Resource
 
                         return ($p = self::suggested($r)) ? 'InsightFace : '.$p->name : null;
                     })
-                    ->badge()->color('warning'),
+                    ->badge()->color('warning')->wrap(),
             ])
             ->filters([
                 SelectFilter::make('reason')->label('Motif')->options(self::REASONS)

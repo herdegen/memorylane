@@ -34,20 +34,32 @@
                 />
               </div>
 
-              <!-- Ajout manuel d'un visage (quand la détection en a raté un) -->
-              <div v-if="media.type === 'photo' && canEditFaces" class="flex items-center gap-3 px-4 py-2 border-t border-surface-100">
+              <!-- Sous la photo : original en grand (tous), ajout manuel d'un
+                   visage (admin et propriétaire). Toujours affichée pour une
+                   photo : la chaîne v-else-if vidéo/document en dépend. -->
+              <div v-if="media.type === 'photo'" class="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 border-t border-surface-100">
                 <button
                   type="button"
-                  :disabled="savingFace"
-                  class="text-sm font-medium text-brand-600 hover:text-brand-800 disabled:opacity-50"
-                  @click="addingFace = !addingFace"
+                  class="text-sm font-medium text-brand-600 hover:text-brand-800"
+                  @click="viewingOriginal = true"
                 >
-                  {{ addingFace ? 'Annuler' : '＋ Ajouter un visage' }}
+                  🔍 Voir l’original
+                  <span v-if="media.width && media.height" class="font-normal text-surface-500">({{ media.width }} × {{ media.height }})</span>
                 </button>
-                <span v-if="addingFace && !savingFace" class="text-xs text-surface-500">
-                  Cliquez-glissez sur la photo pour entourer le visage.
-                </span>
-                <span v-if="savingFace" class="text-xs text-brand-600">Ajout du visage…</span>
+                <template v-if="canEditFaces">
+                  <button
+                    type="button"
+                    :disabled="savingFace"
+                    class="text-sm font-medium text-brand-600 hover:text-brand-800 disabled:opacity-50"
+                    @click="addingFace = !addingFace"
+                  >
+                    {{ addingFace ? 'Annuler' : '＋ Ajouter un visage' }}
+                  </button>
+                  <span v-if="addingFace && !savingFace" class="text-xs text-surface-500">
+                    Cliquez-glissez sur la photo pour entourer le visage.
+                  </span>
+                  <span v-if="savingFace" class="text-xs text-brand-600">Ajout du visage…</span>
+                </template>
               </div>
 
               <!-- Video -->
@@ -302,6 +314,18 @@
         </div>
       </div>
     </div>
+    <OriginalViewer
+      v-if="viewingOriginal"
+      :original-url="media.url"
+      :preview-url="photoUrl"
+      :width="media.width"
+      :height="media.height"
+      :title="media.title || media.original_name"
+      :faces="media.detected_faces || []"
+      :can-edit="canEditFaces"
+      @close="viewingOriginal = false"
+      @face-click="openFaceFromViewer"
+    />
   </AppLayout>
 </template>
 
@@ -315,6 +339,7 @@ import GeolocationEditor from '@/Components/GeolocationEditor.vue';
 import MediaInfoEditor from '@/Components/MediaInfoEditor.vue';
 import FaceDetectionOverlay from '@/Components/FaceDetectionOverlay.vue';
 import FaceMatchPanel from '@/Components/FaceMatchPanel.vue';
+import OriginalViewer from '@/Components/OriginalViewer.vue';
 import VisionStatusBadge from '@/Components/VisionStatusBadge.vue';
 import VisionLabels from '@/Components/VisionLabels.vue';
 import VoiceNotesPanel from '@/Components/VoiceNotesPanel.vue';
@@ -362,9 +387,16 @@ const props = defineProps({
 
 const selectedFace = ref(null);
 
-// Propriétaire du média : seul lui peut (re)lancer la détection destructive
-// (wipe + recreate). L'identification des visages, elle, est collaborative
-// (tout compte qui voit le média — foyer, album partagé).
+// Visionneuse de l'original (zoom) ; un clic sur un visage la ferme et ouvre
+// le panneau d'identification.
+const viewingOriginal = ref(false);
+const openFaceFromViewer = (face) => {
+  viewingOriginal.value = false;
+  handleFaceClick(face);
+};
+
+// Identification des visages depuis cette page : admin et personne qui a
+// envoyé la photo seulement (la famille contribue via les quêtes).
 const isOwner = computed(() => props.media.user_id === usePage().props.auth?.user?.id);
 const isAdmin = computed(() => usePage().props.auth?.user?.role === 'admin');
 const canEditFaces = computed(() => isOwner.value || isAdmin.value);
