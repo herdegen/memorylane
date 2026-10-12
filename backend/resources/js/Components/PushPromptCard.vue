@@ -17,7 +17,7 @@
       </svg>
     </div>
     <div class="flex-1 min-w-0">
-      <h2 class="text-base font-semibold text-surface-900">Recevoir les nouvelles de la famille</h2>
+      <h2 class="text-base font-semibold text-surface-900">{{ isFriends ? 'Recevoir les nouvelles du groupe' : 'Recevoir les nouvelles de la famille' }}</h2>
       <p v-if="needsIosInstall" class="text-sm text-surface-500 mt-0.5">
         Sur iPhone, ajoutez MemoryLane à l'écran d'accueil (Partager → Sur l'écran d'accueil)
         pour pouvoir recevoir les notifications.
@@ -42,6 +42,9 @@ import { usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import { usePush } from '@/Composables/usePush';
 import { useToast } from '@/Composables/useToast';
+import { useCircle } from '@/Composables/useCircle';
+
+const { isFriends } = useCircle();
 
 // Carte d'invitation du tableau de bord : jamais de demande automatique, un
 // seul clic explicite. Masquée dès que cet appareil est abonné ou après

@@ -290,7 +290,7 @@
             >
               {{ noLabel }}
             </button>
-            <!-- Visage : personne de fond (inconnue / hors famille : reste
+            <!-- Visage : personne de fond (inconnue / hors du groupe : reste
                  visible sur la photo, n'est plus proposée) ou fausse
                  détection (masquée). -->
             <template v-if="uiKind === 'face'">
@@ -300,7 +300,7 @@
                 :disabled="sending"
                 @click="answer('no', { reason: 'stranger' })"
               >
-                Personne inconnue / hors famille
+                {{ isFriends ? 'Personne inconnue / pas du groupe' : 'Personne inconnue / hors famille' }}
               </button>
               <button
                 type="button"

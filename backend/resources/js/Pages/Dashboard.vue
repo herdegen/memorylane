@@ -92,7 +92,7 @@
               <div class="text-xs font-semibold uppercase tracking-widest text-brand-700">Personne du jour</div>
               <div class="font-display text-3xl font-semibold text-surface-900">{{ personOfTheDay.name }}</div>
               <p class="text-sm text-surface-500">
-                {{ personOfTheDay.media_count }} photo{{ personOfTheDay.media_count > 1 ? 's' : '' }} dans votre mémoire familiale<span v-if="personOfTheDay.oldest_year"> — la plus ancienne date de {{ personOfTheDay.oldest_year }}</span>.
+                {{ personOfTheDay.media_count }} photo{{ personOfTheDay.media_count > 1 ? 's' : '' }} {{ isFriends ? 'dans vos souvenirs communs' : 'dans votre mémoire familiale' }}<span v-if="personOfTheDay.oldest_year"> — la plus ancienne date de {{ personOfTheDay.oldest_year }}</span>.
               </p>
               <div v-if="personOfTheDay.photos.length" class="flex gap-1.5 mt-1.5">
                 <Link
@@ -257,7 +257,10 @@ import PersonAvatar from '@/Components/PersonAvatar.vue';
 import PushPromptCard from '@/Components/PushPromptCard.vue';
 import InstallAppBanner from '@/Components/InstallAppBanner.vue';
 import { useAuth } from '@/Composables/useAuth';
+import { useCircle } from '@/Composables/useCircle';
 import { conversionUrl, slideUrl, thumbnailUrl } from '@/utils/media';
+
+const { isFriends } = useCircle();
 
 const { user } = useAuth();
 

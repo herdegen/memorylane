@@ -7,7 +7,7 @@
           <div>
             <h1 class="text-display text-3xl sm:text-4xl text-surface-900">Ajouter des photos</h1>
             <p class="mt-2 text-surface-600">
-              Depuis votre téléphone ou votre ordinateur : elles rejoignent la mémoire de la famille.
+              Depuis votre téléphone ou votre ordinateur : elles rejoignent {{ isFriends ? 'vos souvenirs communs' : 'la mémoire de la famille' }}.
             </p>
           </div>
           <button
@@ -100,6 +100,9 @@ import MediaUploader from '@/Components/MediaUploader.vue';
 import UploadTutorial from '@/Components/UploadTutorial.vue';
 import AddToAlbumModal from '@/Components/AddToAlbumModal.vue';
 import { detectDevice } from '@/utils/device';
+import { useCircle } from '@/Composables/useCircle';
+
+const { isFriends } = useCircle();
 import { useToast } from '@/Composables/useToast';
 
 const page = usePage();
