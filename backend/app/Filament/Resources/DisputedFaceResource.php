@@ -138,10 +138,18 @@ class DisputedFaceResource extends Resource
                             Notification::make()->title(collect($e->errors())->flatten()->first())->danger()->send();
                         }
                     }),
+                Action::make('tagOnly')
+                    ->label('Tag seul')->icon('heroicon-o-tag')->color('gray')
+                    ->tooltip(fn (DetectedFace $r) => 'C\'est bien '.$r->person?->name.' (de dos, caché…) : reste sur la photo, sans cadre pour la reconnaissance')
+                    ->action(function (DetectedFace $record) {
+                        app(FaceMatcher::class)->keepTagOnly($record);
+                        Notification::make()->title('Gardé sur la photo, cadre retiré')->success()->send();
+                    }),
                 Action::make('remove')
                     ->label('Retirer')->icon('heroicon-o-x-mark')->color('gray')
+                    ->tooltip('Ce n\'est pas cette personne : nom retiré (cadre masqué s\'il n\'y a pas de visage net)')
                     ->action(function (DetectedFace $record) {
-                        app(FaceMatcher::class)->disassociate($record);
+                        self::remove($record);
                         Notification::make()->title('Identification retirée')->success()->send();
                     }),
                 Action::make('open')->label('Photo')->icon('heroicon-o-eye')->color('gray')
@@ -154,6 +162,24 @@ class DisputedFaceResource extends Resource
                     ->action(function (Collection $records) {
                         $records->each(fn (DetectedFace $f) => $f->forceFill(['verified_at' => now()])->save());
                         Notification::make()->title($records->count().' identification(s) confirmée(s)')->success()->send();
+                    })
+                    ->deselectRecordsAfterCompletion(),
+                BulkAction::make('tagOnlyAll')
+                    ->label('Tag seul')->icon('heroicon-o-tag')->color('gray')
+                    ->requiresConfirmation()
+                    ->modalDescription('Les personnes restent sur leurs photos, mais ces cadres (de dos, cachés, flous…) sont retirés de la reconnaissance et des quêtes.')
+                    ->action(function (Collection $records) {
+                        $records->each(fn (DetectedFace $f) => app(FaceMatcher::class)->keepTagOnly($f));
+                        Notification::make()->title($records->count().' gardé(s) sur la photo, cadre retiré')->success()->send();
+                    })
+                    ->deselectRecordsAfterCompletion(),
+                BulkAction::make('removeAll')
+                    ->label('Retirer la sélection')->icon('heroicon-o-x-mark')->color('danger')
+                    ->requiresConfirmation()
+                    ->modalDescription('Les noms sont retirés de ces visages. Sans visage net, le cadre est masqué ; sinon il reste « inconnu », ré-identifiable à la main.')
+                    ->action(function (Collection $records) {
+                        $records->each(fn (DetectedFace $f) => self::remove($f));
+                        Notification::make()->title($records->count().' identification(s) retirée(s)')->success()->send();
                     })
                     ->deselectRecordsAfterCompletion(),
                 BulkAction::make('replaceAll')
@@ -184,6 +210,13 @@ class DisputedFaceResource extends Resource
                     })
                     ->deselectRecordsAfterCompletion(),
             ]);
+    }
+
+    /** Retire le nom ; sans visage net, le cadre ne sert à rien : masqué. */
+    private static function remove(DetectedFace $face): void
+    {
+        $noface = (self::row($face)['reason'] ?? null) === 'noface';
+        app(FaceMatcher::class)->disassociate($face, $noface ? 'dismissed' : FaceMatcher::REJECTED_STATUS);
     }
 
     public static function canCreate(): bool

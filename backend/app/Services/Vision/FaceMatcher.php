@@ -359,9 +359,27 @@ class FaceMatcher
             ->where('person_id', $personId)
             ->exists();
 
+        // Seul un tag issu d'un visage (coordonnées) part avec lui ; un tag
+        // posé à la main, importé ou « tag seul » (sans coordonnées) reste.
         if (! $stillTagged) {
-            $media->people()->detach($personId);
+            $media->people()->wherePivotNotNull('face_coordinates')->detach($personId);
         }
+    }
+
+    /**
+     * « Tag seul » : c'est bien la personne, mais de dos, cachée, floue… Elle
+     * reste sur la photo (tag sans coordonnées) ; le cadre est masqué et ne
+     * sert plus de référence à la reconnaissance ni aux quêtes.
+     */
+    public function keepTagOnly(DetectedFace $face): void
+    {
+        $personId = $face->person_id;
+        $media = $this->mediaOf($face);
+        if ($personId && $media) {
+            $media->people()->syncWithoutDetaching([$personId => ['face_coordinates' => null]]);
+        }
+
+        $face->update(['person_id' => null, 'status' => 'dismissed', 'verified_at' => null]);
     }
 
     public function euclideanDistance(array $a, array $b): float

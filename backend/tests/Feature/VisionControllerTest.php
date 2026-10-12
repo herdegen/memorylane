@@ -299,7 +299,7 @@ class VisionControllerTest extends TestCase
             'status' => 'matched',
             'person_id' => $person->id,
         ]);
-        $this->media->people()->attach($person->id);
+        $this->media->people()->attach($person->id, ['face_coordinates' => '{}']);
 
         $response = $this->actingAs($this->user)
             ->postJson("/vision/faces/{$face->id}/reset");

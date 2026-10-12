@@ -233,7 +233,8 @@ class InsightFaceTest extends TestCase
         $validated = $this->face($media, ['x' => 1, 'y' => 60, 'width' => 4, 'height' => 5], $tom);
         $validated->forceFill(['verified_at' => now()])->save();
         $autoGuess = $this->face($media, ['x' => 50, 'y' => 60, 'width' => 4, 'height' => 5], $zoe);
-        $media->people()->syncWithoutDetaching([$lea->id => ['face_coordinates' => null], $tom->id => ['face_coordinates' => null], $zoe->id => ['face_coordinates' => null]]);
+        $fromFace = ['face_coordinates' => '{"x":1}'];
+        $media->people()->syncWithoutDetaching([$lea->id => $fromFace, $tom->id => $fromFace, $zoe->id => $fromFace]);
         $this->fakeService([
             $this->detection([180, 250, 260, 340], $this->vec(1)),   // dans le cadre de Léa
             $this->detection([610, 110, 690, 210], $this->vec(2)),   // l'invité
@@ -339,6 +340,52 @@ class InsightFaceTest extends TestCase
         $this->assertSame($tom->id, $suspect->fresh()->person_id);
         $this->assertNotNull($suspect->fresh()->verified_at);
         $this->assertSame($lea->id, $blocked->fresh()->person_id, 'doublon refusé, rien ne change');
+    }
+
+    public function test_tag_only_keeps_the_person_on_the_photo_without_the_frame(): void
+    {
+        $lea = Person::create(['user_id' => $this->user->id, 'name' => 'Léa']);
+        $media = $this->photo();
+        $back = $this->face($media, ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5], v2: $this->vec(1));
+        app(FaceMatcher::class)->applyMatch($back, $lea->id);
+
+        app(FaceMatcher::class)->keepTagOnly($back->fresh());
+
+        $this->assertSame('dismissed', $back->fresh()->status);
+        $this->assertNull($back->fresh()->person_id, 'plus une référence pour la reconnaissance');
+        $this->assertTrue($media->people()->whereKey($lea->id)->exists(), 'reste taguée sur la photo');
+
+        // Un autre visage d'elle retiré ensuite : le tag sans cadre survit.
+        $other = $this->face($media, ['x' => 50, 'y' => 1, 'width' => 5, 'height' => 5], v2: $this->vec(1, 0.1));
+        app(FaceMatcher::class)->applyMatch($other, $lea->id, allowDuplicate: true);
+        $media->people()->updateExistingPivot($lea->id, ['face_coordinates' => null]);
+        app(FaceMatcher::class)->disassociate($other->fresh());
+        $this->assertTrue($media->people()->whereKey($lea->id)->exists());
+    }
+
+    public function test_bulk_remove_hides_frames_without_a_clear_face(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $lea = Person::create(['user_id' => $this->user->id, 'name' => 'Léa']);
+        $tom = Person::create(['user_id' => $this->user->id, 'name' => 'Tom']);
+        foreach ([0.0, 0.1, 0.2] as $n) {
+            $this->face($this->photo(), ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5], $tom, v2: $this->vec(2, $n));
+        }
+        $this->face($this->photo(), ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5], $lea, v2: $this->vec(1));
+        $this->face($this->photo(), ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5], $lea, v2: $this->vec(1, 0.1));
+        $suspect = $this->face($this->photo(), ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5], $lea, v2: $this->vec(2, 0.05));
+        $blurry = $this->face($this->photo(), ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5], $lea, v2: $this->vec(1, 0.05));
+        $blurry->forceFill(['engine' => 'insightface-crop'])->save();
+        $analysis = app(DisputedFaceResolver::class)->analysis();
+        $this->assertSame(['other', 'noface'], [$analysis[$suspect->id]['reason'] ?? null, $analysis[$blurry->id]['reason'] ?? null]);
+
+        $this->actingAs($admin);
+        \Livewire\Livewire::test(\App\Filament\Resources\DisputedFaceResource\Pages\ListDisputedFaces::class)
+            ->callTableBulkAction('removeAll', [$suspect, $blurry]);
+
+        $this->assertSame('rejected', $suspect->fresh()->status, 'visage net : reste « inconnu »');
+        $this->assertSame('dismissed', $blurry->fresh()->status, 'pas de visage net : cadre masqué');
+        $this->assertNull($blurry->fresh()->person_id);
     }
 
     public function test_quest_stranger_keeps_the_face_visible_not_face_hides_it(): void

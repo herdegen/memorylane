@@ -154,7 +154,7 @@ class FaceRecognitionAdminTest extends TestCase
             'provider' => 'faceapi',
             'status' => 'matched',
         ]);
-        $media->people()->attach($person->id);
+        $media->people()->attach($person->id, ['face_coordinates' => '{}']);
 
         $matcher = app(FaceMatcher::class);
         $matcher->disassociate($face->load('media'));
@@ -191,7 +191,7 @@ class FaceRecognitionAdminTest extends TestCase
             'provider' => 'faceapi',
             'status' => 'matched',
         ]);
-        $media->people()->attach($person->id);
+        $media->people()->attach($person->id, ['face_coordinates' => '{}']);
 
         $matcher = app(FaceMatcher::class);
 
@@ -280,7 +280,7 @@ class FaceRecognitionAdminTest extends TestCase
             'provider' => 'faceapi',
             'status' => 'matched',
         ]);
-        $media->people()->attach($person->id);
+        $media->people()->attach($person->id, ['face_coordinates' => '{}']);
 
         Livewire::actingAs($admin)
             ->test(IdentifiedPhotosRelationManager::class, [

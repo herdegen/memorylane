@@ -262,7 +262,7 @@ class FaceGuardsTest extends TestCase
         $person = $this->person();
         $media = $this->photo('2016-01-01');
         $face = $this->face($media, 0.1, $person);
-        $media->people()->attach($person->id);
+        $media->people()->attach($person->id, ['face_coordinates' => '{}']);
         $media->delete();
 
         app(FaceMatcher::class)->disassociate($face->fresh());
