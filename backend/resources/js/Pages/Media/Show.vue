@@ -436,7 +436,7 @@ const notScanned = computed(
 const forceDetection = async () => {
   const ok = await confirm({
     title: 'Tout recommencer sur cette photo ?',
-    message: 'Les cadres non identifiés sont effacés, puis la détection et l’identification automatique sont refaites. Les personnes déjà identifiées sont conservées.',
+    message: 'Les cadres non identifiés sont effacés, puis la détection et l’identification automatique sont refaites. Les personnes validées (à la main ou par une quête) sont conservées ; un nom posé automatiquement là où plus aucun visage n’est vu est retiré.',
     confirmLabel: 'Recommencer',
     danger: true,
   });

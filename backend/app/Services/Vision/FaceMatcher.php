@@ -321,7 +321,7 @@ class FaceMatcher
      * Retire la personne du pivot media_person uniquement si aucun visage encore
      * associé à elle ne subsiste sur ce média.
      */
-    private function reconcileMediaPersonPivot(Media $media, string $personId): void
+    public function reconcileMediaPersonPivot(Media $media, string $personId): void
     {
         $stillTagged = DetectedFace::query()
             ->where('media_id', $media->id)

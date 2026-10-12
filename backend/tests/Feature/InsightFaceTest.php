@@ -218,7 +218,7 @@ class InsightFaceTest extends TestCase
         $this->assertSame(40, $drawn->age_estimate);
     }
 
-    public function test_admin_force_rebuild_keeps_identified_and_cleans_the_rest(): void
+    public function test_admin_force_rebuild_keeps_validated_and_cleans_the_rest(): void
     {
         $admin = User::factory()->admin()->create();
         $lea = Person::create(['user_id' => $this->user->id, 'name' => 'Léa']);
@@ -226,6 +226,14 @@ class InsightFaceTest extends TestCase
         $known = $this->face($media, ['x' => 10, 'y' => 10, 'width' => 30, 'height' => 40], $lea);
         $guest = $this->face($media, ['x' => 60, 'y' => 10, 'width' => 10, 'height' => 12], status: 'rejected');
         $junk = $this->face($media, ['x' => 80, 'y' => 80, 'width' => 5, 'height' => 5]);
+        // Noms hors de toute détection : validé par un humain → gardé ;
+        // posé par l'ancien automatique → effacé et retiré de la photo.
+        $tom = Person::create(['user_id' => $this->user->id, 'name' => 'Tom']);
+        $zoe = Person::create(['user_id' => $this->user->id, 'name' => 'Zoé']);
+        $validated = $this->face($media, ['x' => 1, 'y' => 60, 'width' => 4, 'height' => 5], $tom);
+        $validated->forceFill(['verified_at' => now()])->save();
+        $autoGuess = $this->face($media, ['x' => 50, 'y' => 60, 'width' => 4, 'height' => 5], $zoe);
+        $media->people()->syncWithoutDetaching([$lea->id => ['face_coordinates' => null], $tom->id => ['face_coordinates' => null], $zoe->id => ['face_coordinates' => null]]);
         $this->fakeService([
             $this->detection([180, 250, 260, 340], $this->vec(1)),   // dans le cadre de Léa
             $this->detection([610, 110, 690, 210], $this->vec(2)),   // l'invité
@@ -239,7 +247,10 @@ class InsightFaceTest extends TestCase
         $this->assertEqualsWithDelta(18.0, $known->fresh()->bounding_box['x'], 0.01, 'nouveau cadre');
         $this->assertSame('rejected', $guest->fresh()->status);
         $this->assertNull($junk->fresh(), 'cadre non identifié effacé');
-        $this->assertSame(3, $media->detectedFaces()->count());
+        $this->assertSame($tom->id, $validated->fresh()?->person_id, 'validé par un humain : gardé');
+        $this->assertNull($autoGuess->fresh(), 'ancien nom automatique sans visage : effacé');
+        $this->assertEqualsCanonicalizing([$lea->id, $tom->id], $media->people()->pluck('people.id')->all());
+        $this->assertSame(4, $media->detectedFaces()->count());
     }
 
     public function test_server_analysis_is_refused_with_the_browser_engine(): void

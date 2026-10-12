@@ -131,9 +131,12 @@ class FaceReconciler
     /**
      * « Forcer » : on repart de la détection InsightFace. Les visages
      * identifiés et ceux marqués « personne inconnue » (rejected) retrouvés
-     * prennent le nouveau cadre ; les identifiés non retrouvés sont gardés
-     * tels quels ; TOUS les autres cadres sont effacés ; les nouvelles
-     * détections sont ajoutées puis associées automatiquement si c'est sûr.
+     * prennent le nouveau cadre ; un identifié non retrouvé n'est gardé que
+     * s'il a été validé par un humain ou dessiné à la main (sinon c'est une
+     * ancienne association automatique sans visage visible : effacée, et la
+     * personne retirée de la photo) ; TOUS les autres cadres sont effacés ;
+     * les nouvelles détections sont ajoutées puis associées automatiquement
+     * si c'est sûr.
      *
      * @return array{updated: int, kept: int, deleted: int, added: int}
      */
@@ -147,13 +150,14 @@ class FaceReconciler
 
         DB::transaction(function () use ($media, $existing, $keepable, $detections, $pairs, &$stats) {
             $kept = [];
+            $untagged = [];
             foreach ($keepable as $i => $face) {
                 if (isset($pairs[$i])) {
                     $d = $detections[$pairs[$i]];
                     $face->forceFill(['bounding_box' => $d['box'], 'confidence' => $d['score'], 'embedding_v2' => $d['embedding'], 'age_estimate' => $d['age'], 'engine' => 'insightface'])->save();
                     $stats['updated']++;
                     $kept[$face->id] = true;
-                } elseif ($face->person_id !== null) {
+                } elseif ($face->person_id !== null && ($face->verified_at !== null || $face->provider === 'manual')) {
                     $stats['kept']++;
                     $kept[$face->id] = true;
                 }
@@ -162,7 +166,13 @@ class FaceReconciler
                 if (! isset($kept[$face->id])) {
                     $face->delete();
                     $stats['deleted']++;
+                    if ($face->person_id !== null) {
+                        $untagged[$face->person_id] = true;
+                    }
                 }
+            }
+            foreach (array_keys($untagged) as $personId) {
+                $this->matcher->reconcileMediaPersonPivot($media, $personId);
             }
             $matched = array_flip($pairs);
             foreach ($detections as $j => $d) {
