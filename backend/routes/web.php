@@ -170,7 +170,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
     });
     Route::get('/auth/google/callback', [GooglePhotosController::class, 'callback'])->name('google-photos.callback');
 
-    // Import Google Drive (Google Picker, scope drive.file) — l'URI de retour
+    // Import Google Drive (Google Picker, scope drive.readonly) — l'URI de retour
     // OAuth est celle de Google Photos ci-dessus.
     Route::prefix('google-drive')->name('google-drive.')->group(function () {
         Route::get('/', [GoogleDriveController::class, 'index'])->name('index');

@@ -18,17 +18,22 @@ use Inertia\Inertia;
 /**
  * Import depuis Google Drive, sans passer par l'ordinateur.
  *
- * Flux : OAuth (drive.file : MemoryLane ne voit QUE les fichiers que
- * l'utilisateur choisit) → sélecteur Google Picker dans la page (dossiers,
- * « Partagés avec moi », recherche) → le serveur télécharge les fichiers
- * choisis directement depuis Google, en arrière-plan, avec rattachement
- * optionnel à une personne et/ou un album.
+ * Flux : OAuth (drive.readonly) → sélecteur Google Picker dans la page
+ * (dossiers, « Partagés avec moi », recherche) → le serveur télécharge les
+ * fichiers choisis directement depuis Google, en arrière-plan, avec
+ * rattachement optionnel à une personne et/ou un album.
+ *
+ * Lecture seule de tout le Drive plutôt que drive.file : le Picker charge ses
+ * miniatures avec notre jeton, et drive.file les refuse (403) pour les
+ * fichiers pas encore choisis — sélection sans aucun aperçu (choix user
+ * 2026-10-12, seul utilisateur de l'import). Scope restreint non vérifié par
+ * Google : écran « application non validée » à la connexion.
  */
 class GoogleDriveController extends Controller
 {
     use ReportsImportProgress;
 
-    protected const SCOPE = 'https://www.googleapis.com/auth/drive.file';
+    protected const SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
 
     /**
      * Page d'import : configuration du sélecteur + listes personne/album.
@@ -39,7 +44,7 @@ class GoogleDriveController extends Controller
 
         return Inertia::render('Media/GoogleDriveImport', [
             'isConfigured' => (bool) $apiKey,
-            'isConnected' => $request->session()->has('google_drive.token'),
+            'isConnected' => (bool) $this->sessionToken($request),
             'picker' => [
                 'apiKey' => $apiKey,
                 // Numéro du projet Google Cloud = préfixe de l'ID client OAuth.
@@ -84,6 +89,12 @@ class GoogleDriveController extends Controller
         if (! $token) {
             return redirect()->route('google-drive.index')
                 ->withErrors(['google' => __('Google a refusé la connexion. Réessayez.')]);
+        }
+
+        // Accès décoché sur l'écran de consentement : rien d'utilisable.
+        if (! $this->grantsScope($token)) {
+            return redirect()->route('google-drive.index')
+                ->withErrors(['google' => __('Autorisez la lecture de votre Google Drive pour pouvoir y choisir vos photos.')]);
         }
 
         $request->session()->put('google_drive.token', $token);
@@ -178,7 +189,7 @@ class GoogleDriveController extends Controller
      */
     protected function freshToken(Request $request, GoogleOAuth $oauth): ?array
     {
-        $token = $request->session()->get('google_drive.token');
+        $token = $this->sessionToken($request);
         if (! $token) {
             return null;
         }
@@ -194,8 +205,30 @@ class GoogleDriveController extends Controller
             return null;
         }
 
+        $refreshed['scope'] ??= $token['scope'] ?? null;
         $request->session()->put('google_drive.token', $refreshed);
 
         return $refreshed;
+    }
+
+    /**
+     * Jeton de session, s'il couvre l'accès demandé aujourd'hui (une connexion
+     * faite avec l'ancien accès drive.file est oubliée : reconnexion).
+     */
+    protected function sessionToken(Request $request): ?array
+    {
+        $token = $request->session()->get('google_drive.token');
+        if ($token && ! $this->grantsScope($token)) {
+            $request->session()->forget('google_drive.token');
+
+            return null;
+        }
+
+        return $token;
+    }
+
+    protected function grantsScope(array $token): bool
+    {
+        return in_array(self::SCOPE, explode(' ', (string) ($token['scope'] ?? '')), true);
     }
 }

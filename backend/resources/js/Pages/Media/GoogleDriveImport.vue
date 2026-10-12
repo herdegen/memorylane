@@ -27,9 +27,15 @@
           <div class="flex items-center justify-between gap-4">
             <div>
               <h2 class="card-title mb-1">{{ $t('1. Connecter Google Drive') }}</h2>
-              <p class="text-sm text-surface-500">
-                {{ isConnected ? $t('Compte Google connecté.') : $t('MemoryLane ne verra que les fichiers que vous choisirez, rien d\'autre de votre Drive.') }}
-              </p>
+              <p v-if="isConnected" class="text-sm text-surface-500">{{ $t('Compte Google connecté.') }}</p>
+              <template v-else>
+                <p class="text-sm text-surface-500">
+                  {{ $t('Accès en lecture seule : MemoryLane n\'importe que les fichiers que vous choisissez et ne modifie jamais votre Drive.') }}
+                </p>
+                <p class="mt-1 text-xs text-surface-400">
+                  {{ $t('Si Google affiche « Google n\'a pas validé cette application », cliquez sur « Paramètres avancés » puis « Accéder à MemoryLane ».') }}
+                </p>
+              </template>
             </div>
             <span v-if="isConnected" class="badge-teal shrink-0">{{ $t('Connecté') }}</span>
             <a v-else-if="isConfigured" href="/google-drive/connect" class="btn-primary shrink-0">{{ $t('Se connecter') }}</a>

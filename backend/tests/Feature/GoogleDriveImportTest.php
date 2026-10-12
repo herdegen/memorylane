@@ -42,6 +42,7 @@ class GoogleDriveImportTest extends TestCase
             'access_token' => 'ya29.valid',
             'refresh_token' => '1//refresh',
             'expires_at' => now()->addHour()->timestamp,
+            'scope' => 'https://www.googleapis.com/auth/drive.readonly',
         ], $overrides)];
     }
 
@@ -59,14 +60,14 @@ class GoogleDriveImportTest extends TestCase
             );
     }
 
-    public function test_connect_requests_drive_file_scope_with_refresh_token(): void
+    public function test_connect_requests_drive_readonly_scope_with_refresh_token(): void
     {
         $location = $this->actingAs($this->user)->get('/google-drive/connect')
             ->assertRedirect()
             ->headers->get('Location');
 
         $this->assertStringStartsWith(GoogleOAuth::AUTHORIZE_URL, $location);
-        $this->assertStringContainsString(urlencode('https://www.googleapis.com/auth/drive.file'), $location);
+        $this->assertStringContainsString(urlencode('https://www.googleapis.com/auth/drive.readonly'), $location);
         $this->assertStringContainsString('access_type=offline', $location);
     }
 
@@ -79,6 +80,7 @@ class GoogleDriveImportTest extends TestCase
         Http::fake([
             'oauth2.googleapis.com/token' => Http::response([
                 'access_token' => 'ya29.drive', 'refresh_token' => '1//r', 'expires_in' => 3599,
+                'scope' => 'https://www.googleapis.com/auth/drive.readonly',
             ]),
         ]);
 
@@ -90,6 +92,39 @@ class GoogleDriveImportTest extends TestCase
         $response->assertSessionHas('google_drive.token.access_token', 'ya29.drive');
         $response->assertSessionHas('google_drive.token.refresh_token', '1//r');
         $response->assertSessionMissing('google_photos.access_token');
+    }
+
+    /**
+     * Lecture du Drive décochée sur l'écran de consentement : pas de connexion.
+     */
+    public function test_callback_rejects_token_without_drive_read_access(): void
+    {
+        Http::fake([
+            'oauth2.googleapis.com/token' => Http::response([
+                'access_token' => 'ya29.drive', 'expires_in' => 3599, 'scope' => 'openid',
+            ]),
+        ]);
+
+        $this->actingAs($this->user)
+            ->withSession(['google_drive.oauth_state' => 'drive-state'])
+            ->get('/auth/google/callback?code=auth-code&state=drive-state')
+            ->assertRedirect(route('google-drive.index'))
+            ->assertSessionHasErrors('google')
+            ->assertSessionMissing('google_drive.token');
+    }
+
+    /**
+     * Une connexion faite avec l'ancien accès (drive.file, sans miniatures)
+     * est oubliée : l'utilisateur se reconnecte.
+     */
+    public function test_connection_with_former_drive_file_scope_is_dropped(): void
+    {
+        $this->actingAs($this->user)
+            ->withSession($this->driveToken(['scope' => 'https://www.googleapis.com/auth/drive.file']))
+            ->get('/google-drive')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('isConnected', false))
+            ->assertSessionMissing('google_drive.token');
     }
 
     public function test_token_endpoint_refreshes_an_expiring_token(): void

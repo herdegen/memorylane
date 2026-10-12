@@ -35,7 +35,7 @@ class GoogleOAuth
     /**
      * Échange le code du callback contre des jetons, ou null si Google refuse.
      *
-     * @return array{access_token: string, refresh_token: ?string, expires_at: int}|null
+     * @return array{access_token: string, refresh_token: ?string, expires_at: int, scope: ?string}|null
      */
     public function exchangeCode(string $code): ?array
     {
@@ -50,7 +50,7 @@ class GoogleOAuth
      * Nouveau jeton d'accès à partir du refresh token (le refresh token est
      * conservé : Google n'en renvoie pas de nouveau).
      *
-     * @return array{access_token: string, refresh_token: ?string, expires_at: int}|null
+     * @return array{access_token: string, refresh_token: ?string, expires_at: int, scope: ?string}|null
      */
     public function refresh(string $refreshToken): ?array
     {
@@ -87,6 +87,8 @@ class GoogleOAuth
             'access_token' => $response->json('access_token'),
             'refresh_token' => $response->json('refresh_token'),
             'expires_at' => now()->addSeconds((int) $response->json('expires_in', 3600))->timestamp,
+            // Accès réellement accordés (l'utilisateur peut en décocher).
+            'scope' => $response->json('scope'),
         ];
     }
 }
