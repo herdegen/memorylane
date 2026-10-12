@@ -52,8 +52,15 @@ class DashboardController extends Controller
     {
         $today = now();
 
+        // Famille : ses propres photos ; cercle d'amis : les photos du cercle
+        // (y compris celles des autres membres).
+        $user = auth()->user();
         $memories = Media::with('conversions')
-            ->where('user_id', auth()->id())
+            ->when(
+                $user->mode() === \App\Models\Household::KIND_FRIENDS,
+                fn ($q) => $q->inContext($user),
+                fn ($q) => $q->where('user_id', $user->id),
+            )
             ->whereNotNull('taken_at')
             ->whereRaw('EXTRACT(MONTH FROM taken_at) = ?', [$today->month])
             ->whereRaw('EXTRACT(DAY FROM taken_at) = ?', [$today->day])
@@ -226,7 +233,7 @@ class DashboardController extends Controller
         // Photos visibles par le visiteur : la plus ancienne date l'accroche,
         // les 4 plus récentes font la bande de vignettes.
         $photos = $person->media()
-            ->accessibleBy(auth()->user())
+            ->inContext(auth()->user())
             ->where('type', 'photo')
             ->whereNotNull('taken_at')
             ->with('conversions')
@@ -236,7 +243,7 @@ class DashboardController extends Controller
         $this->mediaService->hydrateSignedUrls($photos);
 
         $oldestYear = $person->media()
-            ->accessibleBy(auth()->user())
+            ->inContext(auth()->user())
             ->whereNotNull('taken_at')
             ->min('taken_at');
 

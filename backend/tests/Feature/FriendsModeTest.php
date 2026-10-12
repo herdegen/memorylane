@@ -189,4 +189,40 @@ class FriendsModeTest extends TestCase
         $this->actingAs($this->admin)->deleteJson("/households/{$this->circle->id}/people/{$family->id}")->assertOk();
         $this->actingAs($this->me)->getJson("/people/{$family->id}/timeline")->assertNotFound();
     }
+
+    public function test_qui_est_ce_seulement_sur_les_photos_du_cercle(): void
+    {
+        // Photo de famille de « moi » (aucun ami dessus) : hors du cercle.
+        $familyPhoto = $this->photo([$this->self]);
+        $familyFace = \App\Models\DetectedFace::create(['media_id' => $familyPhoto->id, 'status' => 'unmatched', 'bounding_box' => ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5]]);
+
+        // Photo où Léa (du cercle) est identifiée : dans le cercle.
+        $friendPhoto = $this->photo([$this->lea]);
+        $friendFace = \App\Models\DetectedFace::create(['media_id' => $friendPhoto->id, 'status' => 'unmatched', 'bounding_box' => ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5]]);
+
+        // Photo d'un album où un ami figure ailleurs : dans le cercle aussi.
+        $album = \App\Models\Album::factory()->create(['user_id' => $this->me->id]);
+        $albumPhoto = $this->photo([]);
+        $album->media()->attach([$albumPhoto->id, $friendPhoto->id]);
+        $albumFace = \App\Models\DetectedFace::create(['media_id' => $albumPhoto->id, 'status' => 'unmatched', 'bounding_box' => ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5]]);
+
+        $this->me->forceFill(['current_household_id' => $this->circle->id])->save();
+        $keys = $this->keys($this->me->fresh());
+
+        $this->assertContains("face_identify:{$friendFace->id}", $keys);
+        $this->assertContains("face_identify:{$albumFace->id}", $keys);
+        $this->assertNotContains("face_identify:{$familyFace->id}", $keys);
+    }
+
+    public function test_photo_partagee_au_cercle_en_fait_partie(): void
+    {
+        $owner = User::factory()->create();
+        $shared = Media::factory()->create(['user_id' => $owner->id, 'type' => 'photo']);
+        $album = \App\Models\Album::factory()->create(['user_id' => $owner->id]);
+        $album->media()->attach($shared->id);
+        $album->households()->attach($this->circle->id);
+
+        $ids = Media::inContext($this->me->fresh())->pluck('id');
+        $this->assertTrue($ids->contains($shared->id));
+    }
 }

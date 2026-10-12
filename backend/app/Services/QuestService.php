@@ -375,8 +375,9 @@ class QuestService
     /** Visages non identifiés sur des photos que l'utilisateur peut voir. */
     private function detectFaceGaps(User $user): array
     {
+        // Photos du contexte : en mode amis, seulement les photos du cercle.
         return DetectedFace::where('status', 'unmatched')
-            ->whereHas('media', fn ($q) => $q->accessibleBy($user)->where('type', 'photo'))
+            ->whereHas('media', fn ($q) => $q->inContext($user)->where('type', 'photo'))
             ->latest()
             ->limit(self::DETECTOR_LIMIT)
             ->pluck('id')
@@ -388,7 +389,7 @@ class QuestService
      * ses propres photos sont modifiables, cf. MediaController::update). */
     private function detectMediaGaps(User $user): array
     {
-        $undated = Media::where('user_id', $user->id)
+        $undated = Media::inContext($user)->where('user_id', $user->id)
             ->where('type', 'photo')
             ->whereNull('taken_at')
             ->latest()
@@ -396,7 +397,7 @@ class QuestService
             ->pluck('id')
             ->map(fn ($id) => ['type' => QuestType::MediaDate->value, 'subject_id' => $id, 'distance' => 1]);
 
-        $unlocated = Media::where('user_id', $user->id)
+        $unlocated = Media::inContext($user)->where('user_id', $user->id)
             ->where('type', 'photo')
             ->whereDoesntHave('metadata', fn ($q) => $q->whereNotNull('latitude'))
             ->latest()

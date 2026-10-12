@@ -235,6 +235,36 @@ class Media extends Model
     }
 
     /**
+     * Médias du CONTEXTE courant (filtre d'affichage, toujours inclus dans
+     * accessibleBy). Famille : tout ce que le compte voit. Cercle d'amis :
+     * les « photos du cercle » — partagées au cercle, dans un album partagé au
+     * cercle, dans un album où un ami du cercle est identifié, ou montrant un
+     * ami du cercle. Sa propre présence ne compte pas (sinon toutes ses
+     * photos de famille y entreraient).
+     */
+    public function scopeInContext($query, User $user)
+    {
+        $query->accessibleBy($user);
+
+        $circle = $user->currentCircle();
+        if (! $circle?->isFriends()) {
+            return $query;
+        }
+
+        $friendIds = $circle->people()
+            ->when($user->person_id, fn ($q) => $q->where('people.id', '!=', $user->person_id))
+            ->pluck('people.id');
+
+        return $query->where(function ($w) use ($circle, $friendIds) {
+            $w->whereHas('households', fn ($h) => $h->whereKey($circle->id))
+                ->orWhereHas('people', fn ($p) => $p->whereIn('people.id', $friendIds))
+                ->orWhereHas('albums', fn ($a) => $a->where(fn ($x) => $x
+                    ->whereHas('households', fn ($h) => $h->whereKey($circle->id))
+                    ->orWhereHas('media.people', fn ($p) => $p->whereIn('people.id', $friendIds))));
+        });
+    }
+
+    /**
      * Get a human-readable resolution label based on video height.
      */
     public function getResolutionLabelAttribute(): ?string
