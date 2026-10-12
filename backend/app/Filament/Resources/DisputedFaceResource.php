@@ -156,6 +156,33 @@ class DisputedFaceResource extends Resource
                         Notification::make()->title($records->count().' identification(s) confirmée(s)')->success()->send();
                     })
                     ->deselectRecordsAfterCompletion(),
+                BulkAction::make('replaceAll')
+                    ->label('Appliquer les « Plutôt … »')->icon('heroicon-o-arrow-path')->color('primary')
+                    ->requiresConfirmation()
+                    ->modalDescription('Chaque visage sélectionné est associé à la personne suggérée par InsightFace (garde-fous de date et de doublon appliqués). Les lignes sans suggestion sont ignorées.')
+                    ->action(function (Collection $records) {
+                        // Suggestions relevées AVANT d'appliquer : chaque
+                        // association relance l'analyse en cache.
+                        $targets = $records->mapWithKeys(fn (DetectedFace $f) => [$f->id => (self::row($f)['reason'] ?? null) !== 'noface' ? self::suggested($f) : null]);
+                        $done = 0;
+                        $skipped = [];
+                        foreach ($records as $face) {
+                            if (! $person = $targets[$face->id]) {
+                                continue;
+                            }
+                            try {
+                                app(FaceMatcher::class)->applyMatch($face, $person->id, verified: true);
+                                $done++;
+                            } catch (ValidationException $e) {
+                                $skipped[] = collect($e->errors())->flatten()->first();
+                            }
+                        }
+                        Notification::make()
+                            ->title($done.' visage(s) réassocié(s)'.($skipped ? ', '.count($skipped).' refusé(s)' : ''))
+                            ->body($skipped ? implode("\n", array_unique($skipped)) : null)
+                            ->{$skipped ? 'warning' : 'success'}()->send();
+                    })
+                    ->deselectRecordsAfterCompletion(),
             ]);
     }
 

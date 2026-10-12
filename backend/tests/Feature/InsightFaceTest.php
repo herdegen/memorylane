@@ -280,6 +280,33 @@ class InsightFaceTest extends TestCase
         $this->assertArrayNotHasKey($suspect->id, app(DisputedFaceResolver::class)->analysis());
     }
 
+    public function test_admin_applies_suggestions_in_bulk(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $lea = Person::create(['user_id' => $this->user->id, 'name' => 'Léa']);
+        $tom = Person::create(['user_id' => $this->user->id, 'name' => 'Tom']);
+        foreach ([0.0, 0.1, 0.2] as $n) {
+            $this->face($this->photo(), ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5], $tom, v2: $this->vec(2, $n));
+        }
+        $this->face($this->photo(), ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5], $lea, v2: $this->vec(1));
+        $this->face($this->photo(), ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5], $lea, v2: $this->vec(1, 0.1));
+        $suspect = $this->face($this->photo(), ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5], $lea, v2: $this->vec(2, 0.05));
+        // Même suggestion, mais Tom est déjà sur cette photo : refusé (doublon).
+        $crowded = $this->photo();
+        $this->face($crowded, ['x' => 50, 'y' => 1, 'width' => 5, 'height' => 5], $tom, v2: $this->vec(2, 0.15));
+        $blocked = $this->face($crowded, ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5], $lea, v2: $this->vec(2, 0.06));
+
+        $this->assertSame($tom->id, app(DisputedFaceResolver::class)->analysis()[$blocked->id]['best_person'] ?? null);
+
+        $this->actingAs($admin);
+        \Livewire\Livewire::test(\App\Filament\Resources\DisputedFaceResource\Pages\ListDisputedFaces::class)
+            ->callTableBulkAction('replaceAll', [$suspect, $blocked]);
+
+        $this->assertSame($tom->id, $suspect->fresh()->person_id);
+        $this->assertNotNull($suspect->fresh()->verified_at);
+        $this->assertSame($lea->id, $blocked->fresh()->person_id, 'doublon refusé, rien ne change');
+    }
+
     public function test_quest_stranger_keeps_the_face_visible_not_face_hides_it(): void
     {
         config(['memorylane.faces.engine' => 'faceapi']);
