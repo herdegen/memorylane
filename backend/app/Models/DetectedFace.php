@@ -79,6 +79,15 @@ class DetectedFace extends Model
         ];
     }
 
+    /**
+     * Visages encore « à identifier » (ni identifiés, ni écartés comme
+     * inconnus ou faux cadres).
+     */
+    public function scopeUnidentified($query)
+    {
+        return $query->where('detected_faces.status', 'unmatched')->whereNull('detected_faces.person_id');
+    }
+
     public function media()
     {
         return $this->belongsTo(Media::class);

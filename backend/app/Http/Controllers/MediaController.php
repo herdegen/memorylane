@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Household;
 use App\Models\Media;
+use App\Models\Person;
 use App\Services\MediaService;
 use App\Services\PushNotifier;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
@@ -28,20 +30,30 @@ class MediaController extends Controller
         return auth()->id();
     }
     /**
+     * Paramètres de la galerie (filtres + tri), repris tels quels dans l'URL.
+     */
+    private const FILTER_KEYS = [
+        'type', 'search', 'tags', 'duration_min', 'duration_max', 'resolution', 'video_codec',
+        'sort', 'year_from', 'year_to', 'undated', 'people', 'people_mode',
+    ];
+
+    /**
      * Display a listing of media.
      */
     public function index(Request $request)
     {
-        $filters = $request->only(['type', 'search', 'tags', 'duration_min', 'duration_max', 'resolution', 'video_codec']);
+        $filters = $request->only(self::FILTER_KEYS);
         $media = $this->mediaService->getPaginatedMedia($filters);
 
         if ($request->wantsJson()) {
             return response()->json($media);
         }
 
+        $userId = $this->getCurrentUserId();
+        $gallery = fn () => Media::where('user_id', $userId)->where('is_source', false);
+
         // Available codecs for the video filter panel (scoped à l'utilisateur)
-        $availableCodecs = Media::where('type', 'video')
-            ->where('user_id', $this->getCurrentUserId())
+        $availableCodecs = $gallery()->where('type', 'video')
             ->whereNotNull('video_codec')
             ->distinct()
             ->orderBy('video_codec')
@@ -49,8 +61,24 @@ class MediaController extends Controller
 
         return Inertia::render('Media/Index', [
             'media'          => $media,
-            'filters'        => $filters,
+            // Objet JSON même vide (un [] ferait lire Array.prototype.sort côté JS).
+            'filters'        => (object) $filters,
             'availableCodecs' => $availableCodecs,
+            // Années de prise de vue présentes, pour le filtre de période.
+            'years' => $gallery()->whereNotNull('taken_at')
+                ->selectRaw('DISTINCT EXTRACT(YEAR FROM taken_at)::int AS year')
+                ->orderByDesc('year')
+                ->pluck('year'),
+            // Compteurs des filtres « à trier » (Sans date, Sans personne…).
+            'counts' => [
+                'undated' => $gallery()->whereNull('taken_at')->count(),
+                'no_people' => $gallery()->whereDoesntHave('people')->where('type', '!=', 'document')->count(),
+                'unidentified' => $gallery()->whereHas('detectedFaces', fn ($q) => $q->unidentified())->count(),
+            ],
+            // Noms des personnes filtrées (chips), limités aux fiches visibles.
+            'filterPeople' => Person::visibleTo($request->user())
+                ->whereIn('people.id', MediaService::personIdsFilter($filters))
+                ->get(['people.id', 'people.name']),
         ]);
     }
 
@@ -61,11 +89,44 @@ class MediaController extends Controller
      */
     public function ids(Request $request)
     {
-        $filters = $request->only(['type', 'search', 'tags', 'duration_min', 'duration_max', 'resolution', 'video_codec']);
+        $filters = $request->only(self::FILTER_KEYS);
 
         return response()->json([
             'ids' => $this->mediaService->getFilteredMediaIds($filters),
         ]);
+    }
+
+    /**
+     * Personnes présentes sur les médias de l'utilisateur, avec leur nombre
+     * de médias (filtre « Personnes » de la galerie, chargé à l'ouverture).
+     */
+    public function people(Request $request)
+    {
+        $counts = DB::table('media_person')
+            ->join('media', 'media.id', '=', 'media_person.media_id')
+            ->where('media.user_id', $this->getCurrentUserId())
+            ->where('media.is_source', false)
+            ->whereNull('media.deleted_at')
+            ->groupBy('media_person.person_id')
+            ->selectRaw('media_person.person_id, COUNT(DISTINCT media.id) AS media_count')
+            ->pluck('media_count', 'person_id');
+
+        $people = Person::visibleTo($request->user())
+            ->whereIn('people.id', $counts->keys())
+            ->get(['people.id', 'people.name', 'people.first_name', 'people.last_name', 'people.maiden_name', 'people.birth_date'])
+            ->map(fn (Person $p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'first_name' => $p->first_name,
+                'last_name' => $p->last_name,
+                'maiden_name' => $p->maiden_name,
+                'birth_date' => $p->birth_date?->format('Y-m-d'),
+                'media_count' => (int) $counts[$p->id],
+            ])
+            ->sortByDesc('media_count')
+            ->values();
+
+        return response()->json(['people' => $people]);
     }
 
     /**

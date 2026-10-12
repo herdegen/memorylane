@@ -8,6 +8,7 @@ use App\Models\Media;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Str;
 
 class MediaService
 {
@@ -145,12 +146,44 @@ class MediaService
         $query = Media::where('user_id', $userId)
             // Les vidéos sources découpées sont masquées de la galerie (leurs
             // clips les remplacent) ; elles restent accessibles depuis un clip.
-            ->where('is_source', false)
-            // NULLS LAST : sous Postgres, DESC met les NULLs en premier — les
-            // médias « Sans date » doivent former la DERNIÈRE section de la
-            // galerie (en-têtes par année, issue #40).
-            ->orderByRaw('taken_at DESC NULLS LAST')
-            ->orderBy('uploaded_at', 'desc');
+            ->where('is_source', false);
+
+        // Tri. NULLS LAST : sous Postgres, DESC met les NULLs en premier — les
+        // médias « Sans date » doivent former la DERNIÈRE section de la
+        // galerie (en-têtes par année, issue #40), dans les deux sens.
+        match ($filters['sort'] ?? null) {
+            'oldest' => $query->orderByRaw('taken_at ASC NULLS LAST')->orderBy('uploaded_at', 'asc'),
+            'added' => $query->orderBy('uploaded_at', 'desc')->orderBy('created_at', 'desc'),
+            default => $query->orderByRaw('taken_at DESC NULLS LAST')->orderBy('uploaded_at', 'desc'),
+        };
+
+        // Période (années de prise de vue, bornes incluses) ou « Sans date ».
+        if (! empty($filters['undated'])) {
+            $query->whereNull('taken_at');
+        } else {
+            $yearFrom = $this->filterYear($filters['year_from'] ?? null);
+            $yearTo = $this->filterYear($filters['year_to'] ?? null);
+            if ($yearFrom) {
+                $query->where('taken_at', '>=', "{$yearFrom}-01-01");
+            }
+            if ($yearTo) {
+                $query->where('taken_at', '<', ($yearTo + 1) . '-01-01');
+            }
+        }
+
+        // Personnes : toutes celles demandées sur la même photo (« ensemble »).
+        foreach (self::personIdsFilter($filters) as $personId) {
+            $query->whereHas('people', fn ($q) => $q->where('people.id', $personId));
+        }
+
+        match ($filters['people_mode'] ?? null) {
+            // Aucune personne rattachée (les documents, sans personne par
+            // nature, ne font que du bruit ici).
+            'none' => $query->whereDoesntHave('people')->where('type', '!=', 'document'),
+            // Au moins un visage détecté encore à identifier.
+            'unidentified' => $query->whereHas('detectedFaces', fn ($q) => $q->unidentified()),
+            default => null,
+        };
 
         // Filter by type if provided
         if (isset($filters['type'])) {
@@ -193,6 +226,29 @@ class MediaService
         }
 
         return $query;
+    }
+
+    /**
+     * Identifiants de personnes du filtre de galerie (UUID valides, dédoublonnés).
+     *
+     * @return array<int,string>
+     */
+    public static function personIdsFilter(array $filters): array
+    {
+        return array_values(array_unique(array_filter(
+            (array) ($filters['people'] ?? []),
+            fn ($id) => is_string($id) && Str::isUuid($id)
+        )));
+    }
+
+    /**
+     * Année de filtre plausible, ou null (paramètre d'URL libre).
+     */
+    protected function filterYear(mixed $value): ?int
+    {
+        $year = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1800, 'max_range' => 2200]]);
+
+        return $year === false ? null : $year;
     }
 
     /**

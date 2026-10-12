@@ -79,14 +79,14 @@
       </p>
     </div>
 
-    <!-- Media Grid — regroupé par année, en-têtes de section « sticky » -->
+    <!-- Media Grid — regroupé par année (ou mois d'ajout), en-têtes de section « sticky » -->
     <div v-else>
       <div
         v-for="grp in groupedMedia"
-        :key="'year-' + (grp.year ?? 'none')"
+        :key="'section-' + grp.key"
         class="[&:not(:first-child)]:mt-8"
       >
-        <!-- En-tête d'année, collant juste sous la barre de navigation (h-16) -->
+        <!-- En-tête de section, collant juste sous la barre de navigation (h-16) -->
         <div class="sticky top-16 z-10 -mx-6 mb-4 border-b border-surface-100 bg-white/95 px-6 py-2 backdrop-blur-sm">
           <h2 class="text-sm font-semibold uppercase tracking-wide text-surface-500">
             {{ grp.label }}
@@ -197,6 +197,12 @@ const props = defineProps({
     type: String,
     default: 'Commencez par ajouter vos premières photos.',
   },
+  // Sections : par année de prise de vue ('taken') ou par mois d'ajout
+  // ('added', tri « Dernières ajoutées »).
+  groupBy: {
+    type: String,
+    default: 'taken',
+  },
 });
 
 const emit = defineEmits([
@@ -206,20 +212,30 @@ const emit = defineEmits([
   'selection-change',
 ]);
 
-// Regroupe les médias (déjà triés par date de prise de vue décroissante côté
-// serveur) par année, en conservant l'index global de chaque élément : la
-// sélection par plage (shift+clic) reste ainsi correcte à travers les en-têtes.
-// Les médias sans date sont triés en dernier (NULLs en fin) et forment une
-// section « Sans date ». Comme le tri est strictement décroissant, chaque année
-// est contiguë : un simple découpage séquentiel suffit.
+// Regroupe les médias (déjà triés côté serveur) en sections, en conservant
+// l'index global de chaque élément : la sélection par plage (shift+clic) reste
+// ainsi correcte à travers les en-têtes. Par date de prise de vue : une section
+// par année, les médias sans date (toujours en fin de tri) forment « Sans
+// date ». Par date d'ajout : une section par mois. Le tri garantissant des
+// sections contiguës, un simple découpage séquentiel suffit.
+const sectionOf = (item) => {
+  const raw = props.groupBy === 'added' ? item.uploaded_at || item.created_at : item.taken_at;
+  const date = raw ? new Date(raw) : null;
+  if (!date || Number.isNaN(date.getTime())) return { key: 'none', label: 'Sans date' };
+  if (props.groupBy === 'added') {
+    const label = date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    return { key: `${date.getFullYear()}-${date.getMonth()}`, label: `Ajoutées en ${label}` };
+  }
+  return { key: String(date.getFullYear()), label: String(date.getFullYear()) };
+};
+
 const groupedMedia = computed(() => {
   const groups = [];
   let current = null;
   props.media.forEach((item, index) => {
-    const date = item.taken_at ? new Date(item.taken_at) : null;
-    const year = date && !Number.isNaN(date.getTime()) ? date.getFullYear() : null;
-    if (!current || current.year !== year) {
-      current = { year, label: year !== null ? String(year) : 'Sans date', items: [] };
+    const { key, label } = sectionOf(item);
+    if (!current || current.key !== key) {
+      current = { key, label, items: [] };
       groups.push(current);
     }
     current.items.push({ item, index });

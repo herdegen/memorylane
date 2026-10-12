@@ -2,9 +2,9 @@
   <Head title="Mes photos" />
   <AppLayout>
     <div class="py-12">
-      <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Page Header -->
-        <div class="mb-6 flex items-center justify-between">
+        <div class="mb-6 flex items-center justify-between gap-4">
           <div>
             <h1 class="text-display text-4xl text-surface-900">Mes photos</h1>
             <p class="mt-2 text-surface-600">
@@ -209,37 +209,15 @@
             </button>
           </div>
 
-          <!-- Tag filters -->
-          <div v-if="availableTags.length > 0">
-            <label class="block text-sm font-medium text-surface-700 mb-2">Filtrer par tags</label>
-            <div class="flex flex-wrap gap-2">
-              <button
-                v-for="tag in availableTags"
-                :key="tag.id"
-                @click="toggleTagFilter(tag.id)"
-                :class="[
-                  'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium transition',
-                  selectedTags.includes(tag.id)
-                    ? 'text-white'
-                    : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
-                ]"
-                :style="selectedTags.includes(tag.id) ? { backgroundColor: tag.color || '#0D9488' } : {}"
-              >
-                {{ tag.name }}
-                <span class="ml-1.5 text-xs opacity-75">({{ tag.media_count }})</span>
-              </button>
-              <button
-                v-if="selectedTags.length > 0"
-                @click="clearTagFilters"
-                class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-500/25 transition"
-              >
-                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                Effacer les filtres
-              </button>
-            </div>
-          </div>
+          <!-- Tri + filtres (date, personnes, tags) -->
+          <MediaFilters
+            :state="filterState"
+            :years="years"
+            :counts="counts"
+            :tags="availableTags"
+            :known-people="filterPeople"
+            @change="handleFiltersChange"
+          />
         </div>
 
         <!-- Media Grid -->
@@ -252,6 +230,7 @@
             :filter-tabs="filterTabs"
             :has-more-pages="hasMorePages"
             :empty-state-message="emptyStateMessage"
+            :group-by="filterState.sort === 'added' ? 'added' : 'taken'"
             :selectable="true"
             :selection-active="selectedIds.length > 0"
             :selected-ids="selectedIds"
@@ -306,6 +285,7 @@ import axios from 'axios';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import MediaGrid from '@/Components/MediaGrid.vue';
+import MediaFilters from '@/Components/MediaFilters.vue';
 import AddToAlbumModal from '@/Components/AddToAlbumModal.vue';
 import ShareToHouseholdModal from '@/Components/ShareToHouseholdModal.vue';
 import BulkDateModal from '@/Components/BulkDateModal.vue';
@@ -330,6 +310,9 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  years: { type: Array, default: () => [] },
+  counts: { type: Object, default: () => ({}) },
+  filterPeople: { type: Array, default: () => [] },
 });
 
 // Reactive state
@@ -337,7 +320,20 @@ const loading = ref(false);      // rechargement complet (changement de filtre)
 const loadingMore = ref(false);  // chargement de la page suivante (scroll infini)
 const searchQuery = ref(props.filters.search || '');
 const currentFilter = ref(props.filters.type || 'all');
-const selectedTags = ref(props.filters.tags ? (Array.isArray(props.filters.tags) ? props.filters.tags : [props.filters.tags]) : []);
+const asList = (value) => (value ? (Array.isArray(value) ? value : [value]) : []);
+const selectedTags = ref(asList(props.filters.tags));
+
+// Tri + filtres date/personnes, repris de l'URL (lien partageable, retour arrière).
+const filterState = reactive({
+  sort: props.filters.sort || 'recent',
+  yearFrom: Number(props.filters.year_from) || null,
+  yearTo: Number(props.filters.year_to) || null,
+  undated: !!props.filters.undated,
+  people: asList(props.filters.people),
+  peopleMode: props.filters.people_mode || null,
+  // Même tableau que selectedTags (partagé avec la logique existante).
+  tags: selectedTags,
+});
 const availableTags = ref([]);
 let searchTimeout = null;
 
@@ -403,7 +399,15 @@ const filterTabs = computed(() => [
   { value: 'document', label: 'Documents' },
 ]);
 
+const hasActiveFilters = computed(() => !!(
+  filterState.yearFrom || filterState.yearTo || filterState.undated
+  || filterState.people.length || filterState.peopleMode || selectedTags.value.length
+));
+
 const emptyStateMessage = computed(() => {
+  if (hasActiveFilters.value) {
+    return 'Aucun média ne correspond à ces filtres.';
+  }
   if (currentFilter.value !== 'all') {
     return {
       photo: 'Aucune photo trouvée.',
@@ -423,6 +427,12 @@ const buildQuery = (extra = {}) => {
     type: currentFilter.value === 'all' ? undefined : currentFilter.value,
     search: searchQuery.value || undefined,
     tags: selectedTags.value.length > 0 ? selectedTags.value : undefined,
+    sort: filterState.sort !== 'recent' ? filterState.sort : undefined,
+    year_from: filterState.undated ? undefined : filterState.yearFrom || undefined,
+    year_to: filterState.undated ? undefined : filterState.yearTo || undefined,
+    undated: filterState.undated ? 1 : undefined,
+    people: filterState.people.length > 0 ? filterState.people : undefined,
+    people_mode: filterState.peopleMode || undefined,
   };
 
   if (currentFilter.value === 'video') {
@@ -465,19 +475,9 @@ const handleFilterChange = (newFilter) => {
   navigate();
 };
 
-const toggleTagFilter = (tagId) => {
-  const index = selectedTags.value.indexOf(tagId);
-  if (index > -1) {
-    selectedTags.value.splice(index, 1);
-  } else {
-    selectedTags.value.push(tagId);
-  }
-
-  navigate();
-};
-
-const clearTagFilters = () => {
-  selectedTags.value = [];
+// Changement venu de la barre de filtres : on applique puis on recharge.
+const handleFiltersChange = (patch) => {
+  Object.assign(filterState, patch);
   navigate();
 };
 
