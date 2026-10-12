@@ -34,7 +34,9 @@
               :opacity="nodeOpacity(n)"
               @click.stop="select(n.id)"
             >
-              <circle :r="n.r + 3" :fill="n.color" />
+              <!-- Autre cercle : anneau en pointillés -->
+              <circle v-if="n.outside" :r="n.r + 4" fill="none" :stroke="n.color" stroke-width="2.5" stroke-dasharray="4 3" />
+              <circle v-else :r="n.r + 3" :fill="n.color" />
               <clipPath :id="`clip-${n.idx}`"><circle :r="n.r" /></clipPath>
               <circle :r="n.r" class="fill-current text-white" />
               <image
@@ -123,7 +125,7 @@
         </div>
 
         <!-- Groupes -->
-        <div v-if="groups.length" class="absolute left-4 bottom-20 flex flex-wrap gap-2 max-w-[60%] max-md:hidden">
+        <div v-if="groups.length || hasOutside" class="absolute left-4 bottom-20 flex flex-wrap gap-2 max-w-[60%] max-md:hidden">
           <div
             v-for="g in groups"
             :key="g.id"
@@ -131,6 +133,13 @@
           >
             <span class="w-2.5 h-2.5 rounded-full" :style="{ background: g.color }"></span>
             {{ g.label }}
+          </div>
+          <div
+            v-if="hasOutside"
+            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/90 border border-dashed border-surface-400 text-xs font-semibold text-surface-700"
+          >
+            <span class="w-2.5 h-2.5 rounded-full border-2 border-dashed border-surface-500"></span>
+            Autres cercles
           </div>
         </div>
 
@@ -203,7 +212,7 @@
               <div class="text-display text-xl text-surface-900 truncate">{{ selected.is_self ? `${selected.name} (moi)` : selected.name }}</div>
               <div class="flex items-center gap-1.5 text-xs text-surface-600">
                 <span class="w-2 h-2 rounded-full" :style="{ background: selected.color }"></span>
-                {{ selected.groupLabel }}
+                {{ selected.outside ? 'Autre cercle' : selected.groupLabel }}
               </div>
             </div>
             <button type="button" class="md:hidden p-2 text-surface-500" aria-label="Fermer" @click="selectedId = null">
@@ -222,8 +231,12 @@
             </div>
           </div>
 
+          <p v-if="selected.restricted" class="mt-4 text-xs text-surface-500 bg-surface-100 rounded-lg px-3 py-2">
+            Cette personne fait partie d'un autre cercle : vous voyez son nom parce que vous partagez des photos, mais pas sa fiche.
+          </p>
+
           <HowWeMetPanel
-            v-if="selfId && !selected.is_self"
+            v-if="selfId && !selected.is_self && !selected.restricted"
             :key="selected.id"
             :person-id="selected.id"
             class="mt-5"
@@ -262,7 +275,7 @@
           </div>
 
           <div class="flex gap-2 mt-5">
-            <Link :href="`/people/${selected.id}`" class="btn btn-primary flex-1">Voir la fiche</Link>
+            <Link v-if="!selected.restricted" :href="`/people/${selected.id}`" class="btn btn-primary flex-1">Voir la fiche</Link>
             <button type="button" class="btn btn-secondary flex-1" @click="centerOn(selected.id)">Centrer</button>
           </div>
         </template>
@@ -493,6 +506,7 @@ function showLabel(n) {
 }
 
 const totalPhotos = ref(0);
+const hasOutside = computed(() => nodes.value.some((n) => n.outside));
 
 // Frise : ~6 jalons répartis sur les années où des liens apparaissent.
 const yearSteps = computed(() => {

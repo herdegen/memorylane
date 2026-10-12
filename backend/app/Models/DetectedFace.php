@@ -99,15 +99,14 @@ class DetectedFace extends Model
     }
 
     /**
-     * Personne associée d'un autre cercle (fiche invisible du viewer). Par
-     * défaut : masquée (ni nom ni lien). Avec $showNames — photo d'un album
-     * partagé avec un cercle du viewer — son NOM seul (Person::restrictedStub).
-     * Dans les deux cas `person_restricted` verrouille la correction.
-     * À appeler sur des visages déjà `person`-chargés.
+     * Personne associée d'un autre cercle (fiche invisible du viewer) : on
+     * montre son NOM seul (Person::restrictedStub) — qui voit une photo voit
+     * qui est dessus — sans sa fiche ; `person_restricted` verrouille la
+     * correction. À appeler sur des visages déjà `person`-chargés.
      *
      * @param  iterable<DetectedFace>  $faces
      */
-    public static function maskPeopleFor(iterable $faces, ?User $viewer, bool $showNames = false): void
+    public static function maskPeopleFor(iterable $faces, ?User $viewer): void
     {
         $ids = collect($faces)->pluck('person_id')->filter()->unique()->values();
         if ($ids->isEmpty()) {
@@ -118,7 +117,7 @@ class DetectedFace extends Model
 
         foreach ($faces as $face) {
             if ($face->person_id && ! isset($visible[$face->person_id])) {
-                $face->setRelation('person', $showNames && $face->person ? Person::restrictedStub($face->person) : null);
+                $face->setRelation('person', $face->person ? Person::restrictedStub($face->person) : null);
                 $face->setAttribute('person_restricted', true);
             }
         }

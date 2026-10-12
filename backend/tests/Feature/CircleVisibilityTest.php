@@ -180,7 +180,7 @@ class CircleVisibilityTest extends TestCase
             ->assertUnprocessable();
     }
 
-    public function test_visage_d_un_autre_cercle_masque_sauf_album_partage_et_verrouille(): void
+    public function test_visage_d_un_autre_cercle_nom_seul_et_verrouille(): void
     {
         $media = Media::factory()->create(['user_id' => $this->family->id, 'type' => 'photo']);
         $face = DetectedFace::create([
@@ -189,26 +189,12 @@ class CircleVisibilityTest extends TestCase
         ]);
         $media->people()->attach([$this->friendP->id, $this->famP->id]);
 
-        // Photo simplement visible (sa propre photo, album public…) : la
-        // personne d'un autre cercle reste anonyme.
+        // Qui voit la photo voit QUI est dessus : le nom seul, rien d'autre.
         $this->friendP->update(['notes' => 'secret', 'birth_date' => '1990-01-01']);
-        $faces = $this->actingAs($this->family)->getJson("/vision/media/{$media->id}/faces")->assertOk()->json();
-        $this->assertNull($faces[0]['person']);
-        $this->assertTrue($faces[0]['person_restricted']);
-
-        $this->actingAs($this->family)->get("/media/{$media->id}")->assertOk()
-            ->assertInertia(fn ($page) => $page->component('Media/Show', false)
-                ->has('media.people', 1)
-                ->where('media.people.0.id', $this->famP->id));
-
-        // Photo d'un album partagé avec un cercle du viewer : le nom seul.
-        $album = \App\Models\Album::factory()->create(['user_id' => $this->admin->id]);
-        $album->media()->attach($media->id);
-        $album->households()->attach($this->F->id);
-
         $faces = $this->actingAs($this->family)->getJson("/vision/media/{$media->id}/faces")->assertOk()->json();
         $this->assertSame('Léa Copine', $faces[0]['person']['name']);
         $this->assertTrue($faces[0]['person']['restricted']);
+        $this->assertTrue($faces[0]['person_restricted']);
         $this->assertArrayNotHasKey('notes', $faces[0]['person']);
         $this->assertArrayNotHasKey('birth_date', $faces[0]['person']);
 
@@ -216,6 +202,11 @@ class CircleVisibilityTest extends TestCase
             ->assertInertia(fn ($page) => $page->component('Media/Show', false)
                 ->has('media.people', 2)
                 ->where('media.people', fn ($people) => collect($people)->firstWhere('id', $this->friendP->id)['restricted'] === true));
+
+        // Une photo qu'il ne voit pas ne lui apprend rien.
+        $hidden = Media::factory()->create(['user_id' => $this->friend->id, 'type' => 'photo']);
+        $hidden->people()->attach($this->friendP->id);
+        $this->actingAs($this->family)->get("/media/{$hidden->id}")->assertForbidden();
 
         // La fiche elle-même reste fermée.
         $this->actingAs($this->family)->getJson("/people/{$this->friendP->id}/timeline")->assertNotFound();
@@ -266,9 +257,42 @@ class CircleVisibilityTest extends TestCase
         $this->both->forceFill(['current_household_id' => $this->A->id])->save();
         $graph = $this->actingAs($this->both->fresh())->getJson('/network/data')->assertOk()->json();
 
-        $nodeIds = collect($graph['nodes'])->pluck('id');
-        $this->assertTrue($nodeIds->contains($this->friendP->id));
-        $this->assertFalse($nodeIds->contains($this->famP->id));
-        $this->assertCount(1, $graph['edges']);
+        // Le cercle courant, plus la famille présente SUR LES MÊMES PHOTOS,
+        // marquée « hors cercle ».
+        $nodes = collect($graph['nodes'])->keyBy('id');
+        $this->assertFalse($nodes[$this->friendP->id]['outside']);
+        $this->assertTrue($nodes[$this->famP->id]['outside']);
+        $this->assertFalse($nodes[$this->famP->id]['restricted']); // il voit la famille
+        $this->assertCount(2, $graph['edges']);
+    }
+
+    public function test_reseau_d_un_ami_inclut_les_autres_cercles_presents_sur_ses_photos(): void
+    {
+        // Léa (cercle A) a un compte ; elle est en photo avec Mamie (famille)
+        // et avec un inconnu de B, mais Mamie et l'inconnu ne sont jamais ensemble.
+        $leaUser = User::factory()->create();
+        $this->A->members()->attach($leaUser->id);
+        $leaUser->forceFill(['person_id' => $this->friendP->id])->save();
+
+        $owner = $this->both;
+        $m1 = Media::factory()->create(['user_id' => $owner->id, 'type' => 'photo']);
+        $m1->people()->attach([$this->friendP->id, $this->famP->id]);
+        $m2 = Media::factory()->create(['user_id' => $owner->id, 'type' => 'photo']);
+        $m2->people()->attach([$this->friendP->id, $this->strangerP->id]);
+        $lonely = Media::factory()->create(['user_id' => $owner->id, 'type' => 'photo']);
+        $far = Person::factory()->create(['user_id' => $this->admin->id, 'name' => 'Cousin Lointain']);
+        $lonely->people()->attach([$this->famP->id, $far->id]);
+
+        $graph = $this->actingAs($leaUser->fresh())->getJson('/network/data')->assertOk()->json();
+        $nodes = collect($graph['nodes'])->keyBy('id');
+
+        // Elle voit Mamie et l'inconnu (photos où elle figure), en « nom seul ».
+        foreach ([$this->famP, $this->strangerP] as $p) {
+            $this->assertTrue($nodes[$p->id]['outside']);
+            $this->assertTrue($nodes[$p->id]['restricted']);
+            $this->assertNull($nodes[$p->id]['avatar_url']);
+        }
+        // Pas le cousin : photo qu'elle ne voit pas, et pas de lien avec son cercle.
+        $this->assertFalse($nodes->has($far->id));
     }
 }

@@ -157,14 +157,29 @@ class NetworkService
             $personIds->push($user->person_id);
         }
 
-        // Fiches du cercle courant uniquement (famille : répertoire familial ;
-        // amis : fiches du cercle) ; les liens vers les autres disparaissent.
+        // Le cercle courant (famille : répertoire familial ; amis : fiches du
+        // cercle), PLUS les personnes des autres cercles qui apparaissent sur
+        // des photos visibles avec quelqu'un du cercle (« le reste » : la
+        // femme d'un ami, les amis de sa femme…). Pas au-delà d'un pas.
         $inContext = Person::inContext($user)
             ->whereIn('people.id', $personIds->unique()->values())
             ->pluck('people.id')
             ->flip();
-        $edges = array_values(array_filter($edges, fn ($e) => isset($inContext[$e['source']], $inContext[$e['target']])));
-        $personIds = $inContext->keys();
+        $outside = [];
+        foreach ($edges as $e) {
+            if ($e['kind'] !== 'photo') {
+                continue;
+            }
+            if (isset($inContext[$e['source']]) && ! isset($inContext[$e['target']])) {
+                $outside[$e['target']] = true;
+            } elseif (isset($inContext[$e['target']]) && ! isset($inContext[$e['source']])) {
+                $outside[$e['source']] = true;
+            }
+        }
+        $kept = $inContext->all() + $outside;
+        $edges = array_values(array_filter($edges, fn ($e) => isset($kept[$e['source']], $kept[$e['target']])));
+        $personIds = collect(array_keys($kept));
+        $visible = Person::visibleTo($user)->whereIn('people.id', $personIds)->pluck('people.id')->flip();
 
         // Nombre de photos accessibles par personne + première année.
         $stats = DB::table('media_person as mp')
@@ -186,7 +201,11 @@ class NetworkService
         $nodes = $people->map(fn (Person $p) => [
             'id' => $p->id,
             'name' => $p->name,
-            'avatar_url' => $this->avatarUrl($p),
+            // Hors du cercle courant ; `restricted` = fiche d'un autre cercle
+            // (nom seul : ni avatar, ni lien vers la fiche).
+            'outside' => ! isset($inContext[$p->id]),
+            'restricted' => ! isset($visible[$p->id]),
+            'avatar_url' => isset($visible[$p->id]) ? $this->avatarUrl($p) : null,
             'avatar_position' => $positions[$p->id] ?? null,
             'photos' => (int) ($stats[$p->id]->photos ?? 0),
             'first_year' => isset($stats[$p->id]) ? (int) $stats[$p->id]->first_year : null,
