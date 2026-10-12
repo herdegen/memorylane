@@ -294,7 +294,7 @@ class VisionController extends Controller
             ->with('person')
             ->whereIn('status', ['unmatched', 'matched', 'rejected'])
             ->get();
-        DetectedFace::maskPeopleFor($faces, auth()->user());
+        DetectedFace::maskPeopleFor($faces, auth()->user(), $media->isSharedWithCirclesOf(auth()->user()));
 
         return response()->json($faces);
     }

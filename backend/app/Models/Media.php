@@ -250,4 +250,20 @@ class Media extends Model
             default               => "{$this->height}p",
         };
     }
+
+    /**
+     * Le média est-il dans un album partagé avec un cercle du viewer ? Seul
+     * cas où les noms des personnes d'un autre cercle lui sont montrés (ex.
+     * l'album du mariage partagé à la famille ET aux amis).
+     */
+    public function isSharedWithCirclesOf(?User $viewer): bool
+    {
+        if (! $viewer || $viewer->householdIds() === []) {
+            return false;
+        }
+
+        return $this->albums()
+            ->whereHas('households', fn ($h) => $h->whereIn('households.id', $viewer->householdIds()))
+            ->exists();
+    }
 }

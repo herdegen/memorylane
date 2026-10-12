@@ -33,6 +33,13 @@
         >
           {{ face.person.name }}
         </span>
+        <!-- Identifié·e dans un autre cercle (nom non partagé) -->
+        <span
+          v-else-if="face.person_restricted"
+          class="absolute -bottom-6 left-0 text-xs bg-surface-500 text-white px-1.5 py-0.5 rounded-sm whitespace-nowrap"
+        >
+          Autre cercle
+        </span>
         <!-- Unknown indicator if unmatched -->
         <span
           v-else
@@ -87,6 +94,7 @@ const visibleFaces = computed(() => props.faces.filter(f => f.status !== 'dismis
 
 const faceBoxClasses = (face) => {
   if (face.person) return 'border-green-500 hover:border-green-400';
+  if (face.person_restricted) return 'border-surface-400 hover:border-surface-300';
   return 'border-amber-400 hover:border-amber-300';
 };
 

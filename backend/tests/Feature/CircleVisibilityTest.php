@@ -180,7 +180,7 @@ class CircleVisibilityTest extends TestCase
             ->assertUnprocessable();
     }
 
-    public function test_visage_d_un_autre_cercle_nom_seul_et_verrouille(): void
+    public function test_visage_d_un_autre_cercle_masque_sauf_album_partage_et_verrouille(): void
     {
         $media = Media::factory()->create(['user_id' => $this->family->id, 'type' => 'photo']);
         $face = DetectedFace::create([
@@ -189,20 +189,33 @@ class CircleVisibilityTest extends TestCase
         ]);
         $media->people()->attach([$this->friendP->id, $this->famP->id]);
 
-        // Qui voit la photo voit QUI est dessus : le nom seul, rien d'autre.
+        // Photo simplement visible (sa propre photo, album public…) : la
+        // personne d'un autre cercle reste anonyme.
         $this->friendP->update(['notes' => 'secret', 'birth_date' => '1990-01-01']);
+        $faces = $this->actingAs($this->family)->getJson("/vision/media/{$media->id}/faces")->assertOk()->json();
+        $this->assertNull($faces[0]['person']);
+        $this->assertTrue($faces[0]['person_restricted']);
+
+        $this->actingAs($this->family)->get("/media/{$media->id}")->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Media/Show', false)
+                ->has('media.people', 1)
+                ->where('media.people.0.id', $this->famP->id));
+
+        // Photo d'un album partagé avec un cercle du viewer : le nom seul.
+        $album = \App\Models\Album::factory()->create(['user_id' => $this->admin->id]);
+        $album->media()->attach($media->id);
+        $album->households()->attach($this->F->id);
+
         $faces = $this->actingAs($this->family)->getJson("/vision/media/{$media->id}/faces")->assertOk()->json();
         $this->assertSame('Léa Copine', $faces[0]['person']['name']);
         $this->assertTrue($faces[0]['person']['restricted']);
-        $this->assertTrue($faces[0]['person_restricted']);
         $this->assertArrayNotHasKey('notes', $faces[0]['person']);
         $this->assertArrayNotHasKey('birth_date', $faces[0]['person']);
 
         $this->actingAs($this->family)->get("/media/{$media->id}")->assertOk()
             ->assertInertia(fn ($page) => $page->component('Media/Show', false)
                 ->has('media.people', 2)
-                ->where('media.people', fn ($people) => collect($people)->firstWhere('id', $this->friendP->id)['restricted'] === true
-                    && ! array_key_exists('notes', collect($people)->firstWhere('id', $this->friendP->id))));
+                ->where('media.people', fn ($people) => collect($people)->firstWhere('id', $this->friendP->id)['restricted'] === true));
 
         // La fiche elle-même reste fermée.
         $this->actingAs($this->family)->getJson("/people/{$this->friendP->id}/timeline")->assertNotFound();

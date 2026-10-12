@@ -179,15 +179,18 @@ class MediaController extends Controller
             'sourceMedia', 'clips.conversions',
         ]);
 
-        // Personnes d'un autre cercle : leur nom seul (on voit qui est sur la
-        // photo), sans le reste de leur fiche.
-        $visiblePeople = \App\Models\Person::visibleTo(auth()->user())
+        // Personnes d'un autre cercle : masquées, sauf sur une photo d'un
+        // album partagé avec un cercle du viewer — leur nom seul alors.
+        $viewer = auth()->user();
+        $showNames = $media->isSharedWithCirclesOf($viewer);
+        $visiblePeople = \App\Models\Person::visibleTo($viewer)
             ->whereIn('people.id', $media->people->pluck('id'))
             ->pluck('people.id')->flip();
         $media->setRelation('people', $media->people
-            ->map(fn ($p) => isset($visiblePeople[$p->id]) ? $p : \App\Models\Person::restrictedStub($p))
+            ->map(fn ($p) => isset($visiblePeople[$p->id]) ? $p : ($showNames ? \App\Models\Person::restrictedStub($p) : null))
+            ->filter()
             ->values());
-        \App\Models\DetectedFace::maskPeopleFor($media->detectedFaces, auth()->user());
+        \App\Models\DetectedFace::maskPeopleFor($media->detectedFaces, $viewer, $showNames);
 
         // URLs signées du média + de ses conversions
         $this->mediaService->hydrateSignedUrls([$media]);
