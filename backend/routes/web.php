@@ -7,6 +7,7 @@ use App\Http\Controllers\FamilyTreeController;
 use App\Http\Controllers\GedcomImportController;
 use App\Http\Controllers\NetworkController;
 use App\Http\Controllers\PersonLinkController;
+use App\Http\Controllers\GoogleDriveController;
 use App\Http\Controllers\GooglePhotosController;
 use App\Http\Controllers\GuideController;
 use App\Http\Controllers\LifeEventController;
@@ -111,6 +112,16 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::get('/imported', [GooglePhotosController::class, 'importedStatus'])->name('imported');
     });
     Route::get('/auth/google/callback', [GooglePhotosController::class, 'callback'])->name('google-photos.callback');
+
+    // Import Google Drive (Google Picker, scope drive.file) — l'URI de retour
+    // OAuth est celle de Google Photos ci-dessus.
+    Route::prefix('google-drive')->name('google-drive.')->group(function () {
+        Route::get('/', [GoogleDriveController::class, 'index'])->name('index');
+        Route::get('/connect', [GoogleDriveController::class, 'connect'])->name('connect');
+        Route::post('/token', [GoogleDriveController::class, 'token'])->name('token');
+        Route::post('/import', [GoogleDriveController::class, 'import'])->name('import');
+        Route::get('/imported', [GoogleDriveController::class, 'importedStatus'])->name('imported');
+    });
 
     // Import Google Takeout (ZIP avec géolocalisation)
     Route::get('/takeout', [TakeoutImportController::class, 'index'])->name('takeout.index');

@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ReportsImportProgress;
 use App\Rules\VisiblePerson;
 use App\Jobs\ImportGooglePhotosItems;
-use App\Models\Media;
+use App\Services\GoogleOAuth;
 use App\Services\MediaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -24,8 +25,8 @@ use Inertia\Inertia;
  */
 class GooglePhotosController extends Controller
 {
-    protected const OAUTH_AUTHORIZE_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
-    protected const OAUTH_TOKEN_URL = 'https://oauth2.googleapis.com/token';
+    use ReportsImportProgress;
+
     protected const PICKER_BASE_URL = 'https://photospicker.googleapis.com/v1';
     protected const SCOPE = 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly';
 
@@ -48,50 +49,42 @@ class GooglePhotosController extends Controller
     /**
      * Redirige vers le consentement Google.
      */
-    public function connect(Request $request)
+    public function connect(Request $request, GoogleOAuth $oauth)
     {
         $state = Str::random(40);
         $request->session()->put('google_photos.oauth_state', $state);
 
-        $params = http_build_query([
-            'client_id' => config('services.google_photos.client_id'),
-            'redirect_uri' => config('services.google_photos.redirect'),
-            'response_type' => 'code',
-            'scope' => self::SCOPE,
-            'state' => $state,
-            'prompt' => 'select_account',
-        ]);
-
-        return redirect()->away(self::OAUTH_AUTHORIZE_URL . '?' . $params);
+        return redirect()->away($oauth->authorizeUrl(self::SCOPE, $state));
     }
 
     /**
      * Callback OAuth : échange le code contre un access token (en session).
+     * L'URI de retour est partagée avec l'import Google Drive : un state émis
+     * par celui-ci lui est renvoyé.
      */
-    public function callback(Request $request)
+    public function callback(Request $request, GoogleOAuth $oauth)
     {
+        $state = $request->input('state');
+        if ($state && $state === $request->session()->get('google_drive.oauth_state')) {
+            return app(GoogleDriveController::class)->callback($request, $oauth);
+        }
+
         if (
             ! $request->filled('code')
-            || $request->input('state') !== $request->session()->pull('google_photos.oauth_state')
+            || $state !== $request->session()->pull('google_photos.oauth_state')
         ) {
             return redirect()->route('google-photos.index')
                 ->withErrors(['google' => 'La connexion à Google Photos a échoué. Réessayez.']);
         }
 
-        $response = Http::asForm()->post(self::OAUTH_TOKEN_URL, [
-            'client_id' => config('services.google_photos.client_id'),
-            'client_secret' => config('services.google_photos.client_secret'),
-            'code' => $request->input('code'),
-            'grant_type' => 'authorization_code',
-            'redirect_uri' => config('services.google_photos.redirect'),
-        ]);
+        $token = $oauth->exchangeCode($request->input('code'));
 
-        if (! $response->successful() || ! $response->json('access_token')) {
+        if (! $token) {
             return redirect()->route('google-photos.index')
                 ->withErrors(['google' => 'Google a refusé la connexion. Réessayez.']);
         }
 
-        $request->session()->put('google_photos.access_token', $response->json('access_token'));
+        $request->session()->put('google_photos.access_token', $token['access_token']);
 
         return redirect()->route('google-photos.index');
     }
@@ -248,39 +241,10 @@ class GooglePhotosController extends Controller
     }
 
     /**
-     * Suivi de l'import en cours : nombre de médias arrivés depuis `after`
-     * (horodatage de lancement) + un aperçu des derniers, pour un affichage
-     * progressif côté page d'import.
+     * Suivi de l'import en cours (affichage progressif côté page d'import).
      */
     public function importedStatus(Request $request, MediaService $mediaService)
     {
-        $after = $request->query('after');
-
-        $query = Media::where('user_id', auth()->id());
-        if ($after) {
-            $query->where('created_at', '>=', $after);
-        }
-
-        $count = (clone $query)->count();
-
-        $items = (clone $query)
-            ->latest('created_at')
-            ->with('conversions')
-            ->limit(12)
-            ->get()
-            ->map(fn (Media $m) => [
-                'id' => $m->id,
-                'url' => $mediaService->thumbnailUrl($m),
-                'name' => $m->original_name,
-            ]);
-
-        $status = Cache::get(ImportGooglePhotosItems::statusKey(auth()->id()));
-
-        return response()->json([
-            'count' => $count,
-            'items' => $items,
-            'finished' => (bool) ($status['finished'] ?? false),
-            'failed' => (bool) ($status['failed'] ?? false),
-        ]);
+        return $this->importProgress($request, $mediaService, ImportGooglePhotosItems::statusKey(auth()->id()));
     }
 }

@@ -48,4 +48,12 @@ return [
         'redirect' => env('GOOGLE_PHOTOS_REDIRECT_URI', env('APP_URL') . '/auth/google/callback'),
     ],
 
+    // Import Google Drive : même client OAuth que Google Photos, plus une clé
+    // d'API (navigateur) pour le sélecteur Google Picker. app_id = numéro du
+    // projet Google Cloud (déduit de l'ID client s'il est vide).
+    'google_drive' => [
+        'api_key' => env('GOOGLE_DRIVE_API_KEY'),
+        'app_id' => env('GOOGLE_DRIVE_APP_ID'),
+    ],
+
 ];

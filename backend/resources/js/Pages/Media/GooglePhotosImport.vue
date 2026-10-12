@@ -136,54 +136,7 @@
           </form>
 
           <!-- Progression : les photos arrivent au fur et à mesure -->
-          <div v-else>
-            <!-- En cours -->
-            <div v-if="!importDone" class="flex items-center gap-2 mb-4">
-              <svg class="w-5 h-5 animate-spin text-brand-600" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              <span class="text-sm text-surface-700">
-                <span class="font-semibold text-surface-900">{{ importedCount }}</span>
-                photo(s) importée(s)… <span class="text-surface-400">l'import continue en arrière-plan.</span>
-              </span>
-            </div>
-
-            <!-- Échec : le job d'import s'est arrêté en erreur -->
-            <div v-else-if="importFailed" class="flex items-center gap-2 mb-4">
-              <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-              </svg>
-              <span class="text-sm text-surface-700">
-                Import interrompu — <span class="font-semibold text-surface-900">{{ importedCount }}</span>
-                photo(s) importée(s). <span class="text-surface-400">Relancez pour récupérer les manquantes.</span>
-              </span>
-            </div>
-
-            <!-- Terminé -->
-            <div v-else class="flex items-center gap-2 mb-4">
-              <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-              </svg>
-              <span class="text-sm text-surface-700">
-                <span class="font-semibold text-surface-900">{{ importedCount }}</span>
-                photo(s) importée(s). Import terminé — <span class="text-surface-400">si des photos manquent, relancez l'import.</span>
-              </span>
-            </div>
-
-            <div v-if="importedItems.length" class="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-4">
-              <img
-                v-for="it in importedItems"
-                :key="it.id"
-                :src="it.url"
-                :alt="it.name"
-                loading="lazy"
-                class="aspect-square object-cover rounded-lg border border-surface-200"
-              />
-            </div>
-
-            <Link href="/media" class="btn-secondary btn-sm">Voir mes photos</Link>
-          </div>
+          <ImportProgress v-else status-url="/google-photos/imported" :started-at="importStartedAt" />
         </div>
       </div>
     </div>
@@ -192,19 +145,22 @@
 
 <script setup>
 import { ref, onBeforeUnmount } from 'vue';
-import { Head, useForm, Link } from '@inertiajs/vue3';
+import { Head, useForm } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FormError from '@/Components/Forms/FormError.vue';
+import ImportProgress from '@/Components/ImportProgress.vue';
 
 const props = defineProps({
   isConnected: Boolean,
   pickerSession: { type: Object, default: null },
   people: { type: Array, default: () => [] },
   albums: { type: Array, default: () => [] },
+  errors: { type: Object, default: () => ({}) },
 });
 
-const errorMessage = ref(null);
+// Échec de connexion renvoyé par le callback OAuth.
+const errorMessage = ref(props.errors?.google || null);
 const waitingForSelection = ref(false);
 const selectionDone = ref(false);
 const pickerUri = ref(props.pickerSession?.pickerUri || null);
@@ -299,60 +255,7 @@ const openPicker = async () => {
 
 const launching = ref(false);
 const importing = ref(false);
-const importDone = ref(false);
-const importFailed = ref(false);
 const importStartedAt = ref(null);
-const importedCount = ref(0);
-const importedItems = ref([]);
-let importPollTimer = null;
-let importPollCount = 0;
-let importIdlePolls = 0;
-let importLastCount = -1;
-const IMPORT_MAX_POLLS = 150; // ~10 min à 4s
-// Sans nouvelle photo pendant ~1 min, on considère l'import terminé (ou en
-// pause/échec) et on arrête le spinner — évite qu'il tourne indéfiniment.
-const IMPORT_IDLE_LIMIT = 15;
-
-const stopImportPolling = () => {
-  if (importPollTimer) {
-    clearInterval(importPollTimer);
-    importPollTimer = null;
-  }
-};
-
-// L'import n'expose pas d'état terminal côté serveur (cf. GitHub #11) : on le
-// déduit de l'arrêt de la progression.
-const finishImport = (failed = false) => {
-  stopImportPolling();
-  importFailed.value = failed;
-  importDone.value = true;
-};
-
-const pollImported = async () => {
-  try {
-    const { data } = await axios.get('/google-photos/imported', { params: { after: importStartedAt.value } });
-    importedCount.value = data.count;
-    importedItems.value = data.items;
-
-    // Signal terminal côté serveur (fiable) : le job a fini ou échoué.
-    if (data.finished) {
-      finishImport(!!data.failed);
-      return;
-    }
-
-    // Secours : si la progression n'évolue plus, on arrête quand même.
-    if (data.count === importLastCount) {
-      if (++importIdlePolls >= IMPORT_IDLE_LIMIT) {
-        finishImport();
-      }
-    } else {
-      importIdlePolls = 0;
-      importLastCount = data.count;
-    }
-  } catch (e) {
-    // transient : on réessaiera au prochain tick
-  }
-};
 
 const startImport = async () => {
   errorMessage.value = null;
@@ -366,21 +269,6 @@ const startImport = async () => {
     });
     importStartedAt.value = data.started_at;
     importing.value = true;
-    importDone.value = false;
-    importFailed.value = false;
-    importedCount.value = 0;
-    importedItems.value = [];
-    importPollCount = 0;
-    importIdlePolls = 0;
-    importLastCount = -1;
-    pollImported();
-    importPollTimer = setInterval(() => {
-      if (++importPollCount > IMPORT_MAX_POLLS) {
-        finishImport();
-        return;
-      }
-      pollImported();
-    }, 4000);
   } catch (error) {
     errorMessage.value = 'Le lancement de l\'import a échoué. Réessayez.';
   } finally {
@@ -395,8 +283,5 @@ if (props.pickerSession) {
   pollStatus();
 }
 
-onBeforeUnmount(() => {
-  stopPolling();
-  stopImportPolling();
-});
+onBeforeUnmount(stopPolling);
 </script>

@@ -38,7 +38,7 @@
         <details class="mt-6 group">
           <summary class="cursor-pointer list-none flex items-center gap-2 text-sm font-medium text-surface-600 hover:text-surface-900 px-1">
             <svg class="w-4 h-4 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
-            Autres façons d'importer (Google Photos, archive complète)
+            Autres façons d'importer (Google Photos, Google Drive, archive complète)
           </summary>
 
           <Link href="/google-photos" class="mt-3 card card--padded flex items-center gap-4 group/item">
@@ -50,6 +50,18 @@
             <span class="flex-1">
               <span class="font-semibold text-surface-900 block">Depuis Google Photos</span>
               <span class="text-sm text-surface-500">Si vos photos sont déjà chez Google : choisissez-les par personne, lieu ou date.</span>
+            </span>
+          </Link>
+
+          <Link href="/google-drive" class="mt-3 card card--padded flex items-center gap-4">
+            <span class="w-11 h-11 rounded-xl bg-brand-100 flex items-center justify-center shrink-0">
+              <svg class="w-6 h-6 text-brand-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+              </svg>
+            </span>
+            <span class="flex-1">
+              <span class="font-semibold text-surface-900 block">Depuis Google Drive</span>
+              <span class="text-sm text-surface-500">Choisissez des photos rangées dans votre Drive : elles arrivent en pleine qualité, sans téléchargement.</span>
             </span>
           </Link>
 
