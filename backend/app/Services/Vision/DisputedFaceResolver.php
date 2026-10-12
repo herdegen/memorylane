@@ -41,7 +41,7 @@ class DisputedFaceResolver
         $faces = DetectedFace::query()->where('status', 'matched')->whereNotNull('person_id')->whereNotNull('embedding_v2')
             ->whereHas('media')
             ->with(['person:id,birth_date', 'media:id,taken_at'])
-            ->get(['id', 'person_id', 'media_id', 'embedding_v2', 'age_estimate', 'verified_at'])
+            ->get(['id', 'person_id', 'media_id', 'embedding_v2', 'age_estimate', 'verified_at', 'engine'])
             ->filter(fn ($f) => is_array($f->embedding_v2) && count($f->embedding_v2) === 512)->values();
 
         if ($faces->count() < 2) {
@@ -90,6 +90,7 @@ class DisputedFaceResolver
             }
 
             $reason = match (true) {
+                $f->engine === 'insightface-crop' => 'noface',
                 $assigned !== null && $bestPerson && $best + self::OTHER_MARGIN <= $assigned => 'other',
                 $assigned !== null && $assigned > self::UNLIKE_DISTANCE => 'unlike',
                 $ageGap !== null && abs($ageGap) >= self::AGE_GAP => 'age',
@@ -101,6 +102,7 @@ class DisputedFaceResolver
                     'reason' => $reason,
                     // Force du désaccord (tri : les cas les plus francs d'abord).
                     'strength' => round(match ($reason) {
+                        'noface' => 2.0,
                         'other' => $assigned - $best,
                         'unlike' => $assigned - self::UNLIKE_DISTANCE + 0.1,
                         default => abs($ageGap) / 100,

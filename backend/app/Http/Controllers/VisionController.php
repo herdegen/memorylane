@@ -191,7 +191,7 @@ class VisionController extends Controller
         if (\App\Services\Vision\FaceEngine::enabled()) {
             $embedded = app(\App\Services\Vision\FaceEngine::class)->embedBox($media, $validated['bounding_box']);
             if ($embedded) {
-                $face->forceFill(['embedding_v2' => $embedded['embedding'], 'age_estimate' => $embedded['age'], 'engine' => 'insightface-box'])->save();
+                $face->forceFill(['embedding_v2' => $embedded['embedding'], 'age_estimate' => $embedded['age'], 'engine' => \App\Services\Vision\FaceReconciler::boxEngine($embedded['source'])])->save();
             }
         }
 

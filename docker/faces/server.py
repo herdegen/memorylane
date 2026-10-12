@@ -53,6 +53,15 @@ def iou(a, b):
     return inter / union if union > 0 else 0.0
 
 
+def overlaps(box, det):
+    """Même visage : bon recouvrement, ou centre de la détection dans la zone
+    (les anciens cadres, cheveux compris, sont souvent plus grands)."""
+    v = iou(box, det)
+    cx, cy = (det[0] + det[2]) / 2, (det[1] + det[3]) / 2
+    inside = box[0] <= cx <= box[2] and box[1] <= cy <= box[3]
+    return v >= 0.3 or (inside and v >= 0.05)
+
+
 def embed_box(img, box, full=True):
     """Empreinte d'une zone dessinée : visage détecté qui la recouvre, sinon
     détection dans la zone élargie, sinon recadrage (112×112) passé
@@ -64,7 +73,7 @@ def embed_box(img, box, full=True):
     faces = app.get(img) if full else []
     if faces:
         best = max(faces, key=lambda f: iou(box, f.bbox))
-        if iou(box, best.bbox) > 0.3:
+        if overlaps(box, best.bbox):
             out = face_json(best)
             out['source'] = 'detected'
             return out
@@ -78,7 +87,7 @@ def embed_box(img, box, full=True):
         if faces:
             local = [x1 - cx1, y1 - cy1, x2 - cx1, y2 - cy1]
             best = max(faces, key=lambda f: iou(local, f.bbox))
-            if iou(local, best.bbox) > 0.2:
+            if overlaps(local, best.bbox):
                 out = face_json(best)
                 out['box'] = [out['box'][0] + cx1, out['box'][1] + cy1, out['box'][2] + cx1, out['box'][3] + cy1]
                 out['source'] = 'detected'

@@ -107,7 +107,8 @@ class InsightFaceTest extends TestCase
         $this->assertCount(128, $known->embedding, 'empreinte face-api conservée');
 
         $this->assertSame('dismissed', $dismissed->fresh()->status);
-        $this->assertSame('insightface-box', $missed->fresh()->engine, 'visage non retrouvé conservé et complété');
+        $this->assertSame('dismissed', $missed->fresh()->status, 'ancien cadre non identifié sans visage : masqué');
+        $this->assertSame('faceapi-unconfirmed', $missed->fresh()->engine);
 
         $this->assertSame(4, $media->detectedFaces()->count(), '3 existants + 1 nouveau, rien de supprimé');
         $new = $media->detectedFaces()->where('provider', 'insightface')->sole();
@@ -117,6 +118,66 @@ class InsightFaceTest extends TestCase
         // Deuxième passe : aucun doublon.
         AnalyzeFaces::dispatchSync($media);
         $this->assertSame(4, $media->detectedFaces()->count());
+    }
+
+    public function test_identified_face_without_visible_face_is_kept_and_flagged(): void
+    {
+        $person = Person::create(['user_id' => $this->user->id, 'name' => 'Léa']);
+        foreach ([0.0, 0.1] as $n) {
+            $this->face($this->photo(), ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5], $person, v2: $this->vec(1, $n));
+        }
+        $media = $this->photo();
+        $back = $this->face($media, ['x' => 70, 'y' => 70, 'width' => 8, 'height' => 8], $person);
+        $drawn = DetectedFace::create(['media_id' => $media->id, 'bounding_box' => ['x' => 30, 'y' => 30, 'width' => 8, 'height' => 8], 'provider' => 'manual', 'status' => 'unmatched']);
+        $this->fakeService([], ['embedding' => $this->vec(9), 'age' => null, 'source' => 'crop']);
+
+        AnalyzeFaces::dispatchSync($media);
+
+        $this->assertSame($person->id, $back->fresh()->person_id, 'identification jamais retirée');
+        $this->assertSame('insightface-crop', $back->fresh()->engine);
+        $this->assertSame('unmatched', $drawn->fresh()->status, 'visage dessiné à la main jamais masqué');
+        $this->assertSame('noface', app(DisputedFaceResolver::class)->analysis()[$back->id]['reason']);
+    }
+
+    public function test_large_old_box_is_matched_by_detection_center(): void
+    {
+        $person = Person::create(['user_id' => $this->user->id, 'name' => 'Léa']);
+        $media = $this->photo();
+        // Ancien cadre large (cheveux compris) ; la détection est plus serrée.
+        $old = $this->face($media, ['x' => 10, 'y' => 10, 'width' => 30, 'height' => 40], $person);
+        $this->fakeService([$this->detection([180, 250, 260, 340], $this->vec(1))]);
+
+        AnalyzeFaces::dispatchSync($media);
+
+        $this->assertSame('insightface', $old->fresh()->engine);
+        $this->assertSame(1, $media->detectedFaces()->count(), 'pas de visage ajouté en doublon');
+    }
+
+    public function test_consolidation_merges_duplicates_hides_guesses_and_flags_identified(): void
+    {
+        $lea = Person::create(['user_id' => $this->user->id, 'name' => 'Léa']);
+        $media = $this->photo();
+        $big = $this->face($media, ['x' => 10, 'y' => 10, 'width' => 30, 'height' => 40], $lea);
+        $big->forceFill(['engine' => 'insightface-box', 'embedding_v2' => $this->vec(8)])->save();
+        $added = DetectedFace::create(['media_id' => $media->id, 'bounding_box' => ['x' => 18, 'y' => 25, 'width' => 8, 'height' => 9],
+            'provider' => 'insightface', 'engine' => 'insightface', 'status' => 'unmatched', 'embedding_v2' => $this->vec(1)]);
+        $guess = $this->face($media, ['x' => 60, 'y' => 60, 'width' => 5, 'height' => 5], status: 'rejected');
+        $guess->forceFill(['engine' => 'insightface-box'])->save();
+        $hidden = $this->face($media, ['x' => 80, 'y' => 10, 'width' => 6, 'height' => 6], $lea);
+        $hidden->forceFill(['engine' => 'insightface-box'])->save();
+        $this->fakeService([], ['embedding' => $this->vec(9), 'age' => null, 'source' => 'crop']);
+
+        $this->artisan('faces:consolidate --dry-run')->assertSuccessful();
+        $this->assertSame('insightface-box', $big->fresh()->engine, 'simulation : rien de modifié');
+
+        $this->artisan('faces:consolidate')->assertSuccessful();
+
+        $this->assertSame('insightface', $big->fresh()->engine);
+        $this->assertEquals($this->vec(1), $big->fresh()->embedding_v2);
+        $this->assertSame(['dismissed', 'merged'], [$added->fresh()->status, $added->fresh()->engine]);
+        $this->assertSame(['dismissed', 'faceapi-unconfirmed'], [$guess->fresh()->status, $guess->fresh()->engine]);
+        $this->assertSame([$lea->id, 'insightface-crop'], [$hidden->fresh()->person_id, $hidden->fresh()->engine]);
+        $this->assertSame(4, $media->detectedFaces()->count(), 'rien de supprimé');
     }
 
     public function test_auto_match_requires_strict_distance_and_margin(): void

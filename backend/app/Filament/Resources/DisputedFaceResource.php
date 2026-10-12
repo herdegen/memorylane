@@ -41,6 +41,7 @@ class DisputedFaceResource extends Resource
     protected static ?string $breadcrumb = 'Identifications à vérifier';
 
     private const REASONS = [
+        'noface' => 'Visage non reconnu (profil, dos, caché…)',
         'other' => 'Ressemble plus à quelqu\'un d\'autre',
         'unlike' => 'Ne ressemble pas à la personne',
         'age' => 'Âge estimé incompatible',
@@ -91,6 +92,9 @@ class DisputedFaceResource extends Resource
                     ->getStateUsing(fn (DetectedFace $r) => self::REASONS[self::row($r)['reason'] ?? ''] ?? '')
                     ->description(function (DetectedFace $r) {
                         $row = self::row($r);
+                        if (($row['reason'] ?? null) === 'noface') {
+                            return 'InsightFace ne trouve pas de visage exploitable dans ce cadre : à confirmer ou retirer';
+                        }
                         if (($row['reason'] ?? null) === 'age') {
                             return 'Écart de '.abs($row['age_gap']).' ans (âge estimé '.$r->age_estimate.' ans)';
                         }
@@ -122,7 +126,7 @@ class DisputedFaceResource extends Resource
                 Action::make('replace')
                     ->label(fn (DetectedFace $r) => ($p = self::suggested($r)) ? 'Plutôt '.strtok($p->name, ' ') : 'Remplacer')
                     ->icon('heroicon-o-arrow-path')->color('primary')
-                    ->visible(fn (DetectedFace $r) => self::suggested($r) !== null)
+                    ->visible(fn (DetectedFace $r) => self::suggested($r) !== null && (self::row($r)['reason'] ?? null) !== 'noface')
                     ->requiresConfirmation()
                     ->modalDescription(fn (DetectedFace $r) => 'Le visage sera associé à '.self::suggested($r)?->name.' (garde-fous de date et de doublon appliqués).')
                     ->action(function (DetectedFace $record) {
