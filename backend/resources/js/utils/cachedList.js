@@ -70,7 +70,8 @@ export function createCachedList(url, { ttl = DEFAULT_TTL_MS } = {}) {
     const method = (response.config?.method || 'get').toLowerCase();
     if (method !== 'get') {
       const path = pathOf(response.config?.url || '');
-      if ((path === url || path.startsWith(`${url}/`)) && !/\/(attach|detach)$/.test(path)) {
+      const base = pathOf(url); // `url` peut porter une requête (?with_elsewhere=1)
+      if ((path === base || path.startsWith(`${base}/`)) && !/\/(attach|detach)$/.test(path)) {
         invalidate();
       }
     }

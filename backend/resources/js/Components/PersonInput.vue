@@ -70,6 +70,7 @@
         >
           <PersonAvatar :person="person" :size="6" />
           <span class="text-sm text-surface-900">{{ personLabel(person) }}</span>
+          <span v-if="person.elsewhere" class="text-xs text-surface-400">· {{ person.elsewhere_label }}</span>
           <span class="text-xs text-surface-500 ml-auto">{{ person.media_count }} médias</span>
         </button>
       </div>
@@ -108,9 +109,11 @@ import { personLabel } from '@/utils/personName';
 import { searchPeople } from '@/utils/personSearch';
 import { useToast } from '@/Composables/useToast';
 import { usePeopleDirectory } from '@/Composables/usePeopleDirectory';
+import { useBringIn } from '@/Composables/useBringIn';
 
 const toast = useToast();
 const peopleDirectory = usePeopleDirectory();
+const { confirmBringIn } = useBringIn();
 
 const props = defineProps({
   mediaId: {
@@ -156,6 +159,8 @@ const loadAvailablePeople = async ({ force = false } = {}) => {
 
 const addPerson = async (person) => {
   if (loading.value) return;
+  // Fiche d'un autre cercle : proposer de l'ajouter au cercle courant.
+  if ((await confirmBringIn(person)) === 'cancel') return;
 
   loading.value = true;
   try {

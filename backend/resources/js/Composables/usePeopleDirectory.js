@@ -12,7 +12,9 @@ import { createCachedList } from '@/utils/cachedList';
  * Après la création d'une fiche hors /people (ex. réponse à une quête,
  * import GEDCOM), appeler invalidate() ; refresh() force le rechargement.
  */
-const directory = createCachedList('/people');
+// with_elsewhere : les fiches visibles d'autres cercles viennent aussi
+// (marquées « elsewhere »), pour les retrouver plutôt que les recréer.
+const directory = createCachedList('/people?with_elsewhere=1');
 
 export function usePeopleDirectory() {
   return directory;

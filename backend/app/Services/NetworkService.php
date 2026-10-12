@@ -157,23 +157,44 @@ class NetworkService
             $personIds->push($user->person_id);
         }
 
-        // Le cercle courant (famille : répertoire familial ; amis : fiches du
-        // cercle), PLUS les personnes des autres cercles qui apparaissent sur
-        // des photos visibles avec quelqu'un du cercle (« le reste » : la
-        // femme d'un ami, les amis de sa femme…). Pas au-delà d'un pas.
+        // Famille et amis sont deux mondes séparés.
+        // - Famille : le répertoire familial, rien d'autre.
+        // - Cercle d'amis : ses fiches, PLUS les personnes d'AUTRES CERCLES
+        //   D'AMIS qui apparaissent sur des photos visibles avec quelqu'un du
+        //   cercle (un pas). Jamais la famille, sauf fiche ajoutée au cercle.
         $inContext = Person::inContext($user)
             ->whereIn('people.id', $personIds->unique()->values())
             ->pluck('people.id')
             ->flip();
+        $circle = $user->currentCircle();
         $outside = [];
-        foreach ($edges as $e) {
-            if ($e['kind'] !== 'photo') {
-                continue;
+        $outsideCircle = [];
+        if ($circle?->isFriends()) {
+            $neighbours = [];
+            foreach ($edges as $e) {
+                if ($e['kind'] !== 'photo') {
+                    continue;
+                }
+                if (isset($inContext[$e['source']]) && ! isset($inContext[$e['target']])) {
+                    $neighbours[$e['target']] = true;
+                } elseif (isset($inContext[$e['target']]) && ! isset($inContext[$e['source']])) {
+                    $neighbours[$e['source']] = true;
+                }
             }
-            if (isset($inContext[$e['source']]) && ! isset($inContext[$e['target']])) {
-                $outside[$e['target']] = true;
-            } elseif (isset($inContext[$e['target']]) && ! isset($inContext[$e['source']])) {
-                $outside[$e['source']] = true;
+            // Seulement les fiches rattachées à un autre cercle d'amis ; on
+            // retient ce cercle pour les regrouper à l'écran.
+            if ($neighbours !== []) {
+                $rows = DB::table('household_person as hp')
+                    ->join('households as h', 'h.id', '=', 'hp.household_id')
+                    ->where('h.kind', \App\Models\Household::KIND_FRIENDS)
+                    ->where('h.id', '!=', $circle->id)
+                    ->whereIn('hp.person_id', array_keys($neighbours))
+                    ->orderBy('h.name')
+                    ->get(['hp.person_id', 'h.id', 'h.name']);
+                foreach ($rows as $row) {
+                    $outside[$row->person_id] = true;
+                    $outsideCircle[$row->person_id] ??= ['id' => $row->id, 'name' => $row->name];
+                }
             }
         }
         $kept = $inContext->all() + $outside;
@@ -204,6 +225,7 @@ class NetworkService
             // Hors du cercle courant ; `restricted` = fiche d'un autre cercle
             // (nom seul : ni avatar, ni lien vers la fiche).
             'outside' => ! isset($inContext[$p->id]),
+            'circle' => $outsideCircle[$p->id] ?? null,
             'restricted' => ! isset($visible[$p->id]),
             'avatar_url' => isset($visible[$p->id]) ? $this->avatarUrl($p) : null,
             'avatar_position' => $positions[$p->id] ?? null,
@@ -227,6 +249,7 @@ class NetworkService
             'nodes' => $nodes,
             'edges' => $edges,
             'self_id' => $user->person_id,
+            'context' => $circle ? ['id' => $circle->id, 'name' => $circle->name, 'kind' => $circle->kind] : null,
             'photo_count' => $photoCount,
         ];
     }

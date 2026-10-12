@@ -257,16 +257,16 @@ class CircleVisibilityTest extends TestCase
         $this->both->forceFill(['current_household_id' => $this->A->id])->save();
         $graph = $this->actingAs($this->both->fresh())->getJson('/network/data')->assertOk()->json();
 
-        // Le cercle courant, plus la famille présente SUR LES MÊMES PHOTOS,
-        // marquée « hors cercle ».
+        // Famille et amis sont deux mondes : la famille, même présente sur les
+        // mêmes photos, n'entre pas dans le réseau d'un cercle d'amis.
         $nodes = collect($graph['nodes'])->keyBy('id');
         $this->assertFalse($nodes[$this->friendP->id]['outside']);
-        $this->assertTrue($nodes[$this->famP->id]['outside']);
-        $this->assertFalse($nodes[$this->famP->id]['restricted']); // il voit la famille
-        $this->assertCount(2, $graph['edges']);
+        $this->assertFalse($nodes->has($this->famP->id));
+        $this->assertCount(1, $graph['edges']);
+        $this->assertSame($this->A->id, $graph['context']['id']);
     }
 
-    public function test_reseau_d_un_ami_inclut_les_autres_cercles_presents_sur_ses_photos(): void
+    public function test_reseau_d_un_ami_inclut_les_autres_cercles_d_amis_pas_la_famille(): void
     {
         // Léa (cercle A) a un compte ; elle est en photo avec Mamie (famille)
         // et avec un inconnu de B, mais Mamie et l'inconnu ne sont jamais ensemble.
@@ -286,13 +286,14 @@ class CircleVisibilityTest extends TestCase
         $graph = $this->actingAs($leaUser->fresh())->getJson('/network/data')->assertOk()->json();
         $nodes = collect($graph['nodes'])->keyBy('id');
 
-        // Elle voit Mamie et l'inconnu (photos où elle figure), en « nom seul ».
-        foreach ([$this->famP, $this->strangerP] as $p) {
-            $this->assertTrue($nodes[$p->id]['outside']);
-            $this->assertTrue($nodes[$p->id]['restricted']);
-            $this->assertNull($nodes[$p->id]['avatar_url']);
-        }
-        // Pas le cousin : photo qu'elle ne voit pas, et pas de lien avec son cercle.
+        // Elle voit l'inconnu de l'autre cercle d'amis, en « nom seul »,
+        // rangé sous son cercle…
+        $this->assertTrue($nodes[$this->strangerP->id]['outside']);
+        $this->assertTrue($nodes[$this->strangerP->id]['restricted']);
+        $this->assertNull($nodes[$this->strangerP->id]['avatar_url']);
+        $this->assertSame($this->B->id, $nodes[$this->strangerP->id]['circle']['id']);
+        // … mais pas la famille (autre monde), ni le cousin.
+        $this->assertFalse($nodes->has($this->famP->id));
         $this->assertFalse($nodes->has($far->id));
     }
 }

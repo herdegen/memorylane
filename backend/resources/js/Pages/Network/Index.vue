@@ -76,7 +76,7 @@
         <div class="absolute top-4 left-4 right-4 flex flex-wrap items-start justify-between gap-3 pointer-events-none">
           <div class="pointer-events-auto bg-white/90 backdrop-blur rounded-2xl border border-surface-200 shadow-warm-sm px-4 py-3 max-sm:py-2 max-w-md">
             <div class="flex items-center gap-3">
-              <h1 class="text-display text-2xl text-surface-900">Réseau</h1>
+              <h1 class="text-display text-2xl text-surface-900">{{ contextName ? `Réseau · ${contextName}` : 'Réseau' }}</h1>
               <div v-if="!isFriends && canSeeFamily" class="inline-flex rounded-full border border-surface-200 p-0.5 text-xs font-semibold">
                 <Link href="/family-tree" class="px-3 py-1 rounded-full text-surface-600 hover:text-surface-900">Arbre</Link>
                 <span class="px-3 py-1 rounded-full bg-brand-100 text-brand-800 dark:bg-brand-500/20 dark:text-brand-200">Réseau</span>
@@ -135,11 +135,12 @@
             {{ g.label }}
           </div>
           <div
-            v-if="hasOutside"
+            v-for="c in otherCircleLegend"
+            :key="c.id"
             class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/90 border border-dashed border-surface-400 text-xs font-semibold text-surface-700"
           >
-            <span class="w-2.5 h-2.5 rounded-full border-2 border-dashed border-surface-500"></span>
-            Autres cercles
+            <span class="w-2.5 h-2.5 rounded-full border-2 border-dashed" :style="{ borderColor: c.color }"></span>
+            {{ c.label }}
           </div>
         </div>
 
@@ -274,6 +275,11 @@
             <div v-else class="text-xs text-surface-500">Aucune photo visible ensemble.</div>
           </div>
 
+          <!-- Hors du cercle mais fiche visible (ex. la femme d'un ami) : l'ajouter -->
+          <div v-if="selected.outside && !selected.restricted" class="mt-5">
+            <PersonCircles :person-id="selected.id" :person-name="selected.name" @changed="reloadGraph" />
+          </div>
+
           <div class="flex gap-2 mt-5">
             <Link v-if="!selected.restricted" :href="`/people/${selected.id}`" class="btn btn-primary flex-1">Voir la fiche</Link>
             <button type="button" class="btn btn-secondary flex-1" @click="centerOn(selected.id)">Centrer</button>
@@ -302,6 +308,7 @@ import louvain from 'graphology-communities-louvain';
 import { searchPeople } from '@/utils/personSearch';
 import { useCircle } from '@/Composables/useCircle';
 import HowWeMetPanel from '@/Components/HowWeMetPanel.vue';
+import PersonCircles from '@/Components/PersonCircles.vue';
 
 const { isFriends, canSeeFamily } = useCircle();
 
@@ -310,12 +317,16 @@ const { isFriends, canSeeFamily } = useCircle();
 const PALETTE = ['#2563eb', '#7c3aed', '#0d9488', '#c2410c', '#db2777', '#65a30d', '#0891b2', '#a16207'];
 const NEUTRAL = '#78716c';
 const SELF_COLOR = '#b45309';
+// Îlots des autres cercles d'amis : teintes distinctes de PALETTE.
+const OTHER_PALETTE = ['#9333ea', '#e11d48', '#0369a1', '#4d7c0f', '#b45309', '#475569'];
 
 const svgRef = ref(null);
 const loading = ref(true);
 const nodes = shallowRef([]);   // nœuds positionnés { id, name, x, y, r, color, group, ... }
 const rawEdges = shallowRef([]);
 const groups = ref([]);
+const otherCircleLegend = ref([]);
+const contextName = ref(null);
 const selfId = ref(null);
 const selectedId = ref(null);
 const showAlbumLinks = ref(false);
@@ -335,12 +346,24 @@ const transformAttr = computed(() => `translate(${transform.value.x},${transform
 // le filtre « album » masquent sans recalculer)
 // ---------------------------------------------------------------------------
 
+async function fetchGraph() {
+  const { data } = await axios.get('/network/data');
+  selfId.value = data.self_id;
+  totalPhotos.value = data.photo_count ?? 0;
+  contextName.value = data.context?.kind === 'friends' ? data.context.name : null;
+  layout(data.nodes, data.edges);
+}
+
+// Après l'ajout d'une fiche au cercle : elle passe du pourtour au centre.
+async function reloadGraph() {
+  const keep = selectedId.value;
+  await fetchGraph();
+  selectedId.value = byId[keep] ? keep : null;
+}
+
 onMounted(async () => {
   try {
-    const { data } = await axios.get('/network/data');
-    selfId.value = data.self_id;
-    totalPhotos.value = data.photo_count ?? 0;
-    layout(data.nodes, data.edges);
+    await fetchGraph();
   } finally {
     loading.value = false;
   }
@@ -371,8 +394,10 @@ function layout(apiNodes, apiEdges) {
 
   // Groupes (Louvain) sur les liens photo, SANS la fiche « moi » : reliée à
   // presque tout le monde, elle fusionnerait les groupes.
+  // Les personnes d'autres cercles ne participent pas aux groupes : elles
+  // sont regroupées par leur propre cercle (îlots autour du cercle courant).
   const g = new Graph({ type: 'undirected' });
-  apiNodes.forEach((n) => { if (!n.is_self) g.addNode(n.id); });
+  apiNodes.forEach((n) => { if (!n.is_self && !n.outside) g.addNode(n.id); });
   apiEdges.forEach((e) => {
     if (e.kind !== 'photo' || !g.hasNode(e.source) || !g.hasNode(e.target)) return;
     g.mergeEdge(e.source, e.target, { weight: e.weight });
@@ -405,15 +430,31 @@ function layout(apiNodes, apiEdges) {
     return { id: c, color, label: groupLabel[c] };
   });
 
+  // Autres cercles d'amis : une couleur et un ancrage (îlot) par cercle,
+  // répartis en couronne autour du cercle courant.
+  const otherCircles = [...new Map(apiNodes.filter((n) => n.outside && n.circle).map((n) => [n.circle.id, n.circle])).values()];
+  const ringRadius = 260 + 25 * Math.sqrt(apiNodes.length);
+  const circleStyle = Object.fromEntries(otherCircles.map((c, i) => {
+    const angle = (i / otherCircles.length) * Math.PI * 2 - Math.PI / 2;
+    return [c.id, {
+      color: OTHER_PALETTE[i % OTHER_PALETTE.length],
+      x: Math.cos(angle) * ringRadius,
+      y: Math.sin(angle) * ringRadius,
+    }];
+  }));
+  otherCircleLegend.value = otherCircles.map((c) => ({ id: c.id, label: c.name, color: circleStyle[c.id].color }));
+
   const maxPhotos = Math.max(1, ...apiNodes.map((n) => n.photos));
   const simNodes = apiNodes.map((n, idx) => {
     const c = communities[n.id];
+    const other = n.outside && n.circle ? circleStyle[n.circle.id] : null;
     return {
       ...n,
       idx,
       group: c ?? null,
-      color: n.is_self ? SELF_COLOR : (groupColor[c] ?? NEUTRAL),
-      groupLabel: n.is_self ? 'Au centre du réseau' : (groupLabel[c] ?? 'Hors groupe'),
+      anchor: other ? { x: other.x, y: other.y } : { x: 0, y: 0 },
+      color: n.is_self ? SELF_COLOR : (other?.color ?? groupColor[c] ?? NEUTRAL),
+      groupLabel: n.is_self ? 'Au centre du réseau' : (n.outside ? (n.circle?.name ?? 'Autre cercle') : (groupLabel[c] ?? 'Hors groupe')),
       r: n.is_self ? 30 : Math.round(12 + 18 * Math.sqrt(n.photos / maxPhotos)),
       // « Moi » épinglé au centre : le réseau se lit depuis soi.
       ...(n.is_self ? { fx: 0, fy: 0 } : {}),
@@ -434,8 +475,9 @@ function layout(apiNodes, apiEdges) {
       .strength((l) => (l.kind === 'album' ? 0.02 : Math.min(1, 0.15 + l.weight / 20))))
     .force('charge', forceManyBody().strength(-260))
     .force('collide', forceCollide((d) => d.r + 14))
-    .force('x', forceX(0).strength(0.05))
-    .force('y', forceY(0).strength(0.05))
+    // Cercle courant au centre, autres cercles tirés vers leur îlot.
+    .force('x', forceX((d) => d.anchor.x).strength((d) => (d.outside ? 0.35 : 0.06)))
+    .force('y', forceY((d) => d.anchor.y).strength((d) => (d.outside ? 0.35 : 0.06)))
     .stop();
   for (let i = 0; i < 400; i++) sim.tick();
 

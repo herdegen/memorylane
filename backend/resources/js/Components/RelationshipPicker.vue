@@ -40,6 +40,7 @@
           <span v-if="person.birth_date" class="text-surface-400 ml-1">
             ({{ person.birth_date.substring(0, 4) }})
           </span>
+          <span v-if="person.elsewhere" class="ml-1 text-xs text-surface-400">· {{ person.elsewhere_label }}</span>
         </button>
 
         <!-- Création à la volée : quand la personne n'a pas encore de fiche -->
@@ -72,6 +73,7 @@ import { personLabel } from '@/utils/personName';
 import { searchPeople } from '@/utils/personSearch';
 import { useToast } from '@/Composables/useToast';
 import { usePeopleDirectory } from '@/Composables/usePeopleDirectory';
+import { useBringIn } from '@/Composables/useBringIn';
 
 const props = defineProps({
   label: { type: String, required: true },
@@ -88,6 +90,7 @@ const emit = defineEmits(['select', 'remove']);
 
 const toast = useToast();
 const peopleDirectory = usePeopleDirectory();
+const { confirmBringIn } = useBringIn();
 
 const query = ref('');
 const results = ref([]);
@@ -138,7 +141,9 @@ async function search() {
   results.value = searchPeople(q, candidates, p => p.name).slice(0, 8);
 }
 
-function selectPerson(person) {
+async function selectPerson(person) {
+  // Fiche d'un autre cercle : proposer de l'ajouter au cercle courant.
+  if ((await confirmBringIn(person)) === 'cancel') return;
   emit('select', person);
   query.value = '';
   results.value = [];

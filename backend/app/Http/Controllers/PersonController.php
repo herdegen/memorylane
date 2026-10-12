@@ -70,6 +70,13 @@ class PersonController extends Controller
         ]);
 
         if ($request->wantsJson()) {
+            // Sélecteurs : on propose aussi les fiches visibles d'AUTRES
+            // cercles (marquées « elsewhere ») pour éviter les doublons — les
+            // choisir propose de les ajouter au cercle courant.
+            if ($request->boolean('with_elsewhere')) {
+                $people = $people->concat($this->elsewherePeople($request->user(), $people->pluck('id')));
+            }
+
             return response()->json($people);
         }
 
@@ -77,6 +84,32 @@ class PersonController extends Controller
             'people' => $people,
             'selfPersonId' => $selfPersonId,
         ]);
+    }
+
+    /**
+     * Fiches visibles hors du cercle courant, avec l'endroit où elles sont
+     * (« Famille » ou le nom d'un cercle d'amis du viewer).
+     */
+    private function elsewherePeople(User $user, $excludeIds)
+    {
+        $friendCircles = $user->circles()->where('kind', \App\Models\Household::KIND_FRIENDS)->keyBy('id');
+
+        return Person::visibleTo($user)
+            ->whereNotIn('people.id', $excludeIds)
+            ->withMatchedFacesCount()
+            ->with(['avatar:id', 'circles:id'])
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Person $person) => [
+                ...Arr::only($person->attributesToArray(), [
+                    'id', 'name', 'first_name', 'last_name', 'maiden_name', 'gender', 'birth_date', 'death_date',
+                ]),
+                'avatar_url' => $this->resolveAvatarUrl($person),
+                'elsewhere' => true,
+                'elsewhere_label' => $person->in_family_directory
+                    ? 'Famille'
+                    : ($person->circles->map(fn ($c) => $friendCircles->get($c->id)?->name)->filter()->first() ?? 'Autre cercle'),
+            ]);
     }
 
     /**

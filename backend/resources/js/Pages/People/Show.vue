@@ -47,6 +47,10 @@
               <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
               Choisir un avatar
             </button>
+            <button v-if="hasCircles" @click="menuAction(() => showCircles = true)" class="dropdown-item w-full text-left flex items-center gap-2.5">
+              <CircleKindIcon kind="friends" class="w-4 h-4 text-surface-400" />
+              Cercles…
+            </button>
             <template v-if="canDelete">
               <hr class="dropdown-divider" />
               <button @click="menuAction(deletePerson)" class="dropdown-item w-full text-left flex items-center gap-2.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10">
@@ -252,6 +256,12 @@
     />
 
     <!-- Edit Modal -->
+    <BaseModal v-if="showCircles" :title="`Cercles de ${personLabel(person)}`" max-width="md" @close="showCircles = false">
+      <div class="px-6 py-5">
+        <PersonCircles :person-id="person.id" :person-name="personLabel(person)" @changed="router.reload({ preserveScroll: true })" />
+      </div>
+    </BaseModal>
+
     <PersonFormModal
       v-if="showEditModal"
       :person="person"
@@ -311,6 +321,8 @@ import { usePhotoSwipe } from '@/Composables/usePhotoSwipe';
 import PersonFormModal from '@/Components/PersonFormModal.vue';
 import FamilyPanel from '@/Components/FamilyPanel.vue';
 import HowWeMetPanel from '@/Components/HowWeMetPanel.vue';
+import PersonCircles from '@/Components/PersonCircles.vue';
+import CircleKindIcon from '@/Components/CircleKindIcon.vue';
 import { useCircle } from '@/Composables/useCircle';
 import PersonTimeline from '@/Components/PersonTimeline.vue';
 import InviteToMemoryLaneModal from '@/Components/InviteToMemoryLaneModal.vue';
@@ -396,6 +408,9 @@ const toggleSelf = () => {
 };
 
 const showEditModal = ref(false);
+const showCircles = ref(false);
+// Menu « Cercles… » : seulement pour un compte qui a des cercles.
+const hasCircles = computed(() => (usePage().props.circle?.list?.length ?? 0) > 0 || usePage().props.circle?.can_manage);
 const showAvatarPicker = ref(false);
 
 // Le diaporama vit dans PersonTimeline (il connaît les slides) ; le bouton

@@ -78,6 +78,7 @@
           <!-- Initiale seule (pas de photo) : rendu historique de cette liste. -->
           <PersonAvatar :name="person.name" :size="8" fallback-class="bg-surface-200 text-surface-600 font-medium" />
           <span>{{ person.name }}</span>
+          <span v-if="person.elsewhere" class="text-xs text-surface-400">· {{ person.elsewhere_label }}</span>
           <span
             v-for="d in person.doubts || []"
             :key="d.code"
@@ -162,10 +163,12 @@ import { useToast } from '@/Composables/useToast';
 import { useConfirm } from '@/Composables/useConfirm';
 import { apiError } from '@/utils/apiError';
 import { usePeopleDirectory } from '@/Composables/usePeopleDirectory';
+import { useBringIn } from '@/Composables/useBringIn';
 
 const toast = useToast();
 const { confirm } = useConfirm();
 const peopleDirectory = usePeopleDirectory();
+const { confirmBringIn } = useBringIn();
 
 const props = defineProps({
   face: {
@@ -270,6 +273,7 @@ const filteredPeople = computed(() => {
 });
 
 const matchToPerson = async (person, allowDuplicate = false) => {
+  if (!allowDuplicate && (await confirmBringIn(person)) === 'cancel') return;
   matching.value = true;
   try {
     await axios.post(`/vision/faces/${props.face.id}/match`, {

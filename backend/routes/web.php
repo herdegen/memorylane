@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FamilyTreeController;
 use App\Http\Controllers\GedcomImportController;
 use App\Http\Controllers\NetworkController;
+use App\Http\Controllers\PersonCircleController;
 use App\Http\Controllers\PersonLinkController;
 use App\Http\Controllers\GoogleDriveController;
 use App\Http\Controllers\GooglePhotosController;
@@ -306,6 +307,10 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::get('/{person}/timeline', [PersonController::class, 'timeline'])->name('timeline');
         // Lien de parenté avec la fiche « moi » du visiteur (marche dans l'arbre)
         Route::get('/{person}/kinship', [PersonController::class, 'kinship'])->name('kinship');
+        // Cercles d'une fiche : ajouter une fiche existante à un cercle
+        Route::get('/{person}/circles', [PersonCircleController::class, 'index'])->name('circles.index');
+        Route::post('/{person}/circles', [PersonCircleController::class, 'store'])->name('circles.store');
+        Route::delete('/{person}/circles/{household}', [PersonCircleController::class, 'destroy'])->name('circles.destroy');
         // « Comment on s'est connus » (une version par compte)
         Route::get('/{person}/links', [PersonLinkController::class, 'index'])->name('links.index');
         Route::put('/{person}/links', [PersonLinkController::class, 'upsert'])->name('links.upsert');
