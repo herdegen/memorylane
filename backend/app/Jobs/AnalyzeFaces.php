@@ -25,7 +25,7 @@ class AnalyzeFaces implements ShouldQueue
 
     public array $backoff = [30, 180];
 
-    public function __construct(public Media $media)
+    public function __construct(public Media $media, public bool $force = false)
     {
         $this->onQueue('faces');
     }
@@ -43,7 +43,7 @@ class AnalyzeFaces implements ShouldQueue
             return;
         }
 
-        $stats = $reconciler->apply($this->media, $detections);
+        $stats = $this->force ? $reconciler->rebuild($this->media, $detections) : $reconciler->apply($this->media, $detections);
         Log::info('AnalyzeFaces', ['media_id' => $this->media->id, ...$stats]);
     }
 }

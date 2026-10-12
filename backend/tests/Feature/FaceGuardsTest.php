@@ -168,6 +168,75 @@ class FaceGuardsTest extends TestCase
         $this->assertSame('distant', $rows->firstWhere('person.id', $stranger->id)['doubts'][0]['code']);
     }
 
+    /**
+     * Arbre : moi (marié en 2020) ; ma femme et son cousin (via son père et
+     * son oncle) ; mon arrière-grand-oncle (côté paternel) et mon cousin par
+     * ma mère.
+     */
+    private function family(): array
+    {
+        $p = fn (array $a) => $this->person(['birth_date' => '1950-01-01', ...$a]);
+        $ggp = $p(['birth_date' => '1890-01-01']);                         // arrière-grand-père
+        $ggUncle = $p(['birth_date' => '1895-01-01', 'name' => 'Arrière-grand-oncle']);
+        $gp = $p(['birth_date' => '1925-01-01', 'father_id' => $ggp->id]);
+        $dad = $p(['father_id' => $gp->id]);
+        $momsDad = $p(['birth_date' => '1925-01-01']);
+        $mom = $p(['father_id' => $momsDad->id]);
+        $me = $p(['birth_date' => '1988-01-01', 'father_id' => $dad->id, 'mother_id' => $mom->id]);
+        $momsSister = $p(['father_id' => $momsDad->id]);
+        $myCousin = $p(['birth_date' => '1985-01-01', 'mother_id' => $momsSister->id]);
+        $wifesGp = $p(['birth_date' => '1925-01-01']);
+        $wifesDad = $p(['father_id' => $wifesGp->id]);
+        $wife = $p(['birth_date' => '1989-01-01', 'father_id' => $wifesDad->id]);
+        $wifesUncle = $p(['father_id' => $wifesGp->id]);
+        $wifesCousin = $p(['birth_date' => '1984-01-01', 'father_id' => $wifesUncle->id]);
+        // Parents mariés en 1980 ; moi marié en 2020.
+        \App\Models\PersonRelationship::create(['person1_id' => $dad->id, 'person2_id' => $mom->id, 'type' => 'spouse', 'start_date' => '1980-06-01']);
+        \App\Models\PersonRelationship::create(['person1_id' => $me->id, 'person2_id' => $wife->id, 'type' => 'spouse', 'start_date' => '2020-06-01']);
+        // Lien de fratrie de l'arrière-grand-oncle : même père que l'arrière-grand-père.
+        $gggp = $p(['birth_date' => '1860-01-01']);
+        $ggp->update(['father_id' => $gggp->id]);
+        $ggUncle->update(['father_id' => $gggp->id]);
+
+        return compact('me', 'wife', 'wifesCousin', 'myCousin', 'ggUncle', 'dad');
+    }
+
+    private function doubtsOn(Media $media, Person $candidate): array
+    {
+        return array_column(app(\App\Services\Vision\FacePlausibility::class)->doubts(
+            $candidate, $media, app(\App\Services\Vision\FacePlausibility::class)->kinDistances($media)
+        ), 'code');
+    }
+
+    public function test_in_laws_cousins_are_fine_on_a_wedding_photo(): void
+    {
+        $f = $this->family();
+        $wedding = $this->photo('2020-06-01');
+        $this->face($wedding, 0.1, $f['me']);
+
+        $this->assertSame([], $this->doubtsOn($wedding, $f['wifesCousin']), 'cousin de ma femme : 5 liens, après le mariage');
+        $this->assertSame([], $this->doubtsOn($wedding, $f['myCousin']));
+    }
+
+    public function test_in_laws_are_not_family_before_the_marriage(): void
+    {
+        $f = $this->family();
+        $old = $this->photo('2005-06-01');
+        $this->face($old, 0.1, $f['me']);
+
+        $this->assertSame(['distant'], $this->doubtsOn($old, $f['wifesCousin']));
+    }
+
+    public function test_other_branch_is_odd_on_a_great_grand_uncle_photo(): void
+    {
+        $f = $this->family();
+        $photo = $this->photo('1995-06-01');
+        $this->face($photo, 0.1, $f['ggUncle']);
+
+        $this->assertSame(['distant'], $this->doubtsOn($photo, $f['myCousin']), 'cousin par l\'autre branche : 7 liens');
+        $this->assertSame([], $this->doubtsOn($photo, $f['dad']), 'côté de l\'oncle : proche');
+    }
+
     public function test_duplicate_resolver_keeps_the_closest_face(): void
     {
         $person = $this->person();

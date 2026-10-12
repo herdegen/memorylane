@@ -35,7 +35,7 @@
               </div>
 
               <!-- Ajout manuel d'un visage (quand la détection en a raté un) -->
-              <div v-if="media.type === 'photo'" class="flex items-center gap-3 px-4 py-2 border-t border-surface-100">
+              <div v-if="media.type === 'photo' && canEditFaces" class="flex items-center gap-3 px-4 py-2 border-t border-surface-100">
                 <button
                   type="button"
                   :disabled="savingFace"
@@ -83,6 +83,7 @@
               <div class="px-4 py-3 border-b border-surface-100 flex items-center justify-between">
                 <h2 class="text-sm font-semibold text-surface-900">Visages sur l'image du clip</h2>
                 <button
+                  v-if="canEditFaces"
                   type="button"
                   :disabled="savingFace"
                   class="text-sm font-medium text-brand-600 hover:text-brand-800 disabled:opacity-50"
@@ -185,7 +186,7 @@
 
             <!-- Détection de visages (100% navigateur, face-api.js) -->
             <div
-              v-if="supportsFaces && isOwner && (detecting || detectError || notScanned)"
+              v-if="supportsFaces && canEditFaces && (detecting || detectError || notScanned)"
               class="bg-white rounded-lg shadow-xs p-4"
             >
               <div v-if="detecting" class="flex items-center gap-3">
@@ -214,7 +215,7 @@
                   {{ detectError ? 'Réessayer' : 'Détecter les visages' }}
                 </button>
                 <p class="mt-2 text-xs text-surface-400">
-                  Analyse locale dans votre navigateur (~12 Mo de modèles au premier lancement).
+                  {{ serverFaces ? 'Analyse sur le serveur (InsightFace) : quelques secondes.' : 'Analyse locale dans votre navigateur (~12 Mo de modèles au premier lancement).' }}
                 </p>
               </div>
             </div>
@@ -226,9 +227,19 @@
               :initial-status="media.metadata?.vision_status"
               :initial-faces-count="media.metadata?.vision_faces_count || 0"
               :initial-error="media.metadata?.vision_error"
-              :can-rerun="isOwner"
+              :can-rerun="canEditFaces"
               @rerun="runDetection"
             />
+            <!-- Admin : tout recommencer (cadres non identifiés effacés,
+                 détection et identification refaites, identifiés conservés). -->
+            <button
+              v-if="supportsFaces && serverFaces && isAdmin && !detecting"
+              type="button"
+              class="w-full text-xs font-medium text-surface-500 hover:text-brand-700 underline underline-offset-2"
+              @click="forceDetection"
+            >
+              Tout recommencer sur cette photo (admin)
+            </button>
 
             <!-- Face Match Panel -->
             <FaceMatchPanel
@@ -355,6 +366,8 @@ const selectedFace = ref(null);
 // (wipe + recreate). L'identification des visages, elle, est collaborative
 // (tout compte qui voit le média — foyer, album partagé).
 const isOwner = computed(() => props.media.user_id === usePage().props.auth?.user?.id);
+const isAdmin = computed(() => usePage().props.auth?.user?.role === 'admin');
+const canEditFaces = computed(() => isOwner.value || isAdmin.value);
 
 // Référence au lecteur vidéo (pour capturer le temps courant dans l'éditeur de découpe).
 const playerRef = ref(null);
@@ -419,13 +432,24 @@ const notScanned = computed(
   () => supportsFaces.value && props.media.metadata?.vision_status !== 'completed'
 );
 
-const runDetection = async () => {
-  // Serveur : ajoute les visages manquants sans rien effacer.
+// Admin : « forcer » = repartir d'une détection propre (après confirmation).
+const forceDetection = async () => {
+  const ok = await confirm({
+    title: 'Tout recommencer sur cette photo ?',
+    message: 'Les cadres non identifiés sont effacés, puis la détection et l’identification automatique sont refaites. Les personnes déjà identifiées sont conservées.',
+    confirmLabel: 'Recommencer',
+    danger: true,
+  });
+  if (ok) await runDetection(true);
+};
+
+const runDetection = async (force = false) => {
+  // Serveur : ajoute les visages manquants sans rien effacer (sauf « forcer »).
   if (serverFaces.value) {
     serverDetecting.value = true;
     serverError.value = null;
     try {
-      await axios.post(`/vision/media/${props.media.id}/analyze`);
+      await axios.post(`/vision/media/${props.media.id}/analyze`, force === true ? { force: true } : {});
       router.reload();
     } catch (e) {
       serverError.value = apiError(e, "L'analyse des visages a échoué. Réessayez dans un instant.");
@@ -458,6 +482,8 @@ const handleMediaUpdated = (updatedMedia) => {
 };
 
 const handleFaceClick = (face) => {
+  // Identification réservée à l'admin et à la personne qui a envoyé la photo.
+  if (!canEditFaces.value) return;
   // Matché, non-matché OU rejeté : on ouvre le panneau (permet de corriger,
   // ré-identifier ou ignorer). `rejected` = visage désassocié « collant »
   // (issue #30) : il reste un carré cliquable pour pouvoir l'ignorer/re-tagger.

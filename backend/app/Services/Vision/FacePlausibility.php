@@ -5,7 +5,6 @@ namespace App\Services\Vision;
 use App\Models\DetectedFace;
 use App\Models\Media;
 use App\Models\Person;
-use App\Services\GenealogyService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -25,10 +24,12 @@ class FacePlausibility
 
     public const BABY_MAX_AGE = 3;
 
-    /** Parent 1, grand-parent 2, oncle 3, cousin 4. */
-    public const CLOSE_KIN_MAX_DISTANCE = 4;
-
-    public function __construct(private GenealogyService $genealogy) {}
+    /**
+     * Liens de parenté au-delà desquels on doute (parent 1, grand-parent 2,
+     * oncle 3, cousin 4, cousin du conjoint 5, cousin issu de germain 6) :
+     * les fêtes de famille réunissent cousins et belle-famille.
+     */
+    public const CLOSE_KIN_MAX_DISTANCE = 6;
 
     /** Raison pour laquelle la personne ne peut pas figurer sur la photo, ou null. */
     public function impossibility(Person $person, Media $media): ?string
@@ -81,7 +82,9 @@ class FacePlausibility
         }
 
         if ($kin !== null && ($kin[$person->id] ?? PHP_INT_MAX) > self::CLOSE_KIN_MAX_DISTANCE) {
-            $doubts[] = ['code' => 'distant', 'label' => 'Pas de parenté proche avec la photo'];
+            $doubts[] = ['code' => 'distant', 'label' => isset($kin[$person->id])
+                ? 'Parenté lointaine avec la photo'
+                : 'Pas de lien familial à l\'époque de la photo'];
         }
 
         return $doubts;
@@ -91,6 +94,11 @@ class FacePlausibility
      * Distance de parenté minimale de chaque fiche aux repères de la photo :
      * personnes déjà identifiées dessus (hors $exceptPersonId), sinon la fiche
      * de celui qui a envoyé la photo. Null quand il n'y a aucun repère.
+     *
+     * Parenté TELLE QU'ELLE EXISTAIT à la date de la photo : un mariage ne
+     * relie les deux familles qu'à partir de sa date, et une personne pas
+     * encore née ne peut servir de lien. Ainsi, sur une photo ancienne, la
+     * belle-famille arrivée depuis n'est pas « de la famille ».
      *
      * @return array<string,int>|null
      */
@@ -108,14 +116,70 @@ class FacePlausibility
             return null;
         }
 
-        $min = [];
+        $adj = $this->graphAt($media->taken_at?->copy()->addYears(self::DATE_TOLERANCE_YEARS));
+
+        // Parcours en largeur depuis tous les repères à la fois.
+        $distance = [];
+        $queue = [];
         foreach ($anchors as $anchor) {
-            foreach ($this->genealogy->proximity($anchor)['distance'] as $id => $d) {
-                $min[$id] = min($min[$id] ?? PHP_INT_MAX, $d);
+            if (isset($adj[$anchor])) {
+                $distance[$anchor] = 0;
+                $queue[] = $anchor;
+            }
+        }
+        for ($k = 0; $k < count($queue); $k++) {
+            $current = $queue[$k];
+            foreach ($adj[$current] as $next) {
+                if (! isset($distance[$next])) {
+                    $distance[$next] = $distance[$current] + 1;
+                    $queue[] = $next;
+                }
             }
         }
 
-        return $min;
+        return $distance;
+    }
+
+    /** @var array<string, array<string, list<string>>> graphe par date (mémo de requête) */
+    private array $graphs = [];
+
+    /**
+     * Graphe de parenté à une date : personnes nées (date inconnue : gardée),
+     * liens parent/enfant, unions commencées (date inconnue : gardée).
+     *
+     * @return array<string, list<string>>
+     */
+    private function graphAt(?\Carbon\CarbonInterface $at): array
+    {
+        $key = $at?->format('Y-m-d') ?? 'toujours';
+        if (isset($this->graphs[$key])) {
+            return $this->graphs[$key];
+        }
+
+        $people = DB::table('people')->whereNull('deleted_at')
+            ->when($at, fn ($q) => $q->where(fn ($w) => $w->whereNull('birth_date')->orWhere('birth_date', '<=', $at)))
+            ->get(['id', 'father_id', 'mother_id']);
+        $adj = array_fill_keys($people->pluck('id')->all(), []);
+
+        foreach ($people as $p) {
+            foreach ([$p->father_id, $p->mother_id] as $parent) {
+                if ($parent && isset($adj[$parent])) {
+                    $adj[$p->id][] = $parent;
+                    $adj[$parent][] = $p->id;
+                }
+            }
+        }
+        $unions = DB::table('person_relationships')
+            ->when($at, fn ($q) => $q->where(fn ($w) => $w->whereNull('start_date')->orWhere('start_date', '<=', $at)))
+            ->get(['person1_id', 'person2_id']);
+        foreach ($unions as $u) {
+            if (isset($adj[$u->person1_id], $adj[$u->person2_id])) {
+                $adj[$u->person1_id][] = $u->person2_id;
+                $adj[$u->person2_id][] = $u->person1_id;
+            }
+        }
+
+        return $this->graphs[$key] = $adj;
     }
 
     private function agree(Person $person, string $masculine, string $feminine): string

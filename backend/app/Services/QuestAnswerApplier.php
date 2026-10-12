@@ -109,15 +109,17 @@ class QuestAnswerApplier
     }
 
     /**
-     * Effets de bord d'un « non » : la plupart n'écrivent rien (journal seul),
-     * mais « ce n'est pas un visage » rejette le visage (extinction native).
+     * Effets de bord d'un « non » : la plupart n'écrivent rien (journal seul).
+     * Visage : « personne inconnue / hors famille » le laisse visible sur la
+     * photo mais hors quêtes et hors association automatique (rejected) ;
+     * « ce n'est pas un visage » le masque (dismissed).
      */
-    public function applyNo(User $user, QuestType $type, Model $subject): void
+    public function applyNo(User $user, QuestType $type, Model $subject, ?string $reason = null): void
     {
         $this->authorize($user, $type, $subject);
 
         if ($type === QuestType::FaceIdentify && $subject->status === 'unmatched') {
-            $this->faceMatcher->disassociate($subject, 'dismissed');
+            $this->faceMatcher->disassociate($subject, $reason === 'stranger' ? FaceMatcher::REJECTED_STATUS : 'dismissed');
         }
     }
 

@@ -129,15 +129,20 @@ class VisionController extends Controller
      * Analyse côté serveur (InsightFace) : ajoute les visages manquants et
      * les empreintes, sans rien supprimer ni réattribuer (FaceReconciler).
      */
-    public function analyzeOnServer(Media $media): JsonResponse
+    public function analyzeOnServer(Request $request, Media $media): JsonResponse
     {
-        $this->authorizeMedia($media);
+        $this->authorizeFaceEditing($media);
         abort_unless(in_array($media->type, ['photo', 'video'], true), 422, 'Seules les photos et vidéos s\'analysent.');
         abort_unless(\App\Services\Vision\FaceEngine::enabled(), 409, 'Analyse serveur désactivée.');
 
-        \App\Jobs\AnalyzeFaces::dispatchSync($media);
+        // « Forcer » (admin) : cadres non identifiés effacés, détection et
+        // identification refaites ; les personnes identifiées sont conservées.
+        $force = $request->boolean('force');
+        abort_if($force && ! auth()->user()->isAdmin(), 403, 'Réservé à l\'admin.');
 
-        return $this->faces($media);
+        \App\Jobs\AnalyzeFaces::dispatchSync($media, $force);
+
+        return $this->facesPayload($media);
     }
 
     /**
@@ -149,8 +154,9 @@ class VisionController extends Controller
         abort_unless(\App\Services\Vision\FaceEngine::enabled(), 409, 'Analyse serveur désactivée.');
         $validated = $request->validate(['ids' => 'required|array|max:1000', 'ids.*' => 'uuid']);
 
+        $user = auth()->user();
         $medias = Media::whereIn('id', $validated['ids'])->whereIn('type', ['photo', 'video'])->get()
-            ->filter(fn (Media $m) => \Illuminate\Support\Facades\Gate::allows('view', $m));
+            ->filter(fn (Media $m) => $user->isAdmin() || $m->user_id === $user->id);
         $medias->each(fn (Media $m) => \App\Jobs\AnalyzeFaces::dispatch($m));
 
         return response()->json(['queued' => $medias->count()]);
@@ -162,7 +168,7 @@ class VisionController extends Controller
      */
     public function addFace(Request $request, Media $media): JsonResponse
     {
-        $this->authorizeMedia($media);
+        $this->authorizeFaceEditing($media);
 
         if (! in_array($media->type, ['photo', 'video'], true)) {
             return response()->json(['message' => 'Only photos and videos can be analyzed'], 422);
@@ -213,7 +219,7 @@ class VisionController extends Controller
      */
     public function resetFace(DetectedFace $detectedFace): JsonResponse
     {
-        $this->authorizeMedia($detectedFace->media);
+        $this->authorizeFaceEditing($detectedFace->media);
         $this->ensureFacePersonEditable($detectedFace);
 
         // Désassociation « collante » : le visage passe en `rejected` et n'est
@@ -277,6 +283,11 @@ class VisionController extends Controller
     {
         $this->authorizeMedia($media);
 
+        return $this->facesPayload($media);
+    }
+
+    private function facesPayload(Media $media): JsonResponse
+    {
         // `rejected` inclus : un visage désassocié reste affiché (sans personne)
         // pour rester ré-identifiable manuellement (issue #30).
         $faces = $media->detectedFaces()
@@ -293,7 +304,7 @@ class VisionController extends Controller
      */
     public function matchFace(Request $request, DetectedFace $detectedFace): JsonResponse
     {
-        $this->authorizeMedia($detectedFace->media);
+        $this->authorizeFaceEditing($detectedFace->media);
 
         $this->ensureFacePersonEditable($detectedFace);
 
@@ -334,7 +345,7 @@ class VisionController extends Controller
      */
     public function autoMatch(DetectedFace $detectedFace): JsonResponse
     {
-        $this->authorizeMedia($detectedFace->media);
+        $this->authorizeFaceEditing($detectedFace->media);
 
         // Même corpus que suggest : les visages labellisés du propriétaire.
         $best = $this->faceMatcher->autoMatch($detectedFace, $detectedFace->media->user_id, auth()->user());
@@ -355,7 +366,7 @@ class VisionController extends Controller
      */
     public function dismissFace(DetectedFace $detectedFace): JsonResponse
     {
-        $this->authorizeMedia($detectedFace->media);
+        $this->authorizeFaceEditing($detectedFace->media);
         $this->ensureFacePersonEditable($detectedFace);
 
         // Rejeter un visage retire aussi son association éventuelle (person_id +
@@ -390,6 +401,17 @@ class VisionController extends Controller
      * Un visage identifié comme une fiche d'un autre cercle ne peut être ni
      * ré-identifié ni désassocié par ce viewer (il ne la voit pas).
      */
+    /**
+     * Identifier, ajouter, ignorer ou analyser les visages d'une photo :
+     * réservé à l'admin et à la personne qui a envoyé la photo (les autres
+     * membres voient les visages et passent par les quêtes).
+     */
+    private function authorizeFaceEditing(?Media $media): void
+    {
+        $user = auth()->user();
+        abort_unless($media && ($user->isAdmin() || $media->user_id === $user->id), 403, 'Seuls l\'admin et la personne qui a envoyé la photo identifient ses visages.');
+    }
+
     private function ensureFacePersonEditable(DetectedFace $face): void
     {
         abort_unless($face->personVisibleTo(auth()->user()), 403, 'Ce visage est identifié dans un autre cercle.');

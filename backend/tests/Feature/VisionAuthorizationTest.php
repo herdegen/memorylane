@@ -99,45 +99,39 @@ class VisionAuthorizationTest extends TestCase
         return $member;
     }
 
-    public function test_membre_du_foyer_peut_identifier_les_visages(): void
+    /**
+     * Un membre du cercle voit les visages et les suggestions, mais
+     * l'identification sur la fiche photo est réservée à l'admin et à la
+     * personne qui a envoyé la photo (les membres passent par les quêtes).
+     */
+    public function test_membre_du_foyer_voit_mais_n_identifie_pas(): void
     {
         $member = $this->householdMember();
         $person = Person::factory()->create(['user_id' => $this->owner->id]);
 
-        // Lecture des visages + suggestions.
-        $this->actingAs($member)
-            ->getJson("/vision/media/{$this->media->id}/faces")
-            ->assertOk();
-        $this->actingAs($member)
-            ->getJson("/vision/faces/{$this->face->id}/suggest")
-            ->assertOk();
+        $this->actingAs($member)->getJson("/vision/media/{$this->media->id}/faces")->assertOk();
+        $this->actingAs($member)->getJson("/vision/faces/{$this->face->id}/suggest")->assertOk();
 
-        // Identification (le banc de personnes est commun à tous les connectés).
         $this->actingAs($member)
             ->postJson("/vision/faces/{$this->face->id}/match", ['person_id' => $person->id])
-            ->assertOk();
-        $this->assertEquals('matched', $this->face->fresh()->status);
-
-        // Correction (désassociation collante).
+            ->assertForbidden();
+        $this->actingAs($member)->postJson("/vision/faces/{$this->face->id}/dismiss")->assertForbidden();
         $this->actingAs($member)
-            ->postJson("/vision/faces/{$this->face->id}/reset")
-            ->assertOk();
-        $this->assertEquals('rejected', $this->face->fresh()->status);
+            ->postJson("/vision/media/{$this->media->id}/faces/add", ['bounding_box' => ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5]])
+            ->assertForbidden();
+        $this->assertSame('unmatched', $this->face->fresh()->status);
     }
 
-    public function test_membre_du_foyer_peut_ajouter_un_visage_manuel(): void
+    public function test_proprietaire_et_admin_identifient(): void
     {
-        $member = $this->householdMember();
-        $photo = Media::factory()->create(['user_id' => $this->owner->id, 'type' => 'photo']);
-        $this->media->households->first()->media()->attach($photo->id, ['added_by' => $this->owner->id]);
+        $person = Person::factory()->create(['user_id' => $this->owner->id]);
+        $admin = User::factory()->admin()->create();
 
-        $this->actingAs($member)
-            ->postJson("/vision/media/{$photo->id}/faces/add", [
-                'bounding_box' => ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5],
-            ])
-            ->assertSuccessful();
-
-        $this->assertSame(1, $photo->detectedFaces()->count());
+        $this->actingAs($this->owner)
+            ->postJson("/vision/faces/{$this->face->id}/match", ['person_id' => $person->id])
+            ->assertOk();
+        $this->actingAs($admin)->postJson("/vision/faces/{$this->face->id}/reset")->assertOk();
+        $this->assertEquals('rejected', $this->face->fresh()->status);
     }
 
     public function test_re_detection_reste_reservee_au_proprietaire(): void

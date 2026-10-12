@@ -218,6 +218,30 @@ class InsightFaceTest extends TestCase
         $this->assertSame(40, $drawn->age_estimate);
     }
 
+    public function test_admin_force_rebuild_keeps_identified_and_cleans_the_rest(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $lea = Person::create(['user_id' => $this->user->id, 'name' => 'Léa']);
+        $media = $this->photo();
+        $known = $this->face($media, ['x' => 10, 'y' => 10, 'width' => 30, 'height' => 40], $lea);
+        $guest = $this->face($media, ['x' => 60, 'y' => 10, 'width' => 10, 'height' => 12], status: 'rejected');
+        $junk = $this->face($media, ['x' => 80, 'y' => 80, 'width' => 5, 'height' => 5]);
+        $this->fakeService([
+            $this->detection([180, 250, 260, 340], $this->vec(1)),   // dans le cadre de Léa
+            $this->detection([610, 110, 690, 210], $this->vec(2)),   // l'invité
+            $this->detection([400, 400, 470, 480], $this->vec(3)),   // nouveau visage
+        ]);
+
+        $this->actingAs($this->user)->postJson("/vision/media/{$media->id}/analyze", ['force' => true])->assertForbidden();
+        $this->actingAs($admin)->postJson("/vision/media/{$media->id}/analyze", ['force' => true])->assertOk();
+
+        $this->assertSame($lea->id, $known->fresh()->person_id);
+        $this->assertEqualsWithDelta(18.0, $known->fresh()->bounding_box['x'], 0.01, 'nouveau cadre');
+        $this->assertSame('rejected', $guest->fresh()->status);
+        $this->assertNull($junk->fresh(), 'cadre non identifié effacé');
+        $this->assertSame(3, $media->detectedFaces()->count());
+    }
+
     public function test_server_analysis_is_refused_with_the_browser_engine(): void
     {
         config(['memorylane.faces.engine' => 'faceapi']);
@@ -243,6 +267,23 @@ class InsightFaceTest extends TestCase
         $this->assertNotNull($suspect->fresh()->verified_at);
         app()->forgetScopedInstances();
         $this->assertArrayNotHasKey($suspect->id, app(DisputedFaceResolver::class)->analysis());
+    }
+
+    public function test_quest_stranger_keeps_the_face_visible_not_face_hides_it(): void
+    {
+        config(['memorylane.faces.engine' => 'faceapi']);
+        $media = $this->photo();
+        $guest = $this->face($media, ['x' => 10, 'y' => 10, 'width' => 8, 'height' => 8]);
+        $wall = $this->face($media, ['x' => 50, 'y' => 50, 'width' => 8, 'height' => 8]);
+        $answer = fn (DetectedFace $f, string $reason) => $this->actingAs($this->user)->postJson('/quests/answer', [
+            'question_type' => 'face_identify', 'subject_id' => $f->id, 'answer_kind' => 'no', 'payload' => ['reason' => $reason],
+        ]);
+
+        $answer($guest, 'stranger')->assertSuccessful();
+        $answer($wall, 'not_face')->assertSuccessful();
+
+        $this->assertSame('rejected', $guest->fresh()->status, 'invité : visible, hors quêtes');
+        $this->assertSame('dismissed', $wall->fresh()->status, 'fausse détection : masquée');
     }
 
     public function test_reanalyze_command_targets_media_not_yet_analyzed(): void

@@ -57,15 +57,18 @@ class QuestController extends Controller
             return response()->json(['message' => 'Cette question n\'accepte pas la réponse « non ».'], 422);
         }
 
-        $payload = $kind === 'answered'
-            ? Validator::make($validated['payload'] ?? [], $type->rules())->validate()
-            : [];
+        $payload = match ($kind) {
+            'answered' => Validator::make($validated['payload'] ?? [], $type->rules())->validate(),
+            // Visage : « personne inconnue » (reste visible) ou « pas un visage ».
+            'no' => Validator::make($validated['payload'] ?? [], ['reason' => 'nullable|in:stranger,not_face'])->validate(),
+            default => [],
+        };
 
         try {
             DB::transaction(function () use ($user, $type, $subject, $kind, $payload) {
                 match ($kind) {
                     'answered' => $this->applier->apply($user, $type, $subject, $payload),
-                    'no' => $this->applier->applyNo($user, $type, $subject),
+                    'no' => $this->applier->applyNo($user, $type, $subject, $payload['reason'] ?? null),
                     default => $this->applier->authorize($user, $type, $subject),
                 };
 

@@ -290,15 +290,15 @@
             >
               {{ noLabel }}
             </button>
-            <!-- Visage : deux formulations pour écarter — personne de fond
-                 (inconnue / hors famille) ou fausse détection. Même effet :
-                 le visage est rejeté définitivement. -->
+            <!-- Visage : personne de fond (inconnue / hors famille : reste
+                 visible sur la photo, n'est plus proposée) ou fausse
+                 détection (masquée). -->
             <template v-if="uiKind === 'face'">
               <button
                 type="button"
                 class="btn-secondary"
                 :disabled="sending"
-                @click="answer('no')"
+                @click="answer('no', { reason: 'stranger' })"
               >
                 Personne inconnue / hors famille
               </button>
@@ -306,7 +306,7 @@
                 type="button"
                 class="btn-secondary"
                 :disabled="sending"
-                @click="answer('no')"
+                @click="answer('no', { reason: 'not_face' })"
               >
                 Ce n’est pas un visage
               </button>

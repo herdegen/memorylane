@@ -129,6 +129,69 @@ class FaceReconciler
     }
 
     /**
+     * « Forcer » : on repart de la détection InsightFace. Les visages
+     * identifiés et ceux marqués « personne inconnue » (rejected) retrouvés
+     * prennent le nouveau cadre ; les identifiés non retrouvés sont gardés
+     * tels quels ; TOUS les autres cadres sont effacés ; les nouvelles
+     * détections sont ajoutées puis associées automatiquement si c'est sûr.
+     *
+     * @return array{updated: int, kept: int, deleted: int, added: int}
+     */
+    public function rebuild(Media $media, array $detections): array
+    {
+        $detections = array_values(array_filter($detections, fn ($d) => $d['px'] >= self::MIN_FACE_PX));
+        $existing = $media->detectedFaces()->get();
+        $keepable = $existing->filter(fn ($f) => $f->person_id !== null || $f->status === FaceMatcher::REJECTED_STATUS)->values();
+        $pairs = $this->pair($keepable->all(), $detections);
+        $stats = ['updated' => 0, 'kept' => 0, 'deleted' => 0, 'added' => 0];
+
+        DB::transaction(function () use ($media, $existing, $keepable, $detections, $pairs, &$stats) {
+            $kept = [];
+            foreach ($keepable as $i => $face) {
+                if (isset($pairs[$i])) {
+                    $d = $detections[$pairs[$i]];
+                    $face->forceFill(['bounding_box' => $d['box'], 'confidence' => $d['score'], 'embedding_v2' => $d['embedding'], 'age_estimate' => $d['age'], 'engine' => 'insightface'])->save();
+                    $stats['updated']++;
+                    $kept[$face->id] = true;
+                } elseif ($face->person_id !== null) {
+                    $stats['kept']++;
+                    $kept[$face->id] = true;
+                }
+            }
+            foreach ($existing as $face) {
+                if (! isset($kept[$face->id])) {
+                    $face->delete();
+                    $stats['deleted']++;
+                }
+            }
+            $matched = array_flip($pairs);
+            foreach ($detections as $j => $d) {
+                if (! isset($matched[$j])) {
+                    $media->detectedFaces()->create([
+                        'bounding_box' => $d['box'], 'confidence' => $d['score'], 'provider' => 'insightface',
+                        'status' => 'unmatched', 'embedding_v2' => $d['embedding'], 'age_estimate' => $d['age'], 'engine' => 'insightface',
+                    ]);
+                    $stats['added']++;
+                }
+            }
+            $media->metadata()->updateOrCreate([], [
+                'vision_status' => 'completed', 'vision_provider' => 'insightface',
+                'vision_faces_count' => $media->detectedFaces()->whereIn('status', ['unmatched', 'matched'])->count(),
+                'vision_processed_at' => now(), 'vision_error' => null,
+            ]);
+        });
+        FaceMatcher::bumpReferences();
+
+        if (FaceEngine::enabled()) {
+            foreach ($media->detectedFaces()->where('status', 'unmatched')->whereNull('person_id')->get() as $face) {
+                $this->matcher->autoMatch($face, $media->user_id);
+            }
+        }
+
+        return $stats;
+    }
+
+    /**
      * Appariement glouton visage existant ↔ détection : recouvrement (IoU)
      * décroissant ; une petite zone peut s'apparier si les centres sont
      * l'un dans l'autre (les boîtes face-api sont plus larges).
