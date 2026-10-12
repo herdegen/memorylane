@@ -17,6 +17,7 @@ class RestrictSimpleMode
         'media.file', 'people.faceAvatar', 'people.avatarImage',
         'voice-notes.store', 'voice-notes.file', 'voice-notes.destroy',
         'logout',
+        'impersonate.leave',
     ];
 
     public function handle(Request $request, Closure $next): Response

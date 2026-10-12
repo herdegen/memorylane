@@ -50,6 +50,10 @@ class HandleInertiaRequests extends Middleware
                 ] : null,
             ],
             // Notifications push : clé publique VAPID + état (profil, carte dashboard)
+            // « Se connecter en tant que » : bandeau de retour au compte admin.
+            'impersonating' => fn () => \App\Services\Impersonation::active() && $request->user()
+                ? ['name' => $request->user()->name]
+                : null,
             // Moteur de reconnaissance : 'insightface' = analyse côté serveur
             // (le navigateur ne charge plus face-api).
             'faces_engine' => config('memorylane.faces.engine'),

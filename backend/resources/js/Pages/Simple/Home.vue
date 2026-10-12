@@ -1,5 +1,6 @@
 <template>
   <Head title="Accueil" />
+  <ImpersonationBanner />
   <div class="min-h-screen bg-page text-surface-900 px-5 py-6 sm:px-10 sm:py-9 flex flex-col gap-6 sm:gap-8">
 
     <!-- Bonjour -->
@@ -89,6 +90,7 @@
 </template>
 
 <script setup>
+import ImpersonationBanner from '@/Components/ImpersonationBanner.vue';
 import { computed } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import PersonAvatar from '@/Components/PersonAvatar.vue';

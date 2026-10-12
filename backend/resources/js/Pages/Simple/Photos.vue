@@ -1,5 +1,6 @@
 <template>
   <Head :title="personName ? `Les photos de ${personName}` : 'Les photos'" />
+  <ImpersonationBanner />
   <div class="h-[100dvh] bg-[#1c1917] text-[#fff] flex flex-col gap-4 px-4 pt-4 pb-5 sm:px-8 sm:pt-6 sm:pb-7 select-none">
 
     <header class="flex items-center justify-between gap-4">
@@ -69,6 +70,7 @@
 </template>
 
 <script setup>
+import ImpersonationBanner from '@/Components/ImpersonationBanner.vue';
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 

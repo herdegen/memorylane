@@ -334,6 +334,10 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
 });
 
 // Public shared album route
+// « Se connecter en tant que » : retour au compte admin (bandeau).
+Route::post('/impersonate/leave', [\App\Http\Controllers\ImpersonationController::class, 'leave'])
+    ->middleware('auth')->name('impersonate.leave');
+
 Route::get('/albums/shared/{token}', [AlbumController::class, 'showShared'])->name('albums.shared');
 Route::get('/albums/shared/{token}/media/{media}/file/{conversion?}', [AlbumController::class, 'sharedFile'])->name('albums.shared.file');
 

@@ -1,5 +1,6 @@
 <template>
   <div class="min-h-screen bg-page">
+    <ImpersonationBanner />
     <nav class="bg-white border-b border-surface-200 sticky top-0 z-40">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
@@ -225,6 +226,7 @@ import { IconSettings, IconChevron, IconMenu, IconTheme } from '@/Components/Ico
 import { useAuth } from '@/Composables/useAuth';
 import { useTheme } from '@/Composables/useTheme';
 import { startBackgroundFaceScan } from '@/Composables/useBackgroundFaceScan';
+import ImpersonationBanner from '@/Components/ImpersonationBanner.vue';
 import { usePush } from '@/Composables/usePush';
 import { useCircle } from '@/Composables/useCircle';
 
@@ -309,9 +311,12 @@ onMounted(() => {
   // Analyse des visages en tâche de fond pendant la navigation (silencieux,
   // singleton, sans coût s'il n'y a rien à traiter).
   if (page.props.faces_engine !== 'insightface') startBackgroundFaceScan();
+  // « Se connecter en tant que » : ne pas lier ce navigateur (notifications,
+  // installation) au compte du membre consulté.
+  const impersonating = Boolean(page.props.impersonating);
   // Resynchronise l'abonnement push de cet appareil (rotation d'endpoint).
-  syncPushSubscription();
-  if (standalone && user.value && !user.value.onboarding?.pwa) {
+  if (!impersonating) syncPushSubscription();
+  if (!impersonating && standalone && user.value && !user.value.onboarding?.pwa) {
     user.value.onboarding = { ...(user.value.onboarding || {}), pwa: new Date().toISOString() };
     axios.post('/onboarding/pwa').catch(() => {});
   }

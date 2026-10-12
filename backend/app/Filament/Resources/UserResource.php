@@ -6,6 +6,7 @@ use App\Filament\Resources\UserResource\Pages\CreateUser;
 use App\Filament\Resources\UserResource\Pages\EditUser;
 use App\Filament\Resources\UserResource\Pages\ListUsers;
 use App\Models\User;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -121,6 +122,19 @@ class UserResource extends Resource
                     ->label('Rôle'),
             ])
             ->recordActions([
+                Action::make('impersonate')
+                    ->label('Se connecter en tant que')
+                    ->icon('heroicon-o-eye')
+                    ->color('gray')
+                    ->visible(fn (User $record) => auth()->user()?->isAdmin() && ! $record->is(auth()->user()))
+                    ->requiresConfirmation()
+                    ->modalHeading(fn (User $record) => 'Voir l\'appli en tant que '.$record->name)
+                    ->modalDescription('Vous verrez l\'appli exactement comme cette personne. Ce que vous faites pendant ce temps est fait en son nom. Un bandeau en haut de page permet de revenir à votre compte.')
+                    ->modalSubmitActionLabel('Se connecter')
+                    ->action(function (User $record, $livewire) {
+                        app(\App\Services\Impersonation::class)->start(auth()->user(), $record);
+                        $livewire->redirect($record->simple_mode ? '/simple' : '/dashboard');
+                    }),
                 EditAction::make(),
             ])
             ->toolbarActions([

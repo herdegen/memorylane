@@ -19,6 +19,7 @@ class RestrictGuest
         'family-tree.index', 'family-tree.data', 'family-tree.subtree',
         'media.file',
         'logout',
+        'impersonate.leave',
     ];
 
     public function handle(Request $request, Closure $next): Response

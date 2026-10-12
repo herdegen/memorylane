@@ -1,5 +1,6 @@
 <template>
   <Head title="Raconter cette photo" />
+  <ImpersonationBanner />
   <div class="min-h-[100dvh] bg-page text-surface-900 px-5 py-6 sm:px-10 sm:py-8 flex flex-col gap-6">
 
     <header>
@@ -86,6 +87,7 @@
 </template>
 
 <script setup>
+import ImpersonationBanner from '@/Components/ImpersonationBanner.vue';
 import { ref, computed, watch } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import axios from 'axios';

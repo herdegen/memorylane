@@ -1,5 +1,6 @@
 <template>
   <Head title="Ma famille" />
+  <ImpersonationBanner />
   <div class="min-h-screen bg-page text-surface-900 px-5 py-6 sm:px-10 sm:py-8 flex flex-col gap-7">
 
     <header class="flex items-center gap-6 flex-wrap">
@@ -38,6 +39,7 @@
 </template>
 
 <script setup>
+import ImpersonationBanner from '@/Components/ImpersonationBanner.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
 
