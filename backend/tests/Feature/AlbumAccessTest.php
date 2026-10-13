@@ -235,4 +235,21 @@ class AlbumAccessTest extends TestCase
         $this->assertContains($publicAlbum->id, $ids);   // + partagés
         $this->assertNotContains($privateAlbum->id, $ids); // pas les inaccessibles
     }
+
+    public function test_albums_index_exposes_album_circles(): void
+    {
+        $circle = \App\Models\Household::factory()->create(['created_by' => $this->viewer->id]);
+        $circle->members()->attach($this->viewer->id);
+        $shared = Album::factory()->create(['user_id' => $this->viewer->id]);
+        $shared->households()->attach($circle->id, ['granted_by' => $this->viewer->id]);
+        $private = Album::factory()->create(['user_id' => $this->viewer->id]);
+
+        $albums = collect($this->actingAs($this->viewer)->getJson('/albums')->assertOk()->json())->keyBy('id');
+
+        // L'uploader filtre sur ces identifiants pour ne proposer que les
+        // albums du cercle courant (plus les albums privés).
+        $this->assertSame([$circle->id], $albums[$shared->id]['household_ids']);
+        $this->assertSame([], $albums[$private->id]['household_ids']);
+        $this->assertArrayNotHasKey('households', $albums[$shared->id]);
+    }
 }

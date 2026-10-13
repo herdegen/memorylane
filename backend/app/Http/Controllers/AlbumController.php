@@ -53,12 +53,15 @@ class AlbumController extends Controller
         // Mes albums + ceux partagés avec moi (accès accordé / cercle / tagué).
         $albums = Album::accessibleBy(auth()->user())
             ->withCount(['media', 'accesses', 'households'])
-            ->with(['coverMedia.conversions', 'user:id,name'])
+            ->with(['coverMedia.conversions', 'user:id,name', 'households:id'])
             ->orderBy('updated_at', 'desc')
             ->get();
 
         $albums->transform(function ($album) {
             $album->is_owner = $album->user_id === auth()->id();
+            // Cercles de l'album : l'uploader ne propose que ceux du cercle courant.
+            $album->household_ids = $album->households->pluck('id')->values();
+            $album->unsetRelation('households');
             $cover = $this->coverMediaFor($album);
             if ($cover) {
                 $album->cover_url = $this->getCoverUrl($cover);

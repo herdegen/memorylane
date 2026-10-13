@@ -7,9 +7,13 @@ const JSON_HEADERS = { headers: { Accept: 'application/json' } };
 
 // Albums où l'utilisateur peut ajouter manuellement des médias : les siens et
 // non intelligents (les albums intelligents se remplissent via leurs règles).
-export async function fetchOwnedAlbums() {
+// Avec `circleId`, seuls les albums de ce cercle et ceux partagés avec aucun
+// cercle (privés) sont proposés : un album d'un autre cercle n'a rien à faire
+// dans un envoi fait depuis celui-ci.
+export async function fetchOwnedAlbums({ circleId = null } = {}) {
   const { data } = await axios.get('/albums', JSON_HEADERS);
-  return (data || []).filter((a) => a.is_owner && !a.is_smart);
+  return (data || []).filter((a) => a.is_owner && !a.is_smart
+    && (!circleId || !a.household_ids?.length || a.household_ids.includes(circleId)));
 }
 
 // Crée un album et y attache directement les médias (appel atomique côté serveur).

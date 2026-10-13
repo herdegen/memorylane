@@ -291,7 +291,7 @@ onMounted(async () => {
   if (props.targetAlbumId) return;
   loadingAlbums.value = true;
   try {
-    ownedAlbums.value = await fetchOwnedAlbums();
+    ownedAlbums.value = await fetchOwnedAlbums({ circleId: currentCircle.value?.id });
   } catch (e) {
     console.error('Chargement des albums impossible :', e);
   } finally {
