@@ -388,6 +388,36 @@ class InsightFaceTest extends TestCase
         $this->assertNull($blurry->fresh()->person_id);
     }
 
+    public function test_admin_identifies_in_bulk_by_person(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $tom = Person::create(['user_id' => $this->user->id, 'name' => 'Tom', 'birth_date' => '2000-01-01']);
+        foreach ([0.0, 0.1, 0.2] as $n) {
+            $this->face($this->photo(), ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5], $tom, v2: $this->vec(2, $n));
+        }
+        $box = ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5];
+        $close = $this->face($this->photo(), $box, v2: $this->vec(2, 0.05));
+        $farther = $this->face($this->photo(), $box, v2: $this->vec(2, 0.4));
+        $other = $this->face($this->photo(), $box, v2: $this->vec(1));                 // quelqu'un d'autre
+        $withTom = $this->photo();
+        $this->face($withTom, ['x' => 50, 'y' => 1, 'width' => 5, 'height' => 5], $tom, v2: $this->vec(2, 0.15));
+        $sameFrame = $this->face($withTom, $box, v2: $this->vec(2, 0.06));            // Tom déjà sur la photo
+        $tooEarly = $this->face($this->photo('1990-06-01'), $box, v2: $this->vec(2, 0.05)); // avant sa naissance
+
+        $this->assertSame([$close->id, $farther->id], array_keys(app(\App\Services\Vision\PersonFaceCandidates::class)->for($tom->id)));
+
+        $this->actingAs($admin);
+        $page = \Livewire\Livewire::test(\App\Filament\Resources\PersonFaceResource\Pages\ListPersonFaces::class)
+            ->assertCountTableRecords(0)
+            ->filterTable('person', $tom->id)
+            ->assertCanSeeTableRecords([$close, $farther], inOrder: true)
+            ->assertCanNotSeeTableRecords([$other, $sameFrame, $tooEarly])
+            ->callTableBulkAction('confirmAll', [$close, $farther]);
+
+        $this->assertSame([$tom->id, $tom->id], [$close->fresh()->person_id, $farther->fresh()->person_id]);
+        $this->assertNotNull($close->fresh()->verified_at, 'validé par un humain');
+    }
+
     public function test_quest_stranger_keeps_the_face_visible_not_face_hides_it(): void
     {
         config(['memorylane.faces.engine' => 'faceapi']);
