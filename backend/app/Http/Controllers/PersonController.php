@@ -1083,9 +1083,13 @@ class PersonController extends Controller
 
         $linkedUser = User::where('person_id', $person->id)->first();
 
+        // L'adresse se partage dans la FAMILLE (cercles familiaux), jamais
+        // entre amis.
+        $familyCircles = fn (User $u) => $u->circles()->where('kind', \App\Models\Household::KIND_FAMILY)->pluck('id')->all();
+
         return $linkedUser !== null
             && $linkedUser->sharesAddressWithHousehold()
-            && $linkedUser->sharesHouseholdWith($viewer);
+            && array_intersect($familyCircles($linkedUser), $familyCircles($viewer)) !== [];
     }
 
     /**

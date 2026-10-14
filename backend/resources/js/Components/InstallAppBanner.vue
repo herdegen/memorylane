@@ -11,7 +11,7 @@
       <div class="flex-1 min-w-0">
         <p class="font-semibold text-surface-900">Installez MemoryLane sur votre téléphone</p>
         <p class="text-sm text-surface-600">
-          Une icône sur l'écran d'accueil, comme une vraie application<span v-if="device === 'ios'"> — et les notifications de la famille</span>.
+          Une icône sur l'écran d'accueil, comme une vraie application<span v-if="device === 'ios'"> — et les notifications de vos proches</span>.
         </p>
         <div class="mt-2.5 flex flex-wrap items-center gap-2">
           <button v-if="canPromptNative" type="button" class="btn-primary !py-1.5" @click="install">Installer</button>

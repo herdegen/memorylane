@@ -67,8 +67,8 @@ class WeeklyDigest extends Notification implements ShouldQueue
 
         $mail->line(
             $this->mediaCount === 1
-                ? 'Un nouveau souvenir a rejoint la famille cette semaine.'
-                : "{$this->mediaCount} nouveaux souvenirs ont rejoint la famille cette semaine."
+                ? 'Un nouveau souvenir a été partagé avec vous cette semaine.'
+                : "{$this->mediaCount} nouveaux souvenirs ont été partagés avec vous cette semaine."
         );
 
         if (! empty($this->uploaderNames)) {
@@ -84,6 +84,6 @@ class WeeklyDigest extends Notification implements ShouldQueue
         return $mail
             ->action('Voir les nouveautés', url('/media'))
             ->line('Bonne semaine, et à bientôt sur MemoryLane.')
-            ->salutation('MemoryLane — les souvenirs de la famille');
+            ->salutation('MemoryLane — les souvenirs de vos proches');
     }
 }

@@ -105,7 +105,7 @@ const STEPS = {
 };
 
 const TIPS = {
-  ios: 'Les photos sont partagées avec la famille par défaut : décochez la case avant d\'envoyer pour les garder pour vous.',
+  ios: 'Les photos sont partagées avec votre cercle par défaut : décochez la case avant d\'envoyer pour les garder pour vous.',
   android: 'Encore plus simple après avoir installé l\'appli : depuis la Galerie, <strong>Partager › MemoryLane</strong>.',
   desktop: 'Vos photos sont chez Google Photos ? Utilisez plutôt « Autres façons d\'importer » en bas de la page.',
 };

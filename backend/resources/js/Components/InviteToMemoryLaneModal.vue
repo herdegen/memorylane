@@ -3,7 +3,7 @@
     <form id="invite-form" class="px-6 py-5 space-y-4" @submit.prevent="submit">
       <p class="text-sm text-surface-600">
         {{ firstName }} recevra un mail qui présente MemoryLane et l'invite à créer son accès
-        (un mot de passe à choisir). Son compte sera relié à cette fiche de l'arbre.
+        (un mot de passe à choisir). Son compte sera relié à cette fiche.
       </p>
 
       <div>

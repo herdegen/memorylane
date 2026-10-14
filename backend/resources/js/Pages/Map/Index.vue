@@ -104,8 +104,8 @@
           </div>
         </div>
 
-        <!-- Couches -->
-        <div class="mb-4">
+        <!-- Couches (« Où vit la famille » : famille seulement) -->
+        <div v-if="!isFriends" class="mb-4">
           <h3 class="font-semibold mb-2">Couches</h3>
           <button
             type="button"
@@ -198,6 +198,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { useCircle } from '@/Composables/useCircle';
 import { formatDate } from '@/utils/format';
 import { escapeHtml } from '@/utils/html';
 import { apiError } from '@/utils/apiError';
@@ -207,6 +208,8 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.heat';
 import axios from 'axios';
+
+const { isFriends } = useCircle();
 
 const toast = useToast();
 

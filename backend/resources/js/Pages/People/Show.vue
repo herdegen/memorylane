@@ -5,8 +5,18 @@
     <div class="relative bg-linear-to-br from-brand-100 via-page to-page border-b border-surface-200">
       <!-- Actions flottantes -->
       <div class="absolute top-4 right-4 sm:top-5 sm:right-8 z-20 flex items-center gap-2.5">
+        <!-- Amis : pas de parenté, on la retrouve dans le réseau du cercle -->
         <Link
-          v-if="viewerPersonId && viewerPersonId !== person.id"
+          v-if="isFriends"
+          :href="`/network?focus=${person.id}`"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur text-sm font-semibold text-surface-900 shadow-warm-md hover:bg-white transition"
+          title="Voir ses liens dans le réseau du cercle"
+        >
+          <CircleKindIcon kind="friends" class="w-4 h-4" />
+          Voir dans le réseau
+        </Link>
+        <Link
+          v-else-if="viewerPersonId && viewerPersonId !== person.id"
           :href="`/family-tree?kinship=${person.id}`"
           class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur text-sm font-semibold text-surface-900 shadow-warm-md hover:bg-white transition"
           title="Voir notre lien de parenté dans l'arbre"
@@ -17,6 +27,7 @@
           Lien de parenté
         </Link>
         <button
+          v-if="!isFriends"
           @click="playLifeSlideshow"
           class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur text-sm font-semibold text-surface-900 shadow-warm-md hover:bg-white transition"
         >
@@ -66,8 +77,8 @@
         <Link
           href="/people"
           class="hidden sm:inline-flex items-center justify-center w-11 h-11 rounded-full bg-white border border-surface-200 text-surface-600 shadow-warm-sm hover:bg-surface-50 transition shrink-0"
-          title="Retour aux personnes"
-          aria-label="Retour aux personnes"
+          :title="`Retour aux ${peopleLabel.toLowerCase()}`"
+          :aria-label="`Retour aux ${peopleLabel.toLowerCase()}`"
         >
           <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -97,7 +108,7 @@
         </div>
 
         <div class="min-w-0">
-          <div class="text-xs font-semibold uppercase tracking-widest text-brand-700">Personnes</div>
+          <div class="text-xs font-semibold uppercase tracking-widest text-brand-700">{{ peopleLabel }}</div>
           <h1 class="font-display text-3xl sm:text-[42px] font-bold text-surface-900 leading-tight">
             {{ personLabel(person) }}
             <span v-if="person.gender === 'M'" class="text-surface-400 text-2xl align-middle" title="Masculin">&#9794;</span>
@@ -170,7 +181,9 @@
     />
 
     <!-- ================= Sa vie (frise horizontale) ================= -->
-    <PersonTimeline ref="timelineRef" :person-id="person.id" :person-name="personLabel(person)" :can-manage="canManage" />
+    <!-- Amis : « Vos souvenirs ensemble » à la place de la frise de vie -->
+    <FriendshipTimeline v-if="isFriends" :person-id="person.id" :person-name="personLabel(person)" />
+    <PersonTimeline v-else ref="timelineRef" :person-id="person.id" :person-name="personLabel(person)" :can-manage="canManage" />
 
     <!-- ================= Galeries, séparées par album puis par année ================= -->
     <div v-if="media.length > 0" class="pt-9 pb-12">
@@ -322,6 +335,7 @@ import PersonFormModal from '@/Components/PersonFormModal.vue';
 import FamilyPanel from '@/Components/FamilyPanel.vue';
 import HowWeMetPanel from '@/Components/HowWeMetPanel.vue';
 import PersonCircles from '@/Components/PersonCircles.vue';
+import FriendshipTimeline from '@/Components/FriendshipTimeline.vue';
 import CircleKindIcon from '@/Components/CircleKindIcon.vue';
 import { useCircle } from '@/Composables/useCircle';
 import PersonTimeline from '@/Components/PersonTimeline.vue';
@@ -335,7 +349,7 @@ import { conversionUrl } from '@/utils/media';
 
 const toast = useToast();
 const { confirm } = useConfirm();
-const { isFriends } = useCircle();
+const { isFriends, peopleLabel } = useCircle();
 
 const props = defineProps({
   person: {

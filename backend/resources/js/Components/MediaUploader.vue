@@ -563,7 +563,7 @@ const shareFresh = async (ids, result) => {
     }
     result.sharedWith = shareCircle.value.name;
   } catch (e) {
-    result.warning = "Photos envoyées, mais le partage avec la famille a échoué : réessayez depuis « Mes photos ».";
+    result.warning = "Photos envoyées, mais le partage avec le cercle a échoué : réessayez depuis « Mes photos ».";
   }
 };
 

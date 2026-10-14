@@ -60,8 +60,8 @@
 
               <ToggleSwitch
                 v-model="profileForm.share_address_with_household"
-                label="Partager mon adresse avec mon foyer"
-                help="Les membres de vos foyers verront votre adresse sur votre fiche. Sans cela, seule une position approximative (~1 km) alimente la carte."
+                label="Partager mon adresse avec ma famille"
+                help="Les membres de vos cercles familiaux verront votre adresse sur votre fiche (jamais vos cercles d'amis). Sans cela, seule une position approximative (~1 km) alimente la carte."
               />
 
               <div class="flex items-center gap-4">

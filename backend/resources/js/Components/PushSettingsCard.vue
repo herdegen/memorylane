@@ -3,7 +3,7 @@
     <div class="p-6">
       <h2 class="text-lg font-medium text-surface-900 mb-4">Notifications</h2>
       <p class="mt-1 text-sm text-surface-600 mb-6">
-        Rares et discrètes : les nouvelles du foyer, les anniversaires de vos proches et le
+        Rares et discrètes : les nouvelles de vos cercles, les anniversaires de vos proches et le
         résumé du dimanche. Jamais la nuit, désactivables à tout moment.
       </p>
 
@@ -47,8 +47,8 @@
       <div v-if="subscriptions.length > 0" class="space-y-5">
         <ToggleSwitch
           v-model="prefs.social"
-          label="Vie du foyer"
-          help="Ajout à un foyer, photos partagées avec votre foyer, accès à un album. Rare par nature, et jamais entre 21h et 8h."
+          label="Vie des cercles"
+          help="Ajout à un cercle, photos partagées avec vos cercles, accès à un album. Rare par nature, et jamais entre 21h et 8h."
           :disabled="savingPrefs"
           @update:modelValue="savePrefs"
         />

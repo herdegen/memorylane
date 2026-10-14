@@ -1,5 +1,5 @@
 <template>
-  <BaseModal title="Partager avec un foyer" @close="$emit('close')">
+  <BaseModal title="Partager avec un cercle" @close="$emit('close')">
     <template #header-extra>
       <span class="text-sm text-surface-500">
         {{ mediaIds.length }} média{{ mediaIds.length > 1 ? 's' : '' }}
@@ -9,21 +9,21 @@
     <div class="px-6 py-4">
       <!-- Chargement des foyers -->
       <div v-if="loading" class="py-8 text-center text-sm text-surface-500">
-        Chargement des foyers…
+        Chargement des cercles…
       </div>
 
       <!-- Aucun foyer -->
       <div v-else-if="households.length === 0" class="py-6 text-center">
-        <p class="text-sm text-surface-600">Vous n'appartenez à aucun foyer.</p>
+        <p class="text-sm text-surface-600">Vous n'appartenez à aucun cercle.</p>
         <Link href="/households" class="mt-2 inline-block text-sm font-medium text-brand-600 dark:text-brand-400 hover:underline">
-          Créer un foyer
+          Voir les cercles
         </Link>
       </div>
 
       <!-- Choix du foyer -->
       <div v-else class="space-y-2">
         <p class="text-sm text-surface-500 mb-3">
-          Les membres du foyer choisi pourront voir ces médias. Seuls les médias
+          Les membres du cercle choisi pourront voir ces médias. Seuls les médias
           qui vous appartiennent seront partagés.
         </p>
         <label
@@ -60,7 +60,7 @@
         :disabled="!selectedHouseholdId || saving"
         @click="submit('remove')"
       >
-        Retirer du foyer
+        Retirer du cercle
       </button>
       <button type="button" class="btn-secondary" @click="$emit('close')">Annuler</button>
       <button
@@ -106,7 +106,7 @@ onMounted(async () => {
       selectedHouseholdId.value = data[0].id;
     }
   } catch (e) {
-    errorMessage.value = 'Impossible de charger vos foyers.';
+    errorMessage.value = 'Impossible de charger vos cercles.';
   } finally {
     loading.value = false;
   }

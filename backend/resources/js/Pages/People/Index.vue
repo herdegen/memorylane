@@ -48,7 +48,7 @@
             {{ sortDir === 'asc' ? 'Croissant' : 'Décroissant' }}
           </button>
           <p
-            v-if="sortBy === 'proximity' && !selfPersonId"
+            v-if="sortBy === 'proximity' && !selfPersonId && !isFriends"
             class="text-xs text-surface-500"
           >
             Astuce : ouvrez une fiche et cliquez « C'est moi » pour trier par proximité familiale.
@@ -145,7 +145,7 @@ import { personLabel } from '@/utils/personName';
 import { formatLongDate } from '@/utils/format';
 import { useCircle } from '@/Composables/useCircle';
 
-const { peopleLabel } = useCircle();
+const { peopleLabel, isFriends } = useCircle();
 
 const props = defineProps({
   people: {
@@ -160,13 +160,16 @@ const props = defineProps({
 
 const showCreateModal = ref(false);
 
-const sortOptions = [
-  { value: 'proximity', label: 'Proximité' },
+// Amis : pas de parenté — on trie par photos (les plus présents d'abord).
+const sortOptions = computed(() => [
+  isFriends.value
+    ? { value: 'photos', label: 'Les plus photographiés' }
+    : { value: 'proximity', label: 'Proximité' },
   { value: 'last_name', label: 'Nom' },
   { value: 'first_name', label: 'Prénom' },
   { value: 'birth_year', label: 'Année de naissance' },
-];
-const sortBy = ref('proximity');
+]);
+const sortBy = ref(isFriends.value ? 'photos' : 'proximity');
 const sortDir = ref('asc'); // 'asc' | 'desc'
 
 const collator = new Intl.Collator('fr', { sensitivity: 'base', numeric: true });
@@ -200,6 +203,8 @@ const sortedPeople = computed(() => {
         return dir * collator.compare(a.first_name || '', b.first_name || '');
       case 'birth_year':
         return nullsLast(a.birth_date, b.birth_date, (x, y) => dir * String(x).localeCompare(String(y)));
+      case 'photos':
+        return dir * ((b.media_count || 0) - (a.media_count || 0));
       case 'proximity':
       default:
         // Avec une fiche « moi » : distance de parenté (proches d'abord en asc).

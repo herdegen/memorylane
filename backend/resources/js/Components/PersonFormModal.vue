@@ -19,7 +19,7 @@
         </div>
         <div>
           <label for="last_name" class="block text-sm font-medium text-surface-700 mb-1">
-            Nom de famille
+            {{ isFriends ? 'Nom' : 'Nom de famille' }}
           </label>
           <input
             id="last_name"
@@ -32,7 +32,8 @@
         </div>
       </div>
 
-      <div>
+      <!-- Généalogie : absent entre amis -->
+      <div v-if="!isFriends">
         <label for="maiden_name" class="block text-sm font-medium text-surface-700 mb-1">
           Nom de naissance
         </label>
@@ -74,7 +75,7 @@
           />
         </div>
 
-        <div>
+        <div v-if="!isFriends || form.death_date">
           <label for="death_date" class="block text-sm font-medium text-surface-700 mb-1">
             Date de décès
           </label>
@@ -87,7 +88,8 @@
         </div>
       </div>
 
-      <div>
+      <!-- L'adresse se partage en famille seulement -->
+      <div v-if="!isFriends">
         <label for="address" class="block text-sm font-medium text-surface-700 mb-1">
           Adresse
         </label>
@@ -140,6 +142,9 @@ import { ref, reactive } from 'vue';
 import axios from 'axios';
 import BaseModal from '@/Components/BaseModal.vue';
 import { useToast } from '@/Composables/useToast';
+import { useCircle } from '@/Composables/useCircle';
+
+const { isFriends } = useCircle();
 
 const props = defineProps({
   person: {

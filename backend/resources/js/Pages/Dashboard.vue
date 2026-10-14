@@ -167,7 +167,7 @@
           <div class="flex-1 min-w-0">
             <h2 class="text-base font-semibold text-surface-900">Bien démarrer avec MemoryLane</h2>
             <p class="text-sm text-surface-500 mt-0.5">
-              Importer vos photos, créer des albums, identifier les visages, partager en foyer — le guide pas à pas pour la famille.
+              Importer vos photos, créer des albums, identifier les visages, partager avec vos proches — le guide pas à pas.
             </p>
           </div>
           <Link href="/guide" class="btn-primary shrink-0">
@@ -216,13 +216,13 @@
                   </svg>
                 </div>
                 <div>
-                  <h3 class="font-semibold text-surface-900">Personnes</h3>
-                  <p class="text-sm text-surface-500 mt-0.5">Votre famille</p>
+                  <h3 class="font-semibold text-surface-900">{{ isFriends ? 'Amis' : 'Personnes' }}</h3>
+                  <p class="text-sm text-surface-500 mt-0.5">{{ isFriends ? 'Les fiches du cercle' : 'Votre famille' }}</p>
                 </div>
               </div>
             </Link>
 
-            <Link href="/family-tree" class="action-card group">
+            <Link :href="isFriends ? '/network' : '/family-tree'" class="action-card group">
               <div class="flex items-start gap-4">
                 <div class="action-card-icon action-card-icon--violet shrink-0">
                   <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -230,8 +230,8 @@
                   </svg>
                 </div>
                 <div>
-                  <h3 class="font-semibold text-surface-900">Arbre</h3>
-                  <p class="text-sm text-surface-500 mt-0.5">Généalogie</p>
+                  <h3 class="font-semibold text-surface-900">{{ isFriends ? 'Réseau' : 'Arbre' }}</h3>
+                  <p class="text-sm text-surface-500 mt-0.5">{{ isFriends ? 'Qui apparaît avec qui' : 'Généalogie' }}</p>
                 </div>
               </div>
             </Link>

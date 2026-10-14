@@ -2,12 +2,14 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Person;
 use App\Models\User;
 use App\Notifications\Push\BirthdaysToday;
 use App\Notifications\Push\MemorialsToday;
 use App\Services\CelebrationService;
 use App\Services\PushNotifier;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Push « anniversaires du jour » : une notification par utilisateur pour
@@ -32,13 +34,22 @@ class SendBirthdayPush extends Command
                 return;
             }
 
-            $birthdays = $celebrations->birthdaysOn($today, $celebrations->closeCircleQuery($user));
+            // Proches de la famille (parenté) + fiches de ses cercles d'amis
+            // (sans l'âge : entre amis, on fête, on ne compte pas).
+            $family = $celebrations->birthdaysOn($today, $celebrations->closeCircleQuery($user)->where('in_family_directory', true));
+            $friendIds = DB::table('household_person')->whereIn('household_id', $user->friendCircleIds())->pluck('person_id');
+            $friends = $friendIds->isEmpty()
+                ? collect()
+                : $celebrations->birthdaysOn($today, Person::visibleTo($user)->whereIn('people.id', $friendIds)->where('in_family_directory', false));
+            $birthdays = $family->map(fn ($b) => [...$b, 'friend' => false])
+                ->concat($friends->map(fn ($b) => [...$b, 'friend' => true]))
+                ->unique(fn ($b) => $b['person']->id);
             if ($birthdays->isNotEmpty()) {
                 $user->notify(new BirthdaysToday(
                     $birthdays->map(fn ($b) => [
                         'id' => $b['person']->id,
                         'name' => $b['person']->name,
-                        'age' => $b['age'],
+                        'age' => $b['friend'] ? null : $b['age'],
                     ])->values()->all(),
                     $today->toDateString(),
                 ));
@@ -46,7 +57,8 @@ class SendBirthdayPush extends Command
             }
 
             // Anniversaires de décès : notification distincte, ton sobre.
-            $memorials = $celebrations->memorialsOn($today, $celebrations->closeCircleQuery($user));
+            // Famille seulement (fiches du répertoire familial).
+            $memorials = $celebrations->memorialsOn($today, $celebrations->closeCircleQuery($user)->where('in_family_directory', true));
             if ($memorials->isNotEmpty()) {
                 $user->notify(new MemorialsToday(
                     $memorials->map(fn ($m) => [

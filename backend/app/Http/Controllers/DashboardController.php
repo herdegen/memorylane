@@ -116,12 +116,15 @@ class DashboardController extends Controller
         }
 
         // Anniversaires de décès : uniquement le cercle proche du visiteur
-        // (un proche disparu, pas un ancêtre lointain), ton sobre.
-        $memorials = $this->celebrations->upcomingMemorials(
-            $today,
-            self::CELEBRATIONS_WINDOW_DAYS,
-            $this->celebrations->closeCircleQuery(auth()->user()),
-        );
+        // (un proche disparu, pas un ancêtre lointain), ton sobre. Famille
+        // seulement : pas d'« en mémoire » dans l'accueil d'un cercle d'amis.
+        $memorials = auth()->user()->mode() === \App\Models\Household::KIND_FRIENDS
+            ? collect()
+            : $this->celebrations->upcomingMemorials(
+                $today,
+                self::CELEBRATIONS_WINDOW_DAYS,
+                $this->celebrations->closeCircleQuery(auth()->user()),
+            );
         $this->loadAvatars($memorials->pluck('person'));
 
         foreach ($memorials as ['person' => $person, 'years' => $years, 'days_until' => $days]) {

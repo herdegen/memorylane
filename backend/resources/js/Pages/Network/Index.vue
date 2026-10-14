@@ -371,6 +371,10 @@ onMounted(async () => {
   setupZoom();
   fitView(false);
   window.addEventListener('resize', onResize);
+
+  // « Voir dans le réseau » depuis une fiche : ?focus={id} sélectionne et centre.
+  const focus = new URLSearchParams(window.location.search).get('focus');
+  if (focus && byId[focus]) select(focus, true);
 });
 
 onBeforeUnmount(() => window.removeEventListener('resize', onResize));

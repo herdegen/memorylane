@@ -53,12 +53,12 @@ function buildSteps(page) {
     {
       component: 'Dashboard', path: '/dashboard', element: '[data-tour="quests"]',
       title: 'Les petites questions',
-      text: '« Qui est sur cette photo ? », « En quelle année est-elle née ? »… Répondez quand vous savez : c\'est ainsi que la mémoire de la famille se complète.',
+      text: '« Qui est sur cette photo ? », « En quelle année est-elle née ? »… Répondez quand vous savez : c\'est ainsi que vos souvenirs se complètent.',
     },
     {
       component: 'Media/Upload', path: '/media/upload', element: '[data-tour="upload-pick"]',
       title: 'Ajouter vos photos',
-      text: 'C\'est ici, depuis votre téléphone ou votre ordinateur. Elles sont partagées avec la famille par défaut.',
+      text: 'C\'est ici, depuis votre téléphone ou votre ordinateur. Elles sont partagées avec votre cercle par défaut.',
     },
     {
       component: 'Media/Index', path: '/media', element: '[data-tour="gallery"]',
@@ -87,7 +87,7 @@ function buildSteps(page) {
     {
       component: 'Albums/Index', path: '/albums', element: '[data-tour="albums"]',
       title: 'Les albums',
-      text: 'Les souvenirs rangés par histoire : un mariage, des vacances, une cousinade. Les vôtres et ceux que la famille partage.',
+      text: 'Les souvenirs rangés par histoire : un mariage, des vacances, une cousinade. Les vôtres et ceux que vos proches partagent.',
     },
     {
       component: 'Albums/Index', path: '/albums',

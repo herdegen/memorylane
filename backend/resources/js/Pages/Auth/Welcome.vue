@@ -23,7 +23,7 @@
           <p class="mt-2 text-sm text-surface-600">
             {{ formal ? 'Votre' : 'Ta' }} fiche
             <strong class="text-surface-800">{{ person.name }}{{ person.birth_year ? ` (${person.birth_year})` : '' }}</strong>
-            {{ formal ? 'vous attend' : "t'attend" }} dans l'arbre de la famille.
+            {{ formal ? 'vous attend' : "t'attend" }} {{ friendsCircle ? `dans « ${friendsCircle} »` : "dans l'arbre de la famille" }}.
           </p>
         </div>
 
@@ -117,6 +117,7 @@ const props = defineProps({
   person: Object,
   suggestedName: String,
   loggedInAs: String,
+  friendsCircle: { type: String, default: null },
 });
 
 const form = useForm({

@@ -22,8 +22,8 @@ class HouseholdMemberAdded extends PushNotification
     public function toWebPush(object $notifiable, Notification $notification): WebPushMessage
     {
         return $this->message(
-            'Nouveau foyer',
-            "Vous faites maintenant partie du foyer « {$this->householdName} » (ajouté par {$this->actorFirstName}).",
+            'Nouveau cercle',
+            "Vous faites maintenant partie de « {$this->householdName} » (ajouté par {$this->actorFirstName}).",
             "/households/{$this->householdId}",
             "household-added-{$this->householdId}",
         );

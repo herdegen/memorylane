@@ -55,6 +55,8 @@ class InvitationController extends Controller
                 'portrait' => $portraits->dataUri($person, 200),
             ],
             'suggestedName' => trim($firstName.' '.$lastName),
+            // Invitation dans un cercle d'amis : on parle du cercle, pas de l'arbre.
+            'friendsCircle' => $invitation->household?->isFriends() ? $invitation->household->name : null,
             'loggedInAs' => $request->user()?->name,
         ]);
     }

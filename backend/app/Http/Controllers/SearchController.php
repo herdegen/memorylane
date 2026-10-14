@@ -102,7 +102,8 @@ class SearchController extends Controller
         // Fiches visibles seulement (autres cercles exclus) ; take élargi car
         // le filtre s'applique après Meilisearch.
         $people = $this->safeSearch(fn () => Person::search($query)
-            ->query(fn ($b) => $b->visibleTo(auth()->user())->with('avatar.conversions')->withMatchedFacesCount())
+            // Cercle courant seulement : famille et amis sont deux mondes.
+            ->query(fn ($b) => $b->inContext(auth()->user())->with('avatar.conversions')->withMatchedFacesCount())
             ->take(60)->get());
 
         if ($people->isEmpty()) {

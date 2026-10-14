@@ -28,8 +28,8 @@ class MediaSharedToHousehold extends PushNotification
         $what = $this->count === 1 ? 'un souvenir' : "{$this->count} souvenirs";
 
         return $this->message(
-            "Foyer « {$this->householdName} »",
-            "{$this->actorFirstName} a partagé {$what} avec le foyer.",
+            "« {$this->householdName} »",
+            "{$this->actorFirstName} a partagé {$what} avec le cercle.",
             "/households/{$this->householdId}",
             "household-share-{$this->householdId}",
         )->renotify();

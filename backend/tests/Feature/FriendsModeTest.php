@@ -243,4 +243,50 @@ class FriendsModeTest extends TestCase
         $this->assertTrue($albums['Avec Léa']['in_context']);
         $this->assertFalse($albums['Famille']['in_context']);
     }
+
+    public function test_vos_souvenirs_ensemble(): void
+    {
+        $album = \App\Models\Album::factory()->create(['user_id' => $this->me->id, 'name' => 'Week-end Annecy']);
+        $together = $this->photo([$this->self, $this->lea]);
+        $album->media()->attach($together->id);
+        $this->photo([$this->self, $this->lea]);   // hors album
+        $this->photo([$this->lea]);                // Léa seule : pas « ensemble »
+
+        $this->me->forceFill(['current_household_id' => $this->circle->id])->save();
+        $data = $this->actingAs($this->me->fresh())->getJson("/people/{$this->lea->id}/together")->assertOk()->json();
+
+        $this->assertTrue($data['together']);
+        $this->assertSame(2, $data['total']);
+        $this->assertContains('Week-end Annecy', array_column($data['chapters'], 'title'));
+    }
+
+    public function test_pas_de_carte_de_chaleur_ni_d_en_memoire_entre_amis(): void
+    {
+        $this->me->forceFill(['current_household_id' => $this->circle->id])->save();
+        $this->lea->update(['address' => null]);
+        \Illuminate\Support\Facades\DB::table('people')->where('id', $this->lea->id)->update(['address_latitude' => 48.8, 'address_longitude' => 2.3]);
+
+        $this->actingAs($this->me->fresh())->getJson('/map/heatmap')->assertOk()->assertJsonPath('points', []);
+    }
+
+    public function test_l_adresse_ne_se_partage_pas_entre_amis(): void
+    {
+        $other = $this->friend('Paul', $this->other);
+        $this->other->forceFill(['person_id' => $other->id, 'preferences' => ['share_address_with_household' => true]])->save();
+        \Illuminate\Support\Facades\DB::table('people')->where('id', $other->id)->update(['address' => '1 rue des Lilas']);
+
+        $this->actingAs($this->me)->get("/people/{$other->id}")->assertOk()
+            ->assertInertia(fn ($page) => $page->component('People/Show', false)->missing('person.address'));
+    }
+
+    public function test_recherche_limitee_au_cercle_courant(): void
+    {
+        $family = Household::factory()->create();
+        $family->members()->attach($this->me->id);
+        $mamie = Person::factory()->create(['user_id' => $this->admin->id, 'name' => 'Mamie Jeanne']);
+        $this->me->forceFill(['current_household_id' => $this->circle->id])->save();
+
+        $ids = collect($this->actingAs($this->me->fresh())->getJson('/search?q=Jeanne')->assertOk()->json('people'))->pluck('id');
+        $this->assertFalse($ids->contains($mamie->id));
+    }
 }

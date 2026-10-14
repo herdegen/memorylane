@@ -23,7 +23,7 @@
         pour pouvoir recevoir les notifications.
       </p>
       <p v-else class="text-sm text-surface-500 mt-0.5">
-        Anniversaires du jour, photos partagées dans vos foyers, résumé du dimanche.
+        Anniversaires du jour, photos partagées dans vos cercles, résumé du dimanche.
         Rare et discret, désactivable à tout moment.
       </p>
     </div>

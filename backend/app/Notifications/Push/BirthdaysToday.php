@@ -48,6 +48,10 @@ class BirthdaysToday extends PushNotification
     {
         $shown = array_slice($this->birthdays, 0, self::MAX_NAMES);
         $parts = array_map(function (array $b) {
+            // Entre amis, pas d'âge (age null).
+            if (($b['age'] ?? null) === null) {
+                return "de {$b['name']}";
+            }
             $age = $b['age'] === 1 ? '1 an' : "{$b['age']} ans";
 
             return "de {$b['name']} ({$age})";
