@@ -15,6 +15,10 @@ class ListPersonFaces extends ListRecords
 
     public function getSubheading(): ?string
     {
-        return 'Visages encore non identifiés qui ressemblent à la personne choisie, du plus ressemblant au moins ressemblant. Cochez ceux qui sont bien elle et validez en lot.';
+        $state = app(\App\Services\Vision\PersonFaceCandidates::class)->counts();
+        $note = ! $state['ready'] ? ' Le nombre de suggestions par personne est en cours de calcul (environ une minute).'
+            : (! $state['fresh'] ? ' Les nombres entre parenthèses se mettent à jour (environ une minute).' : '');
+
+        return 'Personnes triées par nombre de suggestions du moteur (entre parenthèses) ; leurs visages encore non identifiés, du plus ressemblant au moins ressemblant. Cochez ceux qui sont bien elle et validez en lot.'.$note;
     }
 }

@@ -97,7 +97,7 @@ class PersonFaceResource extends Resource
                 SelectFilter::make('person')
                     ->label('Personne')
                     ->placeholder('Choisir une personne…')
-                    ->options(fn () => Person::query()->orderBy('name')->pluck('name', 'id')->all())
+                    ->options(fn () => self::personOptions())
                     ->searchable()
                     ->query(function (Builder $query, array $data) {
                         if (! $data['value']) {
@@ -176,6 +176,19 @@ class PersonFaceResource extends Resource
                     })
                     ->deselectRecordsAfterCompletion(),
             ]);
+    }
+
+    /**
+     * Personnes triées par nombre de visages dont elles sont la suggestion du
+     * moteur (affiché entre parenthèses), puis par nom.
+     */
+    private static function personOptions(): array
+    {
+        $counts = app(PersonFaceCandidates::class)->counts()['counts'];
+        $names = Person::query()->orderBy('name')->pluck('name', 'id')->all();
+        uksort($names, fn ($a, $b) => (($counts[$b] ?? 0) <=> ($counts[$a] ?? 0)) ?: strcasecmp($names[$a], $names[$b]));
+
+        return collect($names)->map(fn ($name, $id) => isset($counts[$id]) ? "{$name} ({$counts[$id]})" : $name)->all();
     }
 
     /** Identifie les visages comme la personne choisie ; renvoie le nombre réussi. */

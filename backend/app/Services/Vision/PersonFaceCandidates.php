@@ -14,6 +14,10 @@ use Illuminate\Support\Facades\Cache;
  * au moins ressemblant. Exclus : photos où elle est déjà identifiée (une
  * seule fois par photo) et photos où elle ne peut pas figurer (pas née,
  * décédée). En cache jusqu'à la prochaine modification d'identification.
+ *
+ * Calcul global (toutes les personnes en une passe, ~30 s : tâche de fond
+ * ComputePersonFaceCandidates) : pour la liste des personnes triée par
+ * nombre de suggestions, et pour servir chaque personne instantanément.
  */
 class PersonFaceCandidates
 {
@@ -27,9 +31,128 @@ class PersonFaceCandidates
      */
     public function for(string $personId): array
     {
-        $version = (int) Cache::get('face-refs-version', 0);
+        $version = self::version();
+        $all = Cache::get(self::ALL_KEY);
+        if (($all['version'] ?? null) === $version) {
+            return $all['byPerson'][$personId] ?? [];
+        }
 
         return Cache::remember("person-candidates:{$personId}:v{$version}", now()->addHour(), fn () => $this->compute($personId));
+    }
+
+    public const ALL_KEY = 'person-candidates:all';
+
+    private static function version(): int
+    {
+        return (int) Cache::get('face-refs-version', 0);
+    }
+
+    /**
+     * Nombre de visages dont chaque personne est la suggestion du moteur (la
+     * plus ressemblante), d'après le dernier calcul global — éventuellement
+     * d'une version antérieure : un nouveau calcul est alors demandé.
+     *
+     * @return array{counts: array<string, int>, fresh: bool, ready: bool}
+     */
+    public function counts(): array
+    {
+        $all = Cache::get(self::ALL_KEY);
+        $fresh = ($all['version'] ?? null) === self::version();
+        if (! $fresh) {
+            \App\Jobs\ComputePersonFaceCandidates::dispatch();
+            // File synchrone (tests) : le résultat est déjà là.
+            $all = Cache::get(self::ALL_KEY);
+            $fresh = ($all['version'] ?? null) === self::version();
+        }
+
+        return ['counts' => $all['best'] ?? [], 'fresh' => $fresh, 'ready' => $all !== null];
+    }
+
+    /**
+     * Toutes les personnes en une passe : distances (sous le seuil) de chaque
+     * visage non identifié à chaque personne, et pour chaque visage la
+     * personne la plus ressemblante.
+     *
+     * @return array{version: int, byPerson: array<string, array<string, float>>, best: array<string, int>}
+     */
+    public function computeAll(): array
+    {
+        $version = self::version();
+        $references = [];
+        $alreadyOn = [];
+        DetectedFace::query()
+            ->whereNotNull('person_id')
+            ->whereHas('media')
+            ->orderByRaw('verified_at is null')
+            ->latest('updated_at')
+            ->get(['person_id', 'media_id', 'embedding_v2'])
+            ->each(function (DetectedFace $f) use (&$references, &$alreadyOn) {
+                $alreadyOn[$f->person_id][$f->media_id] = true;
+                $v = $f->embedding_v2;
+                if (is_array($v) && count($v) === 512 && count($references[$f->person_id] ?? []) < self::MAX_REFERENCES) {
+                    $references[$f->person_id][] = $v;
+                }
+            });
+        $flat = [];
+        foreach ($references as $personId => $vectors) {
+            foreach ($vectors as $v) {
+                $flat[] = [$personId, $v];
+            }
+        }
+        $people = Person::whereIn('id', array_keys($references))->get()->keyBy('id');
+        $plausibility = app(FacePlausibility::class);
+        $maxSquared = $this->matcher->matchThreshold() ** 2;
+        $byPerson = [];
+        $best = [];
+
+        DetectedFace::query()
+            ->where('status', 'unmatched')
+            ->whereNull('person_id')
+            ->whereNotNull('embedding_v2')
+            ->whereHas('media')
+            ->with('media')
+            ->select(['id', 'media_id', 'embedding_v2'])
+            ->chunkById(300, function ($faces) use ($flat, $alreadyOn, $people, $plausibility, $maxSquared, &$byPerson, &$best) {
+                foreach ($faces as $face) {
+                    $v = $face->embedding_v2;
+                    if (! is_array($v) || count($v) !== 512) {
+                        continue;
+                    }
+                    $nearest = [];
+                    foreach ($flat as [$personId, $r]) {
+                        $dot = 0.0;
+                        for ($i = 0; $i < 512; $i++) {
+                            $dot += $v[$i] * $r[$i];
+                        }
+                        $d2 = 2 - 2 * $dot;
+                        if (! isset($nearest[$personId]) || $d2 < $nearest[$personId]) {
+                            $nearest[$personId] = $d2;
+                        }
+                    }
+                    $winner = null;
+                    $winnerDistance = INF;
+                    foreach ($nearest as $personId => $d2) {
+                        if ($d2 > $maxSquared || isset($alreadyOn[$personId][$face->media_id])
+                            || ! isset($people[$personId]) || $plausibility->impossibility($people[$personId], $face->media)) {
+                            continue;
+                        }
+                        $distance = round(sqrt(max(0.0, $d2)), 4);
+                        $byPerson[$personId][$face->id] = $distance;
+                        if ($distance < $winnerDistance) {
+                            [$winner, $winnerDistance] = [$personId, $distance];
+                        }
+                    }
+                    if ($winner) {
+                        $best[$winner] = ($best[$winner] ?? 0) + 1;
+                    }
+                }
+            });
+        foreach ($byPerson as &$faces) {
+            asort($faces);
+        }
+        arsort($best);
+
+        return ['version' => $version, 'byPerson' => $byPerson, 'best' => $best];
     }
 
     private function compute(string $personId): array

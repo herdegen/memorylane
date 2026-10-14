@@ -418,6 +418,34 @@ class InsightFaceTest extends TestCase
         $this->assertNotNull($close->fresh()->verified_at, 'validé par un humain');
     }
 
+    public function test_people_are_sorted_by_number_of_suggestions(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $tom = Person::create(['user_id' => $this->user->id, 'name' => 'Tom']);
+        $lea = Person::create(['user_id' => $this->user->id, 'name' => 'Léa']);
+        Person::create(['user_id' => $this->user->id, 'name' => 'Aline']);
+        $box = ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5];
+        foreach ([0.0, 0.1, 0.2] as $n) {
+            $this->face($this->photo(), $box, $tom, v2: $this->vec(2, $n));
+        }
+        $this->face($this->photo(), $box, $lea, v2: $this->vec(1));
+        $this->face($this->photo(), $box, $lea, v2: $this->vec(1, 0.1));
+        $this->face($this->photo(), $box, v2: $this->vec(2, 0.05));
+        $this->face($this->photo(), $box, v2: $this->vec(2, 0.3));
+        $this->face($this->photo(), $box, v2: $this->vec(1, 0.05));
+
+        $live = app(\App\Services\Vision\PersonFaceCandidates::class)->for($tom->id);
+        $state = app(\App\Services\Vision\PersonFaceCandidates::class)->counts();
+
+        $this->assertTrue($state['fresh']);
+        $this->assertSame([$tom->id => 2, $lea->id => 1], $state['counts']);
+        $this->assertSame($live, app(\App\Services\Vision\PersonFaceCandidates::class)->for($tom->id), 'calcul global = calcul par personne');
+
+        $this->actingAs($admin);
+        \Livewire\Livewire::test(\App\Filament\Resources\PersonFaceResource\Pages\ListPersonFaces::class)
+            ->assertSeeInOrder(['Tom (2)', 'Léa (1)', 'Aline']);
+    }
+
     public function test_quest_stranger_keeps_the_face_visible_not_face_hides_it(): void
     {
         config(['memorylane.faces.engine' => 'faceapi']);
