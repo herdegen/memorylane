@@ -68,7 +68,10 @@ const rootRef = ref(null);
 function pick(c) {
   open.value = false;
   if (c.id === current.value?.id) return;
-  router.post('/circles/current', { household_id: c.id }, { preserveScroll: true });
+  // Même page : on garde le défilement ; renvoyé ailleurs (depuis un album,
+  // vers la liste des albums du nouveau cercle) : en haut de page.
+  const from = window.location.pathname + window.location.search;
+  router.post('/circles/current', { household_id: c.id }, { preserveScroll: (page) => page.url === from });
 }
 
 const onClickOutside = (e) => {

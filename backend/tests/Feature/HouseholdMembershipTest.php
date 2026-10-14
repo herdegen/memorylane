@@ -226,6 +226,14 @@ class HouseholdMembershipTest extends TestCase
         // Pas un cercle dont on n'est pas membre.
         $this->actingAs($user)->post('/circles/current', ['household_id' => $other->id])->assertForbidden();
         $this->assertSame($friends->id, $user->fresh()->current_household_id);
+
+        // Depuis un album : retour à la liste des albums ; ailleurs : même page.
+        $this->actingAs($user)->from('/albums/019f7982-0d83-708c-9742-a9b475019895')
+            ->post('/circles/current', ['household_id' => $family->id])->assertRedirect('/albums');
+        $this->actingAs($user)->from('/people')
+            ->post('/circles/current', ['household_id' => $friends->id])->assertRedirect('/people');
+        $this->actingAs($user)->from('/albums')
+            ->post('/circles/current', ['household_id' => $family->id])->assertRedirect('/albums');
     }
 
     public function test_props_partagees_du_cercle(): void

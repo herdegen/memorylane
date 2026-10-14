@@ -282,6 +282,13 @@ class HouseholdController extends Controller
 
         $user->forceFill(['current_household_id' => $validated['household_id']])->save();
 
+        // Depuis la page d'un album (propre au cercle quitté) : la liste des
+        // albums du nouveau cercle plutôt que cet album.
+        $previous = (string) parse_url(url()->previous(), PHP_URL_PATH);
+        if (preg_match('#^/albums/[^/]+/?$#', $previous)) {
+            return redirect()->route('albums.index');
+        }
+
         return redirect()->back();
     }
 
