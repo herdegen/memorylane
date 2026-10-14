@@ -57,11 +57,16 @@ class AlbumController extends Controller
             ->orderBy('updated_at', 'desc')
             ->get();
 
-        $albums->transform(function ($album) {
+        $inContext = $this->albumIdsInContext($request->user(), $albums);
+
+        $albums->transform(function ($album) use ($inContext) {
             $album->is_owner = $album->user_id === auth()->id();
             // Cercles de l'album : l'uploader ne propose que ceux du cercle courant.
             $album->household_ids = $album->households->pluck('id')->values();
             $album->unsetRelation('households');
+            // Rangement de la page : albums du cercle courant d'abord, les
+            // autres à part (grisés, avec « Partager avec ce cercle »).
+            $album->in_context = isset($inContext[$album->id]);
             $cover = $this->coverMediaFor($album);
             if ($cover) {
                 $album->cover_url = $this->getCoverUrl($cover);
@@ -76,6 +81,51 @@ class AlbumController extends Controller
         return Inertia::render('Albums/Index', [
             'albums' => $albums,
         ]);
+    }
+
+    /**
+     * Albums qui appartiennent au cercle courant.
+     * - Cercle d'amis : partagés avec lui, ou montrant un ami du cercle.
+     * - Famille : partagés avec un cercle familial, ou sans cercle du tout
+     *   (privés) ; un album partagé seulement avec des cercles d'amis est
+     *   « ailleurs ».
+     *
+     * @return array<string,true>
+     */
+    private function albumIdsInContext(User $user, $albums): array
+    {
+        $circle = $user->currentCircle();
+        $ids = [];
+
+        if ($circle?->isFriends()) {
+            $friendIds = $circle->people()
+                ->when($user->person_id, fn ($q) => $q->where('people.id', '!=', $user->person_id))
+                ->pluck('people.id');
+            $withFriends = DB::table('album_media as am')
+                ->join('media_person as mp', 'mp.media_id', '=', 'am.media_id')
+                ->whereIn('am.album_id', $albums->pluck('id'))
+                ->whereIn('mp.person_id', $friendIds)
+                ->distinct()
+                ->pluck('am.album_id')
+                ->flip();
+            foreach ($albums as $album) {
+                if ($album->households->contains('id', $circle->id) || isset($withFriends[$album->id])) {
+                    $ids[$album->id] = true;
+                }
+            }
+
+            return $ids;
+        }
+
+        $familyCircles = Household::where('kind', Household::KIND_FAMILY)->pluck('id')->flip();
+        foreach ($albums as $album) {
+            $circles = $album->households->pluck('id');
+            if ($circles->isEmpty() || $circles->contains(fn ($id) => isset($familyCircles[$id]))) {
+                $ids[$album->id] = true;
+            }
+        }
+
+        return $ids;
     }
 
     public function store(Request $request)

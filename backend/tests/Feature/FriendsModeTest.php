@@ -225,4 +225,22 @@ class FriendsModeTest extends TestCase
         $ids = Media::inContext($this->me->fresh())->pluck('id');
         $this->assertTrue($ids->contains($shared->id));
     }
+
+    public function test_albums_ranges_par_cercle_courant(): void
+    {
+        $this->me->forceFill(['current_household_id' => $this->circle->id])->save();
+
+        $shared = \App\Models\Album::factory()->create(['user_id' => $this->me->id, 'name' => 'Partagé']);
+        $shared->households()->attach($this->circle->id);
+        $withFriend = \App\Models\Album::factory()->create(['user_id' => $this->me->id, 'name' => 'Avec Léa']);
+        $withFriend->media()->attach($this->photo([$this->lea])->id);
+        $family = \App\Models\Album::factory()->create(['user_id' => $this->me->id, 'name' => 'Famille']);
+        $family->media()->attach($this->photo([$this->self])->id);
+
+        $albums = collect($this->actingAs($this->me->fresh())->getJson('/albums')->assertOk()->json())->keyBy('name');
+
+        $this->assertTrue($albums['Partagé']['in_context']);
+        $this->assertTrue($albums['Avec Léa']['in_context']);
+        $this->assertFalse($albums['Famille']['in_context']);
+    }
 }

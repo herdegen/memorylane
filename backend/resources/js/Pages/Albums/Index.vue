@@ -35,14 +35,17 @@
         </button>
       </div>
 
-      <!-- Grille -->
+      <!-- Grille : albums du cercle courant -->
+      <h2 v-if="hereAlbums.length && elsewhereAlbums.length && current" class="text-sm font-semibold uppercase tracking-wider text-surface-500 mb-3">
+        Albums de {{ current.name }}
+      </h2>
       <div
-        v-if="filteredAlbums.length > 0"
+        v-if="hereAlbums.length > 0"
         data-tour="albums"
         class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
       >
         <AlbumCard
-          v-for="album in filteredAlbums"
+          v-for="album in hereAlbums"
           :key="album.id"
           :album="album"
           :owner-name="album.is_owner === false ? album.user?.name : null"
@@ -50,8 +53,39 @@
         />
       </div>
 
+      <!-- Ailleurs : albums d'autres cercles, mis à part et grisés -->
+      <template v-if="elsewhereAlbums.length > 0">
+        <div class="mt-10 mb-3">
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-500">Ailleurs</h2>
+          <p class="text-xs text-surface-500 mt-1">
+            {{ current ? `Pas encore partagés avec ${current.name} : un clic les y ajoute.` : 'Albums partagés avec d\'autres cercles.' }}
+          </p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div v-for="album in elsewhereAlbums" :key="album.id" class="flex flex-col gap-2">
+            <div class="opacity-60 hover:opacity-100 transition-opacity">
+              <AlbumCard
+                :album="album"
+                :owner-name="album.is_owner === false ? album.user?.name : null"
+                @click="goToAlbum(album)"
+              />
+            </div>
+            <button
+              v-if="current && album.is_owner"
+              type="button"
+              class="self-start inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-semibold border border-dashed border-surface-300 text-surface-700 hover:border-brand-400 hover:text-brand-700"
+              :disabled="sharing === album.id"
+              @click="shareWithCurrent(album)"
+            >
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+              Partager avec {{ current.name }}
+            </button>
+          </div>
+        </div>
+      </template>
+
       <!-- Aucun résultat pour ce filtre -->
-      <div v-else-if="albums.length > 0" class="text-center py-16 bg-white rounded-lg shadow-xs">
+      <div v-if="filteredAlbums.length === 0 && albums.length > 0" class="text-center py-16 bg-white rounded-lg shadow-xs">
         <p class="text-surface-500">Aucun album ne correspond à ce filtre.</p>
         <button @click="filter = 'all'" class="mt-3 text-sm font-medium text-brand-700 dark:text-brand-400 hover:underline">
           Voir tous les albums
@@ -59,7 +93,7 @@
       </div>
 
       <!-- Empty State -->
-      <div v-else class="text-center py-16 bg-white rounded-lg shadow-xs">
+      <div v-if="albums.length === 0" class="text-center py-16 bg-white rounded-lg shadow-xs">
         <svg class="mx-auto h-16 w-16 text-surface-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
@@ -97,6 +131,11 @@ import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AlbumCard from '@/Components/AlbumCard.vue';
 import AlbumFormModal from '@/Components/AlbumFormModal.vue';
+import axios from 'axios';
+import { useCircle } from '@/Composables/useCircle';
+import { useToast } from '@/Composables/useToast';
+
+const toast = useToast();
 
 const props = defineProps({
   albums: {
@@ -128,6 +167,24 @@ const filters = computed(() => [
 ]);
 
 const filteredAlbums = computed(() => props.albums.filter(matchers[filter.value] || matchers.all));
+
+// Rangement par cercle courant : ses albums d'abord, les autres à part.
+const { current } = useCircle();
+const hereAlbums = computed(() => filteredAlbums.value.filter((a) => a.in_context !== false));
+const elsewhereAlbums = computed(() => filteredAlbums.value.filter((a) => a.in_context === false));
+
+const sharing = ref(null);
+const shareWithCurrent = async (album) => {
+  sharing.value = album.id;
+  try {
+    await axios.post(`/albums/${album.id}/circles`, { household_id: current.value.id });
+    router.reload({ only: ['albums'], preserveScroll: true });
+  } catch (e) {
+    toast.error(e.response?.data?.message || 'Impossible de partager cet album.');
+  } finally {
+    sharing.value = null;
+  }
+};
 
 const goToAlbum = (album) => {
   router.visit(`/albums/${album.id}`);

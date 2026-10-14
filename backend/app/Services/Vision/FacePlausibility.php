@@ -81,7 +81,10 @@ class FacePlausibility
             }
         }
 
-        if ($kin !== null && ($kin[$person->id] ?? PHP_INT_MAX) > self::CLOSE_KIN_MAX_DISTANCE) {
+        // La parenté ne dit rien d'un ami : ce doute ne vise que les fiches
+        // du répertoire familial (un ami sur une photo de famille est normal).
+        if ($kin !== null && $person->in_family_directory !== false
+            && ($kin[$person->id] ?? PHP_INT_MAX) > self::CLOSE_KIN_MAX_DISTANCE) {
             $doubts[] = ['code' => 'distant', 'label' => isset($kin[$person->id])
                 ? 'Parenté lointaine avec la photo'
                 : 'Pas de lien familial à l\'époque de la photo'];
@@ -108,6 +111,9 @@ class FacePlausibility
             ->merge(DetectedFace::where('media_id', $media->id)->whereNotNull('person_id')->pluck('person_id'))
             ->filter(fn ($id) => $id && $id !== $exceptPersonId)
             ->unique()->values();
+        // Repères familiaux seulement : un ami identifié sur la photo ne
+        // relie personne à l'arbre.
+        $anchors = Person::whereIn('id', $anchors)->where('in_family_directory', true)->pluck('id');
 
         if ($anchors->isEmpty() && ($ownerPerson = $media->user?->person_id)) {
             $anchors = collect([$ownerPerson]);

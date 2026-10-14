@@ -168,6 +168,27 @@ class FaceGuardsTest extends TestCase
         $this->assertSame('distant', $rows->firstWhere('person.id', $stranger->id)['doubts'][0]['code']);
     }
 
+    public function test_a_friend_is_never_flagged_as_distant_kin(): void
+    {
+        $parent = $this->person();
+        $friend = $this->person(['in_family_directory' => false]);
+        $media = $this->photo('2016-01-01');
+        $this->face($media, 0.5, $parent);
+
+        // La parenté ne dit rien d'un ami : pas de « pas de lien familial ».
+        $this->assertSame([], $this->doubtsOn($media, $friend));
+    }
+
+    public function test_friends_on_the_photo_are_not_kin_anchors(): void
+    {
+        $friend = $this->person(['in_family_directory' => false]);
+        $media = $this->photo('2016-01-01');
+        $this->face($media, 0.5, $friend);
+
+        $kin = app(\App\Services\Vision\FacePlausibility::class)->kinDistances($media);
+        $this->assertArrayNotHasKey($friend->id, $kin ?? []);
+    }
+
     /**
      * Arbre : moi (marié en 2020) ; ma femme et son cousin (via son père et
      * son oncle) ; mon arrière-grand-oncle (côté paternel) et mon cousin par
