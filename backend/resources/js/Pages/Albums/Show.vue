@@ -2,10 +2,28 @@
   <Head :title="album.name" />
   <AppLayout>
     <!-- ================= Héro pleine largeur =================
-         Fond : carte centrée sur la géolocalisation de l'album ; à défaut la
-         photo de couverture assombrie ; à défaut un dégradé brand. -->
-    <div class="relative h-72 sm:h-[340px]">
-      <div v-if="album.hero_location" ref="heroMapEl" class="absolute inset-0 z-0"></div>
+         Fond : vidéo de l'album choisie (extrait en boucle) ; sinon carte
+         centrée sur la géolocalisation de l'album ; à défaut la photo de
+         couverture assombrie ; à défaut un dégradé brand. -->
+    <div class="relative" :class="album.hero_video ? 'h-80 sm:h-[420px]' : 'h-72 sm:h-[340px]'">
+      <!-- Vidéo de fond (extrait muet en boucle) ; image fixe si l'appareil
+           demande moins d'animations ou d'économiser les données. -->
+      <template v-if="album.hero_video">
+        <video
+          v-if="heroVideoPlays"
+          class="absolute inset-0 w-full h-full object-cover"
+          :src="album.hero_video.src"
+          :poster="album.hero_video.poster"
+          autoplay
+          muted
+          loop
+          playsinline
+          disablepictureinpicture
+          aria-hidden="true"
+        ></video>
+        <div v-else class="absolute inset-0 bg-cover bg-center" :style="{ backgroundImage: `url(${album.hero_video.poster})` }"></div>
+      </template>
+      <div v-else-if="album.hero_location" ref="heroMapEl" class="absolute inset-0 z-0"></div>
       <div
         v-else-if="album.cover_url"
         class="absolute inset-0 bg-cover bg-center"
@@ -286,6 +304,8 @@ const showSharePanel = ref(false);
 // ---- Héro carte : fond Leaflet statique centré sur l'album --------------
 // Leaflet (JS + CSS) n'est chargé que pour un album géolocalisé.
 const heroMapEl = ref(null);
+const heroVideoPlays = !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  && !navigator.connection?.saveData;
 let heroMap = null;
 let unmounted = false;
 

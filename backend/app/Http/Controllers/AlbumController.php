@@ -203,6 +203,14 @@ class AlbumController extends Controller
             $album->cover_url = $this->getCoverUrl($cover);
         }
 
+        // Vidéo en fond du titre : extrait muet en boucle (album:hero-video),
+        // tant que la vidéo est dans l'album.
+        $heroVideo = $album->hero_video_id ? $album->media->firstWhere('id', $album->hero_video_id) : null;
+        $album->hero_video = $heroVideo?->conversions->firstWhere('conversion_name', \App\Services\HeroClipService::CLIP) ? [
+            'src' => $this->mediaService->fileUrl($heroVideo, \App\Services\HeroClipService::CLIP),
+            'poster' => $this->mediaService->fileUrl($heroVideo, \App\Services\HeroClipService::POSTER),
+        ] : null;
+
         $album->is_owner = $album->user_id === auth()->id();
         // Lien anonyme : son URL n'est donnée qu'au propriétaire.
         $album->share_url = $album->is_owner ? $album->getShareUrl() : null;
