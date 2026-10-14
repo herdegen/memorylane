@@ -182,6 +182,32 @@ class Album extends Model
      * Il n'y a plus d'album « public pour tous » : on partage avec un cercle.
      * Sert à « Partagés avec moi » et aux agrégations (carte, médias accessibles).
      */
+    /**
+     * Albums du CONTEXTE courant, même règle que la liste des albums (cf.
+     * AlbumController::albumIdsInContext) : cercle d'amis → partagés avec lui
+     * ou montrant un ami du cercle ; famille → partagés avec un cercle
+     * familial, ou privés (un album partagé seulement entre amis est
+     * « ailleurs »). Ne vérifie pas l'accès : à combiner avec accessibleBy.
+     */
+    public function scopeInContext($query, User $user)
+    {
+        $circle = $user->currentCircle();
+
+        if ($circle?->isFriends()) {
+            $friendIds = $circle->people()
+                ->when($user->person_id, fn ($q) => $q->where('people.id', '!=', $user->person_id))
+                ->pluck('people.id');
+
+            return $query->where(fn ($w) => $w
+                ->whereHas('households', fn ($h) => $h->whereKey($circle->id))
+                ->orWhereHas('media.people', fn ($p) => $p->whereIn('people.id', $friendIds)));
+        }
+
+        return $query->where(fn ($w) => $w
+            ->whereDoesntHave('households')
+            ->orWhereHas('households', fn ($h) => $h->where('kind', Household::KIND_FAMILY)));
+    }
+
     public function scopeAccessibleBy($query, ?User $user)
     {
         if (! $user) {

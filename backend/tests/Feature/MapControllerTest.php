@@ -31,6 +31,38 @@ class MapControllerTest extends TestCase
         $response->assertStatus(200);
     }
 
+    public function test_the_map_shows_only_the_selected_circle(): void
+    {
+        $family = \App\Models\Household::factory()->create(['created_by' => $this->user->id, 'kind' => 'family']);
+        $band = \App\Models\Household::factory()->create(['created_by' => $this->user->id, 'kind' => 'friends']);
+        $family->members()->attach($this->user->id);
+        $band->members()->attach($this->user->id);
+        $located = function (array $attrs = []) {
+            $media = Media::factory()->create(['user_id' => $this->user->id, 'type' => 'photo', ...$attrs]);
+            $media->metadata()->create(['latitude' => 45.0, 'longitude' => 1.0]);
+
+            return $media;
+        };
+        $familyAlbum = \App\Models\Album::factory()->create(['user_id' => $this->user->id]);
+        $familyAlbum->media()->attach($located()->id, ['order' => 0]);
+        $bandAlbum = \App\Models\Album::factory()->create(['user_id' => $this->user->id]);
+        $bandAlbum->media()->attach($located()->id, ['order' => 0]);
+        $bandAlbum->households()->attach($band->id, ['granted_by' => $this->user->id]);
+        $familyPhoto = $located();
+        $bandPhoto = $located();
+        $bandPhoto->households()->attach($band->id);
+
+        $this->user->forceFill(['current_household_id' => $band->id])->save();
+        $json = $this->actingAs($this->user->fresh())->getJson('/map/media')->assertOk()->json();
+        $this->assertSame([$bandAlbum->id], array_column($json['albums'], 'id'), 'bande : ses albums seulement');
+        $this->assertSame([$bandPhoto->id], array_column($json['media'], 'id'), 'bande : ses photos seulement');
+
+        $this->user->forceFill(['current_household_id' => $family->id])->save();
+        $json = $this->actingAs($this->user->fresh())->getJson('/map/media')->assertOk()->json();
+        $this->assertSame([$familyAlbum->id], array_column($json['albums'], 'id'), 'famille : pas les albums de la bande');
+        $this->assertContains($familyPhoto->id, array_column($json['media'], 'id'));
+    }
+
     /**
      * Test getting geolocated media.
      */

@@ -43,9 +43,10 @@ class MapController extends Controller
 
         // Médias géolocalisés HORS album : ils restent des marqueurs média.
         // Ceux appartenant à un album sont représentés par le marqueur d'album
-        // (cliquer mène alors à l'album, pas à la photo).
+        // (cliquer mène alors à l'album, pas à la photo). Seulement ceux du
+        // cercle sélectionné (famille ou bande), comme le reste de l'appli.
         $query = Media::with(['user', 'tags', 'metadata', 'conversions'])
-            ->accessibleBy(auth()->user())
+            ->inContext(auth()->user())
             ->whereDoesntHave('albums')
             ->whereHas('metadata', $hasGeo)
             ->orderBy('taken_at', 'desc');
@@ -82,6 +83,7 @@ class MapController extends Controller
         // marqueur par album, positionné sur son premier média géolocalisé.
         $albums = Album::query()
             ->accessibleBy(auth()->user())
+            ->inContext(auth()->user())
             ->whereHas('media', fn ($q) => $q->whereHas('metadata', $hasGeo))
             ->with(['media' => function ($q) use ($hasGeo) {
                 $q->whereHas('metadata', $hasGeo)
@@ -260,7 +262,7 @@ class MapController extends Controller
 
         // Haversine formula to calculate distance
         $media = Media::with(['user', 'tags', 'metadata', 'conversions'])
-            ->accessibleBy(auth()->user())
+            ->inContext(auth()->user())
             ->whereHas('metadata', function ($q) use ($lat, $lon, $radius) {
                 $q->whereNotNull('latitude')
                   ->whereNotNull('longitude')
