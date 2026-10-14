@@ -48,5 +48,6 @@ export function webVideoUrl(media) {
 // l'original.
 export function slideUrl(media) {
   if (media?.type === 'video') return webVideoUrl(media);
-  return conversionUrl(media, 'medium') || media?.url || null;
+  // Plein écran : la grande conversion (1600 px), sinon la moyenne.
+  return conversionUrl(media, 'large', 'medium') || media?.url || null;
 }

@@ -19,7 +19,7 @@
             v-if="currentItem.type === 'photo'"
             :src="currentItem.src"
             :alt="currentItem.label"
-            class="max-w-full max-h-full object-contain"
+            class="w-full h-full object-contain"
             :class="{ 'ken-burns': kenBurns }"
             :style="kenBurns ? kbStyle : null"
           />
@@ -29,7 +29,7 @@
             :src="currentItem.src"
             autoplay
             playsinline
-            class="max-w-full max-h-full object-contain"
+            class="w-full h-full object-contain"
             @ended="next"
             @error="next"
           />
