@@ -2,18 +2,19 @@
   <Head :title="album.name" />
   <AppLayout>
     <!-- ================= Héro pleine largeur =================
-         Fond : vidéo de l'album choisie (extrait en boucle) ; sinon carte
-         centrée sur la géolocalisation de l'album ; à défaut la photo de
-         couverture assombrie ; à défaut un dégradé brand. -->
-    <div class="relative" :class="album.hero_video ? 'h-80 sm:h-[420px]' : 'h-72 sm:h-[340px]'">
-      <!-- Vidéo de fond (extrait muet en boucle) ; image fixe si l'appareil
-           demande moins d'animations ou d'économiser les données. -->
-      <template v-if="album.hero_video">
+         Fond : photo ou vidéo de l'album choisie (« Fond du titre ») ; sinon
+         carte centrée sur la géolocalisation de l'album ; à défaut la photo
+         de couverture ; à défaut un dégradé brand. Titre blanc sur voile
+         sombre (photo, vidéo), noir sur voile clair (carte, dégradé). -->
+    <div class="relative" :class="album.hero ? 'h-80 sm:h-[420px]' : 'h-72 sm:h-[340px]'">
+      <template v-if="album.hero">
+        <!-- Vidéo : extrait muet en boucle ; image fixe s'il n'est pas prêt
+             ou si l'appareil demande moins d'animations / de données. -->
         <video
-          v-if="heroVideoPlays"
+          v-if="album.hero.type === 'video' && album.hero.src && heroVideoPlays"
           class="absolute inset-0 w-full h-full object-cover"
-          :src="album.hero_video.src"
-          :poster="album.hero_video.poster"
+          :src="album.hero.src"
+          :poster="album.hero.poster"
           autoplay
           muted
           loop
@@ -21,7 +22,11 @@
           disablepictureinpicture
           aria-hidden="true"
         ></video>
-        <div v-else class="absolute inset-0 bg-cover bg-center" :style="{ backgroundImage: `url(${album.hero_video.poster})` }"></div>
+        <div
+          v-else
+          class="absolute inset-0 bg-cover bg-center"
+          :style="{ backgroundImage: `url(${album.hero.type === 'video' ? album.hero.poster : album.hero.src})` }"
+        ></div>
       </template>
       <div v-else-if="album.hero_location" ref="heroMapEl" class="absolute inset-0 z-0"></div>
       <div
@@ -32,7 +37,10 @@
       <div v-else class="absolute inset-0 bg-linear-to-br from-brand-200 via-brand-50 to-surface-200"></div>
 
       <!-- Voile de lisibilité (plus dense en bas, sous le titre) -->
-      <div class="absolute inset-0 z-10 pointer-events-none bg-linear-to-b from-black/25 via-transparent to-black/65"></div>
+      <div
+        class="absolute inset-0 z-10 pointer-events-none bg-linear-to-b"
+        :class="heroLight ? 'from-white/10 via-transparent to-white/75' : 'from-black/30 via-black/5 to-black/75'"
+      ></div>
 
       <!-- Actions flottantes -->
       <div class="absolute top-4 right-4 sm:top-5 sm:right-8 z-20 flex items-center gap-2.5">
@@ -75,6 +83,10 @@
               <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
               {{ selectionMode ? 'Terminer la sélection' : 'Sélectionner' }}
             </button>
+            <button v-if="isOwner && album.hero" @click="openFromMenu(() => setHero(null))" class="dropdown-item w-full text-left flex items-center gap-2.5">
+              <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+              Fond du titre par défaut
+            </button>
             <button v-if="isOwner" @click="openFromMenu(() => showGeolocateModal = true)" class="dropdown-item w-full text-left flex items-center gap-2.5">
               <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
               Géolocaliser
@@ -98,7 +110,8 @@
       <div class="absolute left-4 right-4 sm:left-8 sm:right-8 bottom-6 z-20 flex items-center gap-4">
         <Link
           href="/albums"
-          class="inline-flex items-center justify-center w-11 h-11 rounded-full bg-white/15 border border-white/35 text-white backdrop-blur-sm hover:bg-white/30 transition shrink-0"
+          class="inline-flex items-center justify-center w-11 h-11 rounded-full border backdrop-blur-sm transition shrink-0"
+          :class="heroLight ? 'bg-white/70 border-surface-300 text-surface-800 hover:bg-white' : 'bg-white/15 border-white/35 text-white hover:bg-white/30'"
           title="Retour aux albums"
           aria-label="Retour aux albums"
         >
@@ -107,13 +120,19 @@
           </svg>
         </Link>
         <div class="min-w-0">
-          <div class="text-xs font-medium uppercase tracking-widest text-white/75">Albums</div>
-          <h1 class="font-display text-3xl sm:text-5xl font-bold text-white truncate [text-shadow:0_2px_12px_rgba(23,20,15,0.45)]">
+          <div class="text-xs font-medium uppercase tracking-widest" :class="heroLight ? 'text-surface-600' : 'text-white/75'">Albums</div>
+          <h1
+            class="font-display text-3xl sm:text-5xl font-bold truncate"
+            :class="heroLight ? 'text-surface-900 [text-shadow:0_1px_10px_rgba(255,255,255,0.8)]' : 'text-white [text-shadow:0_2px_12px_rgba(23,20,15,0.55)]'"
+          >
             {{ album.name }}
           </h1>
-          <div class="mt-1.5 flex items-center gap-3 text-sm text-white/85">
+          <div class="mt-1.5 flex items-center gap-3 text-sm" :class="heroLight ? 'text-surface-700' : 'text-white/85'">
             <span>{{ album.media_count || 0 }} médias</span>
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 border border-white/30 text-white">
+            <span
+              class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border"
+              :class="heroLight ? 'bg-white/70 border-surface-300 text-surface-800' : 'bg-white/20 border-white/30 text-white'"
+            >
               {{ album.is_owner ? 'Mon album' : 'Partagé avec moi' }}
             </span>
             <span v-if="album.description" class="hidden sm:inline truncate">{{ album.description }}</span>
@@ -144,6 +163,13 @@
           class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-white text-brand-700 hover:bg-brand-50 transition"
         >
           Couverture
+        </button>
+        <button
+          v-if="isOwner && selectedHeroCandidate"
+          @click="chooseHero(selectedHeroCandidate)"
+          class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-white text-brand-700 hover:bg-brand-50 transition"
+        >
+          Fond du titre
         </button>
         <button
           v-if="isOwner && selectedToPin.length > 0"
@@ -241,6 +267,32 @@
       </div>
     </div>
 
+    <!-- Fond du titre : début de l'extrait vidéo -->
+    <BaseModal v-if="heroVideoChoice" title="Vidéo en fond du titre" max-width="md" @close="heroVideoChoice = null">
+      <div class="px-6 py-5 space-y-3">
+        <p class="text-sm text-surface-600">
+          Un extrait muet d’environ 25 secondes tournera en boucle derrière le titre. À partir de quel moment de la vidéo ?
+        </p>
+        <label class="block text-sm font-medium text-surface-800">
+          Début (en secondes)
+          <input
+            v-model.number="heroVideoStart"
+            type="number"
+            min="0"
+            :max="heroVideoChoice.duration ? Math.floor(heroVideoChoice.duration) - 1 : undefined"
+            class="mt-1 w-32 rounded-lg border-surface-300 text-sm"
+          />
+        </label>
+        <p v-if="heroVideoChoice.duration" class="text-xs text-surface-500">La vidéo dure {{ formatDuration(heroVideoChoice.duration) }}.</p>
+      </div>
+      <template #footer>
+        <button class="px-4 py-2 text-sm rounded-lg text-surface-700 hover:bg-surface-100" @click="heroVideoChoice = null">Annuler</button>
+        <button class="px-4 py-2 text-sm font-semibold rounded-lg bg-brand-600 text-white hover:bg-brand-700" @click="setHero(heroVideoChoice, heroVideoStart)">
+          Utiliser cet extrait
+        </button>
+      </template>
+    </BaseModal>
+
     <!-- Modals -->
     <AlbumFormModal
       v-if="showEditModal"
@@ -281,6 +333,8 @@ import AlbumFormModal from '@/Components/AlbumFormModal.vue';
 import SharePanel from '@/Components/SharePanel.vue';
 import MediaPickerModal from '@/Components/MediaPickerModal.vue';
 import FullscreenSlideshow from '@/Components/FullscreenSlideshow.vue';
+import BaseModal from '@/Components/BaseModal.vue';
+import { formatDuration } from '@/utils/format';
 import { usePhotoSwipe } from '@/Composables/usePhotoSwipe';
 import { useToast } from '@/Composables/useToast';
 import { useConfirm } from '@/Composables/useConfirm';
@@ -488,6 +542,35 @@ const applySelection = (media, index, event) => {
 const editSelected = () => {
   if (selectedMediaIds.value.length === 1) {
     router.visit(`/media/${selectedMediaIds.value[0]}`);
+  }
+};
+
+// Fond du titre : clair (carte, dégradé) → titre noir ; image ou vidéo → blanc.
+const heroLight = computed(() => !props.album.hero && (Boolean(props.album.hero_location) || !props.album.cover_url));
+const selectedHeroCandidate = computed(() => {
+  if (selectedMediaIds.value.length !== 1) return null;
+  const media = mediaById.value.get(selectedMediaIds.value[0]);
+  return media && ['photo', 'video'].includes(media.type) ? media : null;
+});
+const heroVideoChoice = ref(null);
+const heroVideoStart = ref(0);
+const chooseHero = (media) => {
+  if (media.type === 'video') {
+    heroVideoStart.value = 0;
+    heroVideoChoice.value = media;
+  } else {
+    setHero(media);
+  }
+};
+const setHero = async (media, start = 0) => {
+  try {
+    const { data } = await axios.post(`/albums/${props.album.id}/hero`, { media_id: media?.id ?? null, start });
+    heroVideoChoice.value = null;
+    selectedMediaIds.value = [];
+    toast.success(data.message);
+    router.reload({ only: ['album'] });
+  } catch (error) {
+    toast.error(error.response?.data?.message || 'Impossible de changer le fond du titre.');
   }
 };
 

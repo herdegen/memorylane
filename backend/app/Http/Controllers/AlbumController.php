@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Rules\VisiblePerson;
+use App\Jobs\GenerateHeroClip;
 use App\Models\Album;
+use App\Services\HeroClipService;
 use App\Models\Household;
 use App\Models\AlbumAccess;
 use App\Models\Media;
@@ -203,13 +205,7 @@ class AlbumController extends Controller
             $album->cover_url = $this->getCoverUrl($cover);
         }
 
-        // Vidéo en fond du titre : extrait muet en boucle (album:hero-video),
-        // tant que la vidéo est dans l'album.
-        $heroVideo = $album->hero_video_id ? $album->media->firstWhere('id', $album->hero_video_id) : null;
-        $album->hero_video = $heroVideo?->conversions->firstWhere('conversion_name', \App\Services\HeroClipService::CLIP) ? [
-            'src' => $this->mediaService->fileUrl($heroVideo, \App\Services\HeroClipService::CLIP),
-            'poster' => $this->mediaService->fileUrl($heroVideo, \App\Services\HeroClipService::POSTER),
-        ] : null;
+        $album->hero = $this->heroFor($album);
 
         $album->is_owner = $album->user_id === auth()->id();
         // Lien anonyme : son URL n'est donnée qu'au propriétaire.
@@ -469,6 +465,68 @@ class AlbumController extends Controller
     private function getCoverUrl(Media $media): string
     {
         return $this->mediaService->thumbnailUrl($media);
+    }
+
+    /**
+     * Fond du titre choisi parmi les médias de l'album (tant qu'il y est) :
+     * photo (grande conversion) ou vidéo (extrait en boucle ; en attendant
+     * qu'il soit prêt, une image de la vidéo). Null : fond par défaut.
+     *
+     * @return array{type: string, src: ?string, poster: ?string}|null
+     */
+    private function heroFor(Album $album): ?array
+    {
+        $media = $album->hero_media_id ? $album->media->firstWhere('id', $album->hero_media_id) : null;
+        if (! $media) {
+            return null;
+        }
+        $has = fn (string $name) => $media->conversions->contains('conversion_name', $name);
+
+        if ($media->type === 'video') {
+            return [
+                'type' => 'video',
+                'src' => $has(HeroClipService::CLIP) ? $this->mediaService->fileUrl($media, HeroClipService::CLIP) : null,
+                'poster' => $has(HeroClipService::POSTER) ? $this->mediaService->fileUrl($media, HeroClipService::POSTER) : $this->mediaService->thumbnailUrl($media, ['medium', 'small', 'thumbnail']),
+            ];
+        }
+        $size = collect(['large', 'medium'])->first($has);
+
+        return ['type' => 'photo', 'src' => $this->mediaService->fileUrl($media, $size), 'poster' => null];
+    }
+
+    /**
+     * Choisit le fond du titre parmi les photos et vidéos de l'album (vidéo :
+     * extrait préparé en tâche de fond), ou revient au fond par défaut.
+     */
+    public function setHero(Request $request, Album $album)
+    {
+        Gate::authorize('manageMedia', $album);
+
+        $validated = $request->validate([
+            'media_id' => ['nullable', 'uuid'],
+            'start' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        if (! ($validated['media_id'] ?? null)) {
+            $album->forceFill(['hero_media_id' => null])->save();
+
+            return response()->json(['message' => 'Fond par défaut rétabli.']);
+        }
+
+        $media = $album->media()->whereKey($validated['media_id'])->whereIn('type', ['photo', 'video'])->first();
+        abort_unless($media, 422, 'Choisissez une photo ou une vidéo de l\'album.');
+        $start = (float) ($validated['start'] ?? 0);
+        abort_if($media->type === 'video' && $media->duration && $start >= $media->duration, 422, "La vidéo ne dure que {$media->duration} s.");
+
+        $album->forceFill(['hero_media_id' => $media->id])->save();
+        if ($media->type === 'video') {
+            GenerateHeroClip::dispatch($media, $start);
+        }
+
+        return response()->json([
+            'message' => $media->type === 'video' ? 'Fond vidéo en préparation (une minute environ).' : 'Fond du titre défini.',
+            'preparing' => $media->type === 'video',
+        ]);
     }
 
     /**
