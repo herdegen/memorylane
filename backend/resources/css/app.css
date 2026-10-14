@@ -15,6 +15,11 @@
   --font-display: 'Playfair Display', Georgia, serif;
 
   --color-page: #faf7f1;
+  /* Blanc et encre absolus : JAMAIS redéfinis par le dark mode (contrairement
+     à white et surface-*). Pour le texte posé sur une photo, une vidéo ou une
+     carte, dont la couleur ne dépend pas du thème. */
+  --color-snow: #ffffff;
+  --color-ink: #17140f;
 
   --color-brand-50: #fffbeb;
   --color-brand-100: #fef3c7;

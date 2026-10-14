@@ -34,12 +34,12 @@
         class="absolute inset-0 bg-cover bg-center"
         :style="{ backgroundImage: `url(${album.cover_url})` }"
       ></div>
-      <div v-else class="absolute inset-0 bg-linear-to-br from-brand-200 via-brand-50 to-surface-200"></div>
+      <div v-else class="absolute inset-0 bg-linear-to-br from-brand-200 via-brand-50 to-brand-100"></div>
 
       <!-- Voile de lisibilité (plus dense en bas, sous le titre) -->
       <div
         class="absolute inset-0 z-10 pointer-events-none bg-linear-to-b"
-        :class="heroLight ? 'from-white/10 via-transparent to-white/75' : 'from-black/30 via-black/5 to-black/75'"
+        :class="heroLight ? 'from-snow/10 via-transparent to-snow/75' : 'from-black/30 via-black/5 to-black/75'"
       ></div>
 
       <!-- Actions flottantes -->
@@ -47,7 +47,7 @@
         <button
           v-if="hasPlayableMedia"
           @click="startSlideshow"
-          class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 dark:bg-white/95 backdrop-blur text-sm font-semibold text-surface-900 shadow-warm-md hover:bg-white transition"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-snow/90 backdrop-blur text-sm font-semibold text-ink shadow-warm-md hover:bg-snow transition"
         >
           <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
           Diaporama
@@ -55,7 +55,7 @@
         <button
           v-if="isOwner"
           @click="showSharePanel = !showSharePanel"
-          class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/90 backdrop-blur text-surface-900 shadow-warm-md hover:bg-white transition"
+          class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-snow/90 backdrop-blur text-ink shadow-warm-md hover:bg-snow transition"
           title="Partager"
           aria-label="Partager"
         >
@@ -66,7 +66,7 @@
         <div v-if="album.media && album.media.length > 0" class="relative" ref="actionsMenuRef">
           <button
             @click="showActionsMenu = !showActionsMenu"
-            class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/90 backdrop-blur text-surface-900 shadow-warm-md hover:bg-white transition"
+            class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-snow/90 backdrop-blur text-ink shadow-warm-md hover:bg-snow transition"
             title="Plus d'actions"
             aria-label="Plus d'actions"
           >
@@ -111,7 +111,7 @@
         <Link
           href="/albums"
           class="inline-flex items-center justify-center w-11 h-11 rounded-full border backdrop-blur-sm transition shrink-0"
-          :class="heroLight ? 'bg-white/70 border-surface-300 text-surface-800 hover:bg-white' : 'bg-white/15 border-white/35 text-white hover:bg-white/30'"
+          :class="heroLight ? 'bg-snow/70 border-ink/20 text-ink hover:bg-snow' : 'bg-snow/15 border-snow/35 text-snow hover:bg-snow/30'"
           title="Retour aux albums"
           aria-label="Retour aux albums"
         >
@@ -120,18 +120,18 @@
           </svg>
         </Link>
         <div class="min-w-0">
-          <div class="text-xs font-medium uppercase tracking-widest" :class="heroLight ? 'text-surface-600' : 'text-white/75'">Albums</div>
+          <div class="text-xs font-medium uppercase tracking-widest" :class="heroLight ? 'text-ink/65' : 'text-snow/75'">Albums</div>
           <h1
             class="font-display text-3xl sm:text-5xl font-bold truncate"
-            :class="heroLight ? 'text-surface-900 [text-shadow:0_1px_10px_rgba(255,255,255,0.8)]' : 'text-white [text-shadow:0_2px_12px_rgba(23,20,15,0.55)]'"
+            :class="heroLight ? 'text-ink [text-shadow:0_1px_10px_rgba(255,255,255,0.8)]' : 'text-snow [text-shadow:0_2px_12px_rgba(23,20,15,0.55)]'"
           >
             {{ album.name }}
           </h1>
-          <div class="mt-1.5 flex items-center gap-3 text-sm" :class="heroLight ? 'text-surface-700' : 'text-white/85'">
+          <div class="mt-1.5 flex items-center gap-3 text-sm" :class="heroLight ? 'text-ink/80' : 'text-snow/85'">
             <span>{{ album.media_count || 0 }} médias</span>
             <span
               class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border"
-              :class="heroLight ? 'bg-white/70 border-surface-300 text-surface-800' : 'bg-white/20 border-white/30 text-white'"
+              :class="heroLight ? 'bg-snow/70 border-ink/20 text-ink' : 'bg-snow/20 border-snow/30 text-snow'"
             >
               {{ album.is_owner ? 'Mon album' : 'Partagé avec moi' }}
             </span>
