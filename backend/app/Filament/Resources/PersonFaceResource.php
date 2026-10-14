@@ -105,11 +105,18 @@ class PersonFaceResource extends Resource
                         }
                         $ids = array_keys(app(PersonFaceCandidates::class)->for($data['value']));
 
-                        return $query
-                            ->whereIn('detected_faces.id', $ids ?: ['00000000-0000-0000-0000-000000000000'])
-                            ->when($ids, fn ($q) => $q->orderByRaw('array_position(?::uuid[], detected_faces.id)', ['{'.implode(',', $ids).'}']));
+                        return $query->whereIn('detected_faces.id', $ids ?: ['00000000-0000-0000-0000-000000000000']);
                     }),
             ], layout: FiltersLayout::AboveContent)
+            // Du plus ressemblant au moins ressemblant. Le tri doit passer par
+            // ici : Filament applique les filtres dans un where imbriqué, qui
+            // perd tout orderBy posé dans ->query().
+            ->defaultSort(function (Builder $query, $livewire) {
+                $id = self::personId($livewire);
+                $ids = $id ? array_keys(app(PersonFaceCandidates::class)->for($id)) : [];
+
+                return $ids ? $query->orderByRaw('array_position(?::uuid[], detected_faces.id)', ['{'.implode(',', $ids).'}']) : $query;
+            })
             ->emptyStateHeading(fn ($livewire) => self::personId($livewire) ? 'Aucun visage non identifié ne lui ressemble assez' : 'Choisissez une personne')
             ->emptyStateDescription(fn ($livewire) => self::personId($livewire) ? null : 'Ses visages encore non identifiés apparaîtront ici, du plus ressemblant au moins ressemblant.')
             ->columns([

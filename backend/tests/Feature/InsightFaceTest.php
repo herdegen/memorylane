@@ -396,21 +396,24 @@ class InsightFaceTest extends TestCase
             $this->face($this->photo(), ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5], $tom, v2: $this->vec(2, $n));
         }
         $box = ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5];
-        $close = $this->face($this->photo(), $box, v2: $this->vec(2, 0.05));
+        // Créés du moins au plus ressemblant : l'ordre des identifiants (par
+        // date de création) ne doit pas masquer le tri par ressemblance.
+        $farthest = $this->face($this->photo(), $box, v2: $this->vec(2, 0.5));
         $farther = $this->face($this->photo(), $box, v2: $this->vec(2, 0.4));
+        $close = $this->face($this->photo(), $box, v2: $this->vec(2, 0.05));
         $other = $this->face($this->photo(), $box, v2: $this->vec(1));                 // quelqu'un d'autre
         $withTom = $this->photo();
         $this->face($withTom, ['x' => 50, 'y' => 1, 'width' => 5, 'height' => 5], $tom, v2: $this->vec(2, 0.15));
         $sameFrame = $this->face($withTom, $box, v2: $this->vec(2, 0.06));            // Tom déjà sur la photo
         $tooEarly = $this->face($this->photo('1990-06-01'), $box, v2: $this->vec(2, 0.05)); // avant sa naissance
 
-        $this->assertSame([$close->id, $farther->id], array_keys(app(\App\Services\Vision\PersonFaceCandidates::class)->for($tom->id)));
+        $this->assertSame([$close->id, $farther->id, $farthest->id], array_keys(app(\App\Services\Vision\PersonFaceCandidates::class)->for($tom->id)));
 
         $this->actingAs($admin);
         $page = \Livewire\Livewire::test(\App\Filament\Resources\PersonFaceResource\Pages\ListPersonFaces::class)
             ->assertCountTableRecords(0)
             ->filterTable('person', $tom->id)
-            ->assertCanSeeTableRecords([$close, $farther], inOrder: true)
+            ->assertCanSeeTableRecords([$close, $farther, $farthest], inOrder: true)
             ->assertCanNotSeeTableRecords([$other, $sameFrame, $tooEarly])
             ->callTableBulkAction('confirmAll', [$close, $farther]);
 
