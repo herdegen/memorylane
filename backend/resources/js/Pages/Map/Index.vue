@@ -104,8 +104,8 @@
           </div>
         </div>
 
-        <!-- Couches (« Où vit la famille » : famille seulement) -->
-        <div v-if="!isFriends" class="mb-4">
+        <!-- Couches : « Où vit la famille » / « Où vivent mes amis » -->
+        <div class="mb-4">
           <h3 class="font-semibold mb-2">Couches</h3>
           <button
             type="button"
@@ -114,7 +114,7 @@
             @click="toggleHeatmap"
             class="w-full flex items-center justify-between px-3 py-2 border border-surface-300 rounded-lg hover:bg-surface-50 transition-colors"
           >
-            <span class="text-sm text-surface-700">🔥 Où vit la famille</span>
+            <span class="text-sm text-surface-700">🔥 {{ isFriends ? 'Où vivent mes amis' : 'Où vit la famille' }}</span>
             <span
               :class="[
                 'relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors',
@@ -417,7 +417,7 @@ async function toggleHeatmap() {
       ]);
     } catch (error) {
       console.error('Failed to load heatmap:', error);
-      toast.error(apiError(error, "Impossible d'afficher la couche « Où vit la famille »."));
+      toast.error(apiError(error, "Impossible d'afficher cette couche de la carte."));
       heatmapEnabled.value = false;
       return;
     }

@@ -123,14 +123,17 @@ class MapController extends Controller
      */
     public function heatmap()
     {
-        // « Où vit la famille » : répertoire familial seulement (rien entre amis).
+        // Fiches du cercle courant : « Où vit la famille » (répertoire
+        // familial) ou « Où vivent mes amis » (fiches du cercle d'amis).
+        // Toujours agrégé à ~1 km, sans nom ni identifiant.
         $user = auth()->user();
-        if (! $user->canSeeFamilyDirectory() || $user->mode() === \App\Models\Household::KIND_FRIENDS) {
+        $friends = $user->mode() === \App\Models\Household::KIND_FRIENDS;
+        if (! $friends && ! $user->canSeeFamilyDirectory()) {
             return response()->json(['points' => []]);
         }
 
-        $points = Person::visibleTo($user)
-            ->where('in_family_directory', true)
+        $points = Person::inContext($user)
+            ->when(! $friends, fn ($q) => $q->where('in_family_directory', true))
             ->whereNotNull('address_latitude')
             ->whereNotNull('address_longitude')
             ->get(['address_latitude', 'address_longitude'])

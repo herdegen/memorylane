@@ -88,8 +88,9 @@
         </div>
       </div>
 
-      <!-- L'adresse se partage en famille seulement -->
-      <div v-if="!isFriends">
+      <!-- Adresse : précise pour la famille (opt-in), seulement une zone
+           approximative sur la carte « Où vivent mes amis » entre amis -->
+      <div>
         <label for="address" class="block text-sm font-medium text-surface-700 mb-1">
           Adresse
         </label>
@@ -101,7 +102,8 @@
           placeholder="12 rue des Lilas, 93100 Montreuil"
         />
         <p class="mt-1 text-xs text-surface-500">
-          Visible uniquement par vous, les admins et votre foyer (si le partage est activé dans le profil).
+          <template v-if="isFriends">Visible uniquement par vous et les admins. Sur la carte « Où vivent mes amis », seule une zone approximative (~1 km) apparaît, sans nom.</template>
+          <template v-else>Visible uniquement par vous, les admins et votre famille (si le partage est activé dans le profil).</template>
         </p>
         <p v-if="errors.address" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ errors.address }}</p>
       </div>

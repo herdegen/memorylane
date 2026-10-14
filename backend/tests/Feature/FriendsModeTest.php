@@ -260,13 +260,17 @@ class FriendsModeTest extends TestCase
         $this->assertContains('Week-end Annecy', array_column($data['chapters'], 'title'));
     }
 
-    public function test_pas_de_carte_de_chaleur_ni_d_en_memoire_entre_amis(): void
+    public function test_ou_vivent_mes_amis_seulement_le_cercle_et_agrege(): void
     {
         $this->me->forceFill(['current_household_id' => $this->circle->id])->save();
-        $this->lea->update(['address' => null]);
-        \Illuminate\Support\Facades\DB::table('people')->where('id', $this->lea->id)->update(['address_latitude' => 48.8, 'address_longitude' => 2.3]);
+        \Illuminate\Support\Facades\DB::table('people')->where('id', $this->lea->id)->update(['address_latitude' => 48.8012, 'address_longitude' => 2.3049]);
+        // Une fiche de la famille ailleurs : absente de la carte des amis.
+        $mamie = Person::factory()->create(['user_id' => $this->admin->id]);
+        \Illuminate\Support\Facades\DB::table('people')->where('id', $mamie->id)->update(['address_latitude' => 45.75, 'address_longitude' => 4.85]);
 
-        $this->actingAs($this->me->fresh())->getJson('/map/heatmap')->assertOk()->assertJsonPath('points', []);
+        $points = $this->actingAs($this->me->fresh())->getJson('/map/heatmap')->assertOk()->json('points');
+
+        $this->assertSame([[48.8, 2.3, 1]], $points); // arrondi ~1 km, aucun nom
     }
 
     public function test_l_adresse_ne_se_partage_pas_entre_amis(): void
