@@ -147,6 +147,14 @@ class PersonFaceResource extends Resource
                         $n = self::apply(collect([$record]), $livewire);
                         Notification::make()->title($n ? 'Visage identifié' : 'Refusé (déjà sur la photo ?)')->{$n ? 'success' : 'warning'}()->send();
                     }),
+                Action::make('notThem')
+                    ->label(fn ($livewire) => 'Ce n\'est pas '.self::firstName($livewire))
+                    ->icon('heroicon-o-no-symbol')->color('danger')
+                    ->tooltip('Le visage reste à identifier, mais ne lui sera plus jamais proposé')
+                    ->action(function (DetectedFace $record, $livewire) {
+                        self::exclude(collect([$record]), $livewire);
+                        Notification::make()->title('Ne lui sera plus proposé')->success()->send();
+                    }),
                 Action::make('open')->label('Photo')->icon('heroicon-o-eye')->color('gray')
                     ->url(fn (DetectedFace $r) => '/media/'.$r->media_id)->openUrlInNewTab(),
             ])
@@ -162,6 +170,16 @@ class PersonFaceResource extends Resource
                         Notification::make()
                             ->title($done.' visage(s) identifié(s)'.($skipped ? ", {$skipped} refusé(s) (déjà sur la photo…)" : ''))
                             ->{$skipped ? 'warning' : 'success'}()->send();
+                    })
+                    ->deselectRecordsAfterCompletion(),
+                BulkAction::make('notThemAll')
+                    ->label(fn ($livewire) => 'Ce n\'est pas '.self::firstName($livewire))
+                    ->icon('heroicon-o-no-symbol')->color('danger')
+                    ->requiresConfirmation()
+                    ->modalDescription(fn ($livewire) => 'Ces visages restent à identifier, mais ne seront plus jamais proposés pour '.(self::person($livewire)?->name ?? '').' (suggestions, quêtes, association automatique).')
+                    ->action(function (Collection $records, $livewire) {
+                        self::exclude($records, $livewire);
+                        Notification::make()->title($records->count().' visage(s) écarté(s) pour '.self::firstName($livewire))->success()->send();
                     })
                     ->deselectRecordsAfterCompletion(),
                 BulkAction::make('strangers')
@@ -196,6 +214,14 @@ class PersonFaceResource extends Resource
         uksort($names, fn ($a, $b) => (($counts[$b] ?? 0) <=> ($counts[$a] ?? 0)) ?: strcasecmp($names[$a], $names[$b]));
 
         return collect($names)->map(fn ($name, $id) => isset($counts[$id]) ? "{$name} ({$counts[$id]})" : $name)->all();
+    }
+
+    /** « Ce n'est pas elle » : exclusions visage ↔ personne choisie. */
+    private static function exclude(Collection $faces, $livewire): void
+    {
+        if ($personId = self::personId($livewire)) {
+            $faces->each(fn (DetectedFace $f) => app(FaceMatcher::class)->exclude($f, $personId, auth()->id()));
+        }
     }
 
     /** Identifie les visages comme la personne choisie ; renvoie le nombre réussi. */

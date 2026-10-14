@@ -125,6 +125,11 @@ class FaceMatcher
             }
         }
 
+        // « Ce n'est pas X » : jamais reproposé pour ce visage.
+        foreach ($this->excludedPeople($face) as $personId) {
+            unset($bestDistance[$personId]);
+        }
+
         if ($bestDistance === []) {
             return [];
         }
@@ -311,6 +316,9 @@ class FaceMatcher
             // Posée par un humain (panneau, quête, revue), jamais par l'automatique.
             'verified_at' => $verified ? now() : null,
         ]);
+        // Identifié comme X malgré un « ce n'est pas X » : l'exclusion tombe.
+        \Illuminate\Support\Facades\DB::table('face_person_exclusions')
+            ->where('detected_face_id', $face->id)->where('person_id', $personId)->delete();
 
         $media->people()->syncWithoutDetaching([
             $personId => [
@@ -364,6 +372,31 @@ class FaceMatcher
         if (! $stillTagged) {
             $media->people()->wherePivotNotNull('face_coordinates')->detach($personId);
         }
+    }
+
+    /**
+     * « Ce n'est pas X » : le visage reste à identifier, mais le moteur ne
+     * propose plus X pour lui. Aucune empreinte ni référence modifiée.
+     */
+    public function exclude(DetectedFace $face, string $personId, ?string $userId = null): void
+    {
+        \Illuminate\Support\Facades\DB::table('face_person_exclusions')->insertOrIgnore([
+            'detected_face_id' => $face->id,
+            'person_id' => $personId,
+            'user_id' => $userId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        // Les analyses en cache (listes par personne, comptes) se recalculent.
+        self::bumpReferences();
+    }
+
+    /** @return list<string> personnes exclues pour ce visage */
+    public function excludedPeople(DetectedFace $face): array
+    {
+        return $face->exists
+            ? \Illuminate\Support\Facades\DB::table('face_person_exclusions')->where('detected_face_id', $face->id)->pluck('person_id')->all()
+            : [];
     }
 
     /**

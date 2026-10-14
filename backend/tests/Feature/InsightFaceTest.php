@@ -449,6 +449,38 @@ class InsightFaceTest extends TestCase
             ->assertSeeInOrder(['Tom (2)', 'Léa (1)', 'Aline']);
     }
 
+    public function test_not_this_person_is_never_proposed_again(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $tom = Person::create(['user_id' => $this->user->id, 'name' => 'Tom']);
+        $box = ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5];
+        foreach ([0.0, 0.1, 0.2] as $n) {
+            $this->face($this->photo(), $box, $tom, v2: $this->vec(2, $n));
+        }
+        $lookalike = $this->face($this->photo(), $box, v2: $this->vec(2, 0.05));   // sosie de Tom
+        $other = $this->face($this->photo(), $box, v2: $this->vec(2, 0.3));
+        $matcher = app(FaceMatcher::class);
+        $candidates = app(\App\Services\Vision\PersonFaceCandidates::class);
+        $this->assertArrayHasKey($lookalike->id, $candidates->for($tom->id));
+
+        $this->actingAs($admin);
+        \Livewire\Livewire::test(\App\Filament\Resources\PersonFaceResource\Pages\ListPersonFaces::class)
+            ->filterTable('person', $tom->id)
+            ->callTableBulkAction('notThemAll', [$lookalike])
+            ->assertCanNotSeeTableRecords([$lookalike])
+            ->assertCanSeeTableRecords([$other]);
+
+        $this->assertSame('unmatched', $lookalike->fresh()->status, 'reste à identifier');
+        $this->assertArrayNotHasKey($lookalike->id, $candidates->for($tom->id));
+        $this->assertSame(1, $candidates->counts()['counts'][$tom->id] ?? 0, 'plus compté pour Tom');
+        $this->assertSame([], $matcher->rankedCandidates($lookalike->fresh(), $matcher->matchThreshold(), $this->user->id), 'plus suggéré');
+        $this->assertNull($matcher->autoMatch($lookalike->fresh(), $this->user->id), 'jamais associé automatiquement');
+
+        // Identifié comme Tom quand même (à la main) : l'exclusion tombe.
+        $matcher->applyMatch($lookalike->fresh(), $tom->id, verified: true);
+        $this->assertSame([], $matcher->excludedPeople($lookalike->fresh()));
+    }
+
     public function test_quest_stranger_keeps_the_face_visible_not_face_hides_it(): void
     {
         config(['memorylane.faces.engine' => 'faceapi']);

@@ -33,11 +33,15 @@ class PersonFaceCandidates
     {
         $version = self::version();
         $all = Cache::get(self::ALL_KEY);
-        if (($all['version'] ?? null) === $version) {
-            return $all['byPerson'][$personId] ?? [];
-        }
+        $found = ($all['version'] ?? null) === $version
+            ? ($all['byPerson'][$personId] ?? [])
+            : Cache::remember("person-candidates:{$personId}:v{$version}", now()->addHour(), fn () => $this->compute($personId));
 
-        return Cache::remember("person-candidates:{$personId}:v{$version}", now()->addHour(), fn () => $this->compute($personId));
+        // « Ce n'est pas elle » : retiré tout de suite, même d'un calcul en cache.
+        $excluded = \Illuminate\Support\Facades\DB::table('face_person_exclusions')
+            ->where('person_id', $personId)->pluck('detected_face_id')->flip()->all();
+
+        return array_diff_key($found, $excluded);
     }
 
     public const ALL_KEY = 'person-candidates:all';
@@ -100,6 +104,10 @@ class PersonFaceCandidates
             }
         }
         $people = Person::whereIn('id', array_keys($references))->get()->keyBy('id');
+        $excluded = [];
+        foreach (\Illuminate\Support\Facades\DB::table('face_person_exclusions')->get(['detected_face_id', 'person_id']) as $row) {
+            $excluded[$row->detected_face_id][$row->person_id] = true;
+        }
         $plausibility = app(FacePlausibility::class);
         $maxSquared = $this->matcher->matchThreshold() ** 2;
         $byPerson = [];
@@ -112,7 +120,7 @@ class PersonFaceCandidates
             ->whereHas('media')
             ->with('media')
             ->select(['id', 'media_id', 'embedding_v2'])
-            ->chunkById(300, function ($faces) use ($flat, $alreadyOn, $people, $plausibility, $maxSquared, &$byPerson, &$best) {
+            ->chunkById(300, function ($faces) use ($flat, $alreadyOn, $excluded, $people, $plausibility, $maxSquared, &$byPerson, &$best) {
                 foreach ($faces as $face) {
                     $v = $face->embedding_v2;
                     if (! is_array($v) || count($v) !== 512) {
@@ -132,7 +140,7 @@ class PersonFaceCandidates
                     $winner = null;
                     $winnerDistance = INF;
                     foreach ($nearest as $personId => $d2) {
-                        if ($d2 > $maxSquared || isset($alreadyOn[$personId][$face->media_id])
+                        if ($d2 > $maxSquared || isset($alreadyOn[$personId][$face->media_id]) || isset($excluded[$face->id][$personId])
                             || ! isset($people[$personId]) || $plausibility->impossibility($people[$personId], $face->media)) {
                             continue;
                         }
