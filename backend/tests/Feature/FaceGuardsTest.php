@@ -179,6 +179,21 @@ class FaceGuardsTest extends TestCase
         $this->assertSame([], $this->doubtsOn($media, $friend));
     }
 
+    public function test_friend_suggested_on_a_family_photo_has_no_kin_doubt(): void
+    {
+        $parent = $this->person();
+        $friend = $this->person(['in_family_directory' => false]);
+        $this->face($this->photo('2015-01-01'), 0.21, $friend);
+
+        $media = $this->photo('2016-01-01');
+        $this->face($media, 0.5, $parent);
+        $target = $this->face($media, 0.205);
+
+        // Liste de suggestions réelle (fiches chargées en colonnes réduites).
+        $rows = collect(app(FaceMatcher::class)->rankedCandidates($target, app(FaceMatcher::class)->matchThreshold(), $this->user->id));
+        $this->assertSame([], $rows->firstWhere('person.id', $friend->id)['doubts']);
+    }
+
     public function test_friends_on_the_photo_are_not_kin_anchors(): void
     {
         $friend = $this->person(['in_family_directory' => false]);

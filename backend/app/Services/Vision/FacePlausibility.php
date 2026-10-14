@@ -83,7 +83,7 @@ class FacePlausibility
 
         // La parenté ne dit rien d'un ami : ce doute ne vise que les fiches
         // du répertoire familial (un ami sur une photo de famille est normal).
-        if ($kin !== null && $person->in_family_directory !== false
+        if ($kin !== null && $this->isFamily($person)
             && ($kin[$person->id] ?? PHP_INT_MAX) > self::CLOSE_KIN_MAX_DISTANCE) {
             $doubts[] = ['code' => 'distant', 'label' => isset($kin[$person->id])
                 ? 'Parenté lointaine avec la photo'
@@ -91,6 +91,19 @@ class FacePlausibility
         }
 
         return $doubts;
+    }
+
+    /**
+     * Fiche du répertoire familial ? Lue en base si la fiche a été chargée
+     * sans cette colonne (listes allégées) — ne jamais supposer « famille ».
+     */
+    private function isFamily(Person $person): bool
+    {
+        if (array_key_exists('in_family_directory', $person->getAttributes())) {
+            return (bool) $person->in_family_directory;
+        }
+
+        return (bool) (Person::whereKey($person->id)->value('in_family_directory') ?? true);
     }
 
     /**

@@ -138,7 +138,7 @@ class FaceMatcher
         $people = \App\Models\Person::query()
             ->whereIn('id', array_keys($bestDistance))
             ->when($viewer, fn ($q) => $q->visibleTo($viewer))
-            ->get(['id', 'name', 'gender', 'birth_date', 'death_date']);
+            ->get(['id', 'name', 'gender', 'birth_date', 'death_date', 'in_family_directory']);
 
         // Garde-fous : jamais une personne pas encore née (ou déjà décédée) à
         // la date de la photo ; les doutes (bébé, parenté lointaine) sont
