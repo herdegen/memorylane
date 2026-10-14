@@ -85,13 +85,14 @@ class Album extends Model
 
     public function media()
     {
-        // Tri par défaut : chronologique sur la date de prise de vue (à défaut
-        // la date d'upload). Le champ pivot `order` (réordonnancement manuel)
-        // est conservé mais n'est plus le tri par défaut.
+        // Tri : d'abord les médias « à la une » (pin_order, ordre choisi),
+        // puis chronologique sur la date de prise de vue (à défaut la date
+        // d'upload). Le champ pivot `order` (réordonnancement manuel) est
+        // conservé mais n'est plus le tri par défaut.
         return $this->belongsToMany(Media::class, 'album_media')
-            ->withPivot('order')
+            ->withPivot('order', 'pin_order')
             ->withTimestamps()
-            ->orderByRaw('COALESCE(media.taken_at, media.uploaded_at) ASC');
+            ->orderByRaw('album_media.pin_order IS NULL, album_media.pin_order, COALESCE(media.taken_at, media.uploaded_at) ASC');
     }
 
     /**

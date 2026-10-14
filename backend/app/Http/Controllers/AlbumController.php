@@ -464,6 +464,43 @@ class AlbumController extends Controller
     }
 
     /**
+     * « À la une » : épingle (dans l'ordre donné, après les épinglés actuels)
+     * ou désépingle des médias de l'album ; les épinglés s'affichent en tête.
+     */
+    public function pin(Request $request, Album $album)
+    {
+        Gate::authorize('manageMedia', $album);
+
+        $validated = $request->validate([
+            'media_ids' => ['required', 'array', 'max:200'],
+            'media_ids.*' => ['uuid'],
+            'pinned' => ['required', 'boolean'],
+        ]);
+
+        DB::transaction(function () use ($album, $validated) {
+            $pivot = DB::table('album_media')->where('album_id', $album->id);
+            $ids = array_values(array_unique($validated['media_ids']));
+
+            if ($validated['pinned']) {
+                $next = (int) (clone $pivot)->max('pin_order') + 1;
+                $alreadyPinned = (clone $pivot)->whereNotNull('pin_order')->pluck('media_id')->all();
+                foreach (array_diff($ids, $alreadyPinned) as $id) {
+                    (clone $pivot)->where('media_id', $id)->update(['pin_order' => $next++]);
+                }
+            } else {
+                (clone $pivot)->whereIn('media_id', $ids)->update(['pin_order' => null]);
+            }
+
+            // Numérotation resserrée (0, 1, 2…) dans l'ordre actuel.
+            foreach ((clone $pivot)->whereNotNull('pin_order')->orderBy('pin_order')->pluck('media_id') as $rank => $id) {
+                (clone $pivot)->where('media_id', $id)->update(['pin_order' => $rank]);
+            }
+        });
+
+        return response()->json(['message' => $validated['pinned'] ? 'Mis à la une.' : 'Retiré de la une.']);
+    }
+
+    /**
      * Définit la photo de couverture de l'album (média devant appartenir à l'album).
      */
     public function setCover(Request $request, Album $album)

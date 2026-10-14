@@ -218,6 +218,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::delete('/{album}/media', [AlbumController::class, 'removeMedia'])->name('removeMedia');
         Route::post('/{album}/geolocate', [AlbumController::class, 'geolocate'])->name('geolocate');
         Route::post('/{album}/cover', [AlbumController::class, 'setCover'])->name('setCover');
+        Route::post('/{album}/pin', [AlbumController::class, 'pin'])->name('pin');
 
         // Sharing (lien anonyme)
         Route::post('/{album}/share', [AlbumController::class, 'generateShareToken'])->name('generateShare');

@@ -128,6 +128,21 @@
           Couverture
         </button>
         <button
+          v-if="isOwner && selectedToPin.length > 0"
+          @click="pinSelected(true)"
+          class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-white text-brand-700 hover:bg-brand-50 transition"
+          title="En tête de l'album, dans l'ordre où vous les avez cochées"
+        >
+          ★ À la une ({{ selectedToPin.length }})
+        </button>
+        <button
+          v-if="isOwner && selectedPinned.length > 0"
+          @click="pinSelected(false)"
+          class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-white text-brand-700 hover:bg-brand-50 transition"
+        >
+          Retirer de la une ({{ selectedPinned.length }})
+        </button>
+        <button
           v-if="removableSelectedIds.length > 0"
           @click="removeSelectedMedia"
           class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-white text-red-600 hover:bg-red-50 transition"
@@ -168,8 +183,14 @@
       <div
         v-for="(media, index) in album.media"
         :key="media.id"
+        class="relative"
         :class="mosaicSpan(index)"
       >
+        <span
+          v-if="isOwner && isPinned(media)"
+          class="absolute top-1.5 right-1.5 z-10 pointer-events-none rounded-full bg-black/55 px-1.5 text-xs text-amber-300"
+          title="À la une"
+        >★</span>
         <MediaCard
           :media="media"
           fill
@@ -447,6 +468,24 @@ const applySelection = (media, index, event) => {
 const editSelected = () => {
   if (selectedMediaIds.value.length === 1) {
     router.visit(`/media/${selectedMediaIds.value[0]}`);
+  }
+};
+
+// « À la une » : en tête de l'album, dans l'ordre de sélection.
+const isPinned = (media) => media.pivot?.pin_order !== null && media.pivot?.pin_order !== undefined;
+const mediaById = computed(() => new Map((props.album.media || []).map((m) => [m.id, m])));
+const selectedToPin = computed(() => selectedMediaIds.value.filter((id) => !isPinned(mediaById.value.get(id) || {})));
+const selectedPinned = computed(() => selectedMediaIds.value.filter((id) => isPinned(mediaById.value.get(id) || {})));
+const pinSelected = async (pinned) => {
+  try {
+    await axios.post(`/albums/${props.album.id}/pin`, {
+      media_ids: pinned ? selectedToPin.value : selectedPinned.value,
+      pinned,
+    });
+    selectedMediaIds.value = [];
+    router.reload({ only: ['album'] });
+  } catch (error) {
+    toast.error(error.response?.data?.message || 'Impossible de modifier la une.');
   }
 };
 
