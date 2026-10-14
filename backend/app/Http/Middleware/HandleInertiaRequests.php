@@ -75,6 +75,8 @@ class HandleInertiaRequests extends Middleware
                     ->values(),
                 'family' => $request->user()->canSeeFamilyDirectory(),
                 'can_manage' => $request->user()->isAdmin(),
+                // Tout membre peut créer son cercle d'amis.
+                'can_create' => ! $request->user()->isGuest() && ! $request->user()->simple_mode,
             ] : null,
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),

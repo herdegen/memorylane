@@ -46,11 +46,11 @@
         <div v-if="household.can_manage" class="bg-white rounded-lg shadow-xs p-4 mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
             <div class="text-sm font-medium text-surface-800">Qui peut inviter dans ce cercle ?</div>
-            <div class="text-xs text-surface-500">Invitations par mail et ajout de comptes existants. Retirer un membre reste réservé à l'admin.</div>
+            <div class="text-xs text-surface-500">Invitations par mail et ajout de comptes existants. Retirer un membre reste réservé au responsable du cercle.</div>
           </div>
           <div class="inline-flex rounded-full border border-surface-200 p-0.5 text-sm font-semibold" role="radiogroup" aria-label="Qui peut inviter">
             <button
-              v-for="opt in [{ value: 'everyone', label: 'Tous les membres' }, { value: 'admin', label: 'Admin seulement' }]"
+              v-for="opt in [{ value: 'everyone', label: 'Tous les membres' }, { value: 'admin', label: 'Responsable seulement' }]"
               :key="opt.value"
               type="button"
               role="radio"

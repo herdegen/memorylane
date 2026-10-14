@@ -46,7 +46,7 @@ class PersonCircleController extends Controller
         if ($household->isFriends()) {
             $pivot = $household->people()->whereKey($person->id)->first()?->pivot;
             abort_unless($pivot, 404);
-            abort_unless($user->isAdmin() || $pivot->added_by === $user->id, 403);
+            abort_unless($household->isManagedBy($user) || $pivot->added_by === $user->id, 403);
             $household->people()->detach($person->id);
         } else {
             abort_unless($user->isAdmin(), 403, 'Seul un administrateur retire une fiche de la famille.');
@@ -84,7 +84,7 @@ class PersonCircleController extends Controller
         }
         foreach ($mine->where('kind', Household::KIND_FRIENDS) as $h) {
             if ($p = $pivots->get($h->id)) {
-                $in[] = ['id' => $h->id, 'name' => $h->name, 'kind' => $h->kind, 'can_remove' => $user->isAdmin() || $p->pivot->added_by === $user->id];
+                $in[] = ['id' => $h->id, 'name' => $h->name, 'kind' => $h->kind, 'can_remove' => $h->isManagedBy($user) || $p->pivot->added_by === $user->id];
             }
         }
 

@@ -41,12 +41,12 @@
         <svg v-if="c.id === current?.id" class="w-4 h-4 text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M5 13l4 4L19 7" /></svg>
       </button>
 
-      <template v-if="canManage">
+      <template v-if="canManage || canCreate">
         <hr class="my-2 border-surface-200" />
-        <div class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-surface-500">Administration</div>
+        <div v-if="canManage" class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-surface-500">Administration</div>
         <Link href="/households" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-surface-700 hover:bg-surface-50" @click="open = false">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-          Créer et gérer les cercles
+          {{ canManage ? 'Créer et gérer les cercles' : 'Créer un cercle d\'amis' }}
         </Link>
       </template>
     </div>
@@ -60,7 +60,7 @@ import { IconChevron } from '@/Components/Icons';
 import CircleKindIcon from '@/Components/CircleKindIcon.vue';
 import { useCircle, KIND_LABELS } from '@/Composables/useCircle';
 
-const { circles, current, canManage } = useCircle();
+const { circles, current, canManage, canCreate } = useCircle();
 
 const open = ref(false);
 const rootRef = ref(null);

@@ -307,4 +307,20 @@ class InvitationTest extends TestCase
         $friends->update(['invite_policy' => 'everyone']);
         $this->assertTrue(app(InvitationService::class)->canInvite($friend->fresh(), $buddy));
     }
+
+    public function test_invitation_dans_un_cercle_d_amis_utilise_le_mail_amis(): void
+    {
+        $friends = Household::factory()->friends()->create(['created_by' => $this->admin->id, 'name' => 'Les Ponzes']);
+        $friend = Person::factory()->create(['user_id' => $this->admin->id, 'first_name' => 'Laura', 'last_name' => 'Gaugler', 'in_family_directory' => false, 'death_date' => null, 'birth_date' => '1990-01-01']);
+        $friend->circles()->attach($friends->id);
+
+        $invitation = app(InvitationService::class)->create($this->admin, 'laura@example.fr', $friend, ['household_id' => $friends->id]);
+        $mail = new \App\Mail\InvitationMail($invitation, 'https://example.test/bienvenue/x');
+
+        $this->assertStringContainsString('« Les Ponzes »', $mail->envelope()->subject);
+        $html = $mail->render();
+        $this->assertStringContainsString('propres groupes d’amis', $html);
+        $this->assertStringContainsString('Et la famille ?', $html);
+        $this->assertStringNotContainsString('arbre de la famille', $html);
+    }
 }

@@ -47,9 +47,18 @@ class Household extends Model
      * cercle est ouvert à tous : ses membres — et, pour le cercle d'accueil
      * familial, quiconque voit la famille (comptes historiques sans cercle).
      */
+    /**
+     * Responsable du cercle : l'admin ; pour un cercle d'amis, aussi celui
+     * qui l'a créé (tout membre peut créer son propre groupe d'amis).
+     */
+    public function isManagedBy(User $user): bool
+    {
+        return $user->isAdmin() || ($this->isFriends() && $this->created_by === $user->id);
+    }
+
     public function allowsInvitesFrom(User $user): bool
     {
-        if ($user->isAdmin()) {
+        if ($this->isManagedBy($user)) {
             return true;
         }
         if ($this->invite_policy !== self::INVITE_EVERYONE) {
@@ -120,6 +129,25 @@ class Household extends Model
         return $this->belongsToMany(Media::class, 'household_media')
             ->withPivot('added_by')
             ->withTimestamps();
+    }
+
+    /**
+     * Nombre de « photos du cercle » (cf. Media::scopeInContext) : partagées
+     * au cercle, dans un album partagé au cercle, ou montrant une de ses fiches.
+     */
+    public function photoCount(): int
+    {
+        // Fiches d'amis seulement : les membres de la famille rattachés au
+        // cercle (ex. son créateur) apparaissent sur toutes leurs photos.
+        $people = $this->people()->where('people.in_family_directory', false)->pluck('people.id');
+
+        return Media::where('type', 'photo')
+            ->where(function ($w) use ($people) {
+                $w->whereHas('households', fn ($h) => $h->whereKey($this->id))
+                    ->orWhereHas('albums', fn ($a) => $a->whereHas('households', fn ($h) => $h->whereKey($this->id)))
+                    ->orWhereHas('people', fn ($p) => $p->whereIn('people.id', $people));
+            })
+            ->count();
     }
 
     public function isMember(?User $user): bool

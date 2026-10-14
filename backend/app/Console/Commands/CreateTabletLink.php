@@ -39,6 +39,14 @@ class CreateTabletLink extends Command
             return self::SUCCESS;
         }
 
+        // Le mode grand-parent est un mode FAMILLE : pas de tablette pour une
+        // fiche d'un cercle d'amis.
+        if (! $person->in_family_directory) {
+            $this->error("{$person->name} n'est pas dans la famille : le mode grand-parent est réservé aux fiches de la famille.");
+
+            return self::FAILURE;
+        }
+
         if (! $user) {
             $user = User::create([
                 'name' => $person->first_name ?: $person->name,

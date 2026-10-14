@@ -20,7 +20,7 @@
           <div class="text-sm font-semibold text-surface-900">Nouveau cercle</div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
-              v-for="k in ['family', 'friends']"
+              v-for="k in (canCreateFamily ? ['family', 'friends'] : ['friends'])"
               :key="k"
               type="button"
               class="flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-colors"
@@ -54,7 +54,7 @@
                 class="form-input"
               />
             </div>
-            <label class="flex items-center gap-2 text-sm text-surface-700 h-10">
+            <label v-if="canCreateFamily" class="flex items-center gap-2 text-sm text-surface-700 h-10">
               <input v-model="join" type="checkbox" class="rounded border-surface-300 text-brand-600 focus:ring-brand-500" />
               J'en fais partie
             </label>
@@ -85,7 +85,7 @@
             <p class="mt-2 text-sm text-surface-500">
               {{ h.members_count }} membre{{ h.members_count > 1 ? 's' : '' }}
               · {{ h.invite_policy === 'admin' ? "invitations par l'admin" : 'tout le monde invite' }}
-              <span v-if="canManage && !h.is_member"> · vous n'en faites pas partie</span>
+              <span v-if="canCreateFamily && !h.is_member"> · vous n'en faites pas partie</span>
             </p>
           </Link>
         </div>
@@ -93,7 +93,7 @@
         <div v-else class="text-center py-16 bg-white rounded-2xl border border-surface-200">
           <h3 class="text-lg font-medium text-surface-900">Aucun cercle</h3>
           <p class="mt-2 text-surface-500">
-            {{ canManage ? 'Créez un cercle pour partager vos souvenirs avec vos proches.' : "Un administrateur peut vous ajouter à un cercle." }}
+            Créez votre groupe d'amis pour partager vos souvenirs ensemble.
           </p>
         </div>
       </div>
@@ -115,11 +115,13 @@ const toast = useToast();
 const props = defineProps({
   households: { type: Array, default: () => [] },
   canManage: { type: Boolean, default: false },
+  canCreateFamily: { type: Boolean, default: false },
   defaultKind: { type: String, default: 'family' },
 });
 
 const newName = ref('');
-const newKind = ref(props.defaultKind);
+// Un membre crée un cercle d'amis ; la famille est réservée à l'admin.
+const newKind = ref(props.canCreateFamily ? props.defaultKind : 'friends');
 const join = ref(true);
 const creating = ref(false);
 

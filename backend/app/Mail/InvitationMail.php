@@ -53,26 +53,31 @@ class InvitationMail extends Mailable
         $inviter = $this->invitation->inviter;
         $inviterFirst = self::firstName($inviter?->name ?? config('mail.invitations.admin_from_name'));
         $verb = $this->invitation->formal ? 'vous invite' : "t'invite";
+        // Invitation dans un cercle d'amis : on parle du cercle, pas de la famille.
+        $circle = $this->friendsCircle();
+        $subjectEnd = $circle ? "dans « {$circle->name} » sur MemoryLane" : null;
 
         if (self::sentFromAdminGmail($this->invitation)) {
             return new Envelope(
                 from: new Address(config('mail.invitations.admin_from_address'), config('mail.invitations.admin_from_name')),
-                subject: "{$inviterFirst} {$verb} sur MemoryLane, notre album de famille",
+                subject: $subjectEnd ? "{$inviterFirst} {$verb} {$subjectEnd}" : "{$inviterFirst} {$verb} sur MemoryLane, notre album de famille",
             );
         }
 
         return new Envelope(
             from: new Address(config('mail.from.address'), "{$inviterFirst} via MemoryLane"),
             replyTo: $inviter ? [new Address($inviter->email, $inviter->name)] : [],
-            subject: "{$inviterFirst} {$verb} sur MemoryLane, l'album de notre famille",
+            subject: $subjectEnd ? "{$inviterFirst} {$verb} {$subjectEnd}" : "{$inviterFirst} {$verb} sur MemoryLane, l'album de notre famille",
         );
     }
 
     public function content(): Content
     {
+        $friends = $this->friendsCircle() !== null;
+
         return new Content(
-            view: 'mail.invitation',
-            text: 'mail.invitation-text',
+            view: $friends ? 'mail.invitation-friends' : 'mail.invitation',
+            text: $friends ? 'mail.invitation-friends-text' : 'mail.invitation-text',
             with: $this->viewData(),
         );
     }
@@ -80,6 +85,14 @@ class InvitationMail extends Mailable
     /**
      * @return array<string, mixed>
      */
+    /** Cercle d'amis visé par l'invitation, ou null (invitation famille). */
+    private function friendsCircle(): ?\App\Models\Household
+    {
+        $circle = $this->invitation->household;
+
+        return $circle?->isFriends() ? $circle : null;
+    }
+
     public function viewData(): array
     {
         $invitation = $this->invitation;
@@ -116,6 +129,10 @@ class InvitationMail extends Mailable
             'screenshots' => $screenshots,
             'appUrl' => config('app.url'),
             'appHost' => parse_url(config('app.url'), PHP_URL_HOST),
+            // Variante « amis » (cercle d'amis de l'invitation).
+            'circleName' => $this->friendsCircle()?->name,
+            'circlePeopleCount' => $this->friendsCircle()?->people()->count() ?? 0,
+            'circlePhotoCount' => $this->friendsCircle()?->photoCount() ?? 0,
         ];
     }
 

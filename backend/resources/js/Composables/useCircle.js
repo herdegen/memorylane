@@ -21,6 +21,7 @@ export function useCircle() {
     circles: computed(() => circle.value?.list ?? []),
     canSeeFamily: computed(() => circle.value?.family ?? true),
     canManage: computed(() => !!circle.value?.can_manage),
+    canCreate: computed(() => !!circle.value?.can_create),
     peopleLabel: computed(() => (isFriends.value ? 'Amis' : 'Personnes')),
   };
 }

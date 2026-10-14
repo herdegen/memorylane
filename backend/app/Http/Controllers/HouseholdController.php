@@ -52,7 +52,8 @@ class HouseholdController extends Controller
 
         return Inertia::render('Households/Index', [
             'households' => $households,
-            'canManage' => $user->isAdmin(),
+            'canManage' => Gate::allows('create', Household::class),
+            'canCreateFamily' => $user->isAdmin(),
             'defaultKind' => config('memorylane.default_mode'),
         ]);
     }
@@ -71,6 +72,11 @@ class HouseholdController extends Controller
         ]);
 
         $kind = $validated['kind'] ?? config('memorylane.default_mode');
+        // Un membre crée son cercle d'amis ; la famille reste l'affaire de l'admin.
+        if (! $request->user()->isAdmin()) {
+            abort_if($kind !== Household::KIND_FRIENDS, 403, 'Seul un administrateur crée un cercle famille.');
+            $validated['join'] = true;
+        }
         $household = Household::create([
             'name' => $validated['name'],
             'kind' => $kind,

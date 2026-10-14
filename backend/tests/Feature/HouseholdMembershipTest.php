@@ -57,12 +57,38 @@ class HouseholdMembershipTest extends TestCase
         $this->assertFalse($household->isMember($this->admin));
     }
 
-    public function test_un_compte_normal_ne_cree_pas_de_cercle(): void
+    public function test_un_membre_cree_son_cercle_d_amis_mais_pas_un_cercle_famille(): void
     {
         $user = User::factory()->create();
 
-        $this->actingAs($user)->postJson('/households', ['name' => 'Mon cercle'])->assertForbidden();
-        $this->assertSame(0, Household::count());
+        $this->actingAs($user)->postJson('/households', ['name' => 'Famille à moi', 'kind' => 'family'])->assertForbidden();
+
+        $this->actingAs($user)->postJson('/households', ['name' => 'Mes potes', 'kind' => 'friends', 'join' => false])->assertCreated();
+        $circle = Household::firstWhere('name', 'Mes potes');
+        $this->assertSame('friends', $circle->kind);
+        $this->assertTrue($circle->isMember($user)); // toujours membre de son cercle
+        $this->assertTrue($circle->isManagedBy($user));
+    }
+
+    public function test_le_responsable_gere_son_cercle_d_amis_pas_ceux_des_autres(): void
+    {
+        [$owner, $friend, $other] = User::factory()->count(3)->create()->all();
+        $this->actingAs($owner)->postJson('/households', ['name' => 'Les potes', 'kind' => 'friends'])->assertCreated();
+        $circle = Household::firstWhere('name', 'Les potes');
+
+        $this->actingAs($owner)->postJson("/households/{$circle->id}/members", ['user_id' => $friend->id])->assertCreated();
+        $this->actingAs($friend)->postJson("/households/{$circle->id}/members", ['user_id' => $other->id])->assertForbidden(); // réservé au responsable
+        $this->actingAs($owner)->patchJson("/households/{$circle->id}", ['invite_policy' => 'everyone'])->assertOk();
+        $this->actingAs($friend)->postJson("/households/{$circle->id}/members", ['user_id' => $other->id])->assertCreated();
+
+        $this->actingAs($friend)->deleteJson("/households/{$circle->id}/members/{$other->id}")->assertForbidden();
+        $this->actingAs($owner)->deleteJson("/households/{$circle->id}/members/{$other->id}")->assertOk();
+
+        // Il ne gère pas un cercle famille, même s'il en est membre.
+        $family = $this->household([$owner]);
+        $this->actingAs($owner)->patchJson("/households/{$family->id}", ['invite_policy' => 'admin'])->assertForbidden();
+
+        $this->actingAs($owner)->deleteJson("/households/{$circle->id}")->assertOk();
     }
 
     public function test_index_ne_liste_que_mes_cercles_sauf_pour_l_admin(): void

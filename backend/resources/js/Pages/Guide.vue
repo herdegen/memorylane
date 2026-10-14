@@ -8,7 +8,11 @@
         <div class="page-header">
           <div class="text-xs font-semibold uppercase tracking-widest text-brand-700 mb-2">Bien démarrer</div>
           <h1>Guide d'utilisation</h1>
-          <p>
+          <p v-if="isFriends">
+            MemoryLane rassemble vos photos entre amis : qui était là, quand, où — et comment vous vous êtes connus.
+            Suivez les premiers pas ci-dessous, puis piochez dans les fiches pour aller plus loin.
+          </p>
+          <p v-else>
             MemoryLane rassemble les photos, les personnes et les histoires de la famille.
             Suivez les premiers pas ci-dessous, puis piochez dans les fiches pour aller plus loin.
           </p>
@@ -17,7 +21,7 @@
         <!-- Sommaire -->
         <nav class="flex flex-wrap gap-2 mb-10" aria-label="Sommaire du guide">
           <a
-            v-for="section in sections"
+            v-for="section in guideSections"
             :key="section.id"
             :href="`#${section.id}`"
             class="px-3.5 py-1.5 rounded-full text-[13px] font-medium bg-white border border-surface-300 text-surface-600 hover:bg-surface-50 hover:text-surface-900 transition"
@@ -30,7 +34,7 @@
         <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400 mb-4">Vos premiers pas</h2>
         <div class="space-y-4 mb-14">
           <section
-            v-for="(step, i) in steps"
+            v-for="(step, i) in guideSteps"
             :key="step.title"
             class="card card--padded"
           >
@@ -66,7 +70,7 @@
         <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400 mb-4">Toutes les fonctionnalités</h2>
         <div class="space-y-12">
           <section
-            v-for="section in sections"
+            v-for="section in guideSections"
             :key="section.id"
             :id="section.id"
             class="scroll-mt-20"
@@ -118,6 +122,10 @@
 import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import GuideImage from '@/Components/GuideImage.vue';
+import { computed } from 'vue';
+import { useCircle } from '@/Composables/useCircle';
+
+const { isFriends } = useCircle();
 
 // Les noms d'images correspondent aux vignettes générées par
 // scripts/guide-captures.mjs (storage/app/guide/, servies authentifiées).
@@ -243,7 +251,8 @@ const sections = [
       { title: 'Albums classiques', text: 'Créez, choisissez la couverture, réordonnez les photos, ajoutez un diaporama.' },
       { title: 'Albums intelligents', text: 'Définissez des critères (personnes, tags, dates) : l\'album se remplit tout seul au fil des imports.' },
       { title: 'Partage par compte', text: 'Ouvrez l\'album à des comptes choisis ou à tous les connectés.' },
-      { title: 'Partage par lien', text: 'Un lien privé pour la famille sans compte — révocable à tout moment.' },
+      { title: 'Partage avec un cercle', text: 'Dans le panneau de partage, ajoutez un cercle entier (la famille, un groupe d\'amis) : tous ses membres voient l\'album, même ceux qui le rejoindront plus tard.' },
+      { title: 'Partage par lien', text: 'Un lien privé pour ceux qui n\'ont pas de compte — révocable à tout moment.' },
     ],
     link: { href: '/albums', label: 'Ouvrir Albums' },
   },
@@ -326,4 +335,98 @@ const sections = [
     link: { href: '/profile', label: 'Ouvrir Mon profil' },
   },
 ];
+
+// ---------------------------------------------------------------------------
+// Guide « amis » : mêmes bases (photos, albums, téléphone…), mais le cercle
+// d'amis, le réseau et la fiche d'un ami remplacent foyer, arbre et famille.
+// ---------------------------------------------------------------------------
+const friendsSteps = [
+  steps[0],
+  steps[1],
+  steps[2],
+  {
+    title: 'Mettez des noms sur les visages',
+    body: 'Les visages sont détectés automatiquement, puis MemoryLane suggère qui est qui — confirmez d\'un clic. Chaque ami gagne sa fiche : vos souvenirs ensemble, comment vous vous êtes connus, toutes ses photos.',
+    image: 'personnes',
+    link: { href: '/people', label: 'Ouvrir Amis' },
+    more: 'personnes',
+  },
+  {
+    title: 'Créez votre groupe d\'amis',
+    body: 'Les copains du lycée, le club de sport, les voisins : créez autant de groupes que vous voulez et invitez-y qui vous voulez. Partagez-y un album d\'un clic — ce qui est partagé dans un groupe reste dans ce groupe.',
+    image: 'foyers',
+    link: { href: '/households', label: 'Ouvrir Cercles' },
+    more: 'foyers',
+  },
+  {
+    title: 'Explorez le réseau et la carte',
+    body: 'Le réseau se tisse tout seul : deux amis sont reliés quand ils apparaissent sur les mêmes photos. La carte, elle, pose vos souvenirs là où ils ont été pris.',
+    image: 'carte',
+    link: { href: '/network', label: 'Ouvrir le Réseau' },
+    more: 'arbre',
+  },
+];
+
+const friendsSectionOverrides = {
+  accueil: {
+    id: 'accueil',
+    emoji: '🏡',
+    title: 'La page d\'accueil',
+    intro: 'Chaque jour, l\'accueil du groupe vous raconte quelque chose, à partir des photos du groupe.',
+    image: 'dashboard',
+    points: [
+      { title: 'Vos souvenirs du jour', text: '« Il y a N ans, ce jour-là » : les photos du groupe prises ce jour-là, en diaporama.' },
+      { title: 'Anniversaires', text: 'Les anniversaires des amis des 15 prochains jours (sans l\'âge : entre amis, on fête, on ne compte pas).' },
+      { title: 'Les petites questions', text: '« Comment as-tu connu Léa ? », « Qui est sur cette photo ? » : une question à la fois, sur les photos du groupe. « Je ne sais pas » et « Passer » existent aussi !' },
+    ],
+    link: { href: '/dashboard', label: 'Ouvrir l\'accueil' },
+  },
+  personnes: {
+    id: 'personnes',
+    emoji: '🧑‍🤝‍🧑',
+    title: 'Amis et visages',
+    intro: 'Chaque ami a sa fiche, et les photos s\'y rattachent presque toutes seules.',
+    image: 'personne',
+    points: [
+      { title: 'Suggestions de visages', text: 'MemoryLane reconnaît les visages déjà nommés et propose : confirmez ou corrigez d\'un clic.' },
+      { title: 'Vos souvenirs ensemble', text: 'Sur la fiche d\'un ami : vos photos communes, de la première à la dernière, rangées par album.' },
+      { title: 'Comment vous vous êtes connus', text: 'Chacun raconte sa version de la rencontre ; les autres versions s\'affichent à côté.' },
+      { title: 'Une fiche qui existe déjà', text: 'Quelqu\'un de la famille ou d\'un autre groupe ? Choisissez-le dans la liste : MemoryLane propose de l\'ajouter au groupe plutôt que de créer un doublon.' },
+    ],
+    link: { href: '/people', label: 'Ouvrir Amis' },
+  },
+  foyers: {
+    id: 'foyers',
+    emoji: '🤝',
+    title: 'Vos groupes d\'amis',
+    intro: 'Un cercle d\'amis réunit des comptes qui partagent leurs souvenirs. Tout le monde peut créer le sien.',
+    image: 'foyers',
+    points: [
+      { title: 'Créer un groupe', text: 'Page Cercles › « Nouveau cercle » : vous en devenez le responsable (membres, réglages).' },
+      { title: 'Inviter', text: 'Ajoutez un compte depuis la page du groupe, ou invitez quelqu\'un par mail depuis sa fiche. Le responsable choisit qui peut inviter : lui seul ou tous les membres.' },
+      { title: 'Étanche', text: 'Les fiches et les photos d\'un groupe ne sont visibles que de ses membres. Sur une photo commune, on voit seulement le nom des personnes des autres groupes.' },
+      { title: 'Et la famille ?', text: 'Famille et amis sont deux mondes séparés. Un album peut être partagé avec les deux — celui d\'un mariage, par exemple.' },
+    ],
+    link: { href: '/households', label: 'Ouvrir Cercles' },
+  },
+  arbre: {
+    id: 'arbre',
+    emoji: '🕸️',
+    title: 'Le réseau',
+    intro: 'Le réseau du groupe se dessine tout seul à partir des photos : pas d\'amis à ajouter, pas de demandes, juste vos souvenirs.',
+    image: 'carte',
+    points: [
+      { title: 'Qui avec qui', text: 'Deux personnes sont reliées quand elles apparaissent sur les mêmes photos ; plus le lien est épais, plus elles sont souvent ensemble.' },
+      { title: 'Les autres groupes', text: 'Les amis d\'autres groupes présents sur vos photos apparaissent en îlots autour, avec le nom de leur groupe.' },
+      { title: 'Le temps qui passe', text: 'La frise en bas montre le réseau année après année.' },
+      { title: 'Depuis une fiche', text: 'Le bouton « Voir dans le réseau » centre le réseau sur cet ami.' },
+    ],
+    link: { href: '/network', label: 'Ouvrir le Réseau' },
+  },
+};
+
+const guideSteps = computed(() => (isFriends.value ? friendsSteps : steps));
+const guideSections = computed(() => (isFriends.value
+  ? sections.map((s) => friendsSectionOverrides[s.id] ?? s)
+  : sections));
 </script>

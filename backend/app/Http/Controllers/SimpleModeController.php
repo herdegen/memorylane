@@ -39,6 +39,13 @@ class SimpleModeController extends Controller
     public function home(Request $request)
     {
         $user = $request->user();
+
+        // Mode grand-parent = mode famille : un compte normal dans un cercle
+        // d'amis n'a rien à y faire (les comptes tablette, eux, y restent).
+        if (! $user->simple_mode && $user->mode() === \App\Models\Household::KIND_FRIENDS) {
+            return redirect()->route('dashboard');
+        }
+
         $person = $user->person_id
             ? Person::with('avatar')->withMatchedFacesCount()->find($user->person_id)
             : null;
