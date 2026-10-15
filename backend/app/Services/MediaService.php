@@ -266,8 +266,11 @@ class MediaService
     public const EXTENSIONS = [
         'image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp',
         'image/heic' => 'heic', 'image/heif' => 'heif',
-        'video/mp4' => 'mp4', 'video/quicktime' => 'mov', 'video/x-msvideo' => 'avi',
+        'video/mp4' => 'mp4', 'video/quicktime' => 'mov', 'video/x-msvideo' => 'avi', 'video/avi' => 'avi',
         'video/x-matroska' => 'mkv', 'video/webm' => 'webm',
+        // Formats de caméscope, DVD, vieux téléphones (import Drive : optimisés en MP4).
+        'video/mpeg' => 'mpg', 'video/mp2t' => 'mts', 'video/vnd.dlna.mpeg-tts' => 'm2ts', 'video/3gpp' => '3gp',
+        'video/x-m4v' => 'm4v', 'video/x-ms-wmv' => 'wmv', 'video/x-flv' => 'flv', 'video/dv' => 'dv',
         'application/pdf' => 'pdf', 'application/msword' => 'doc',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
     ];

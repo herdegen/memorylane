@@ -28,11 +28,14 @@ class TranscodeVideoForWeb implements ShouldQueue
 
     public $tries = 2;
 
-    public $timeout = 3600;
+    // Vidéos longues (4K, plus d'une heure) : file « video », délai long.
+    public $timeout = 4 * 3600 + 600;
 
     public function __construct(
         public Media $media
-    ) {}
+    ) {
+        $this->onConnection('redis-long')->onQueue('video');
+    }
 
     public function handle(S3Service $s3Service): void
     {

@@ -34,6 +34,18 @@ return [
             'driver' => 'sync',
         ],
 
+        // Tâches très longues (réencodage vidéo : jusqu'à 4 h) : connexion à
+        // part, pour que leur long retry_after ne retarde pas la reprise des
+        // autres tâches après un plantage. Synchrone en test.
+        'redis-long' => [
+            'driver' => env('QUEUE_LONG_DRIVER', 'redis'),
+            'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),
+            'queue' => 'video',
+            'retry_after' => 4 * 3600 + 900,
+            'block_for' => null,
+            'after_commit' => false,
+        ],
+
         'database' => [
             'driver' => 'database',
             'connection' => env('DB_QUEUE_CONNECTION'),

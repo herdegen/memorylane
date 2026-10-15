@@ -45,6 +45,8 @@ trait ReportsImportProgress
             'finished' => (bool) ($status['finished'] ?? false),
             'failed' => (bool) ($status['failed'] ?? false),
             'skipped' => (int) ($status['skipped'] ?? 0),
+            // Vidéos optimisées en tâche de fond (import Drive) : arrivent après.
+            'videos' => (int) ($status['videos'] ?? 0),
         ]);
     }
 }

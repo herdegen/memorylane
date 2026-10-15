@@ -32,8 +32,8 @@ class ImportGoogleDriveFiles implements ShouldQueue, ShouldBeEncrypted
 
     protected const FILES_URL = 'https://www.googleapis.com/drive/v3/files/';
 
-    /** Même plafond que l'envoi direct (MediaController : 2 Go). */
-    protected const MAX_BYTES = 2 * 1024 * 1024 * 1024;
+    /** Vidéos confiées à ImportDriveVideo (optimisées à part). */
+    protected int $queuedVideos = 0;
 
     public $tries = 2;
 
@@ -63,11 +63,12 @@ class ImportGoogleDriveFiles implements ShouldQueue, ShouldBeEncrypted
 
         foreach ($this->fileIds as $fileId) {
             try {
+                $queued = $this->queuedVideos;
                 $media = $this->importFile($mediaService, $oauth, $fileId);
                 if ($media) {
                     $this->attachTargets($media);
                     $imported++;
-                } else {
+                } elseif ($this->queuedVideos === $queued) {
                     $skipped++;
                 }
             } catch (\Exception $e) {
@@ -90,6 +91,7 @@ class ImportGoogleDriveFiles implements ShouldQueue, ShouldBeEncrypted
             'failed' => false,
             'imported' => $imported,
             'skipped' => $skipped,
+            'videos' => $this->queuedVideos,
         ], now()->addHours(2));
     }
 
@@ -124,8 +126,17 @@ class ImportGoogleDriveFiles implements ShouldQueue, ShouldBeEncrypted
             return null;
         }
 
-        if ((int) $meta->json('size') > self::MAX_BYTES) {
+        // Même plafond que l'envoi direct (config media.upload_max_bytes).
+        if ((int) $meta->json('size') > (int) config('media.upload_max_bytes')) {
             Log::info('ImportGoogleDriveFiles: fichier trop lourd', ['file' => $filename, 'size' => $meta->json('size')]);
+
+            return null;
+        }
+
+        // Vidéo : téléchargée et optimisée à part (file « video », long).
+        if (str_starts_with($mimeType, 'video/')) {
+            ImportDriveVideo::dispatch($this->userId, $this->accessToken, $this->refreshToken, $fileId, $filename, $mimeType, $this->personId, $this->albumId);
+            $this->queuedVideos++;
 
             return null;
         }

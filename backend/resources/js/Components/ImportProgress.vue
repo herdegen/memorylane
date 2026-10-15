@@ -31,6 +31,9 @@
       <span class="text-sm text-surface-700">
         <span class="font-semibold text-surface-900">{{ count }}</span>
         photo(s) importée(s). Import terminé — <span class="text-surface-400">si des photos manquent, relancez l'import.</span>
+        <span v-if="videos" class="block text-surface-500">
+          {{ videos }} vidéo(s) en cours d’optimisation : elles apparaîtront dans « Mes photos » d’ici quelques minutes (environ 10 min par heure de vidéo).
+        </span>
         <span v-if="skipped" class="block text-surface-500">
           {{ skipped }} fichier(s) ignoré(s) : format non pris en charge, trop lourd ou inaccessible.
         </span>
@@ -58,7 +61,7 @@ import { Link } from '@inertiajs/vue3';
 import axios from 'axios';
 
 // Suivi d'un import lancé en arrière-plan : les photos arrivent au fur et à
-// mesure. `statusUrl` renvoie { count, items, finished, failed, skipped }.
+// mesure. `statusUrl` renvoie { count, items, finished, failed, skipped, videos }.
 const props = defineProps({
   statusUrl: { type: String, required: true },
   startedAt: { type: String, required: true },
@@ -68,6 +71,7 @@ const done = ref(false);
 const failed = ref(false);
 const count = ref(0);
 const skipped = ref(0);
+const videos = ref(0);
 const items = ref([]);
 
 let timer = null;
@@ -98,6 +102,7 @@ const poll = async () => {
     count.value = data.count;
     items.value = data.items;
     skipped.value = data.skipped || 0;
+    videos.value = data.videos || 0;
 
     // Signal terminal côté serveur (fiable) : le job a fini ou échoué.
     if (data.finished) {

@@ -215,6 +215,18 @@ return [
             'timeout' => 3600,
             'nice' => 0,
         ],
+        // Réencodage vidéo (import Drive optimisé, version web) : un seul à la
+        // fois (CPU), délai long, connexion à part (cf. config/queue.php).
+        'supervisor-video' => [
+            'connection' => 'redis-long',
+            'queue' => ['video'],
+            'balance' => 'simple',
+            'maxProcesses' => 1,
+            'memory' => 512,
+            'tries' => 1,
+            'timeout' => 4 * 3600 + 600,
+            'nice' => 10,
+        ],
         // Analyse des visages (service InsightFace, une photo à la fois côté
         // service) : file à part pour ne pas bloquer conversions et envois.
         'supervisor-faces' => [
