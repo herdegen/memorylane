@@ -481,6 +481,47 @@ class InsightFaceTest extends TestCase
         $this->assertSame([], $matcher->excludedPeople($lookalike->fresh()));
     }
 
+    public function test_suggestions_skip_people_unborn_or_of_an_incompatible_age(): void
+    {
+        $box = ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5];
+        $aged = function (Media $media, ?Person $person, array $v2, ?int $age) use ($box) {
+            $face = $this->face($media, $box, $person, v2: $v2);
+            $face->forceFill(['age_estimate' => $age])->save();
+
+            return $face;
+        };
+        // Sans date de naissance, mais l'âge apparent sur 5 photos de 2020 la situe vers 1990.
+        $pascale = Person::create(['user_id' => $this->user->id, 'name' => 'Pascale']);
+        foreach ([0.0, 0.05, 0.1, 0.15, 0.2] as $n) {
+            $aged($this->photo('2020-06-01'), $pascale, $this->vec(2, $n), 30);
+        }
+        $vincent = Person::create(['user_id' => $this->user->id, 'name' => 'Vincent', 'birth_date' => '1958-04-01']);
+        foreach ([0.0, 0.1] as $n) {
+            $aged($this->photo('2020-06-01'), $vincent, $this->vec(3, $n), 62);
+        }
+        $marianne = Person::create(['user_id' => $this->user->id, 'name' => 'Marianne', 'birth_date' => '1931-03-01']);
+        foreach ([0.0, 0.1] as $n) {
+            $aged($this->photo('2000-06-01'), $marianne, $this->vec(4, $n), 69);
+        }
+        $this->assertSame(1990, app(\App\Services\Vision\FacePlausibility::class)->birthEstimates()[$pascale->id] ?? null);
+
+        $film = $this->photo('1957-08-01');
+        $suggested = fn (DetectedFace $f) => collect(app(FaceMatcher::class)->rankedCandidates($f, app(FaceMatcher::class)->matchThreshold(), $this->user->id))
+            ->pluck('person.name')->all();
+
+        $this->assertSame([], $suggested($aged($film, null, $this->vec(2, 0.07), 40)), 'Pascale : pas encore née (estimation)');
+        $vincentLike = $aged($film, null, $this->vec(3, 0.05), 55);
+        $this->assertSame([], $suggested($vincentLike), 'Vincent : né 8 mois après la vidéo');
+        $this->assertSame(['Marianne'], $suggested($aged($film, null, $this->vec(4, 0.05), 40)), '26 ans à l\'époque : plausible');
+
+        // Toujours possible à la main (marge d'un an pour les dates approximatives).
+        app(FaceMatcher::class)->applyMatch($vincentLike, $vincent->id);
+        $this->assertSame($vincent->id, $vincentLike->fresh()->person_id);
+
+        // Sur une photo récente, Pascale redevient une suggestion.
+        $this->assertContains('Pascale', $suggested($aged($this->photo('2021-06-01'), null, $this->vec(2, 0.07), 31)));
+    }
+
     public function test_quest_stranger_keeps_the_face_visible_not_face_hides_it(): void
     {
         config(['memorylane.faces.engine' => 'faceapi']);

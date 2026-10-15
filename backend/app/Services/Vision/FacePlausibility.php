@@ -5,6 +5,7 @@ namespace App\Services\Vision;
 use App\Models\DetectedFace;
 use App\Models\Media;
 use App\Models\Person;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -30,6 +31,15 @@ class FacePlausibility
      * les fêtes de famille réunissent cousins et belle-famille.
      */
     public const CLOSE_KIN_MAX_DISTANCE = 6;
+
+    /** Écart (ans) entre l'âge estimé du visage et l'âge de la personne au-delà duquel on ne la suggère pas. */
+    public const SUGGESTION_AGE_GAP = 30;
+
+    /** Visages identifiés et datés nécessaires pour estimer une naissance inconnue. */
+    public const MIN_AGE_SAMPLES = 5;
+
+    /** @var array<string, int>|null */
+    private ?array $birthEstimates = null;
 
     /** Raison pour laquelle la personne ne peut pas figurer sur la photo, ou null. */
     public function impossibility(Person $person, Media $media): ?string
@@ -70,6 +80,55 @@ class FacePlausibility
      * @param  array<string,int>|null  $kin  distances de parenté (cf. kinDistances), calculées une fois par photo
      * @return list<array{code: string, label: string}>
      */
+    /**
+     * Suggestion invraisemblable (plus strict que impossibility, qui garde
+     * une marge d'un an pour un choix fait à la main) : personne née après
+     * la date de la photo, ou âge sans rapport avec celui du visage — d'après
+     * sa date de naissance, sinon sa naissance estimée (âge apparent de ses
+     * visages identifiés sur des photos datées).
+     */
+    public function unlikelySuggestion(Person $person, Media $media, ?int $faceAge): bool
+    {
+        $takenAt = $media->taken_at;
+        if (! $takenAt) {
+            return false;
+        }
+        if ($person->birth_date && $person->birth_date->gt($takenAt)) {
+            return true;
+        }
+        $birthYear = $person->birth_date?->year ?? ($this->birthEstimates()[$person->id] ?? null);
+        if ($faceAge === null || $birthYear === null) {
+            return false;
+        }
+
+        return abs($faceAge - ($takenAt->year - $birthYear)) >= self::SUGGESTION_AGE_GAP;
+    }
+
+    /**
+     * Année de naissance estimée des personnes (médiane de « année de la
+     * photo − âge apparent » sur leurs visages identifiés datés), en cache
+     * jusqu'au prochain changement d'identification.
+     *
+     * @return array<string, int>
+     */
+    public function birthEstimates(): array
+    {
+        if ($this->birthEstimates !== null) {
+            return $this->birthEstimates;
+        }
+        $version = (int) Cache::get('face-refs-version', 0);
+
+        return $this->birthEstimates = Cache::remember("face-birth-estimates:v{$version}", now()->addDay(), fn () => DB::table('detected_faces as f')
+            ->join('media as m', 'm.id', '=', 'f.media_id')
+            ->whereNotNull('f.person_id')->whereNotNull('f.age_estimate')->whereNotNull('m.taken_at')->whereNull('m.deleted_at')
+            ->groupBy('f.person_id')
+            ->havingRaw('count(*) >= ?', [self::MIN_AGE_SAMPLES])
+            ->selectRaw('f.person_id, round(percentile_cont(0.5) within group (order by extract(year from m.taken_at) - f.age_estimate)) as est')
+            ->pluck('est', 'person_id')
+            ->map(fn ($year) => (int) $year)
+            ->all());
+    }
+
     public function doubts(Person $person, Media $media, ?array $kin = null): array
     {
         $doubts = [];

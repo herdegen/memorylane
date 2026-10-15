@@ -156,7 +156,7 @@ class FaceMatcher
 
         $bestByPerson = [];
         foreach ($people as $person) {
-            if ($media && $plausibility->impossibility($person, $media)) {
+            if ($media && ($plausibility->impossibility($person, $media) || $plausibility->unlikelySuggestion($person, $media, $face->age_estimate))) {
                 continue;
             }
             $distance = $bestDistance[$person->id];

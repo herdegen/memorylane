@@ -119,7 +119,7 @@ class PersonFaceCandidates
             ->whereNotNull('embedding_v2')
             ->whereHas('media')
             ->with('media')
-            ->select(['id', 'media_id', 'embedding_v2'])
+            ->select(['id', 'media_id', 'embedding_v2', 'age_estimate'])
             ->chunkById(300, function ($faces) use ($flat, $alreadyOn, $excluded, $people, $plausibility, $maxSquared, &$byPerson, &$best) {
                 foreach ($faces as $face) {
                     $v = $face->embedding_v2;
@@ -141,7 +141,8 @@ class PersonFaceCandidates
                     $winnerDistance = INF;
                     foreach ($nearest as $personId => $d2) {
                         if ($d2 > $maxSquared || isset($alreadyOn[$personId][$face->media_id]) || isset($excluded[$face->id][$personId])
-                            || ! isset($people[$personId]) || $plausibility->impossibility($people[$personId], $face->media)) {
+                            || ! isset($people[$personId]) || $plausibility->impossibility($people[$personId], $face->media)
+                            || $plausibility->unlikelySuggestion($people[$personId], $face->media, $face->age_estimate)) {
                             continue;
                         }
                         $distance = round(sqrt(max(0.0, $d2)), 4);
@@ -195,7 +196,7 @@ class PersonFaceCandidates
             ->whereNull('person_id')
             ->whereNotNull('embedding_v2')
             ->whereHas('media')
-            ->select(['id', 'media_id', 'embedding_v2'])
+            ->select(['id', 'media_id', 'embedding_v2', 'age_estimate'])
             ->chunkById(500, function ($faces) use ($references, $alreadyOn, $maxSquared, &$found) {
                 foreach ($faces as $face) {
                     $v = $face->embedding_v2;
@@ -211,17 +212,19 @@ class PersonFaceCandidates
                         $best = min($best, 2 - 2 * $dot);
                     }
                     if ($best <= $maxSquared) {
-                        $found[$face->id] = [$face->media_id, sqrt(max(0.0, $best))];
+                        $found[$face->id] = [$face->media_id, sqrt(max(0.0, $best)), $face->age_estimate];
                     }
                 }
             });
 
-        // Garde-fou de date : jamais une photo où elle ne peut pas figurer.
+        // Garde-fous : jamais une photo où elle ne peut pas figurer, ni un
+        // visage d'un âge sans rapport avec le sien à cette date.
         $plausibility = app(FacePlausibility::class);
         $medias = Media::whereIn('id', array_unique(array_column($found, 0)))->get()->keyBy('id');
         $result = [];
-        foreach ($found as $faceId => [$mediaId, $distance]) {
-            if (isset($medias[$mediaId]) && ! $plausibility->impossibility($person, $medias[$mediaId])) {
+        foreach ($found as $faceId => [$mediaId, $distance, $faceAge]) {
+            if (isset($medias[$mediaId]) && ! $plausibility->impossibility($person, $medias[$mediaId])
+                && ! $plausibility->unlikelySuggestion($person, $medias[$mediaId], $faceAge)) {
                 $result[$faceId] = round($distance, 4);
             }
         }
