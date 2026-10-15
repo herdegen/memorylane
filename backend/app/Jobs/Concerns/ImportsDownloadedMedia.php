@@ -65,10 +65,15 @@ trait ImportsDownloadedMedia
     }
 
     /**
-     * Rattache le média importé à la personne et/ou l'album demandés.
+     * Rattache le média importé à la personne et/ou l'album demandés, et le
+     * partage avec le cercle choisi (import Google Drive).
      */
     protected function attachTargets(Media $media): void
     {
+        if (isset($this->householdId)) {
+            $media->households()->syncWithoutDetaching([$this->householdId => ['added_by' => $this->userId]]);
+        }
+
         if ($this->personId) {
             $media->people()->syncWithoutDetaching([$this->personId]);
         }

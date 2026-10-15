@@ -23,6 +23,31 @@ class VideoClipSplitTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_who_sees_a_clip_can_open_its_video_and_the_other_way_round(): void
+    {
+        $owner = User::factory()->create();
+        $source = Media::factory()->video()->create(['user_id' => $owner->id, 'is_source' => true]);
+        $clip = Media::factory()->video()->create(['user_id' => $owner->id, 'source_media_id' => $source->id]);
+        $album = Album::factory()->create(['user_id' => $owner->id]);
+        $album->media()->attach($clip->id, ['order' => 0]);
+        $viewer = User::factory()->create();
+        $circle = Household::factory()->create(['created_by' => $owner->id]);
+        $circle->members()->attach($viewer->id);
+        $album->households()->attach($circle->id, ['granted_by' => $owner->id]);
+
+        $this->assertTrue($viewer->can('view', $clip), 'clip vu par l\'album');
+        $this->assertTrue($viewer->can('view', $source), 'donc la vidéo entière aussi');
+
+        $other = Media::factory()->video()->create(['user_id' => $owner->id, 'is_source' => true]);
+        $otherClip = Media::factory()->video()->create(['user_id' => $owner->id, 'source_media_id' => $other->id]);
+        $other->households()->attach($circle->id, ['added_by' => $owner->id]);
+        $this->assertTrue($viewer->can('view', $otherClip), 'vidéo partagée : ses clips aussi');
+
+        $stranger = User::factory()->create();
+        $this->assertFalse($stranger->can('view', $source));
+        $this->assertFalse($stranger->can('view', $clip));
+    }
+
     public function test_clips_inherit_the_source_links_and_replace_it_in_its_albums(): void
     {
         Bus::fake([GenerateMediaConversions::class, GenerateHeroClip::class]);

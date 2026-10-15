@@ -17,7 +17,17 @@ class MediaPolicy
             return true;
         }
 
-        return Media::accessibleBy($user)->whereKey($media->getKey())->exists();
+        if (Media::accessibleBy($user)->whereKey($media->getKey())->exists()) {
+            return true;
+        }
+
+        // Vidéo et clips se répondent : qui voit l'un peut ouvrir l'autre
+        // (« Extrait de… », liste des clips) sans tomber sur un refus.
+        if ($media->source_media_id !== null) {
+            return Media::accessibleBy($user)->whereKey($media->source_media_id)->exists();
+        }
+
+        return $media->is_source && Media::accessibleBy($user)->where('source_media_id', $media->getKey())->exists();
     }
 
     public function update(User $user, Media $media): bool

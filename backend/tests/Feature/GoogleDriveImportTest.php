@@ -209,6 +209,25 @@ class GoogleDriveImportTest extends TestCase
             ->assertJson(['finished' => true, 'failed' => false, 'skipped' => 1, 'count' => 1]);
     }
 
+    public function test_import_shares_with_the_chosen_circle_only_if_member(): void
+    {
+        Bus::fake();
+        $circle = \App\Models\Household::factory()->create(['created_by' => $this->user->id]);
+        $circle->members()->attach($this->user->id);
+        Http::fake(fn (HttpRequest $request) => str_contains($request->url(), 'alt=media')
+            ? Http::response($this->jpeg, 200, ['Content-Type' => 'image/jpeg'])
+            : Http::response(['id' => 'p1', 'name' => 'grand-mere.jpg', 'mimeType' => 'image/jpeg', 'size' => '123']));
+
+        (new ImportGoogleDriveFiles($this->user->id, 'ya29.valid', null, ['p1'], householdId: $circle->id))
+            ->handle(app(MediaService::class), app(GoogleOAuth::class));
+        $this->assertTrue(Media::where('original_name', 'grand-mere.jpg')->sole()->households()->whereKey($circle->id)->exists());
+
+        $notMine = \App\Models\Household::factory()->create(['created_by' => User::factory()->create()->id]);
+        $this->actingAs($this->user)->withSession($this->driveToken())
+            ->postJson('/google-drive/import', ['file_ids' => ['p1'], 'share_household_id' => $notMine->id])
+            ->assertForbidden();
+    }
+
     /**
      * Jeton expiré en cours d'import : renouvelé une fois puis requête rejouée.
      */

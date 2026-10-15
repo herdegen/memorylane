@@ -122,7 +122,11 @@ class GoogleDriveController extends Controller
                 Rule::exists('albums', 'id')->where('user_id', auth()->id()),
             ],
             'new_album_name' => ['nullable', 'string', 'max:255'],
+            // Partage avec un cercle dont on est membre (comme à l'envoi).
+            'share_household_id' => ['nullable', 'uuid'],
         ]);
+        $householdId = $validated['share_household_id'] ?? null;
+        abort_if($householdId && ! $request->user()->circles()->contains('id', $householdId), 403);
 
         $token = $this->freshToken($request, $oauth);
         if (! $token) {
@@ -147,6 +151,7 @@ class GoogleDriveController extends Controller
             fileIds: array_values(array_unique($validated['file_ids'])),
             personId: $validated['person_id'] ?? null,
             albumId: $albumId,
+            householdId: $householdId,
         );
 
         return response()->json([

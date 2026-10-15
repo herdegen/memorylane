@@ -30,8 +30,9 @@ class ImportDriveVideo extends ImportGoogleDriveFiles
         public string $mimeType,
         ?string $personId = null,
         ?string $albumId = null,
+        ?string $householdId = null,
     ) {
-        parent::__construct($userId, $accessToken, $refreshToken, [$fileId], $personId, $albumId);
+        parent::__construct($userId, $accessToken, $refreshToken, [$fileId], $personId, $albumId, $householdId);
         $this->onConnection('redis-long')->onQueue('video');
     }
 

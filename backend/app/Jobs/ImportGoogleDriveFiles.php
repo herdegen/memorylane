@@ -49,6 +49,7 @@ class ImportGoogleDriveFiles implements ShouldQueue, ShouldBeEncrypted
         public array $fileIds,
         public ?string $personId = null,
         public ?string $albumId = null,
+        public ?string $householdId = null,
     ) {}
 
     public function handle(MediaService $mediaService, GoogleOAuth $oauth): void
@@ -135,7 +136,7 @@ class ImportGoogleDriveFiles implements ShouldQueue, ShouldBeEncrypted
 
         // Vidéo : téléchargée et optimisée à part (file « video », long).
         if (str_starts_with($mimeType, 'video/')) {
-            ImportDriveVideo::dispatch($this->userId, $this->accessToken, $this->refreshToken, $fileId, $filename, $mimeType, $this->personId, $this->albumId);
+            ImportDriveVideo::dispatch($this->userId, $this->accessToken, $this->refreshToken, $fileId, $filename, $mimeType, $this->personId, $this->albumId, $this->householdId);
             $this->queuedVideos++;
 
             return null;

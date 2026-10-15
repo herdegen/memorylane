@@ -127,6 +127,14 @@
               </div>
             </div>
 
+            <label v-if="current" class="flex items-start gap-3 rounded-xl border border-surface-200 px-4 py-3 cursor-pointer">
+              <input v-model="shareWithCircle" type="checkbox" class="mt-0.5 h-5 w-5 rounded border-surface-300 text-brand-600 focus:ring-brand-500" />
+              <span>
+                <span class="block font-medium text-surface-900">Partager avec « {{ current.name }} »</span>
+                <span class="block text-sm text-surface-500">Les membres pourront les voir, par exemple sur la fiche de la personne. Décochez pour les garder pour vous.</span>
+              </span>
+            </label>
+
             <button type="submit" :disabled="!selected.length || launching" class="btn-primary">
               {{ launching ? 'Lancement…' : (selected.length ? `Importer ${selected.length} fichier${selected.length > 1 ? 's' : ''}` : 'Importer ma sélection') }}
             </button>
@@ -147,6 +155,7 @@ import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FormError from '@/Components/Forms/FormError.vue';
 import ImportProgress from '@/Components/ImportProgress.vue';
+import { useCircle } from '@/Composables/useCircle';
 import { formatFileSize } from '@/utils/format';
 
 const props = defineProps({
@@ -181,6 +190,10 @@ const importForm = useForm({
   album_id: null,
   new_album_name: '',
 });
+
+// Partage avec le cercle courant, comme à l'envoi direct (coché par défaut).
+const { current } = useCircle();
+const shareWithCircle = ref(true);
 
 // Le sélecteur Google (Picker) se charge à la demande depuis apis.google.com.
 let pickerApiPromise = null;
@@ -279,6 +292,7 @@ const startImport = async () => {
       person_id: importForm.person_id,
       album_id: isNew ? null : importForm.album_id,
       new_album_name: isNew ? importForm.new_album_name : null,
+      share_household_id: shareWithCircle.value && current.value ? current.value.id : null,
     });
     importStartedAt.value = data.started_at;
     importing.value = true;
