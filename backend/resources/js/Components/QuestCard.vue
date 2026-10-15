@@ -59,6 +59,12 @@
             >
               Voir sa fiche<span v-if="question.person.birth_year"> — né·e en {{ question.person.birth_year }}</span>
             </Link>
+            <!-- D'où vient la photo : album(s), date, qui l'a envoyée -->
+            <p v-if="originText" class="text-xs text-surface-500 mt-0.5">
+              📁 <template v-for="(a, i) in origin.albums" :key="a.id"><Link :href="`/albums/${a.id}`" class="hover:text-brand-700 hover:underline">{{ a.name }}</Link><span v-if="i < origin.albums.length - 1">, </span></template>
+              <span v-if="!origin.albums.length">Hors album</span>
+              <span v-if="originSuffix"> · {{ originSuffix }}</span>
+            </p>
             <button
               v-if="fullPhotoUrl"
               type="button"
@@ -371,11 +377,12 @@
             class="absolute border-2 border-brand-400 rounded-md shadow-[0_0_0_9999px_rgba(0,0,0,0.35)] pointer-events-none"
             :style="faceBoxStyle"
           ></div>
+          <!-- Légende : titre éventuel + d'où vient la photo -->
           <div
-            v-if="question?.media?.title"
-            class="absolute -bottom-8 left-0 right-0 text-center text-sm text-white/80 truncate"
+            v-if="question?.media?.title || originText"
+            class="absolute -bottom-9 left-0 right-0 text-center text-sm text-white/85 truncate"
           >
-            {{ question.media.title }}
+            <span v-if="question?.media?.title">{{ question.media.title }} — </span>{{ originText }}
           </div>
         </div>
       </div>
@@ -466,6 +473,23 @@ const UI_KINDS = {
 const uiKind = computed(() => UI_KINDS[question.value?.type]);
 
 const isMediaQuestion = computed(() => !!question.value?.media);
+
+// Origine de la photo (questions visage, date, lieu).
+const origin = computed(() => question.value?.face?.origin || question.value?.media?.origin || null);
+const originSuffix = computed(() => {
+  const o = origin.value;
+  if (!o) return '';
+  return [
+    o.date ? new Date(o.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : null,
+    o.owner ? `envoyée par ${o.owner}` : null,
+  ].filter(Boolean).join(' · ');
+});
+const originText = computed(() => {
+  const o = origin.value;
+  if (!o) return '';
+  const albums = o.albums.length ? `📁 ${o.albums.map((a) => a.name).join(', ')}` : '📁 Hors album';
+  return [albums, originSuffix.value].filter(Boolean).join(' · ');
+});
 
 const visualUrl = computed(() => {
   const q = question.value;

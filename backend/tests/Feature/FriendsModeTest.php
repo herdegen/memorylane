@@ -341,4 +341,23 @@ class FriendsModeTest extends TestCase
             ->post('/circles/current', ['household_id' => $this->circle->id])
             ->assertRedirect("/people/{$this->self->id}");
     }
+
+    public function test_qui_est_ce_indique_l_album_d_origine_visible(): void
+    {
+        $owner = User::factory()->create(['name' => 'Paul Martin']);
+        $photo = Media::factory()->create(['user_id' => $owner->id, 'type' => 'photo', 'taken_at' => '2017-10-31']);
+        $shared = \App\Models\Album::factory()->create(['user_id' => $owner->id, 'name' => 'Halloween 2017']);
+        $shared->media()->attach($photo->id);
+        $shared->households()->attach($this->circle->id);
+        $private = \App\Models\Album::factory()->create(['user_id' => $owner->id, 'name' => 'Album privé de Paul']);
+        $private->media()->attach($photo->id);
+        $face = \App\Models\DetectedFace::create(['media_id' => $photo->id, 'status' => 'unmatched', 'bounding_box' => ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5]]);
+
+        $present = new \ReflectionMethod(QuestService::class, 'present');
+        $q = $present->invoke(app(QuestService::class), $this->me->fresh(), \App\Enums\QuestType::FaceIdentify, $face);
+
+        $this->assertSame(['Halloween 2017'], array_column($q['face']['origin']['albums'], 'name')); // pas l'album privé
+        $this->assertSame('2017-10-31', $q['face']['origin']['date']);
+        $this->assertSame('Paul Martin', $q['face']['origin']['owner']);
+    }
 }

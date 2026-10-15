@@ -524,6 +524,7 @@ class QuestService
                 'image_url' => url("/vision/media/{$subject->id}/image?conversion=medium"),
                 'full_url' => url("/vision/media/{$subject->id}/image?conversion=large"),
                 'title' => $subject->title,
+                'origin' => $this->photoOrigin($user, $subject),
             ];
         } elseif ($subject instanceof DetectedFace) {
             $question['prompt'] = 'Qui est cette personne ?';
@@ -534,6 +535,7 @@ class QuestService
                 // Photo entière + cadre (%) pour situer le visage dans son contexte.
                 'image_url' => url("/vision/media/{$subject->media_id}/image?conversion=large"),
                 'bounding_box' => $subject->bounding_box,
+                'origin' => $this->photoOrigin($user, $subject->media),
                 // « Sur cette photo avec Antoine et Pauline » : les personnes
                 // déjà identifiées (visibles) aident à reconnaître la suivante.
                 'with' => $subject->media->people()->visibleTo($user)->orderBy('name')->limit(4)->pluck('people.name'),
@@ -547,6 +549,29 @@ class QuestService
         }
 
         return $question;
+    }
+
+    /**
+     * D'où vient la photo d'une question : ses albums visibles du compte (du
+     * cercle courant d'abord), sa date, et qui l'a envoyée si ce n'est pas lui.
+     *
+     * @return array{albums: list<array{id: string, name: string}>, date: ?string, owner: ?string}
+     */
+    private function photoOrigin(User $user, Media $media): array
+    {
+        $albums = $media->albums()
+            ->accessibleBy($user)
+            ->orderBy('name')
+            ->get(['albums.id', 'albums.name'])
+            ->map(fn ($a) => ['id' => $a->id, 'name' => $a->name])
+            ->values()
+            ->all();
+
+        return [
+            'albums' => $albums,
+            'date' => $media->taken_at?->toDateString(),
+            'owner' => $media->user_id !== $user->id ? $media->user?->name : null,
+        ];
     }
 
     private function personPrompt(QuestType $type, Person $person): string
