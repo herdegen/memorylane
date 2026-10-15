@@ -162,7 +162,9 @@ const props = defineProps({
 // est listé pour pouvoir naviguer dans l'arborescence du Drive.
 const MIME_TYPES = [
   'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif',
-  'video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska', 'video/webm',
+  'video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/avi', 'video/x-matroska', 'video/webm',
+  // Caméscopes, DVD, vieux téléphones : optimisés à l'import (VideoOptimizer).
+  'video/mpeg', 'video/mp2t', 'video/vnd.dlna.mpeg-tts', 'video/3gpp', 'video/x-m4v', 'video/x-ms-wmv', 'video/x-flv', 'video/dv',
 ];
 const FOLDER_MIME = 'application/vnd.google-apps.folder';
 
