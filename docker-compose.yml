@@ -231,12 +231,15 @@ services:
     container_name: memorylane_backup
     logging: *logging
     mem_limit: 512m
-    entrypoint: ["crond", "-f", "-l", "8"]
+    # busybox crond ignore une crontab qui n'appartient pas à root (0600) : le
+    # fichier monté (propriétaire de l'hôte) est recopié avec les bons droits.
+    # Sans ça, aucune copie nocturne ne partait (dernière : manuelle, 11/10).
+    entrypoint: ["sh", "-c", "install -m 600 -o root -g root /crontab.src /etc/crontabs/root && exec crond -f -l 8"]
     volumes:
       - ./backend/.env:/app/.env:ro
       - ./.env:/app/root.env:ro
       - ./docker/backup/backup.sh:/usr/local/bin/backup.sh:ro
-      - ./docker/backup/crontab:/etc/crontabs/root:ro
+      - ./docker/backup/crontab:/crontab.src:ro
       - ./backend/storage/logs:/logs
     networks:
       - memorylane
