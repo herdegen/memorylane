@@ -15,6 +15,9 @@
         <!-- Installer l'application (téléphone, hors appli installée) -->
         <InstallAppBanner />
 
+        <!-- Médias ajoutés à SA fiche par d'autres, à valider -->
+        <FichePendingCard :initial-items="fichePending" />
+
         <!-- ============ Souvenirs « Il y a N ans » ============ -->
         <div v-if="onThisDay.length > 0" class="space-y-4" data-tour="today">
           <div class="flex items-center justify-between">
@@ -256,6 +259,7 @@ import QuestCard from '@/Components/QuestCard.vue';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
 import PushPromptCard from '@/Components/PushPromptCard.vue';
 import InstallAppBanner from '@/Components/InstallAppBanner.vue';
+import FichePendingCard from '@/Components/FichePendingCard.vue';
 import { useAuth } from '@/Composables/useAuth';
 import { useCircle } from '@/Composables/useCircle';
 import { conversionUrl, slideUrl, thumbnailUrl } from '@/utils/media';
@@ -280,6 +284,10 @@ const props = defineProps({
   showGuide: {
     type: Boolean,
     default: true,
+  },
+  fichePending: {
+    type: Array,
+    default: () => [],
   },
 });
 

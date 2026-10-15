@@ -31,6 +31,14 @@ class DashboardController extends Controller
             // La personne du jour est le REPLI quand aucun souvenir daté du jour.
             'personOfTheDay' => $onThisDay->isEmpty() ? $this->personOfTheDay() : null,
             'showGuide' => auth()->user()->dashboard_guide_hidden_at === null,
+            // Médias ajoutés à SA fiche par d'autres, à valider.
+            'fichePending' => app(\App\Services\FichePublisher::class)->pendingFor(auth()->user())
+                ->map(fn ($m) => [
+                    'id' => $m->id,
+                    'type' => $m->type,
+                    'thumbnail_url' => app(\App\Services\MediaService::class)->thumbnailUrl($m),
+                    'by' => strtok($m->user?->name ?? '', ' '),
+                ])->values(),
         ]);
     }
 

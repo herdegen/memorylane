@@ -18,6 +18,22 @@
           </a>
         </div>
 
+        <!-- Ajouté à MA fiche par quelqu'un : à valider -->
+        <div
+          v-if="ficheAsked"
+          class="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 dark:border-brand-500/30 dark:bg-brand-500/10"
+        >
+          <p class="flex-1 min-w-0 text-sm text-surface-800">
+            {{ ficheRequest.by || 'Quelqu’un' }} a ajouté ce média à ta fiche. L’afficher pour tout le monde ?
+          </p>
+          <button type="button" class="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-700" @click="decideFiche(true)">
+            Afficher pour tout le monde
+          </button>
+          <button type="button" class="rounded-md px-3 py-1.5 text-sm font-semibold text-surface-700 hover:bg-surface-100" @click="decideFiche(false)">
+            Garder privé
+          </button>
+        </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <!-- Media preview (left side - 2 columns) -->
           <div class="lg:col-span-2">
@@ -298,6 +314,15 @@
             <PersonInput
               :media-id="media.id"
               :initial-people="media.people || []"
+              @people-updated="(list) => (mediaPeople = list)"
+            />
+
+            <!-- « Ajouter à la fiche » : propriétaire du média ou admin -->
+            <FichePanel
+              v-if="isOwner || isAdmin"
+              :key="mediaPeople.map((p) => p.id).join()"
+              :media-id="media.id"
+              :initial-people="mediaPeople"
             />
 
             <!-- Geolocation -->
@@ -358,6 +383,7 @@ import { Head, router, Link, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import TagInput from '@/Components/TagInput.vue';
 import PersonInput from '@/Components/PersonInput.vue';
+import FichePanel from '@/Components/FichePanel.vue';
 import GeolocationEditor from '@/Components/GeolocationEditor.vue';
 import MediaInfoEditor from '@/Components/MediaInfoEditor.vue';
 import FaceDetectionOverlay from '@/Components/FaceDetectionOverlay.vue';
@@ -406,7 +432,27 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  // Ajouté à la fiche du viewer par quelqu'un, en attente de sa décision.
+  ficheRequest: {
+    type: Object,
+    default: null,
+  },
 });
+
+// Personnes identifiées (mises à jour par PersonInput) pour « Sur les fiches ».
+const mediaPeople = ref([...(props.media.people || [])]);
+
+// Ma décision sur l'affichage de ce média sur ma fiche.
+const ficheAsked = ref(Boolean(props.ficheRequest));
+const decideFiche = async (publish) => {
+  try {
+    const { data } = await axios.post(`/media/${props.media.id}/fiche-decision`, { publish });
+    ficheAsked.value = false;
+    toast.success(data.message);
+  } catch (error) {
+    toast.error(apiError(error, 'Impossible d’enregistrer ton choix.'));
+  }
+};
 
 const selectedFace = ref(null);
 

@@ -208,9 +208,16 @@ class MediaController extends Controller
             ->map(fn ($note) => VoiceNoteController::payload($note, $viewer))
             ->values();
 
+        // Ce média attend que le viewer valide son affichage sur sa fiche.
+        $mine = $viewer->person_id ? $media->people->firstWhere('id', $viewer->person_id) : null;
+        $ficheRequest = $mine?->pivot?->fiche_status === \App\Services\FichePublisher::PENDING
+            ? ['by' => \App\Models\User::find($mine->pivot->fiche_added_by)?->name]
+            : null;
+
         return Inertia::render('Media/Show', [
             'media' => $media,
             'voiceNotes' => $voiceNotes,
+            'ficheRequest' => $ficheRequest,
         ]);
     }
 

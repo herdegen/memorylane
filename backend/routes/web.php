@@ -186,6 +186,10 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         // Découpage d'une vidéo en clips (un Media par segment)
         Route::post('/{media}/clips', [MediaController::class, 'storeClips'])->name('storeClips');
         Route::post('/{media}/video-frame', [MediaController::class, 'setVideoFrame'])->name('videoFrame');
+        // « Ajouter à la fiche » d'une personne (+ validation par elle).
+        Route::post('/{media}/fiches', [\App\Http\Controllers\MediaFicheController::class, 'store'])->name('fiches.store');
+        Route::delete('/{media}/fiches/{person}', [\App\Http\Controllers\MediaFicheController::class, 'destroy'])->name('fiches.destroy');
+        Route::post('/{media}/fiche-decision', [\App\Http\Controllers\MediaFicheController::class, 'decide'])->name('fiches.decide');
     });
 
     // Tag routes

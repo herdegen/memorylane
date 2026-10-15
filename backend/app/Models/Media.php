@@ -175,7 +175,7 @@ class Media extends Model
     public function people()
     {
         return $this->belongsToMany(Person::class, 'media_person')
-            ->withPivot('face_coordinates')
+            ->withPivot('face_coordinates', 'fiche_status', 'fiche_added_by')
             ->withTimestamps();
     }
 
@@ -226,7 +226,11 @@ class Media extends Model
                 ->orWhereHas('albums', fn ($a) => $a->accessibleBy($user))
                 // Branche foyer : média partagé dans un foyer dont le viewer
                 // est membre (pivot household_media).
-                ->orWhereHas('households', fn ($h) => $h->whereIn('households.id', $user->householdIds()));
+                ->orWhereHas('households', fn ($h) => $h->whereIn('households.id', $user->householdIds()))
+                // Publié sur la fiche d'une personne que le viewer peut voir
+                // (« Ajouter à la fiche », validé par elle si elle a un compte).
+                ->orWhereHas('people', fn ($p) => $p->where('media_person.fiche_status', \App\Services\FichePublisher::PUBLISHED)
+                    ->whereIn('people.id', Person::visibleTo($user)->select('people.id')));
 
             // « Les photos de moi » : on voit les photos où sa fiche est
             // identifiée, où qu'elles soient — mais pas le reste de l'album.
