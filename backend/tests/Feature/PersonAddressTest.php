@@ -201,7 +201,7 @@ class PersonAddressTest extends TestCase
         $this->assertSame(2, $points[0][2]);
     }
 
-    public function test_heatmap_montre_sa_famille_de_sang_et_leurs_conjoints_pas_la_belle_famille_des_autres(): void
+    public function test_heatmap_montre_sa_famille_et_sa_belle_famille_pas_celle_des_autres(): void
     {
         $owner = User::factory()->create();
         // Chaque personne a sa propre ville (latitude = numéro du point).
@@ -229,8 +229,12 @@ class PersonAddressTest extends TestCase
         $seen = fn (User $viewer) => collect($this->actingAs($viewer->fresh())->getJson('/map/heatmap')->assertOk()->json('points'))
             ->pluck(0)->map(fn ($lat) => (int) $lat)->sort()->values()->all();
 
-        // Le frère voit l'épouse de son frère, pas le père de celle-ci.
+        // Le frère voit l'épouse de son frère, pas le père de celle-ci…
         $this->assertSame([1, 2, 3, 4, 5, 6, 7, 8], $seen($brothersAccount));
+        // … qui fait partie de la famille pour le couple lui-même.
+        $myAccount = User::factory()->create();
+        $myAccount->update(['person_id' => $me->id]);
+        $this->assertSame([1, 2, 3, 4, 5, 6, 7, 8, 9], $seen($myAccount));
         // Sans fiche « moi » : pas de famille définie, rien.
         $this->assertSame([], $seen(User::factory()->create()));
     }
