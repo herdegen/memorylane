@@ -67,6 +67,11 @@ class ImportDriveVideo extends ImportGoogleDriveFiles
                 Log::info('ImportDriveVideo: optimisation', ['file' => $this->filename, 'codec' => $probe['codec'], 'height' => $probe['height'], 'bitrate' => $probe['bitrate'], 'interlaced' => $probe['interlaced']]);
                 $optimizer->optimize($source, $path, $probe);
                 Log::info('ImportDriveVideo: optimisée', ['file' => $this->filename, 'before' => filesize($source), 'after' => filesize($path)]);
+                // Pas plus léger qu'un original déjà lisible partout : on garde l'original.
+                if ($optimizer->keepSource($probe, $source, $path)) {
+                    @unlink($path);
+                    [$path, $name, $optimize] = [$source, $this->filename, false];
+                }
             }
 
             $media = $this->storeDownloadedFile($mediaService, $path, $name, $optimize ? 'video/mp4' : $this->mimeType);

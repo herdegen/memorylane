@@ -69,6 +69,54 @@ class VideoOptimizerTest extends TestCase
         $this->assertFalse(app(VideoOptimizer::class)->needsOptimization(app(VideoOptimizer::class)->probe($path)));
     }
 
+    /** Numérisation VHS : SD pleine de grain, en H.264 à débit énorme. */
+    private function noisyTape(string $codec = 'libx264'): string
+    {
+        $path = $this->tmp[] = sys_get_temp_dir().'/vhs-'.uniqid().'.mp4';
+        Process::run(['ffmpeg', '-v', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc2=size=768x576:rate=25', '-f', 'lavfi', '-i', 'sine',
+            '-t', '4', '-vf', 'noise=alls=40:allf=t', '-c:v', $codec, '-b:v', '9M', '-pix_fmt', 'yuv420p', '-c:a', 'aac', $path])->throw();
+
+        return $path;
+    }
+
+    public function test_a_grainy_tape_is_capped_instead_of_reproducing_its_noise(): void
+    {
+        $optimizer = app(VideoOptimizer::class);
+        $source = $this->noisyTape();
+        $this->assertTrue($optimizer->needsOptimization($optimizer->probe($source)), '9 Mbit/s en SD : à réencoder');
+
+        $output = $this->tmp[] = sys_get_temp_dir().'/vhs-opt-'.uniqid().'.mp4';
+        $optimizer->optimize($source, $output);
+
+        $kbps = filesize($output) * 8 / 4 / 1000;
+        $this->assertLessThan(2500 * 1.25 + 200, $kbps, 'plafond SD 2,5 Mbit/s (+ son, + marge de démarrage)');
+        $this->assertLessThan(filesize($source) / 2, filesize($output));
+    }
+
+    public function test_reoptimize_replaces_a_heavy_video_without_losing_anything(): void
+    {
+        Bus::fake([\App\Jobs\GenerateMediaConversions::class]);
+        $disk = config('filesystems.default');
+        Storage::fake($disk);
+        Storage::disk($disk)->put('media/videos/2026/10/lourde.mp4', file_get_contents($this->noisyTape()));
+        $user = User::factory()->create();
+        $video = Media::factory()->video()->create(['user_id' => $user->id, 'file_path' => 'media/videos/2026/10/lourde.mp4', 'mime_type' => 'video/mp4', 'taken_at' => '1991-07-14']);
+        $person = Person::factory()->create(['user_id' => $user->id]);
+        $video->people()->attach($person->id);
+        $before = Storage::disk($disk)->size('media/videos/2026/10/lourde.mp4');
+
+        $this->artisan('media:reoptimize', ['media' => [$video->id]])->assertSuccessful();
+
+        $video->refresh();
+        $this->assertNotSame('media/videos/2026/10/lourde.mp4', $video->file_path);
+        $this->assertLessThan($before / 2, $video->size);
+        Storage::disk($disk)->assertMissing('media/videos/2026/10/lourde.mp4');
+        Storage::disk($disk)->assertExists($video->file_path);
+        $this->assertSame('1991-07-14', $video->taken_at->toDateString());
+        $this->assertTrue($video->people()->whereKey($person->id)->exists());
+        Bus::assertDispatched(\App\Jobs\GenerateMediaConversions::class);
+    }
+
     public function test_drive_videos_are_optimized_apart_and_only_the_optimized_copy_is_kept(): void
     {
         Bus::fake([\App\Jobs\GenerateMediaConversions::class, \App\Jobs\ProcessUploadedMedia::class]);
