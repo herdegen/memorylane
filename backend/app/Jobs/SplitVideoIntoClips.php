@@ -22,7 +22,10 @@ use Illuminate\Support\Facades\Log;
  * transcodage web ultérieur). La date de prise de vue et la géolocalisation de
  * la source sont héritées comme valeurs par défaut (éditables ensuite). Une
  * fois la découpe terminée, la source est marquée is_source=true et disparaît
- * de la galerie principale (elle reste accessible depuis ses clips).
+ * de la galerie principale (elle reste accessible depuis ses clips). Les
+ * clips héritent aussi des personnes, partages de cercle et tags de la
+ * source, et la remplacent dans ses albums (couverture et fond du titre
+ * compris).
  *
  * On télécharge le fichier source UNE seule fois (important pour une vidéo
  * longue) puis on ré-ouvre le fichier local pour chaque segment.
@@ -69,6 +72,7 @@ class SplitVideoIntoClips implements ShouldQueue
         $ffprobe = \App\Services\FfmpegFactory::ffprobe();
 
         $created = 0;
+        $clips = [];
 
         try {
             foreach (array_values($this->segments) as $i => $segment) {
@@ -142,19 +146,24 @@ class SplitVideoIntoClips implements ShouldQueue
                         ]);
                     }
 
+                    $this->inheritLinks($clip);
+
                     // Thumbnail (frame) + extraction métadonnées fines. Pas de
                     // transcodage web : le clip est déjà H.264 web-safe.
                     GenerateMediaConversions::dispatch($clip);
 
+                    $clips[] = $clip;
                     $created++;
                 } finally {
                     @unlink($outputPath);
                 }
             }
 
-            // La source n'est masquée que si au moins un clip a été produit.
+            // La source n'est masquée que si au moins un clip a été produit ;
+            // ses clips prennent alors sa place dans ses albums.
             if ($created > 0) {
                 $this->media->update(['is_source' => true]);
+                $this->replaceInAlbums($clips);
             }
 
             Log::info('SplitVideoIntoClips: Completed', [
@@ -169,6 +178,47 @@ class SplitVideoIntoClips implements ShouldQueue
             throw $e;
         } finally {
             @unlink($tempPath);
+        }
+    }
+
+    /** Personnes, partages de cercle et tags de la source. */
+    private function inheritLinks(Media $clip): void
+    {
+        // Personnes : présentes dans la vidéo, sans cadre de visage propre au clip.
+        $clip->people()->syncWithoutDetaching(
+            $this->media->people()->pluck('people.id')->mapWithKeys(fn ($id) => [$id => ['face_coordinates' => null]])->all()
+        );
+        $clip->households()->syncWithoutDetaching(
+            $this->media->households()->get()->mapWithKeys(fn ($h) => [$h->id => ['added_by' => $h->pivot->added_by]])->all()
+        );
+        $clip->tags()->syncWithoutDetaching($this->media->tags()->pluck('tags.id')->all());
+    }
+
+    /**
+     * Les clips remplacent la source dans chacun de ses albums (même rang),
+     * y compris comme couverture ou fond du titre.
+     *
+     * @param  list<Media>  $clips
+     */
+    private function replaceInAlbums(array $clips): void
+    {
+        foreach ($this->media->albums()->get() as $album) {
+            $album->media()->syncWithoutDetaching(
+                collect($clips)->mapWithKeys(fn (Media $c) => [$c->id => ['order' => $album->pivot->order]])->all()
+            );
+            $album->media()->detach($this->media->id);
+
+            $changes = [];
+            if ($album->cover_media_id === $this->media->id) {
+                $changes['cover_media_id'] = $clips[0]->id;
+            }
+            if ($album->hero_media_id === $this->media->id) {
+                $changes['hero_media_id'] = $clips[0]->id;
+                GenerateHeroClip::dispatch($clips[0]);
+            }
+            if ($changes) {
+                $album->forceFill($changes)->save();
+            }
         }
     }
 
