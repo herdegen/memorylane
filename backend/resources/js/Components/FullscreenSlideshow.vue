@@ -57,6 +57,9 @@
         </div>
       </Transition>
 
+      <!-- Diaporama qui voyage : carte entre deux étapes -->
+      <TravelInterlude v-if="travel" ref="interlude" />
+
       <!-- Contrôles (auto-masqués) -->
       <Transition name="fade">
         <div v-if="controlsVisible" class="absolute inset-0 pointer-events-none">
@@ -126,7 +129,8 @@
 //     card?: { icon, date, title, place, description, avatarUrl } }
 // Le type 'card' permet des slides texte/événements (naissance d'un enfant,
 // moment de vie…) au milieu des photos.
-import { ref, computed, watch, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue';
+import TravelInterlude from '@/Components/TravelInterlude.vue';
 
 const props = defineProps({
   slides: { type: Array, required: true },
@@ -135,6 +139,9 @@ const props = defineProps({
   shuffle: { type: Boolean, default: false },
   // Zoom/pan lent (Ken Burns) sur les photos.
   kenBurns: { type: Boolean, default: false },
+  // Album à plusieurs étapes : slide.place = { index, label, latitude,
+  // longitude } ; une carte vole d'une étape à la suivante entre deux slides.
+  travel: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['close']);
@@ -204,12 +211,46 @@ const scheduleAdvance = () => {
 const goTo = (index) => {
   if (order.value.length === 0) return;
   pointer.value = (index + order.value.length) % order.value.length;
+  lastPlace = currentItem.value?.place || lastPlace;
   refreshKenBurns();
   scheduleAdvance();
 };
 
-const next = () => goTo(pointer.value + 1);
-const previous = () => goTo(pointer.value - 1);
+// Diaporama qui voyage : dernière étape montrée, et interlude en cours.
+const interlude = ref(null);
+const traveling = ref(false);
+let lastPlace = null;
+let travelRun = 0;
+
+/** Carte jusqu'à l'étape du slide `index`, si elle change ; vrai si à jour. */
+const travelTo = async (index) => {
+  const place = order.value[index]?.place;
+  if (!props.travel || !place || lastPlace?.index === place.index) return true;
+  const run = ++travelRun;
+  clearPhotoTimer();
+  videoEl.value?.pause?.();
+  traveling.value = true;
+  const done = await interlude.value?.fly(lastPlace, place, `Étape ${place.index} · ${place.label}`);
+  if (run !== travelRun || done === false) return false;
+  traveling.value = false;
+  interlude.value?.hide();
+  return true;
+};
+
+const stopTravel = () => {
+  travelRun++;
+  traveling.value = false;
+  interlude.value?.cancel();
+};
+
+const next = async () => {
+  const target = (pointer.value + 1) % Math.max(order.value.length, 1);
+  if (await travelTo(target)) goTo(target);
+};
+const previous = () => {
+  stopTravel();
+  goTo(pointer.value - 1);
+};
 
 const togglePause = () => {
   isPaused.value = !isPaused.value;
@@ -257,19 +298,27 @@ const open = (startIndex = 0) => {
   pointer.value = props.shuffle ? 0 : Math.min(startIndex, order.value.length - 1);
   isPaused.value = false;
   isOpen.value = true;
+  lastPlace = null;
+  interlude.value?.reset();
   refreshKenBurns();
   showControls();
   document.addEventListener('keydown', handleKeydown);
   document.addEventListener('fullscreenchange', handleFullscreenChange);
 
-  // Plein écran après le rendu du conteneur
-  requestAnimationFrame(() => {
+  // Plein écran après le rendu du conteneur ; en voyage, la carte présente
+  // d'abord la première étape.
+  requestAnimationFrame(async () => {
     rootEl.value?.requestFullscreen?.().catch(() => {});
+    await nextTick();
+    if (props.travel && (await travelTo(pointer.value))) {
+      lastPlace = currentItem.value?.place || lastPlace;
+    }
     scheduleAdvance();
   });
 };
 
 const close = () => {
+  stopTravel();
   isOpen.value = false;
   clearPhotoTimer();
   document.removeEventListener('keydown', handleKeydown);

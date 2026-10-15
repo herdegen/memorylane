@@ -219,17 +219,34 @@
     <FullscreenSlideshow
       ref="slideshowEl"
       :slides="slideshowSlides"
-      shuffle
+      :shuffle="!travels"
+      :travel="travels"
       ken-burns
     />
+
+    <!-- Étape choisie sur la carte-trajet : seuls ses médias -->
+    <div
+      v-if="placeFilter"
+      class="flex flex-wrap items-center gap-3 px-4 sm:px-8 py-3 bg-surface-50 border-b border-surface-200"
+    >
+      <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-500 text-sm font-bold text-snow">{{ placeFilter.index }}</span>
+      <span class="text-sm text-surface-800">
+        Étape {{ placeFilter.index }} · <strong>{{ placeFilter.label }}</strong>
+        <span class="text-surface-500">({{ placeFilter.media_ids.length }} média{{ placeFilter.media_ids.length > 1 ? 's' : '' }})</span>
+      </span>
+      <button type="button" class="ml-auto text-sm font-medium text-brand-700 hover:text-brand-900" @click="placeFilter = null">
+        Tout l’album
+      </button>
+    </div>
 
     <!-- ================= Galerie mosaïque pleine largeur ================= -->
     <div
       v-if="album.media && album.media.length > 0"
+      id="album-grid"
       class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 auto-rows-[160px] sm:auto-rows-[200px] xl:auto-rows-[230px] grid-flow-dense gap-1 p-1"
     >
       <div
-        v-for="(media, index) in album.media"
+        v-for="(media, index) in albumMedia"
         :key="media.id"
         class="relative"
         :class="mosaicSpan(index)"
@@ -408,6 +425,31 @@ onMounted(async () => {
     attribution: '© OpenStreetMap',
   }).addTo(heroMap);
 
+  // Album à plusieurs étapes : carte-trajet. Toutes les étapes numérotées,
+  // reliées en pointillé dans l'ordre ; un clic montre les médias d'une étape.
+  if (travels.value) {
+    const pts = places.value.map((p) => [p.latitude, p.longitude]);
+    L.polyline(pts, { color: '#f59e0b', weight: 3, opacity: 0.9, dashArray: '6 8', interactive: false }).addTo(heroMap);
+    for (const place of places.value) {
+      L.marker([place.latitude, place.longitude], {
+        icon: L.divIcon({
+          className: 'journey-stop',
+          html: `<div style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:15px;background:#f59e0b;color:#fff;font-weight:700;font-size:14px;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.35);cursor:pointer;">${place.index}</div>`,
+          iconSize: [30, 30],
+          iconAnchor: [15, 15],
+        }),
+        title: `${place.index}. ${place.label}`,
+        keyboard: true,
+      })
+        .bindTooltip(`${place.index}. ${escapeHtml(place.label)}`, { direction: 'top', offset: [0, -14] })
+        .on('click', () => showPlace(place))
+        .addTo(heroMap);
+    }
+    // Marges : le titre occupe le bas, les boutons le haut à droite.
+    heroMap.fitBounds(L.latLngBounds(pts), { paddingTopLeft: [40, 70], paddingBottomRight: [40, 130], maxZoom: 12 });
+    return;
+  }
+
   // Marqueur-vignette, même langage visuel que la page Carte.
   const badge = count > 1
     ? `<div style="position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#f59e0b;color:#fff;font-size:11px;font-weight:600;line-height:18px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.3);">${count}</div>`
@@ -506,7 +548,26 @@ const albumMediaIds = computed(() => {
   return props.album.media?.map((m) => m.id) || [];
 });
 
-const albumMedia = computed(() => props.album.media || []);
+// Étape choisie sur la carte-trajet (null : tout l'album).
+const placeFilter = ref(null);
+const albumMedia = computed(() => {
+  const all = props.album.media || [];
+  if (!placeFilter.value) return all;
+  const ids = new Set(placeFilter.value.media_ids);
+  return all.filter((m) => ids.has(m.id));
+});
+// Album tourné à plusieurs endroits : carte-trajet et diaporama qui voyage.
+const places = computed(() => props.album.places || []);
+const travels = computed(() => places.value.length > 1);
+const placeOfMedia = computed(() => {
+  const map = new Map();
+  for (const p of places.value) for (const id of p.media_ids) map.set(id, p);
+  return map;
+});
+const showPlace = (place) => {
+  placeFilter.value = place;
+  requestAnimationFrame(() => document.getElementById('album-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+};
 
 // Propriétaire de l'album (les actions de gestion — couverture, modif,
 // partage — lui sont réservées ; le backend le vérifie aussi).
@@ -683,15 +744,22 @@ const { open: openLightbox } = usePhotoSwipe(() => albumMedia.value, {
 });
 
 // Slides du diaporama : médias jouables normalisés (poids fort aux visages).
-const slideshowSlides = computed(() =>
-  albumMedia.value
-    .filter((m) => m.type === 'photo' || m.type === 'video')
-    .map((m) => ({
+// Album à plusieurs étapes : tout l'album, dans l'ordre chronologique, chaque
+// média portant son lieu (le diaporama vole d'une étape à la suivante).
+const chronoKey = (m) => [m.taken_at || '9999', String(m.clip_start ?? 0).padStart(8, '0'), m.created_at || ''].join('|');
+const slideshowSlides = computed(() => {
+  const playable = (props.album.media || []).filter((m) => m.type === 'photo' || m.type === 'video');
+  const list = travels.value ? [...playable].sort((a, b) => chronoKey(a).localeCompare(chronoKey(b))) : playable;
+  return list.map((m) => {
+    const place = placeOfMedia.value.get(m.id);
+    return {
       key: m.id,
       type: m.type,
       src: slideUrl(m),
       label: m.title || m.original_name,
       weight: m.matched_faces_count > 0 ? 3 : 1,
-    }))
-);
+      place: place ? { index: place.index, label: place.label, latitude: place.latitude, longitude: place.longitude } : null,
+    };
+  });
+});
 </script>

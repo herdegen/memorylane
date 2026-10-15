@@ -225,6 +225,8 @@ class AlbumController extends Controller
             ]
             : null;
 
+        $album->places = $this->placesOf($album);
+
         if ($request->wantsJson()) {
             return response()->json($album);
         }
@@ -465,6 +467,57 @@ class AlbumController extends Controller
     private function getCoverUrl(Media $media): string
     {
         return $this->mediaService->thumbnailUrl($media);
+    }
+
+    /**
+     * Étapes d'un album tourné à plusieurs endroits : médias géolocalisés
+     * regroupés par lieu (~2 km), dans l'ordre chronologique (date, puis
+     * position dans la vidéo d'origine pour des clips). Sert la carte-trajet
+     * de l'en-tête et le diaporama qui voyage.
+     *
+     * @return list<array{index: int, latitude: float, longitude: float, label: string, media_ids: list<string>, cover_url: string}>
+     */
+    private function placesOf(Album $album): array
+    {
+        $coords = \App\Models\MediaMetadata::whereIn('media_id', $album->media->pluck('id'))
+            ->whereNotNull('latitude')->whereNotNull('longitude')
+            ->get(['media_id', 'latitude', 'longitude'])->keyBy('media_id');
+        if ($coords->isEmpty()) {
+            return [];
+        }
+
+        $located = $album->media->filter(fn ($m) => isset($coords[$m->id]))
+            ->sortBy(fn ($m) => [$m->taken_at?->timestamp ?? PHP_INT_MAX, $m->clip_start ?? 0, $m->created_at?->timestamp ?? 0])
+            ->values();
+
+        $places = [];
+        foreach ($located as $media) {
+            $lat = (float) $coords[$media->id]->latitude;
+            $lng = (float) $coords[$media->id]->longitude;
+            $key = collect($places)->search(fn ($p) => $this->kmBetween($p['latitude'], $p['longitude'], $lat, $lng) < 2);
+            if ($key === false) {
+                $places[] = [
+                    'latitude' => $lat,
+                    'longitude' => $lng,
+                    'label' => $media->title ?: pathinfo($media->original_name, PATHINFO_FILENAME),
+                    'media_ids' => [$media->id],
+                    'cover_url' => $this->mediaService->thumbnailUrl($media),
+                ];
+            } else {
+                $places[$key]['media_ids'][] = $media->id;
+            }
+        }
+
+        return collect($places)->values()->map(fn ($p, $i) => ['index' => $i + 1, ...$p])->all();
+    }
+
+    private function kmBetween(float $lat1, float $lng1, float $lat2, float $lng2): float
+    {
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLng = deg2rad($lng2 - $lng1);
+        $a = sin($dLat / 2) ** 2 + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLng / 2) ** 2;
+
+        return 6371 * 2 * atan2(sqrt($a), sqrt(1 - $a));
     }
 
     /**
