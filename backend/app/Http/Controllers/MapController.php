@@ -135,8 +135,9 @@ class MapController extends Controller
         }
 
         // Famille : seulement SA famille (parents par le sang et leurs
-        // conjoints, cf. GenealogyService::familyOf) — pas la belle-famille
-        // ajoutée par un autre. Sans fiche « moi », pas de famille définie.
+        // conjoints, plus sa propre belle-famille, cf. GenealogyService::
+        // familyOf) — pas la belle-famille des autres. Sans fiche « moi »,
+        // pas de famille définie.
         $familyIds = ! $friends && $user->person_id
             ? app(\App\Services\GenealogyService::class)->familyOf($user->person_id)
             : [];
