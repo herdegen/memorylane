@@ -248,7 +248,16 @@ class Media extends Model
 
         $circle = $user->currentCircle();
         if (! $circle?->isFriends()) {
-            return $query;
+            // Famille : tout ce que le compte voit, SAUF ce qui n'est partagé
+            // qu'avec des cercles d'amis (album ou partage direct) — les deux
+            // mondes sont séparés dans les deux sens.
+            $friendsOnly = fn ($q) => $q->whereHas('households', fn ($h) => $h->where('kind', Household::KIND_FRIENDS))
+                ->whereDoesntHave('households', fn ($h) => $h->where('kind', Household::KIND_FAMILY));
+
+            return $query
+                ->whereNot(fn ($w) => $w->whereHas('albums', $friendsOnly)
+                    ->whereDoesntHave('albums', fn ($a) => $a->whereNot($friendsOnly)))
+                ->whereNot($friendsOnly);
         }
 
         $friendIds = $circle->people()

@@ -289,6 +289,16 @@ class HouseholdController extends Controller
             return redirect()->route('albums.index');
         }
 
+        // Depuis la fiche d'une personne absente du nouveau cercle : retour à
+        // la liste (Personnes / Amis) du cercle choisi.
+        if (preg_match('#^/people/([0-9a-f-]{36})/?$#i', $previous, $m)) {
+            $fresh = $user->fresh();
+            if (! \App\Models\Person::inContext($fresh)->whereKey($m[1])->exists()) {
+                return redirect()->route('people.index')
+                    ->with('success', "Cette personne ne fait pas partie de « {$fresh->currentCircle()?->name} ».");
+            }
+        }
+
         return redirect()->back();
     }
 

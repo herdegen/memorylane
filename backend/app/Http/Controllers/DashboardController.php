@@ -59,7 +59,8 @@ class DashboardController extends Controller
             ->when(
                 $user->mode() === \App\Models\Household::KIND_FRIENDS,
                 fn ($q) => $q->inContext($user),
-                fn ($q) => $q->where('user_id', $user->id),
+                // Famille : ses photos, hors celles partagées seulement entre amis.
+                fn ($q) => $q->inContext($user)->where('media.user_id', $user->id),
             )
             ->whereNotNull('taken_at')
             ->whereRaw('EXTRACT(MONTH FROM taken_at) = ?', [$today->month])

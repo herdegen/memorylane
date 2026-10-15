@@ -293,4 +293,52 @@ class FriendsModeTest extends TestCase
         $ids = collect($this->actingAs($this->me->fresh())->getJson('/search?q=Jeanne')->assertOk()->json('people'))->pluck('id');
         $this->assertFalse($ids->contains($mamie->id));
     }
+
+    public function test_en_famille_pas_de_qui_est_ce_sur_un_album_partage_seulement_aux_amis(): void
+    {
+        $family = Household::factory()->create();
+        $family->members()->attach($this->me->id);
+        $this->me->forceFill(['current_household_id' => $family->id])->save();
+
+        $friendsAlbum = \App\Models\Album::factory()->create(['user_id' => $this->me->id]);
+        $friendsAlbum->households()->attach($this->circle->id);
+        $p1 = $this->photo([]);
+        $friendsAlbum->media()->attach($p1->id);
+        $hidden = \App\Models\DetectedFace::create(['media_id' => $p1->id, 'status' => 'unmatched', 'bounding_box' => ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5]]);
+
+        // Partagé aux deux : reste dans la famille.
+        $both = \App\Models\Album::factory()->create(['user_id' => $this->me->id]);
+        $both->households()->attach([$this->circle->id, $family->id]);
+        $p2 = $this->photo([]);
+        $both->media()->attach($p2->id);
+        $kept = \App\Models\DetectedFace::create(['media_id' => $p2->id, 'status' => 'unmatched', 'bounding_box' => ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5]]);
+
+        // Photo à soi hors album : famille.
+        $p3 = $this->photo([]);
+        $own = \App\Models\DetectedFace::create(['media_id' => $p3->id, 'status' => 'unmatched', 'bounding_box' => ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5]]);
+
+        $keys = $this->keys($this->me->fresh());
+        $this->assertNotContains("face_identify:{$hidden->id}", $keys);
+        $this->assertContains("face_identify:{$kept->id}", $keys);
+        $this->assertContains("face_identify:{$own->id}", $keys);
+    }
+
+    public function test_changer_de_cercle_sur_une_fiche_absente_renvoie_a_la_liste(): void
+    {
+        $family = Household::factory()->create();
+        $family->members()->attach($this->me->id);
+        $this->me->forceFill(['current_household_id' => $this->circle->id])->save();
+
+        $this->actingAs($this->me->fresh())
+            ->from("/people/{$this->lea->id}")
+            ->post('/circles/current', ['household_id' => $family->id])
+            ->assertRedirect('/people');
+
+        // Une fiche présente dans les deux (la sienne) : on reste dessus.
+        $this->self->update(['in_family_directory' => true]);
+        $this->actingAs($this->me->fresh())
+            ->from("/people/{$this->self->id}")
+            ->post('/circles/current', ['household_id' => $this->circle->id])
+            ->assertRedirect("/people/{$this->self->id}");
+    }
 }
