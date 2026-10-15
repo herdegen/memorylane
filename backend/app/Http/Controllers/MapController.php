@@ -132,8 +132,15 @@ class MapController extends Controller
             return response()->json(['points' => []]);
         }
 
+        // Famille : seulement SA famille (parents par le sang et leurs
+        // conjoints, cf. GenealogyService::familyOf) — pas la belle-famille
+        // ajoutée par un autre. Sans fiche « moi », pas de famille définie.
+        $familyIds = ! $friends && $user->person_id
+            ? app(\App\Services\GenealogyService::class)->familyOf($user->person_id)
+            : [];
+
         $points = Person::inContext($user)
-            ->when(! $friends, fn ($q) => $q->where('in_family_directory', true))
+            ->when(! $friends, fn ($q) => $q->where('in_family_directory', true)->whereIn('people.id', $familyIds))
             ->whereNotNull('address_latitude')
             ->whereNotNull('address_longitude')
             ->get(['address_latitude', 'address_longitude'])

@@ -43,6 +43,63 @@ class GenealogyService
     }
 
     /**
+     * « Sa famille » vue depuis une personne : ses parents par le sang (tous
+     * les descendants de tous ses ancêtres — frères et sœurs, cousins,
+     * cousins de sa mère, de sa grand-mère…) et leurs conjoints. Pas la
+     * famille des conjoints : le père de l'épouse de mon frère n'en fait pas
+     * partie.
+     *
+     * @return array<int, string> ids, la personne comprise
+     */
+    public function familyOf(string $personId): array
+    {
+        $people = DB::table('people')->whereNull('deleted_at')->get(['id', 'father_id', 'mother_id']);
+        $parents = [];
+        $children = [];
+        foreach ($people as $p) {
+            foreach ([$p->father_id, $p->mother_id] as $parentId) {
+                if ($parentId) {
+                    $parents[$p->id][] = $parentId;
+                    $children[$parentId][] = $p->id;
+                }
+            }
+        }
+
+        // Ancêtres (et soi), puis tous leurs descendants.
+        $ancestors = [$personId => true];
+        for ($queue = [$personId]; $queue !== [];) {
+            foreach ($parents[array_shift($queue)] ?? [] as $parentId) {
+                if (! isset($ancestors[$parentId])) {
+                    $ancestors[$parentId] = true;
+                    $queue[] = $parentId;
+                }
+            }
+        }
+        $blood = $ancestors;
+        for ($queue = array_keys($ancestors); $queue !== [];) {
+            foreach ($children[array_shift($queue)] ?? [] as $childId) {
+                if (! isset($blood[$childId])) {
+                    $blood[$childId] = true;
+                    $queue[] = $childId;
+                }
+            }
+        }
+
+        // Leurs conjoints (sans la famille de ces conjoints).
+        $family = $blood;
+        foreach (DB::table('person_relationships')->get(['person1_id', 'person2_id']) as $rel) {
+            if (isset($blood[$rel->person1_id])) {
+                $family[$rel->person2_id] = true;
+            }
+            if (isset($blood[$rel->person2_id])) {
+                $family[$rel->person1_id] = true;
+            }
+        }
+
+        return array_keys($family);
+    }
+
+    /**
      * Plus court chemin de parenté entre deux personnes (BFS sur le graphe
      * parents/enfants/conjoints), avec le TYPE de chaque pas vu depuis la
      * personne précédente : 'parent' (on monte), 'child' (on descend),

@@ -171,9 +171,11 @@ class PersonAddressTest extends TestCase
     public function test_heatmap_renvoie_des_points_arrondis_sans_identite(): void
     {
         $owner = User::factory()->create();
-        $this->makePersonWithAddress($owner);
+        $father = $this->makePersonWithAddress($owner);
+        $viewer = User::factory()->create();
+        $viewer->update(['person_id' => Person::factory()->create(['user_id' => $owner->id, 'father_id' => $father->id])->id]);
 
-        $response = $this->actingAs(User::factory()->create())->getJson('/map/heatmap');
+        $response = $this->actingAs($viewer)->getJson('/map/heatmap');
 
         $response->assertOk();
         $points = $response->json('points');
@@ -188,14 +190,49 @@ class PersonAddressTest extends TestCase
     public function test_heatmap_agrege_les_points_proches(): void
     {
         $owner = User::factory()->create();
-        $this->makePersonWithAddress($owner);
-        $this->makePersonWithAddress($owner);
+        $father = $this->makePersonWithAddress($owner);
+        $mother = $this->makePersonWithAddress($owner);
+        $owner->update(['person_id' => Person::factory()->create(['user_id' => $owner->id, 'father_id' => $father->id, 'mother_id' => $mother->id])->id]);
 
         $response = $this->actingAs($owner)->getJson('/map/heatmap');
 
         $points = $response->json('points');
         $this->assertCount(1, $points);
         $this->assertSame(2, $points[0][2]);
+    }
+
+    public function test_heatmap_montre_sa_famille_de_sang_et_leurs_conjoints_pas_la_belle_famille_des_autres(): void
+    {
+        $owner = User::factory()->create();
+        // Chaque personne a sa propre ville (latitude = numéro du point).
+        $person = function (string $name, int $lat, array $attrs = []) use ($owner) {
+            return Person::factory()->create(['user_id' => $owner->id, 'name' => $name, 'in_family_directory' => true,
+                'address_latitude' => $lat, 'address_longitude' => 1, ...$attrs]);
+        };
+        $greatGrandma = $person('Arrière-grand-mère', 1);
+        $grandma = $person('Grand-mère', 2, ['mother_id' => $greatGrandma->id]);
+        $greatAunt = $person('Grand-tante', 3, ['mother_id' => $greatGrandma->id]);
+        $mothersCousin = $person('Cousin de maman', 4, ['mother_id' => $greatAunt->id]);
+        $mother = $person('Maman', 5, ['mother_id' => $grandma->id]);
+        $me = $person('Moi', 6, ['mother_id' => $mother->id]);
+        $brother = $person('Frère', 7, ['mother_id' => $mother->id]);
+        $wife = $person('Épouse', 8);
+        $wifesFather = $person('Père de l\'épouse', 9);
+        $wife->update(['father_id' => $wifesFather->id]);
+        \Illuminate\Support\Facades\DB::table('person_relationships')->insert([
+            'id' => (string) \Illuminate\Support\Str::uuid(), 'person1_id' => $me->id, 'person2_id' => $wife->id, 'type' => 'spouse',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $brothersAccount = User::factory()->create();
+        $brothersAccount->update(['person_id' => $brother->id]);
+
+        $seen = fn (User $viewer) => collect($this->actingAs($viewer->fresh())->getJson('/map/heatmap')->assertOk()->json('points'))
+            ->pluck(0)->map(fn ($lat) => (int) $lat)->sort()->values()->all();
+
+        // Le frère voit l'épouse de son frère, pas le père de celle-ci.
+        $this->assertSame([1, 2, 3, 4, 5, 6, 7, 8], $seen($brothersAccount));
+        // Sans fiche « moi » : pas de famille définie, rien.
+        $this->assertSame([], $seen(User::factory()->create()));
     }
 
     public function test_heatmap_exige_l_authentification(): void
