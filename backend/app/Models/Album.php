@@ -125,6 +125,16 @@ class Album extends Model
     }
 
     /**
+     * « Qui était du voyage ? » : les personnes présentes sur l'album.
+     */
+    public function participants()
+    {
+        return $this->belongsToMany(Person::class, 'album_participants')
+            ->withPivot('added_by')
+            ->withTimestamps();
+    }
+
+    /**
      * Cercles avec lesquels l'album est partagé.
      */
     public function households()

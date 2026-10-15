@@ -38,6 +38,7 @@ class DetectedFace extends Model
         'age_estimate',
         'engine',
         'verified_at',
+        'auto_rejected_album_id',
     ];
 
     /**

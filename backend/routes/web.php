@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AlbumController;
+use App\Http\Controllers\AlbumParticipantController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FamilyTreeController;
@@ -237,6 +238,9 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::get('/{album}/access/candidates', [AlbumController::class, 'grantCandidates'])->name('access.candidates');
         Route::post('/{album}/access', [AlbumController::class, 'grantAccess'])->name('access.grant');
         Route::delete('/{album}/access', [AlbumController::class, 'revokeAccess'])->name('access.revoke');
+        // « Qui était du voyage ? »
+        Route::get('/{album}/participants', [AlbumParticipantController::class, 'index'])->name('participants.index');
+        Route::put('/{album}/participants', [AlbumParticipantController::class, 'update'])->name('participants.update');
         // Partage avec un cercle entier
         Route::get('/{album}/circles', [AlbumController::class, 'circles'])->name('circles.list');
         Route::post('/{album}/circles', [AlbumController::class, 'shareWithCircle'])->name('circles.share');
@@ -280,6 +284,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::get('/faces/{detectedFace}/crop', [VisionController::class, 'faceCrop'])->name('faceCrop');
         Route::post('/faces/{detectedFace}/auto-match', [VisionController::class, 'autoMatch'])->name('autoMatch');
         Route::get('/pending', [VisionController::class, 'pending'])->name('pending');
+        Route::post('/no-known-faces', [VisionController::class, 'noKnownFaces'])->name('noKnownFaces');
         Route::get('/batch', fn () => Inertia::render('Vision/Batch'))->name('batch');
     });
 

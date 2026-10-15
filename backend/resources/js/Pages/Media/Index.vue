@@ -98,6 +98,16 @@
               </svg>
               Cercle
             </button>
+            <button
+              type="button"
+              class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-white text-brand-700 hover:bg-brand-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="selectedIds.length === 0 || markingStrangers"
+              title="Tous les visages encore à identifier de la sélection passent en « personne inconnue »"
+              @click="markNoKnownFaces"
+            >
+              <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+              Personne de connu
+            </button>
           </div>
         </div>
 
@@ -341,6 +351,23 @@ let searchTimeout = null;
 const selectedIds = ref([]);
 const selectingAll = ref(false);
 const toast = useToast();
+
+// « Personne de connu » : les visages non identifiés de la sélection
+// passent en « personne inconnue » (photos de monuments, foules…).
+const markingStrangers = ref(false);
+const markNoKnownFaces = async () => {
+  const n = selectedIds.value.length;
+  if (!window.confirm(`Aucune personne connue sur ${n} photo${n > 1 ? 's' : ''} ? Les visages encore à identifier passeront en « personne inconnue » (les visages déjà nommés ne bougent pas).`)) return;
+  markingStrangers.value = true;
+  try {
+    const { data } = await axios.post('/vision/no-known-faces', { media_ids: selectedIds.value });
+    toast.success(`${data.marked} visage${data.marked > 1 ? 's' : ''} rangé${data.marked > 1 ? 's' : ''} en « inconnu ».`);
+  } catch (error) {
+    toast.error(apiError(error, 'Impossible de ranger ces visages.'));
+  } finally {
+    markingStrangers.value = false;
+  }
+};
 
 const showAlbumModal = ref(false);
 const showHouseholdModal = ref(false);

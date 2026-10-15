@@ -125,6 +125,10 @@ class FaceReconciler
             }
         }
 
+        // « Qui était du voyage ? » : les visages restants qui ne ressemblent
+        // à aucun participant de l'album passent en « inconnu ».
+        app(AlbumParticipants::class)->classifyMedia($media);
+
         return $stats;
     }
 
@@ -236,6 +240,10 @@ class FaceReconciler
                 $this->matcher->autoMatch($face, $media->user_id);
             }
         }
+
+        // « Qui était du voyage ? » : les visages restants qui ne ressemblent
+        // à aucun participant de l'album passent en « inconnu ».
+        app(AlbumParticipants::class)->classifyMedia($media);
 
         return $stats;
     }

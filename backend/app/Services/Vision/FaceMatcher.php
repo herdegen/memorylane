@@ -130,6 +130,13 @@ class FaceMatcher
             unset($bestDistance[$personId]);
         }
 
+        // « Qui était du voyage ? » : sur une photo d'un album dont on connaît
+        // les participants, on ne propose qu'eux.
+        $participants = app(AlbumParticipants::class)->forMediaId($face->media_id);
+        if ($participants !== []) {
+            $bestDistance = array_intersect_key($bestDistance, array_flip($participants));
+        }
+
         if ($bestDistance === []) {
             return [];
         }
@@ -260,6 +267,12 @@ class FaceMatcher
      *
      * @return array<int, array{0: string, 1: string, 2: array<int, float>, 3: string}>
      */
+    /** Visages de référence du propriétaire (cf. references). */
+    public function referencesFor(string $ownerId): array
+    {
+        return $this->references($ownerId);
+    }
+
     private function references(string $ownerId): array
     {
         $version = (int) \Illuminate\Support\Facades\Cache::get('face-refs-version', 0);

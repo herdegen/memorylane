@@ -119,6 +119,8 @@ class VisionController extends Controller
             ]);
         });
 
+        app(\App\Services\Vision\AlbumParticipants::class)->classifyMedia($media);
+
         return response()->json([
             'status' => 'completed',
             'faces_count' => count($faces),
@@ -415,5 +417,30 @@ class VisionController extends Controller
     private function ensureFacePersonEditable(DetectedFace $face): void
     {
         abort_unless($face->personVisibleTo(auth()->user()), 403, 'Ce visage est identifié dans un autre cercle.');
+    }
+
+    /**
+     * « Personne de connu ici » : sur ces photos (visibles du compte), tous
+     * les visages encore à identifier passent en « personne inconnue »
+     * (restent visibles, ne sont plus proposés). Les visages nommés ne
+     * bougent pas.
+     */
+    public function noKnownFaces(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'media_ids' => ['required', 'array', 'max:5000'],
+            'media_ids.*' => ['uuid'],
+        ]);
+
+        $mediaIds = Media::accessibleBy($request->user())
+            ->whereIn('media.id', $validated['media_ids'])
+            ->pluck('media.id');
+
+        $count = DetectedFace::whereIn('media_id', $mediaIds)
+            ->where('status', 'unmatched')
+            ->whereNull('person_id')
+            ->update(['status' => FaceMatcher::REJECTED_STATUS]);
+
+        return response()->json(['marked' => $count, 'photos' => $mediaIds->count()]);
     }
 }

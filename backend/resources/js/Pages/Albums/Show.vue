@@ -87,6 +87,10 @@
               <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
               Fond du titre par défaut
             </button>
+            <button @click="openFromMenu(() => showParticipants = true)" class="dropdown-item w-full text-left flex items-center gap-2.5">
+              <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              Qui était là ?
+            </button>
             <button v-if="isOwner" @click="openFromMenu(() => showGeolocateModal = true)" class="dropdown-item w-full text-left flex items-center gap-2.5">
               <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
               Géolocaliser
@@ -319,6 +323,12 @@
       @close="showGeolocateModal = false"
       @apply="applyAlbumGeolocation"
     />
+      <AlbumParticipantsModal
+      v-if="showParticipants"
+      :album-id="album.id"
+      :album-name="album.name"
+      @close="showParticipants = false"
+    />
   </AppLayout>
 </template>
 
@@ -339,6 +349,7 @@ import { usePhotoSwipe } from '@/Composables/usePhotoSwipe';
 import { useToast } from '@/Composables/useToast';
 import { useConfirm } from '@/Composables/useConfirm';
 import { slideUrl } from '@/utils/media';
+import AlbumParticipantsModal from '@/Components/AlbumParticipantsModal.vue';
 
 // Chargé à l'ouverture seulement : la carte embarque Leaflet (~45 ko gzip).
 const GeolocatePickerModal = defineAsyncComponent(() => import('@/Components/GeolocatePickerModal.vue'));
@@ -422,6 +433,8 @@ onBeforeUnmount(() => {
   heroMap = null;
   document.removeEventListener('click', closeMenuOnOutsideClick);
 });
+
+const showParticipants = ref(false);
 
 // ---- Menu ⋯ flottant ------------------------------------------------------
 const showActionsMenu = ref(false);

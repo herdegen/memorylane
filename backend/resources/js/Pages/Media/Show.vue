@@ -242,6 +242,19 @@
               :can-rerun="canEditFaces"
               @rerun="runDetection"
             />
+            <!-- « Personne de connu ici » : visages d'arrière-plan d'un monument,
+                 d'une foule… → tous en « personne inconnue » d'un clic. -->
+            <button
+              v-if="unidentifiedCount > 0 && !detecting"
+              type="button"
+              class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-surface-300 text-sm font-medium text-surface-700 hover:bg-surface-50"
+              :disabled="markingStrangers"
+              @click="markNoKnownFaces"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+              Personne de connu ici ({{ unidentifiedCount }} visage{{ unidentifiedCount > 1 ? 's' : '' }})
+            </button>
+
             <!-- Admin : tout recommencer (cadres non identifiés effacés,
                  détection et identification refaites, identifiés conservés). -->
             <button
@@ -417,6 +430,20 @@ const photoUrl = computed(() => displayUrl(props.media));
 // Détection de visages : côté serveur (InsightFace) ou, à défaut, dans le
 // navigateur (face-api, chargé seulement s'il sert).
 const serverFaces = computed(() => usePage().props.faces_engine === 'insightface');
+
+// Visages encore à identifier sur la photo (ni nommés, ni écartés).
+const unidentifiedCount = computed(() => (props.media.detected_faces || [])
+  .filter((f) => f.status === 'unmatched' && !f.person_id).length);
+const markingStrangers = ref(false);
+async function markNoKnownFaces() {
+  markingStrangers.value = true;
+  try {
+    await axios.post('/vision/no-known-faces', { media_ids: [props.media.id] });
+    router.reload({ only: ['media'], preserveScroll: true });
+  } finally {
+    markingStrangers.value = false;
+  }
+}
 const browserDetection = useFaceDetection();
 const { detectFaces, computeDescriptorForRegion } = browserDetection;
 const serverDetecting = ref(false);

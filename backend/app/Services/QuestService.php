@@ -376,13 +376,38 @@ class QuestService
     private function detectFaceGaps(User $user): array
     {
         // Photos du contexte : en mode amis, seulement les photos du cercle.
-        return DetectedFace::where('status', 'unmatched')
+        $faces = DetectedFace::where('status', 'unmatched')
+            ->whereNull('person_id')
             ->whereHas('media', fn ($q) => $q->inContext($user)->where('type', 'photo'))
             ->latest()
-            ->limit(self::DETECTOR_LIMIT)
-            ->pluck('id')
-            ->map(fn ($id) => ['type' => QuestType::FaceIdentify->value, 'subject_id' => $id, 'distance' => 1])
+            ->limit(self::DETECTOR_LIMIT * 8)
+            ->get(['id', 'media_id', 'bounding_box']);
+
+        // Arrière-plan (passants, foules devant un monument) : pas proposé
+        // dans les quêtes — reste identifiable sur la page de la photo.
+        $largest = DetectedFace::whereIn('media_id', $faces->pluck('media_id')->unique())
+            ->whereNotIn('status', ['dismissed'])
+            ->get(['media_id', 'bounding_box'])
+            ->groupBy('media_id')
+            ->map(fn ($g) => $g->max(fn ($f) => (float) ($f->bounding_box['width'] ?? 0)));
+
+        return $faces
+            ->reject(fn ($f) => self::isBackgroundFace((float) ($f->bounding_box['width'] ?? 0), (float) ($largest[$f->media_id] ?? 0)))
+            ->take(self::DETECTOR_LIMIT)
+            ->map(fn ($f) => ['type' => QuestType::FaceIdentify->value, 'subject_id' => $f->id, 'distance' => 1])
+            ->values()
             ->all();
+    }
+
+    /** Visage d'arrière-plan : minuscule, ou bien plus petit que le plus grand de la photo. */
+    public const BACKGROUND_MIN_WIDTH = 1.5;    // % de la largeur de la photo
+
+    public const BACKGROUND_MAX_RATIO = 0.33;   // vs le plus grand visage de la photo
+
+    public static function isBackgroundFace(float $width, float $largestOnPhoto): bool
+    {
+        return $width < self::BACKGROUND_MIN_WIDTH
+            || ($largestOnPhoto > 0 && $width < self::BACKGROUND_MAX_RATIO * $largestOnPhoto);
     }
 
     /** Photos du user sans date ou sans géolocalisation (owner-only : seules
