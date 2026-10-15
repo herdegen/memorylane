@@ -112,6 +112,28 @@ class CelebrationService
     }
 
     /**
+     * Anniversaires du jour $day qui concernent l'utilisateur : son cercle
+     * proche dans la famille (avec l'âge) et les fiches de ses cercles d'amis
+     * (sans l'âge : entre amis, on fête, on ne compte pas). Sert au push du
+     * matin et à la fête affichée à la première visite du jour.
+     *
+     * @return Collection<int, array{person: Person, age: ?int, friend: bool}>
+     */
+    public function birthdaysFor(User $user, CarbonInterface $day): Collection
+    {
+        $family = $this->birthdaysOn($day, $this->closeCircleQuery($user)->where('in_family_directory', true));
+        $friendIds = \Illuminate\Support\Facades\DB::table('household_person')->whereIn('household_id', $user->friendCircleIds())->pluck('person_id');
+        $friends = $friendIds->isEmpty()
+            ? collect()
+            : $this->birthdaysOn($day, Person::visibleTo($user)->whereIn('people.id', $friendIds)->where('in_family_directory', false));
+
+        return $family->map(fn ($b) => ['person' => $b['person'], 'age' => $b['age'], 'friend' => false])
+            ->concat($friends->map(fn ($b) => ['person' => $b['person'], 'age' => null, 'friend' => true]))
+            ->unique(fn ($b) => $b['person']->id)
+            ->values();
+    }
+
+    /**
      * Personnes du cercle proche de l'utilisateur : distance de parenté ≤ 3
      * depuis sa fiche « moi ». Repli sans fiche liée (ou isolée dans
      * l'arbre) : les personnes présentes sur des médias qu'il peut voir.

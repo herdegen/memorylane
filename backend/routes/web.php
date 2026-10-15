@@ -138,6 +138,13 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::put('/password', [ProfileController::class, 'updatePassword'])->name('password');
     });
 
+    // Fête d'anniversaire du jour : vue (ne se rejoue plus aujourd'hui).
+    Route::post('/celebrations/birthday-seen', function (\Illuminate\Http\Request $request) {
+        app(\App\Services\BirthdayGreeting::class)->markSeen($request->user());
+
+        return response()->noContent();
+    })->name('celebrations.birthday-seen');
+
     // Notifications push (Web Push) : abonnement par appareil + préférences
     Route::prefix('push')->name('push.')->group(function () {
         Route::post('/subscriptions', [PushController::class, 'store'])->name('subscriptions.store');

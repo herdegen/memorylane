@@ -54,6 +54,13 @@ class HandleInertiaRequests extends Middleware
             'impersonating' => fn () => \App\Services\Impersonation::active() && $request->user()
                 ? ['name' => $request->user()->name]
                 : null,
+            // Fête d'anniversaire du jour, à la première visite (une fois par
+            // jour) ; pas en « se connecter en tant que » ni pour un invité.
+            'birthdayGreeting' => fn () => $request->user()
+                && ! $request->user()->isGuest()
+                && ! \App\Services\Impersonation::active()
+                    ? app(\App\Services\BirthdayGreeting::class)->pending($request->user())
+                    : null,
             // Moteur de reconnaissance : 'insightface' = analyse côté serveur
             // (le navigateur ne charge plus face-api).
             'faces_engine' => config('memorylane.faces.engine'),

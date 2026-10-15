@@ -1,6 +1,8 @@
 <template>
   <div class="min-h-screen bg-page">
     <ImpersonationBanner />
+    <!-- Fête d'anniversaire : première visite du jour d'un anniversaire -->
+    <BirthdayGreeting />
     <nav class="bg-white border-b border-surface-200 sticky top-0 z-40">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
@@ -229,6 +231,7 @@ import { useAuth } from '@/Composables/useAuth';
 import { useTheme } from '@/Composables/useTheme';
 import { startBackgroundFaceScan } from '@/Composables/useBackgroundFaceScan';
 import ImpersonationBanner from '@/Components/ImpersonationBanner.vue';
+import BirthdayGreeting from '@/Components/BirthdayGreeting.vue';
 import { usePush } from '@/Composables/usePush';
 import { useCircle } from '@/Composables/useCircle';
 
