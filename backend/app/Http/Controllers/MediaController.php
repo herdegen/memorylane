@@ -389,6 +389,34 @@ class MediaController extends Controller
      * Découpe une vidéo en clips. Chaque segment [start, end] donne un Media
      * distinct (traité en tâche de fond par SplitVideoIntoClips).
      */
+    /**
+     * Vidéo : l'image affichée à $time devient sa miniature et l'image où
+     * l'on cherche les visages. Les cadres de l'ancienne image n'ont plus de
+     * sens : effacés ; les personnes déjà identifiées restent sur la vidéo
+     * (sans cadre). Propriétaire ou admin.
+     */
+    public function setVideoFrame(Request $request, Media $media)
+    {
+        abort_unless($media->user_id === $request->user()->id || $request->user()->isAdmin(), 403);
+        abort_unless($media->type === 'video', 422, 'Seule une vidéo a une image à choisir.');
+        $validated = $request->validate(['time' => ['required', 'numeric', 'min:0', 'max:'.max(1, (float) $media->duration)]]);
+
+        DB::transaction(function () use ($media, $validated) {
+            $identified = $media->detectedFaces()->whereNotNull('person_id')->pluck('person_id')->unique();
+            if ($identified->isNotEmpty()) {
+                $media->people()->syncWithoutDetaching($identified->mapWithKeys(fn ($id) => [$id => ['face_coordinates' => null]])->all());
+            }
+            $media->detectedFaces()->get()->each->delete();
+            $media->forceFill(['thumbnail_at' => (float) $validated['time']])->save();
+            $media->metadata()->update(['vision_status' => null, 'vision_faces_count' => 0]);
+        });
+
+        // Miniatures refaites depuis cette image, puis visages recherchés dessus.
+        \App\Jobs\GenerateMediaConversions::dispatch($media->fresh());
+
+        return response()->json(['message' => 'Nouvelle miniature en préparation.']);
+    }
+
     public function storeClips(Request $request, Media $media)
     {
         Gate::authorize('update', $media);

@@ -185,6 +185,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::get('/{media}/file/{conversion?}', [MediaController::class, 'file'])->name('file');
         // Découpage d'une vidéo en clips (un Media par segment)
         Route::post('/{media}/clips', [MediaController::class, 'storeClips'])->name('storeClips');
+        Route::post('/{media}/video-frame', [MediaController::class, 'setVideoFrame'])->name('videoFrame');
     });
 
     // Tag routes

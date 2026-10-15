@@ -42,11 +42,15 @@ class MediaService
      * CHAQUE chargement) qui redirige vers une présignée S3 très courte.
      * Une URL copiée-collée est donc inutilisable sans être connecté.
      */
-    public function fileUrl(Media $media, ?string $conversionName = null): string
+    public function fileUrl(Media $media, ?string $conversionName = null, ?int $version = null): string
     {
+        // `v` : change quand la conversion est refaite (miniature de vidéo
+        // rechoisie) — la redirection mise en cache ne resservirait sinon
+        // l'ancienne image pendant près d'une heure.
         return route('media.file', array_filter([
             'media' => $media->id,
             'conversion' => $conversionName,
+            'v' => $version,
         ]));
     }
 
@@ -65,7 +69,7 @@ class MediaService
 
             if ($item->relationLoaded('conversions')) {
                 foreach ($item->conversions as $conversion) {
-                    $conversion->url = $this->fileUrl($item, $conversion->conversion_name);
+                    $conversion->url = $this->fileUrl($item, $conversion->conversion_name, $conversion->updated_at?->timestamp);
                 }
             }
         }
@@ -116,7 +120,7 @@ class MediaService
             return $this->getSignedUrl($media, $conversion?->file_path, $expirationMinutes);
         }
 
-        return $this->fileUrl($media, $conversion?->conversion_name);
+        return $this->fileUrl($media, $conversion?->conversion_name, $conversion?->updated_at?->timestamp);
     }
 
     /**

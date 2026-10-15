@@ -72,6 +72,7 @@ class Media extends Model
         'duration',
         'clip_start',
         'clip_end',
+        'thumbnail_at',
         'is_source',
         'video_codec',
         'audio_codec',
@@ -95,6 +96,7 @@ class Media extends Model
             'fps' => 'float',
             'clip_start' => 'float',
             'clip_end' => 'float',
+            'thumbnail_at' => 'float',
             'is_source' => 'boolean',
         ];
     }

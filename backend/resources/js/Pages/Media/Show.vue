@@ -94,15 +94,25 @@
             <div v-if="media.type === 'video'" class="mt-4 bg-white rounded-lg shadow-xs overflow-hidden">
               <div class="px-4 py-3 border-b border-surface-100 flex items-center justify-between">
                 <h2 class="text-sm font-semibold text-surface-900">Visages sur l'image du clip</h2>
-                <button
-                  v-if="canEditFaces"
-                  type="button"
-                  :disabled="savingFace"
-                  class="text-sm font-medium text-brand-600 hover:text-brand-800 disabled:opacity-50"
-                  @click="addingFace = !addingFace"
-                >
-                  {{ addingFace ? 'Annuler' : '＋ Ajouter un visage' }}
-                </button>
+                <div v-if="canEditFaces" class="flex flex-wrap items-center justify-end gap-x-4 gap-y-1">
+                  <button
+                    type="button"
+                    :disabled="settingFrame"
+                    class="text-sm font-medium text-brand-600 hover:text-brand-800 disabled:opacity-50"
+                    title="L'image affichée en ce moment dans le lecteur devient la miniature ; les visages y sont recherchés à nouveau"
+                    @click="useCurrentFrame"
+                  >
+                    {{ settingFrame ? 'Préparation…' : '🖼 Utiliser l’image actuelle' }}
+                  </button>
+                  <button
+                    type="button"
+                    :disabled="savingFace"
+                    class="text-sm font-medium text-brand-600 hover:text-brand-800 disabled:opacity-50"
+                    @click="addingFace = !addingFace"
+                  >
+                    {{ addingFace ? 'Annuler' : '＋ Ajouter un visage' }}
+                  </button>
+                </div>
               </div>
               <div class="relative bg-black">
                 <FaceDetectionOverlay
@@ -417,6 +427,29 @@ const canEditFaces = computed(() => isOwner.value || isAdmin.value);
 // Référence au lecteur vidéo (pour capturer le temps courant dans l'éditeur de découpe).
 const playerRef = ref(null);
 const playerGetCurrentTime = () => playerRef.value?.getCurrentTime?.() ?? 0;
+
+// Vidéo : l'image affichée dans le lecteur devient la miniature (et l'image
+// où l'on cherche les visages) ; les cadres de l'ancienne image sont effacés.
+const settingFrame = ref(false);
+const useCurrentFrame = async () => {
+  const time = playerGetCurrentTime();
+  const ok = await confirm({
+    title: 'Changer l’image de la vidéo ?',
+    message: `L’image à ${formatDuration(time)} devient la miniature. Les cadres de visages actuels sont effacés et les visages sont recherchés sur la nouvelle image ; les personnes déjà identifiées restent sur la vidéo.`,
+    confirmLabel: 'Utiliser cette image',
+  });
+  if (!ok) return;
+  settingFrame.value = true;
+  try {
+    const { data } = await axios.post(`/media/${props.media.id}/video-frame`, { time });
+    toast.success(data.message);
+    // Le temps de refaire les miniatures et l'analyse (quelques secondes).
+    setTimeout(() => router.reload({ only: ['media'], onFinish: () => { settingFrame.value = false; } }), 6000);
+  } catch (error) {
+    settingFrame.value = false;
+    toast.error(apiError(error, 'Impossible de changer l’image.'));
+  }
+};
 const playerSeekTo = (t) => playerRef.value?.seekTo?.(t);
 
 // Vignette d'un clip (conversion small/thumbnail, sinon l'original).

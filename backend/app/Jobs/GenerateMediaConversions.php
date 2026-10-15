@@ -254,11 +254,12 @@ class GenerateMediaConversions implements ShouldQueue
                 TranscodeVideoForWeb::dispatch($this->media);
             }
 
-            // Extract frame at 10% of duration (more representative than 1s)
+            // Image choisie par l'utilisateur (thumbnail_at), sinon à 10 % de
+            // la durée (plus représentative que la 1re seconde).
             $durationSeconds = (float) ($this->media->duration ?? 0);
-            $targetSecond = $durationSeconds >= 1
-                ? max(1, (int) round($durationSeconds * 0.1))
-                : 0;
+            $targetSecond = $this->media->thumbnail_at !== null
+                ? (float) $this->media->thumbnail_at
+                : ($durationSeconds >= 1 ? max(1, (int) round($durationSeconds * 0.1)) : 0);
 
             $video = $ffmpeg->open($tempOriginalPath);
             $manager = new ImageManager(new Driver);
