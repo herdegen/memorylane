@@ -18,7 +18,8 @@ use Illuminate\Support\Facades\Notification;
  */
 class HealthCheckCommand extends Command
 {
-    protected $signature = 'memorylane:health-check';
+    protected $signature = 'memorylane:health-check
+                            {--pause= : Suspendre les alertes N minutes (déploiement en cours)}';
 
     protected $description = 'Vérifie sauvegardes, files d\'attente, disque et erreurs ; alerte les administrateurs';
 
@@ -28,8 +29,26 @@ class HealthCheckCommand extends Command
 
     public const REALERT_HOURS = 12;
 
+    public const PAUSE_KEY = 'health:paused_until';
+
+    public const TRANSIENT_KEY = 'health:transient_failing';
+
+    /**
+     * Contrôles qui échouent brièvement pendant un redémarrage (déploiement) :
+     * on n'alerte que s'ils échouent deux vérifications de suite.
+     */
+    public const TRANSIENT = ['horizon', 'search'];
+
     public function handle(HealthCheck $health): int
     {
+        // scripts/deploy.sh : « on déploie, ne pas alerter pendant N minutes ».
+        if ($minutes = (int) $this->option('pause')) {
+            Cache::put(self::PAUSE_KEY, now()->addMinutes($minutes)->toIso8601String(), now()->addMinutes($minutes));
+            $this->info("Alertes suspendues {$minutes} min (déploiement).");
+
+            return self::SUCCESS;
+        }
+
         $checks = $health->run();
         Cache::forever(self::RESULT_KEY, ['checked_at' => now()->toIso8601String(), 'checks' => $checks]);
 
@@ -39,10 +58,29 @@ class HealthCheckCommand extends Command
         ));
 
         $problems = array_values(array_filter($checks, fn ($c) => ! $c['ok']));
+
+        // Pendant un déploiement : résultat gardé pour le widget, mais ni mail
+        // ni signal d'échec à la supervision externe.
+        if (Cache::has(self::PAUSE_KEY)) {
+            $this->warn('Déploiement en cours : alertes suspendues.');
+
+            return self::SUCCESS;
+        }
+
+        // Un redémarrage (Horizon, Meilisearch) ne compte que s'il dure.
+        $previousTransient = Cache::get(self::TRANSIENT_KEY, []);
+        $failingTransient = collect($problems)->pluck('key')->intersect(self::TRANSIENT)->values()->all();
+        Cache::forever(self::TRANSIENT_KEY, $failingTransient);
+        $problems = array_values(array_filter($problems, fn ($p) => ! in_array($p['key'], self::TRANSIENT, true)
+            || in_array($p['key'], $previousTransient, true)));
+
         $this->notifyIfNeeded($problems);
         $this->ping($problems === []);
 
-        return $problems === [] ? self::SUCCESS : self::FAILURE;
+        // Toujours « réussie » : les problèmes sont signalés par mail et à la
+        // supervision ; un code d'échec ferait journaliser une erreur à chaque
+        // heure par le planificateur (et gonflerait le contrôle « erreurs »).
+        return self::SUCCESS;
     }
 
     private function notifyIfNeeded(array $problems): void

@@ -259,4 +259,12 @@ class ExifExtractorTest extends TestCase
         // Le résultat doit pouvoir partir dans la colonne JSON exif_data.
         $this->assertNotFalse(json_encode($sanitized));
     }
+
+    public function test_dates_exif_vides_ou_absurdes_ignorees(): void
+    {
+        $this->assertNull(\App\Services\ExifExtractor::plausibleDate('0000:00:00 00:00:00')); // appareil jamais réglé
+        $this->assertNull(\App\Services\ExifExtractor::plausibleDate('    :  :     :  :  '));
+        $this->assertNull(\App\Services\ExifExtractor::plausibleDate('2019:13:45 25:61:00'));
+        $this->assertSame('2019-07-14 18:30:05', \App\Services\ExifExtractor::plausibleDate('2019:07:14 18:30:05'));
+    }
 }

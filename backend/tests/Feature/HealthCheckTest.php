@@ -85,8 +85,8 @@ class HealthCheckTest extends TestCase
         Notification::fake();
         $this->backupLog(['-30 hours' => 'copie : TERMINÉE OK']);
 
-        $this->artisan('memorylane:health-check')->assertFailed();
-        $this->artisan('memorylane:health-check')->assertFailed();
+        $this->artisan('memorylane:health-check')->assertSuccessful();
+        $this->artisan('memorylane:health-check')->assertSuccessful();
 
         $this->assertSame(['backup_media'], $this->problemKeys());
         Notification::assertSentToTimes($this->admin, SystemHealthAlert::class, 1);
@@ -99,7 +99,7 @@ class HealthCheckTest extends TestCase
     {
         $this->backupLog(['-3 hours' => 'copie : TERMINÉE OK', '-1 hour' => 'copie : ÉCHEC (code 1)']);
 
-        $this->artisan('memorylane:health-check')->assertFailed();
+        $this->artisan('memorylane:health-check')->assertSuccessful();
 
         $this->assertSame(['backup_media'], $this->problemKeys());
     }
@@ -128,7 +128,7 @@ class HealthCheckTest extends TestCase
         file_put_contents($this->dir.'/logs/laravel.log', implode("\n", array_fill(0, 25, $line))."\n");
         $this->horizon(null);
 
-        $this->artisan('memorylane:health-check')->assertFailed();
+        $this->artisan('memorylane:health-check')->assertSuccessful();
 
         $this->assertEqualsCanonicalizing(['failed_jobs', 'errors', 'horizon'], $this->problemKeys());
     }
@@ -159,5 +159,30 @@ class HealthCheckTest extends TestCase
             ->call('runNow')
             ->assertSee('Sauvegarde des photos (OVH)')
             ->assertSee('Tout est au vert');
+    }
+
+    public function test_pendant_un_deploiement_aucune_alerte(): void
+    {
+        Notification::fake();
+        $this->backupLog(['-30 hours' => 'copie : TERMINÉE OK']);
+
+        $this->artisan('memorylane:health-check --pause=30')->assertSuccessful();
+        $this->artisan('memorylane:health-check')->assertSuccessful();
+
+        Notification::assertNothingSent();
+        $this->assertSame(['backup_media'], $this->problemKeys()); // le widget reste à jour
+    }
+
+    public function test_horizon_redemarre_n_alerte_qu_a_la_deuxieme_fois(): void
+    {
+        Notification::fake();
+        $this->horizon(null);
+
+        $this->artisan('memorylane:health-check');
+        Notification::assertNothingSent(); // simple redémarrage ?
+
+        $this->artisan('memorylane:health-check');
+        Notification::assertSentTo($this->admin, SystemHealthAlert::class,
+            fn ($n) => collect($n->problems)->pluck('label')->contains(fn ($l) => str_contains($l, 'Horizon')));
     }
 }

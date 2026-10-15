@@ -37,6 +37,8 @@ docker exec memorylane_postgres sh -c 'pg_dump -Fc -U "$POSTGRES_USER" "$POSTGRE
 echo "$DUMP ($(du -h "$DUMP" | cut -f1))"
 
 step "Maintenance"
+# Supervision : pas d'alerte pendant le déploiement (redémarrages attendus).
+artisan memorylane:health-check --pause=30 || true
 artisan down --retry=30
 trap 'echo; echo "⚠️  Échec : le site est resté en maintenance. Corriger, puis : docker compose exec app php artisan up"' ERR
 

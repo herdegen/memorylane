@@ -201,25 +201,41 @@ class ExifExtractor
      */
     protected function getDateTaken(array $exifData): ?string
     {
-        $dateString = $exifData['EXIF']['DateTimeOriginal']
-            ?? $exifData['EXIF']['DateTime']
-            ?? $exifData['IFD0']['DateTime']
-            ?? null;
+        // Premier champ dont la date est PLAUSIBLE : un appareil jamais réglé
+        // écrit « 0000:00:00 00:00:00 », que PHP convertit en -0001-11-30
+        // (refusé par PostgreSQL : 513 envois en échec le 14/10/2026).
+        foreach ([
+            $exifData['EXIF']['DateTimeOriginal'] ?? null,
+            $exifData['EXIF']['DateTime'] ?? null,
+            $exifData['IFD0']['DateTime'] ?? null,
+        ] as $dateString) {
+            if ($date = self::plausibleDate($dateString)) {
+                return $date;
+            }
+        }
 
-        if (!$dateString) {
+        return null;
+    }
+
+    /** Date EXIF « Y:m:d H:i:s » valide et vraisemblable (1826 → l'an prochain), sinon null. */
+    public static function plausibleDate(mixed $dateString): ?string
+    {
+        if (! is_string($dateString) || trim($dateString) === '') {
             return null;
         }
 
-        try {
-            $date = \DateTime::createFromFormat('Y:m:d H:i:s', $dateString);
-            return $date ? $date->format('Y-m-d H:i:s') : null;
-        } catch (\Exception $e) {
-            Log::warning('ExifExtractor: Failed to parse date', [
-                'date_string' => $dateString,
-                'error' => $e->getMessage()
-            ]);
+        $date = \DateTime::createFromFormat('Y:m:d H:i:s', trim($dateString));
+        $errors = \DateTime::getLastErrors();
+        if (! $date || ($errors && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))) {
             return null;
         }
+
+        $year = (int) $date->format('Y');
+        if ($year < 1826 || $year > (int) date('Y') + 1) {
+            return null;
+        }
+
+        return $date->format('Y-m-d H:i:s');
     }
 
     /**
