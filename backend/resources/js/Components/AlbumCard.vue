@@ -27,7 +27,7 @@
     </div>
 
     <!-- Badges posés sur la photo -->
-    <div class="absolute top-2.5 right-2.5 z-10 flex items-center gap-1.5">
+    <div class="absolute top-2 right-2 sm:top-2.5 sm:right-2.5 z-10 flex items-center gap-1.5">
       <span
         v-if="album.is_smart"
         class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-violet-100/95 text-violet-700 backdrop-blur-sm"
@@ -43,11 +43,11 @@
     </div>
 
     <!-- Cartouche givré (même langage que les cartes de l'arbre familial) -->
-    <div class="absolute inset-x-2 bottom-2 rounded-xl bg-white/85 backdrop-blur-sm px-3.5 py-2.5">
-      <h3 class="font-display text-[17px] font-semibold text-surface-900 truncate leading-snug">
+    <div class="absolute inset-x-1.5 bottom-1.5 sm:inset-x-2 sm:bottom-2 rounded-xl bg-white/85 backdrop-blur-sm px-2.5 py-2 sm:px-3.5 sm:py-2.5">
+      <h3 class="font-display text-[15px] sm:text-[17px] font-semibold text-surface-900 truncate leading-snug">
         {{ album.name }}
       </h3>
-      <p class="text-xs text-surface-600 mt-0.5 truncate">{{ subLine }}</p>
+      <p class="text-[11px] sm:text-xs text-surface-600 mt-0.5 truncate">{{ subLine }}</p>
     </div>
   </div>
 </template>

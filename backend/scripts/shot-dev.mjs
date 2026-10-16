@@ -1,0 +1,29 @@
+#!/usr/bin/env node
+// Captures mobiles (390×844, DPR 2) de l'environnement de DEV, connecté en
+// admin par lien magique. Usage : node scripts/shot-dev.mjs <lien-magique> <dossier> /chemin1 [/chemin2…]
+// Le lien se génère dans ~/memorylane-dev :
+//   docker compose exec -T app php artisan tinker --execute='echo App\Notifications\MagicLoginLink::urlFor(App\Models\User::where("role","admin")->first());'
+// Identifiants basic-auth lus dans ~/.memorylane-dev-password.
+import puppeteer from 'puppeteer';
+import { readFileSync, mkdirSync } from 'node:fs';
+import { homedir } from 'node:os';
+const [magic, out, ...paths] = process.argv.slice(2);
+const creds = Object.fromEntries(readFileSync(`${homedir()}/.memorylane-dev-password`, 'utf8').split('\n').filter(Boolean).map((l) => { const i = l.indexOf(':'); return [l.slice(0, i).trim(), l.slice(i + 1).trim()]; }));
+const origin = new URL(magic).origin;
+mkdirSync(out, { recursive: true });
+const b = await puppeteer.launch({ headless: 'shell', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+const p = await b.newPage();
+await p.authenticate({ username: creds['identifiant'], password: creds['mot de passe'] });
+const errs = []; p.on('pageerror', (e) => errs.push(String(e))); p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
+await p.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+await p.goto(magic, { waitUntil: 'networkidle0', timeout: 45000 });
+console.log('login →', p.url());
+if (p.url().includes('/login')) { console.error('Lien magique refusé (déjà utilisé ou expiré) : en générer un nouveau.'); await b.close(); process.exit(1); }
+let i = 0;
+for (const path of paths) {
+  await p.goto(origin + path, { waitUntil: 'networkidle0', timeout: 45000 });
+  await new Promise((r) => setTimeout(r, 900));
+  await p.screenshot({ path: `${out}/d${i++}.png` });
+}
+console.log('errors:', JSON.stringify(errs));
+await b.close();

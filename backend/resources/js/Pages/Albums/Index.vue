@@ -1,16 +1,27 @@
 <template>
   <Head title="Albums" />
   <AppLayout>
-    <div class="py-9 px-4 sm:px-8">
-      <!-- En-tête -->
-      <div class="flex flex-wrap items-end justify-between gap-4 mb-5">
-        <div>
-          <h1 class="font-display text-4xl font-bold text-surface-900">Albums</h1>
-          <p class="mt-1.5 text-sm text-surface-500">
+    <div class="py-4 sm:py-9 px-4 sm:px-8">
+      <!-- En-tête (téléphone : titre compact + compteur, bouton « + » rond) -->
+      <div class="flex items-end justify-between gap-4 mb-3 sm:mb-5">
+        <div class="min-w-0">
+          <h1 class="font-display text-[26px] sm:text-4xl font-bold text-surface-900 truncate">
+            Albums
+            <span class="sm:hidden font-sans text-sm font-semibold text-surface-500 ml-1">{{ albums.length }}</span>
+          </h1>
+          <p class="mt-1.5 text-sm text-surface-500 hidden sm:block">
             {{ albums.length }} {{ albums.length === 1 ? 'album' : 'albums' }} — les souvenirs, rangés par histoire
           </p>
         </div>
-        <button @click="showCreateModal = true" class="btn-primary">
+        <button
+          type="button"
+          class="sm:hidden w-10 h-10 rounded-full bg-brand-600 text-white flex items-center justify-center shrink-0"
+          aria-label="Nouvel album"
+          @click="showCreateModal = true"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+        </button>
+        <button @click="showCreateModal = true" class="btn-primary hidden sm:inline-flex">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
@@ -18,13 +29,14 @@
         </button>
       </div>
 
-      <!-- Filtres (fusionne « Partagés avec moi » dans la page) -->
-      <div class="flex flex-wrap gap-2 mb-6">
+      <!-- Filtres (fusionne « Partagés avec moi » dans la page) ;
+           téléphone : une seule ligne qui défile -->
+      <div class="flex flex-nowrap sm:flex-wrap gap-2 mb-4 sm:mb-6 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible [&>button]:shrink-0">
         <button
           v-for="f in filters"
           :key="f.value"
           type="button"
-          class="px-4 py-1.5 rounded-full text-[13px] font-medium transition"
+          class="px-4 py-1.5 rounded-full text-[13px] font-medium transition whitespace-nowrap"
           :class="filter === f.value
             ? 'bg-brand-600 text-white font-semibold'
             : 'bg-white border border-surface-300 text-surface-600 hover:bg-surface-50'"
@@ -39,29 +51,44 @@
       <h2 v-if="hereAlbums.length && elsewhereAlbums.length && current" class="text-sm font-semibold uppercase tracking-wider text-surface-500 mb-3">
         Albums de {{ current.name }}
       </h2>
+      <!-- Téléphone : le premier album en vedette (pleine largeur), les
+           autres sur deux colonnes -->
       <div
         v-if="hereAlbums.length > 0"
         data-tour="albums"
-        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+        class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4"
       >
         <AlbumCard
-          v-for="album in hereAlbums"
+          v-for="(album, i) in hereAlbums"
           :key="album.id"
           :album="album"
           :owner-name="album.is_owner === false ? album.user?.name : null"
+          :class="i === 0 ? 'col-span-2 sm:col-span-1' : ''"
           @click="goToAlbum(album)"
         />
       </div>
 
-      <!-- Ailleurs : albums d'autres cercles, mis à part et grisés -->
+      <!-- Ailleurs : albums d'autres cercles, mis à part et grisés ;
+           téléphone : repliés derrière un titre à déplier -->
       <template v-if="elsewhereAlbums.length > 0">
-        <div class="mt-10 mb-3">
-          <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-500">Ailleurs</h2>
-          <p class="text-xs text-surface-500 mt-1">
-            {{ current ? `Pas encore partagés avec ${current.name} : un clic les y ajoute.` : 'Albums partagés avec d\'autres cercles.' }}
-          </p>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <button
+          type="button"
+          class="mt-8 sm:mt-10 mb-3 w-full flex items-center justify-between gap-3 text-left sm:cursor-default"
+          :aria-expanded="elsewhereOpen"
+          @click="elsewhereOpen = !elsewhereOpen"
+        >
+          <div class="min-w-0">
+            <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-500">
+              Ailleurs
+              <span class="sm:hidden normal-case tracking-normal font-medium">· {{ elsewhereAlbums.length }} {{ elsewhereAlbums.length > 1 ? 'albums' : 'album' }} de vos autres cercles</span>
+            </h2>
+            <p class="text-xs text-surface-500 mt-1 hidden sm:block">
+              {{ current ? `Pas encore partagés avec ${current.name} : un clic les y ajoute.` : 'Albums partagés avec d\'autres cercles.' }}
+            </p>
+          </div>
+          <svg class="sm:hidden w-5 h-5 text-surface-400 shrink-0 transition-transform" :class="elsewhereOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+        </button>
+        <div class="grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4" :class="elsewhereOpen ? 'grid' : 'hidden sm:grid'">
           <div v-for="album in elsewhereAlbums" :key="album.id" class="flex flex-col gap-2">
             <div class="opacity-60 hover:opacity-100 transition-opacity">
               <AlbumCard
@@ -145,6 +172,8 @@ const props = defineProps({
 });
 
 const showCreateModal = ref(false);
+// Téléphone : la section « Ailleurs » est repliée par défaut.
+const elsewhereOpen = ref(false);
 
 // Filtres par visibilité/appartenance — « Partagés avec moi » vit ici
 // plutôt que sur une page à part.

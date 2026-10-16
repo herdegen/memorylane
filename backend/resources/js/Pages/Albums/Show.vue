@@ -6,7 +6,7 @@
          carte centrée sur la géolocalisation de l'album ; à défaut la photo
          de couverture ; à défaut un dégradé brand. Titre blanc sur voile
          sombre (photo, vidéo), noir sur voile clair (carte, dégradé). -->
-    <div class="relative" :class="album.hero ? 'h-80 sm:h-[420px]' : 'h-72 sm:h-[340px]'">
+    <div class="relative" :class="album.hero ? 'h-64 sm:h-[420px]' : 'h-56 sm:h-[340px]'">
       <template v-if="album.hero">
         <!-- Vidéo : extrait muet en boucle ; image fixe s'il n'est pas prêt
              ou si l'appareil demande moins d'animations / de données. -->
@@ -42,12 +42,22 @@
         :class="heroLight ? 'from-snow/10 via-transparent to-snow/75' : 'from-black/30 via-black/5 to-black/75'"
       ></div>
 
-      <!-- Actions flottantes -->
-      <div class="absolute top-4 right-4 sm:top-5 sm:right-8 z-20 flex items-center gap-2.5">
+      <!-- Retour (téléphone : en haut à gauche, comme une app) -->
+      <Link
+        href="/albums"
+        class="sm:hidden absolute top-3 left-4 z-20 inline-flex items-center justify-center w-10 h-10 rounded-full bg-snow/90 backdrop-blur text-ink shadow-warm-md"
+        aria-label="Retour aux albums"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 19l-7-7 7-7" /></svg>
+      </Link>
+
+      <!-- Actions flottantes (téléphone : partage et ⋯ seulement, le
+           diaporama vit dans la barre sous le héro) -->
+      <div class="absolute top-3 right-4 sm:top-5 sm:right-8 z-20 flex items-center gap-2.5">
         <button
           v-if="hasPlayableMedia"
           @click="startSlideshow"
-          class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-snow/90 backdrop-blur text-sm font-semibold text-ink shadow-warm-md hover:bg-snow transition"
+          class="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-snow/90 backdrop-blur text-sm font-semibold text-ink shadow-warm-md hover:bg-snow transition"
         >
           <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
           Diaporama
@@ -111,10 +121,10 @@
       </div>
 
       <!-- Titre + retour (bas gauche) -->
-      <div class="absolute left-4 right-4 sm:left-8 sm:right-8 bottom-6 z-20 flex items-center gap-4">
+      <div class="absolute left-4 right-4 sm:left-8 sm:right-8 bottom-4 sm:bottom-6 z-20 flex items-center gap-4">
         <Link
           href="/albums"
-          class="inline-flex items-center justify-center w-11 h-11 rounded-full border backdrop-blur-sm transition shrink-0"
+          class="hidden sm:inline-flex items-center justify-center w-11 h-11 rounded-full border backdrop-blur-sm transition shrink-0"
           :class="heroLight ? 'bg-snow/70 border-ink/20 text-ink hover:bg-snow' : 'bg-snow/15 border-snow/35 text-snow hover:bg-snow/30'"
           title="Retour aux albums"
           aria-label="Retour aux albums"
@@ -126,7 +136,7 @@
         <div class="min-w-0">
           <div class="text-xs font-medium uppercase tracking-widest" :class="heroLight ? 'text-ink/65' : 'text-snow/75'">Albums</div>
           <h1
-            class="font-display text-3xl sm:text-5xl font-bold truncate"
+            class="font-display text-[28px] leading-tight sm:text-5xl font-bold truncate"
             :class="heroLight ? 'text-ink [text-shadow:0_1px_10px_rgba(255,255,255,0.8)]' : 'text-snow [text-shadow:0_2px_12px_rgba(23,20,15,0.55)]'"
           >
             {{ album.name }}
@@ -145,15 +155,85 @@
       </div>
     </div>
 
-    <!-- Bandeau du mode sélection (collant sous la nav) -->
+    <!-- Téléphone : actions sous le pouce (diaporama, visages à identifier,
+         sélection) puis la carte « Qui était là ? » -->
+    <div v-if="album.media && album.media.length > 0" class="sm:hidden px-4 pt-3 pb-1 flex flex-col gap-3">
+      <div class="grid gap-2" :class="pendingFacesCount > 0 ? 'grid-cols-3' : 'grid-cols-2'">
+        <button
+          v-if="hasPlayableMedia"
+          type="button"
+          class="h-12 rounded-2xl bg-brand-600 text-white text-sm font-bold flex items-center justify-center gap-1.5"
+          @click="startSlideshow"
+        >
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+          Diaporama
+        </button>
+        <button
+          v-if="pendingFacesCount > 0"
+          type="button"
+          class="h-12 rounded-2xl border text-sm font-bold flex items-center justify-center gap-1.5"
+          :class="unidentifiedOnly ? 'bg-brand-600 border-brand-600 text-white' : 'bg-white border-surface-300 text-surface-900'"
+          :aria-pressed="unidentifiedOnly"
+          @click="unidentifiedOnly = !unidentifiedOnly"
+        >
+          <span class="inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full text-[11px] font-bold" :class="unidentifiedOnly ? 'bg-white/25' : 'bg-brand-100 text-brand-800'">{{ pendingFacesCount > 999 ? '999+' : pendingFacesCount }}</span>
+          <span class="text-[13px] whitespace-nowrap">Qui est-ce ?</span>
+        </button>
+        <button
+          type="button"
+          class="h-12 rounded-2xl border text-sm font-bold flex items-center justify-center gap-1.5"
+          :class="selectionMode ? 'bg-brand-600 border-brand-600 text-white' : 'bg-white border-surface-300 text-surface-900'"
+          :aria-pressed="selectionMode"
+          @click="toggleSelectionMode"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M8 12l3 3 5-6" /></svg>
+          {{ selectionMode ? 'Terminer' : 'Sélection' }}
+        </button>
+      </div>
+
+      <button
+        v-if="participantsPreview.length || isOwner"
+        type="button"
+        class="w-full flex items-center gap-3 p-3 rounded-2xl bg-white border border-surface-200 text-left"
+        @click="showParticipants = true"
+      >
+        <div v-if="participantsPreview.length" class="flex -space-x-2 shrink-0">
+          <PersonAvatar
+            v-for="p in participantsPreview.slice(0, 4)"
+            :key="p.id"
+            :name="p.name"
+            :size="8"
+            class="ring-2 ring-white dark:ring-surface-900"
+          />
+          <span v-if="participantsPreview.length > 4" class="w-8 h-8 rounded-full bg-surface-200 text-surface-700 text-[11px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-surface-900">
+            +{{ participantsPreview.length - 4 }}
+          </span>
+        </div>
+        <span v-else class="w-10 h-10 rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300 flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5" /><circle cx="17" cy="10" r="2.5" /><path d="M3 19a6 6 0 0112 0M15 19a4 4 0 016 0" /></svg>
+        </span>
+        <span class="flex-1 min-w-0">
+          <span class="block text-[15px] font-bold text-surface-900">Qui était là ?</span>
+          <span class="block text-xs text-surface-500 truncate">
+            <template v-if="participantsPreview.length">{{ participantsPreview.length }} participant{{ participantsPreview.length > 1 ? 's' : '' }} · les inconnus sont triés</template>
+            <template v-else>Dites qui était présent : les visages inconnus seront triés</template>
+          </span>
+        </span>
+        <span class="text-surface-400">›</span>
+      </button>
+    </div>
+
+    <!-- Bandeau du mode sélection (téléphone : fixé en bas, sous le pouce ;
+         desktop : collant sous la nav) -->
     <div
       v-if="selectionMode"
-      class="sticky top-16 z-30 flex flex-wrap items-center gap-3 bg-brand-600 px-4 sm:px-8 py-3 text-white shadow-md"
+      class="fixed inset-x-0 bottom-0 z-50 pb-[env(safe-area-inset-bottom)] sm:pb-3 sm:static sm:sticky sm:top-16 sm:z-30 sm:inset-auto
+             flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-3 bg-brand-600 px-4 sm:px-8 py-3 text-white shadow-md"
     >
       <span class="font-medium">
         {{ selectedMediaIds.length }} sélectionné{{ selectedMediaIds.length > 1 ? 's' : '' }}
       </span>
-      <div class="flex flex-wrap items-center gap-2 sm:ml-auto">
+      <div class="flex flex-nowrap sm:flex-wrap items-center gap-2 sm:ml-auto overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible [&>button]:shrink-0 [&>button]:whitespace-nowrap">
         <button
           v-if="selectedMediaIds.length === 1"
           @click="editSelected"
@@ -224,6 +304,19 @@
       ken-burns
     />
 
+    <!-- Visages à identifier : seules ces photos -->
+    <div
+      v-if="unidentifiedOnly"
+      class="flex items-center gap-3 px-4 sm:px-8 py-3 bg-surface-50 border-b border-surface-200"
+    >
+      <span class="text-sm text-surface-800">
+        <strong>{{ albumMedia.length }}</strong> photo{{ albumMedia.length > 1 ? 's' : '' }} avec des visages à identifier · touchez-en une pour nommer
+      </span>
+      <button type="button" class="ml-auto text-sm font-medium text-brand-700 hover:text-brand-900 shrink-0" @click="unidentifiedOnly = false">
+        Tout l’album
+      </button>
+    </div>
+
     <!-- Étape choisie sur la carte-trajet : seuls ses médias -->
     <div
       v-if="placeFilter"
@@ -243,7 +336,7 @@
     <div
       v-if="album.media && album.media.length > 0"
       id="album-grid"
-      class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 auto-rows-[160px] sm:auto-rows-[200px] xl:auto-rows-[230px] grid-flow-dense gap-1 p-1"
+      class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 auto-rows-[124px] sm:auto-rows-[200px] xl:auto-rows-[230px] grid-flow-dense gap-0.5 sm:gap-1 p-0.5 sm:p-1 mt-2 sm:mt-0"
     >
       <div
         v-for="(media, index) in albumMedia"
@@ -345,6 +438,7 @@
       :album-id="album.id"
       :album-name="album.name"
       @close="showParticipants = false"
+      @saved="router.reload({ only: ['album'] })"
     />
   </AppLayout>
 </template>
@@ -367,6 +461,7 @@ import { useToast } from '@/Composables/useToast';
 import { useConfirm } from '@/Composables/useConfirm';
 import { slideUrl } from '@/utils/media';
 import AlbumParticipantsModal from '@/Components/AlbumParticipantsModal.vue';
+import PersonAvatar from '@/Components/PersonAvatar.vue';
 
 // Chargé à l'ouverture seulement : la carte embarque Leaflet (~45 ko gzip).
 const GeolocatePickerModal = defineAsyncComponent(() => import('@/Components/GeolocatePickerModal.vue'));
@@ -550,8 +645,15 @@ const albumMediaIds = computed(() => {
 
 // Étape choisie sur la carte-trajet (null : tout l'album).
 const placeFilter = ref(null);
+// « Qui est-ce ? » (téléphone) : seules les photos avec des visages à nommer.
+const unidentifiedOnly = ref(false);
+const pendingFacesCount = computed(() =>
+  (props.album.media || []).reduce((n, m) => n + (m.pending_faces_count || 0), 0)
+);
+const participantsPreview = computed(() => props.album.participants_preview || []);
 const albumMedia = computed(() => {
-  const all = props.album.media || [];
+  let all = props.album.media || [];
+  if (unidentifiedOnly.value) all = all.filter((m) => (m.pending_faces_count || 0) > 0);
   if (!placeFilter.value) return all;
   const ids = new Set(placeFilter.value.media_ids);
   return all.filter((m) => ids.has(m.id));

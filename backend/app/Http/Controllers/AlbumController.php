@@ -194,9 +194,20 @@ class AlbumController extends Controller
         // identifiées (pondération, pas de filtrage).
         // NB : contrainte volontairement différente de Person::withMatchedFacesCount
         // (modèle Media, et pas d'exigence de bounding_box ici).
+        // + visages encore à identifier : bouton « Qui est-ce ? » de la page
+        // (téléphone) qui ne montre que ces photos.
         $album->media->loadCount([
             'detectedFaces as matched_faces_count' => fn ($q) => $q->where('status', 'matched'),
+            'detectedFaces as pending_faces_count' => fn ($q) => $q->where('status', 'unmatched')->whereNull('person_id'),
         ]);
+
+        // « Qui était là ? » : aperçu des participants déclarés (carte sous le
+        // héro sur téléphone) ; la liste complète s'édite dans la modale.
+        $album->participants_preview = $album->participants()
+            ->orderBy('name')
+            ->get(['people.id', 'people.name'])
+            ->map(fn (Person $p) => ['id' => $p->id, 'name' => $p->name])
+            ->values();
 
         $this->mediaService->hydrateSignedUrls($album->media);
 
