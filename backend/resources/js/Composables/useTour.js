@@ -37,13 +37,17 @@ function buildSteps(page) {
   const circle = page.props.circle ?? {};
   const isFriends = circle.mode === 'friends';
   const seesFamily = circle.family !== false;
+  // Téléphone (barre d'onglets visible, sous sm) : on montre les onglets et le
+  // bouton ⊕ plutôt que la page d'envoi, et le compte est l'initiale en haut.
+  const mobile = typeof window !== 'undefined' && window.innerWidth < 640;
+  const menuHint = mobile ? 'depuis votre compte (votre initiale, en haut à droite)' : 'depuis le menu';
 
   const steps = [
     {
       component: 'Dashboard', path: '/dashboard',
       // driver.js insère le titre en innerHTML : le prénom (saisi) est échappé.
       title: `Bienvenue, ${escapeHtml(firstName(user.name))} !`,
-      text: 'Une petite visite de 2 minutes pour découvrir MemoryLane ? Vous pourrez la relancer à tout moment depuis le menu.',
+      text: `Une petite visite de 2 minutes pour découvrir MemoryLane ? Vous pourrez la relancer à tout moment ${menuHint}.`,
     },
     {
       component: 'Dashboard', path: '/dashboard', element: '[data-tour="today"]',
@@ -55,11 +59,24 @@ function buildSteps(page) {
       title: 'Les petites questions',
       text: '« Qui est sur cette photo ? », « En quelle année est-elle née ? »… Répondez quand vous savez : c\'est ainsi que vos souvenirs se complètent.',
     },
-    {
-      component: 'Media/Upload', path: '/media/upload', element: '[data-tour="upload-pick"]',
-      title: 'Ajouter vos photos',
-      text: 'C\'est ici, depuis votre téléphone ou votre ordinateur. Elles sont partagées avec votre cercle par défaut.',
-    },
+    ...(mobile ? [
+      {
+        component: 'Dashboard', path: '/dashboard', element: '[data-tour="tabbar"]',
+        title: 'Tout est en bas',
+        text: `Accueil, Photos, Albums et ${isFriends ? 'Amis' : 'Proches'} : les onglets restent sous votre pouce, sur toutes les pages.`,
+      },
+      {
+        component: 'Dashboard', path: '/dashboard', element: '[data-tour="add"]',
+        title: 'Ajouter vos photos',
+        text: 'Le bouton + : choisissez dans la galerie du téléphone, ou prenez une photo. Elles sont partagées avec votre cercle par défaut.',
+      },
+    ] : [
+      {
+        component: 'Media/Upload', path: '/media/upload', element: '[data-tour="upload-pick"]',
+        title: 'Ajouter vos photos',
+        text: 'C\'est ici, depuis votre téléphone ou votre ordinateur. Elles sont partagées avec votre cercle par défaut.',
+      },
+    ]),
     {
       component: 'Media/Index', path: '/media', element: '[data-tour="gallery"]',
       title: 'Mes photos',
@@ -90,9 +107,11 @@ function buildSteps(page) {
       text: 'Les souvenirs rangés par histoire : un mariage, des vacances, une cousinade. Les vôtres et ceux que vos proches partagent.',
     },
     {
-      component: 'Albums/Index', path: '/albums',
+      component: 'Albums/Index', path: '/albums', element: mobile ? '[data-tour="account"]' : undefined,
       title: 'C\'est parti !',
-      text: 'Vous savez l\'essentiel. Le guide complet et cette visite restent dans le menu (votre nom, en haut à droite). Bonne balade dans les souvenirs !',
+      text: mobile
+        ? 'Vous savez l\'essentiel. Le guide complet, cette visite et vos cercles sont dans votre compte : touchez votre initiale, en haut à droite. Bonne balade dans les souvenirs !'
+        : 'Vous savez l\'essentiel. Le guide complet et cette visite restent dans le menu (votre nom, en haut à droite). Bonne balade dans les souvenirs !',
     },
   );
 
@@ -219,6 +238,11 @@ async function render(i, steps) {
     }],
   });
   active.drive();
+}
+
+/** Une visite est-elle en cours (étape mémorisée) ? Les pages évitent alors d'ouvrir leurs propres fenêtres d'aide. */
+export function tourInProgress() {
+  return readStep() !== null;
 }
 
 /**

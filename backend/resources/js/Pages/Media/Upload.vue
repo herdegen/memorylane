@@ -104,6 +104,7 @@ import { useCircle } from '@/Composables/useCircle';
 
 const { isFriends } = useCircle();
 import { useToast } from '@/Composables/useToast';
+import { tourInProgress } from '@/Composables/useTour';
 
 const page = usePage();
 const toast = useToast();
@@ -111,8 +112,9 @@ const device = detectDevice();
 
 // Mini-tuto : ouvert d'office à la première visite, puis via « Comment faire ».
 const showTutorial = ref(false);
+// Pas pendant la visite guidée : sa bulle tomberait au milieu du tuto.
 onMounted(() => {
-  if (!page.props.auth?.user?.onboarding?.upload_tutorial) showTutorial.value = true;
+  if (!page.props.auth?.user?.onboarding?.upload_tutorial && !tourInProgress()) showTutorial.value = true;
 });
 const closeTutorial = () => {
   showTutorial.value = false;

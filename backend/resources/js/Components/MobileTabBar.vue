@@ -6,6 +6,7 @@
     class="sm:hidden fixed inset-x-0 bottom-0 z-40 bg-white border-t border-surface-200
            grid grid-cols-5 pb-[env(safe-area-inset-bottom)]"
     aria-label="Navigation principale"
+    data-tour="tabbar"
   >
     <Link href="/dashboard" :class="tabClass('home')">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1z" /></svg>
@@ -15,7 +16,7 @@
       <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3" /><path d="M3 16l5-5 4 4 3-3 6 6" /></svg>
       <span>Photos</span>
     </Link>
-    <button type="button" class="flex items-center justify-center" aria-label="Ajouter des photos" @click="$emit('add')">
+    <button type="button" class="flex items-center justify-center" aria-label="Ajouter des photos" data-tour="add" @click="$emit('add')">
       <span class="w-14 h-14 -mt-6 rounded-full bg-brand-600 text-white flex items-center justify-center shadow-[0_10px_24px_-8px_rgba(217,119,6,.7)] dark:shadow-none">
         <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
       </span>

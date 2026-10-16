@@ -118,6 +118,7 @@
               type="button"
               class="w-11 h-11 flex items-center justify-center rounded-full focus:outline-hidden focus:ring-2 focus:ring-brand-500"
               aria-label="Cercles et compte"
+              data-tour="account"
               @click="showAccountSheet = true"
             >
               <PersonAvatar :name="user.name" :size="8" />
