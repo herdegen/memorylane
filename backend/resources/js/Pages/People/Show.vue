@@ -3,13 +3,23 @@
   <AppLayout>
     <!-- ================= En-tête doux pleine largeur ================= -->
     <div class="relative bg-linear-to-br from-brand-100 via-page to-page border-b border-surface-200">
-      <!-- Actions flottantes -->
-      <div class="absolute top-4 right-4 sm:top-5 sm:right-8 z-20 flex items-center gap-2.5">
+      <!-- Retour (téléphone : en haut à gauche, comme une app) -->
+      <Link
+        href="/people"
+        class="sm:hidden absolute top-3 left-4 z-20 inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/90 backdrop-blur text-surface-900 shadow-warm-md"
+        :aria-label="`Retour aux ${peopleLabel.toLowerCase()}`"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 19l-7-7 7-7" /></svg>
+      </Link>
+
+      <!-- Actions flottantes (téléphone : ⋯ seulement ; parenté, réseau et
+           diaporama vivent dans la barre d'actions sous le portrait) -->
+      <div class="absolute top-3 right-4 sm:top-5 sm:right-8 z-20 flex items-center gap-2.5">
         <!-- Amis : pas de parenté, on la retrouve dans le réseau du cercle -->
         <Link
           v-if="isFriends"
           :href="`/network?focus=${person.id}`"
-          class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur text-sm font-semibold text-surface-900 shadow-warm-md hover:bg-white transition"
+          class="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur text-sm font-semibold text-surface-900 shadow-warm-md hover:bg-white transition"
           title="Voir ses liens dans le réseau du cercle"
         >
           <CircleKindIcon kind="friends" class="w-4 h-4" />
@@ -18,7 +28,7 @@
         <Link
           v-else-if="viewerPersonId && viewerPersonId !== person.id"
           :href="`/family-tree?kinship=${person.id}`"
-          class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur text-sm font-semibold text-surface-900 shadow-warm-md hover:bg-white transition"
+          class="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur text-sm font-semibold text-surface-900 shadow-warm-md hover:bg-white transition"
           title="Voir notre lien de parenté dans l'arbre"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -29,7 +39,7 @@
         <button
           v-if="!isFriends"
           @click="playLifeSlideshow"
-          class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur text-sm font-semibold text-surface-900 shadow-warm-md hover:bg-white transition"
+          class="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur text-sm font-semibold text-surface-900 shadow-warm-md hover:bg-white transition"
         >
           <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
           Diaporama de sa vie
@@ -73,7 +83,7 @@
         </div>
       </div>
 
-      <div class="flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-7 px-4 sm:px-8 pt-9 pb-8">
+      <div class="flex flex-col items-center text-center sm:flex-row sm:items-center sm:text-left gap-3 sm:gap-7 px-4 sm:px-8 pt-14 sm:pt-9 pb-5 sm:pb-8">
         <Link
           href="/people"
           class="hidden sm:inline-flex items-center justify-center w-11 h-11 rounded-full bg-white border border-surface-200 text-surface-600 shadow-warm-sm hover:bg-surface-50 transition shrink-0"
@@ -91,7 +101,7 @@
             :person="person"
             :alt="person.name"
             eager
-            class="w-32 h-32 bg-brand-100 border-4 border-white shadow-warm-md"
+            class="w-28 h-28 sm:w-32 sm:h-32 bg-brand-100 border-4 border-white shadow-warm-md"
             fallback-class="text-5xl font-bold text-brand-700"
           />
           <button
@@ -108,13 +118,15 @@
         </div>
 
         <div class="min-w-0">
-          <div class="text-xs font-semibold uppercase tracking-widest text-brand-700">{{ peopleLabel }}</div>
-          <h1 class="font-display text-3xl sm:text-[42px] font-bold text-surface-900 leading-tight">
+          <div class="hidden sm:block text-xs font-semibold uppercase tracking-widest text-brand-700">{{ peopleLabel }}</div>
+          <h1 class="font-display text-[26px] sm:text-[42px] font-bold text-surface-900 leading-tight">
             {{ personLabel(person) }}
             <span v-if="person.gender === 'M'" class="text-surface-400 text-2xl align-middle" title="Masculin">&#9794;</span>
             <span v-else-if="person.gender === 'F'" class="text-surface-400 text-2xl align-middle" title="Féminin">&#9792;</span>
           </h1>
-          <div class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-surface-500">
+          <div class="mt-1.5 flex flex-wrap items-center justify-center sm:justify-start gap-x-3 gap-y-1 text-sm text-surface-500">
+            <span v-if="relationLabel" class="font-semibold text-brand-700 dark:text-brand-300">{{ capitalize(relationLabel) }}</span>
+            <span v-if="relationLabel && person.birth_date">·</span>
             <span v-if="person.birth_date">
               {{ formatLongDate(person.birth_date) }}{{ person.death_date ? ' – ' + formatLongDate(person.death_date) : '' }}
             </span>
@@ -130,7 +142,7 @@
           </div>
           <!-- Adresse : présente dans les props uniquement si le serveur
                l'autorise (propriétaire/admin, ou foyer avec opt-in) -->
-          <div v-if="person.address" class="mt-1.5 flex items-center gap-1.5 text-sm text-surface-500">
+          <div v-if="person.address" class="mt-1.5 flex items-center justify-center sm:justify-start gap-1.5 text-sm text-surface-500">
             <svg class="w-4 h-4 shrink-0 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
             <span>{{ person.address }}</span>
           </div>
@@ -157,6 +169,26 @@
           </button>
         </div>
       </div>
+    </div>
+
+    <!-- Téléphone : actions sous le pouce — Sa vie (diaporama) · Parenté/Réseau · Photos -->
+    <div class="sm:hidden px-4 pt-3 grid gap-2" :class="mobileActions.length === 3 ? 'grid-cols-3' : mobileActions.length === 2 ? 'grid-cols-2' : 'grid-cols-1'">
+      <component
+        :is="a.href ? Link : 'button'"
+        v-for="a in mobileActions"
+        :key="a.label"
+        :href="a.href"
+        :type="a.href ? undefined : 'button'"
+        class="h-12 rounded-2xl border text-sm font-bold flex items-center justify-center gap-1.5"
+        :class="a.primary ? 'bg-brand-600 border-brand-600 text-white' : 'bg-white border-surface-300 text-surface-900'"
+        @click="a.onClick && a.onClick()"
+      >
+        <svg v-if="a.icon === 'play'" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+        <svg v-else-if="a.icon === 'tree'" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2.5" /><circle cx="6" cy="19" r="2.5" /><circle cx="18" cy="19" r="2.5" /><path d="M12 7.5V12M12 12l-6 4.5M12 12l6 4.5" /></svg>
+        <svg v-else-if="a.icon === 'network'" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><circle cx="5" cy="6" r="2" /><circle cx="19" cy="6" r="2" /><circle cx="5" cy="18" r="2" /><circle cx="19" cy="18" r="2" /><path d="M9.5 10.5L6.5 7.5M14.5 10.5l3-3M9.5 13.5l-3 3M14.5 13.5l3 3" /></svg>
+        <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3" /><path d="M3 16l5-5 4 4 3-3 6 6" /></svg>
+        {{ a.label }}
+      </component>
     </div>
 
     <!-- ================= Mode amis : la rencontre, à la place du mini-arbre ================= -->
@@ -186,9 +218,9 @@
     <PersonTimeline v-else ref="timelineRef" :person-id="person.id" :person-name="personLabel(person)" :can-manage="canManage" />
 
     <!-- ================= Galeries, séparées par album puis par année ================= -->
-    <div v-if="media.length > 0" class="pt-9 pb-12">
+    <div v-if="media.length > 0" id="photos" class="pt-7 sm:pt-9 pb-12 scroll-mt-16">
       <div class="flex items-center justify-between px-4 sm:px-8 mb-2">
-        <h2 class="font-display text-2xl font-semibold text-surface-900">Ses photos</h2>
+        <h2 class="font-display text-xl sm:text-2xl font-semibold text-surface-900">Ses photos</h2>
         <span class="text-sm text-surface-400">{{ media.length }} médias visibles</span>
       </div>
 
@@ -405,7 +437,14 @@ const props = defineProps({
     type: Object,
     default: () => ({ hasAccount: false, pendingInvitation: null, canInvite: false }),
   },
+  // Parenté avec le visiteur (« votre fille »), null hors famille / sans fiche « moi ».
+  relationLabel: {
+    type: String,
+    default: null,
+  },
 });
+
+const capitalize = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 
 const showInviteModal = ref(false);
 const onInvited = () => {
@@ -431,6 +470,17 @@ const showAvatarPicker = ref(false);
 // d'en-tête le déclenche via la ref.
 const timelineRef = ref(null);
 const playLifeSlideshow = () => timelineRef.value?.play();
+
+// Barre d'actions téléphone : Sa vie (famille) · Parenté / Réseau · Photos.
+const scrollToPhotos = () => document.getElementById('photos')?.scrollIntoView({ behavior: 'smooth' });
+const mobileActions = computed(() => {
+  const list = [];
+  if (!isFriends.value) list.push({ label: 'Sa vie', icon: 'play', primary: true, onClick: playLifeSlideshow });
+  if (isFriends.value) list.push({ label: 'Réseau', icon: 'network', href: `/network?focus=${props.person.id}` });
+  else if (viewerPersonId.value && viewerPersonId.value !== props.person.id) list.push({ label: 'Parenté', icon: 'tree', href: `/family-tree?kinship=${props.person.id}` });
+  if (props.media.length > 0) list.push({ label: 'Photos', icon: 'photos', primary: isFriends.value, onClick: scrollToPhotos });
+  return list;
+});
 
 // Menu ⋯ flottant (même pattern que la page album).
 const showActionsMenu = ref(false);

@@ -1,15 +1,52 @@
 <template>
-  <div class="px-4 sm:px-8 pt-9 pb-2">
+  <div class="px-4 sm:px-8 pt-7 sm:pt-9 pb-2">
     <div class="flex items-center justify-between mb-2">
-      <h2 class="font-display text-2xl font-semibold text-surface-900">Famille</h2>
-      <Link href="/family-tree" class="inline-flex items-center gap-1.5 text-sm font-medium text-brand-700 dark:text-brand-400 hover:underline">
-        Voir dans l'arbre
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+      <h2 class="font-display text-xl sm:text-2xl font-semibold text-surface-900">Famille</h2>
+      <div class="flex items-center gap-3">
+        <button
+          v-if="canManage"
+          type="button"
+          class="sm:hidden text-sm font-medium text-brand-700 dark:text-brand-400"
+          @click="editing = !editing"
+        >
+          {{ editing ? 'Terminer' : 'Modifier' }}
+        </button>
+        <Link href="/family-tree" class="inline-flex items-center gap-1.5 text-sm font-medium text-brand-700 dark:text-brand-400 hover:underline">
+          <span class="hidden sm:inline">Voir dans l'arbre</span><span class="sm:hidden">L'arbre</span>
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+        </Link>
+      </div>
+    </div>
+
+    <!-- Téléphone : bande horizontale de proches (le mini-arbre reste
+         disponible via « Modifier » pour ajouter ou retirer) -->
+    <div v-if="!editing" class="sm:hidden -mx-4 px-4 py-2 flex gap-4 overflow-x-auto">
+      <Link
+        v-for="r in relatives"
+        :key="r.person.id"
+        :href="`/people/${r.person.id}`"
+        class="flex flex-col items-center gap-1.5 w-[72px] shrink-0 text-center"
+      >
+        <PersonAvatar :person="r.person" :size="12" class="ring-2 ring-white shadow-warm-sm" fallback-class="font-bold text-brand-700" />
+        <span class="w-full text-xs font-semibold text-surface-900 truncate">{{ r.person.first_name || personLabel(r.person) }}</span>
+        <span class="text-[11px] text-surface-500 -mt-1">{{ r.role }}</span>
       </Link>
+      <button
+        v-if="canManage"
+        type="button"
+        class="flex flex-col items-center gap-1.5 w-[72px] shrink-0 text-center"
+        @click="editing = true"
+      >
+        <span class="w-12 h-12 rounded-full border-2 border-dashed border-surface-300 text-surface-400 flex items-center justify-center">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+        </span>
+        <span class="text-xs font-semibold text-surface-500">Ajouter</span>
+      </button>
+      <p v-if="!relatives.length && !canManage" class="text-sm text-surface-500 py-2">Aucun proche renseigné.</p>
     </div>
 
     <!-- Mini-arbre : parents / génération de la personne / enfants -->
-    <div class="flex flex-col items-center py-4">
+    <div class="flex-col items-center py-4" :class="editing ? 'flex' : 'hidden sm:flex'">
 
       <!-- Parents -->
       <div class="flex flex-wrap justify-center gap-6">
@@ -245,6 +282,17 @@ const props = defineProps({
 
 // Un seul formulaire d'ajout ouvert à la fois : 'father'|'mother'|'spouse'|'child'|null.
 const adding = ref(null);
+// Téléphone : bande de proches par défaut, mini-arbre complet en édition.
+const editing = ref(false);
+const relatives = computed(() => {
+  const list = [];
+  if (props.father) list.push({ person: props.father, role: 'père' });
+  if (props.mother) list.push({ person: props.mother, role: 'mère' });
+  for (const s of props.spouses) list.push({ person: s, role: s.gender === 'F' ? 'femme' : s.gender === 'M' ? 'mari' : 'conjoint(e)' });
+  for (const c of props.children) list.push({ person: c, role: c.gender === 'F' ? 'fille' : c.gender === 'M' ? 'fils' : 'enfant' });
+  for (const s of props.siblings) list.push({ person: s, role: s.gender === 'F' ? 'sœur' : s.gender === 'M' ? 'frère' : 'fratrie' });
+  return list;
+});
 const coParentId = ref('');
 const newChildName = ref('');
 const busy = ref(false);

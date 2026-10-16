@@ -1,12 +1,12 @@
 <template>
   <div class="pt-9 pb-2">
     <div class="flex items-center justify-between mb-4 px-4 sm:px-8">
-      <h2 class="font-display text-2xl font-semibold text-surface-900">Sa vie</h2>
+      <h2 class="font-display text-xl sm:text-2xl font-semibold text-surface-900">Sa vie</h2>
       <div class="flex items-center gap-2">
       <button
         v-if="hasPlayable"
         @click="playSlideshow"
-        class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-brand-600 text-sm font-medium text-white hover:bg-brand-700 transition"
+        class="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-brand-600 text-sm font-medium text-white hover:bg-brand-700 transition"
         title="Lire le récit de sa vie"
       >
         <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>

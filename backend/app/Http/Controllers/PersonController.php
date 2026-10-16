@@ -335,11 +335,29 @@ class PersonController extends Controller
             'spouses' => $spouses,
             'siblings' => $siblings,
             'isSelf' => auth()->user()->person_id === $person->id,
+            // « votre fille », « votre tante »… depuis la fiche « moi » du visiteur
+            'relationLabel' => $this->viewerRelationLabel($request->user(), $person),
             'canManage' => $this->canManage($person),
             'canDelete' => $this->isOwnerOrAdmin($person),
             'canSetSelf' => $this->canSetSelf($person),
             'account' => $this->accountPayload($person),
         ]);
+    }
+
+    /**
+     * Parenté du visiteur avec la fiche (4 liens au plus), jamais entre amis.
+     */
+    private function viewerRelationLabel(\App\Models\User $user, Person $person): ?string
+    {
+        $selfId = $user->person_id;
+        if (! $selfId || $selfId === $person->id || $user->mode() === 'friends') {
+            return null;
+        }
+        $paths = $this->genealogy->pathsFrom($selfId, 4);
+
+        return isset($paths[$person->id])
+            ? \App\Services\GenealogyService::relationLabel($paths[$person->id], $person->gender)
+            : null;
     }
 
     /**
