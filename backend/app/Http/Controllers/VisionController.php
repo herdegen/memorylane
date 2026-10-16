@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Rules\VisiblePerson;
 use App\Models\DetectedFace;
 use App\Models\Media;
+use App\Models\Person;
 use App\Services\Vision\FaceCropService;
 use App\Services\Vision\FaceMatcher;
 use Illuminate\Http\JsonResponse;
@@ -251,9 +252,56 @@ class VisionController extends Controller
             auth()->user(),
         );
 
+        // Suggestions limitées aux fiches du cercle courant, PLUS les personnes
+        // déjà identifiées dans un album de cette photo (même d'un autre cercle) :
+        // on peut nommer quelqu'un présent à l'événement sans proposer à
+        // l'aveugle toute une autre famille.
+        $user = auth()->user();
+        $albumPeople = $this->albumPeopleOf($detectedFace->media, $user);
+        $albumIds = $albumPeople->pluck('id')->flip();
+        $inContext = Person::inContext($user)
+            ->whereIn('people.id', array_map(fn ($c) => $c['person']['id'], $candidates))
+            ->pluck('people.id')
+            ->flip();
+
+        $suggestions = [];
+        foreach ($candidates as $c) {
+            $id = $c['person']['id'];
+            if (isset($inContext[$id]) || isset($albumIds[$id])) {
+                $c['on_album'] = ! isset($inContext[$id]);
+                $suggestions[] = $c;
+            }
+        }
+        $suggestions = array_slice($suggestions, 0, 8);
+        $suggested = collect($suggestions)->pluck('person.id')->flip();
+
         return response()->json([
-            'suggestions' => array_slice($candidates, 0, 8),
+            'suggestions' => $suggestions,
+            // Présents sur l'album mais sans ressemblance calculée : proposés
+            // juste après les suggestions.
+            'album_people' => $albumPeople->reject(fn ($p) => isset($suggested[$p['id']]))->values(),
         ]);
+    }
+
+    /**
+     * Personnes déjà identifiées sur les autres photos des albums (visibles du
+     * compte) de ce média, hors celles déjà sur la photo.
+     */
+    private function albumPeopleOf(Media $media, \App\Models\User $user)
+    {
+        $albumIds = $media->albums()->accessibleBy($user)->pluck('albums.id');
+        if ($albumIds->isEmpty()) {
+            return collect();
+        }
+        $onPhoto = $media->people()->pluck('people.id');
+
+        return Person::visibleTo($user)
+            ->whereHas('media', fn ($m) => $m->whereHas('albums', fn ($a) => $a->whereIn('albums.id', $albumIds)))
+            ->whereNotIn('people.id', $onPhoto)
+            ->orderBy('name')
+            ->limit(60)
+            ->get(['people.id', 'people.name'])
+            ->map(fn (Person $p) => ['id' => $p->id, 'name' => $p->name]);
     }
 
     /**

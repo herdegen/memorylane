@@ -78,7 +78,8 @@
           <!-- Initiale seule (pas de photo) : rendu historique de cette liste. -->
           <PersonAvatar :name="person.name" :size="8" fallback-class="bg-surface-200 text-surface-600 font-medium" />
           <span>{{ person.name }}</span>
-          <span v-if="person.elsewhere" class="text-xs text-surface-400">· {{ person.elsewhere_label }}</span>
+          <span v-if="person.onAlbum" class="text-xs text-surface-400">· sur l'album</span>
+          <span v-else-if="person.elsewhere" class="text-xs text-surface-400">· {{ person.elsewhere_label }}</span>
           <span
             v-for="d in person.doubts || []"
             :key="d.code"
@@ -186,6 +187,7 @@ const emit = defineEmits(['matched', 'dismissed', 'reset', 'close']);
 const searchQuery = ref('');
 const people = ref([]);
 const suggestions = ref([]); // candidats classés par proximité (embedding)
+const albumPeople = ref([]); // déjà identifiés dans un album de la photo
 const loadingPeople = ref(false);
 const matching = ref(false);
 const showCreatePerson = ref(false);
@@ -261,15 +263,21 @@ const filteredPeople = computed(() => {
     name: s.person.name,
     score: s.score,
     doubts: s.doubts || [],
+    onAlbum: !!s.on_album,
   }));
-  const rankedIds = new Set(ranked.map((p) => p.id));
+  // Puis les personnes déjà identifiées dans l'album (même d'un autre cercle),
+  // puis le reste de l'annuaire.
+  const onAlbum = albumPeople.value
+    .filter((p) => !ranked.some((r) => r.id === p.id))
+    .map((p) => ({ ...p, onAlbum: true }));
+  const shownIds = new Set([...ranked, ...onAlbum].map((p) => p.id));
 
   const others = people.value
-    .filter((p) => !rankedIds.has(p.id))
+    .filter((p) => !shownIds.has(p.id))
     .slice()
     .sort(byKinshipThenBirth);
 
-  return [...ranked, ...others];
+  return [...ranked, ...onAlbum, ...others];
 });
 
 const matchToPerson = async (person, allowDuplicate = false) => {
@@ -379,9 +387,11 @@ const createAndMatch = async () => {
 const loadSuggestion = async () => {
   topSuggestion.value = null;
   suggestions.value = [];
+  albumPeople.value = [];
   try {
     const { data } = await axios.get(`/vision/faces/${props.face.id}/suggest`);
     suggestions.value = data.suggestions || [];
+    albumPeople.value = data.album_people || [];
     // Bannière de suggestion : seulement si le visage n'est pas déjà nommé.
     topSuggestion.value = props.face.person ? null : (suggestions.value[0] || null);
   } catch (error) {
