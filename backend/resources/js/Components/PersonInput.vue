@@ -70,7 +70,8 @@
         >
           <PersonAvatar :person="person" :size="6" />
           <span class="text-sm text-surface-900">{{ personLabel(person) }}</span>
-          <span v-if="person.elsewhere" class="text-xs text-surface-400">· {{ person.elsewhere_label }}</span>
+          <span v-if="person.onAlbum" class="text-xs text-surface-400">· sur l'album</span>
+          <span v-else-if="person.elsewhere" class="text-xs text-surface-400">· {{ person.elsewhere_label }}</span>
           <span class="text-xs text-surface-500 ml-auto">{{ person.media_count }} médias</span>
         </button>
       </div>
@@ -124,6 +125,11 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  // Déjà identifiés dans un album de la photo : [{ id, name }]
+  albumPeople: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const emit = defineEmits(['people-updated']);
@@ -135,16 +141,26 @@ const showSuggestions = ref(false);
 const showCreateModal = ref(false);
 const loading = ref(false);
 
+// Sans recherche : les présents sur l'album (même d'un autre cercle), puis
+// les fiches du cercle courant. Les fiches des autres cercles (« elsewhere »)
+// ne viennent qu'en tapant leur nom (éviter un doublon, avec la proposition
+// de les ajouter au cercle).
 const filteredPeople = computed(() => {
-  const attachedIds = mediaPeople.value.map(p => p.id);
-  let people = availablePeople.value.filter(person => !attachedIds.includes(person.id));
+  const attachedIds = new Set(mediaPeople.value.map(p => p.id));
+  const albumIds = new Set(props.albumPeople.map(p => p.id));
+  const byId = new Map(availablePeople.value.map(p => [p.id, p]));
+  const onAlbum = props.albumPeople
+    .filter(p => !attachedIds.has(p.id))
+    .map(p => ({ ...(byId.get(p.id) || p), elsewhere: false, onAlbum: true }));
 
   if (searchQuery.value) {
+    const pool = [...onAlbum, ...availablePeople.value.filter(p => !attachedIds.has(p.id) && !albumIds.has(p.id))];
     // Insensible aux accents + tolérant aux fautes (helper partagé).
-    people = searchPeople(searchQuery.value, people, person => person.name);
+    return searchPeople(searchQuery.value, pool, person => person.name).slice(0, 10);
   }
 
-  return people.slice(0, 10);
+  const circle = availablePeople.value.filter(p => !p.elsewhere && !attachedIds.has(p.id) && !albumIds.has(p.id));
+  return [...onAlbum, ...circle].slice(0, 10);
 });
 
 // Annuaire partagé (une requête pour toute la page) ; `force` après une

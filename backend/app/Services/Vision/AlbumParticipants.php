@@ -143,4 +143,28 @@ class AlbumParticipants
             $this->classify($face);
         }
     }
+
+    /**
+     * Personnes déjà identifiées sur les photos des albums (visibles du compte)
+     * de ce média, hors celles déjà sur la photo : présentes à l'événement,
+     * proposées même si leur fiche est d'un autre cercle.
+     *
+     * @return \Illuminate\Support\Collection<int, array{id: string, name: string}>
+     */
+    public function identifiedAround(\App\Models\Media $media, \App\Models\User $user)
+    {
+        $albumIds = $media->albums()->accessibleBy($user)->pluck('albums.id');
+        if ($albumIds->isEmpty()) {
+            return collect();
+        }
+        $onPhoto = $media->people()->pluck('people.id');
+
+        return \App\Models\Person::visibleTo($user)
+            ->whereHas('media', fn ($m) => $m->whereHas('albums', fn ($a) => $a->whereIn('albums.id', $albumIds)))
+            ->whereNotIn('people.id', $onPhoto)
+            ->orderBy('name')
+            ->limit(60)
+            ->get(['people.id', 'people.name'])
+            ->map(fn (\App\Models\Person $p) => ['id' => $p->id, 'name' => $p->name]);
+    }
 }

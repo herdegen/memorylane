@@ -257,7 +257,7 @@ class VisionController extends Controller
         // on peut nommer quelqu'un présent à l'événement sans proposer à
         // l'aveugle toute une autre famille.
         $user = auth()->user();
-        $albumPeople = $this->albumPeopleOf($detectedFace->media, $user);
+        $albumPeople = app(\App\Services\Vision\AlbumParticipants::class)->identifiedAround($detectedFace->media, $user);
         $albumIds = $albumPeople->pluck('id')->flip();
         $inContext = Person::inContext($user)
             ->whereIn('people.id', array_map(fn ($c) => $c['person']['id'], $candidates))
@@ -281,27 +281,6 @@ class VisionController extends Controller
             // juste après les suggestions.
             'album_people' => $albumPeople->reject(fn ($p) => isset($suggested[$p['id']]))->values(),
         ]);
-    }
-
-    /**
-     * Personnes déjà identifiées sur les autres photos des albums (visibles du
-     * compte) de ce média, hors celles déjà sur la photo.
-     */
-    private function albumPeopleOf(Media $media, \App\Models\User $user)
-    {
-        $albumIds = $media->albums()->accessibleBy($user)->pluck('albums.id');
-        if ($albumIds->isEmpty()) {
-            return collect();
-        }
-        $onPhoto = $media->people()->pluck('people.id');
-
-        return Person::visibleTo($user)
-            ->whereHas('media', fn ($m) => $m->whereHas('albums', fn ($a) => $a->whereIn('albums.id', $albumIds)))
-            ->whereNotIn('people.id', $onPhoto)
-            ->orderBy('name')
-            ->limit(60)
-            ->get(['people.id', 'people.name'])
-            ->map(fn (Person $p) => ['id' => $p->id, 'name' => $p->name]);
     }
 
     /**

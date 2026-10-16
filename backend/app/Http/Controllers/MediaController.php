@@ -218,6 +218,8 @@ class MediaController extends Controller
             'media' => $media,
             'voiceNotes' => $voiceNotes,
             'ficheRequest' => $ficheRequest,
+            // « Ajouter une personne » : présents sur l'album, même d'un autre cercle
+            'albumPeople' => app(\App\Services\Vision\AlbumParticipants::class)->identifiedAround($media, auth()->user()),
         ]);
     }
 

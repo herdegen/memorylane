@@ -321,6 +321,7 @@
               class="order-1 sm:order-none"
               :media-id="media.id"
               :initial-people="media.people || []"
+              :album-people="albumPeople"
               @people-updated="(list) => (mediaPeople = list)"
             />
 
@@ -436,6 +437,10 @@ const props = defineProps({
   media: {
     type: Object,
     required: true,
+  },
+  albumPeople: {
+    type: Array,
+    default: () => [],
   },
   voiceNotes: {
     type: Array,
