@@ -441,13 +441,85 @@
   object-fit: contain;
 }
 
+/* Bande du bas (téléphone) : titre, personnes, visages à identifier, Détails.
+   Le fond laisse passer les gestes ; seuls les boutons sont cliquables. */
+.pswp__mobile-bar {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  padding: 24px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
+  color: #fff;
+  pointer-events: none;
+  align-items: flex-end;
+  gap: 12px;
+}
+.pswp__mobile-bar-text { flex: 1; min-width: 0; }
+.pswp__mobile-bar-title {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+}
+.pswp__mobile-bar-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.pswp__mobile-bar-chips:empty { display: none; }
+.pswp__mobile-bar-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px 0 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(6px);
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  pointer-events: auto;
+}
+.pswp__mobile-bar-initials {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #17140f;
+  font-size: 9px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.pswp__mobile-bar-chip--unknown {
+  padding-left: 10px;
+  background: var(--color-brand-600, #d97706);
+  border: 0;
+}
+.pswp__mobile-bar-details {
+  pointer-events: auto;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #17140f;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
 /* Mobile : l'image occupe tout l'écran ; on retire le bruit (légende, zoom)
-   pour ne garder que fermer, « i » et le compteur. */
+   pour ne garder que fermer, « i », le compteur et la bande du bas. */
 @media (max-width: 767px) {
   /* !important : la feuille PhotoSwipe (chargée après, dans le chunk de la
      visionneuse) réaffiche le zoom via `.pswp--zoom-allowed`. */
   .pswp .pswp__custom-caption,
-  .pswp .pswp__button--zoom {
+  .pswp .pswp__button--zoom,
+  .pswp .pswp__button--info {
     display: none !important;
   }
+  .pswp .pswp__mobile-bar { display: flex; }
 }

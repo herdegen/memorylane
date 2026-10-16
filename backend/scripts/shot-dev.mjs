@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Captures mobiles (390×844, DPR 2) de l'environnement de DEV, connecté en
 // admin par lien magique. Usage : node scripts/shot-dev.mjs <lien-magique> <dossier> /chemin1 [/chemin2…]
+// Un chemin peut enchaîner un clic : « /media|click:.media-card » (voir plus bas).
 // Le lien se génère dans ~/memorylane-dev :
 //   docker compose exec -T app php artisan tinker --execute='echo App\Notifications\MagicLoginLink::urlFor(App\Models\User::where("role","admin")->first());'
 // Identifiants basic-auth lus dans ~/.memorylane-dev-password.
@@ -20,9 +21,17 @@ await p.goto(magic, { waitUntil: 'networkidle0', timeout: 45000 });
 console.log('login →', p.url());
 if (p.url().includes('/login')) { console.error('Lien magique refusé (déjà utilisé ou expiré) : en générer un nouveau.'); await b.close(); process.exit(1); }
 let i = 0;
-for (const path of paths) {
+for (const spec of paths) {
+  // « /chemin|click:<sélecteur> » : clique l'élément après chargement (visionneuse, feuille…)
+  const [path, ...actions] = spec.split('|');
   await p.goto(origin + path, { waitUntil: 'networkidle0', timeout: 45000 });
   await new Promise((r) => setTimeout(r, 900));
+  for (const a of actions) {
+    if (a.startsWith('click:')) {
+      await p.click(a.slice(6));
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+  }
   await p.screenshot({ path: `${out}/d${i++}.png` });
 }
 console.log('errors:', JSON.stringify(errs));

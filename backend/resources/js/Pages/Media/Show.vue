@@ -1,11 +1,11 @@
 <template>
   <Head :title="media.title || media.original_name" />
   <AppLayout>
-    <div class="py-12">
-      <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <div class="py-3 sm:py-12">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Retour : vers la page d'où l'on vient (fiche personne, album,
              galerie…), repli « Mes photos » en accès direct -->
-        <div class="mb-6">
+        <div class="mb-3 sm:mb-6">
           <a
             :href="back.href"
             class="inline-flex items-center text-sm text-surface-600 hover:text-surface-900 transition"

@@ -154,6 +154,95 @@ export function usePhotoSwipe(getMedia, options = {}) {
     });
   };
 
+  // ---- Téléphone : bande du bas (titre, personnes sur la photo, visages à
+  //      identifier, « Détails ») — visages chargés au besoin et gardés en
+  //      mémoire le temps de la visionneuse. Masquée en CSS sur desktop. ----
+  const facesCache = new Map();
+  const loadFaces = async (mediaId) => {
+    if (!facesCache.has(mediaId)) {
+      facesCache.set(
+        mediaId,
+        fetch(`/vision/media/${mediaId}/faces`, { headers: { Accept: 'application/json' } })
+          .then((r) => (r.ok ? r.json() : []))
+          .catch(() => []),
+      );
+    }
+    return facesCache.get(mediaId);
+  };
+
+  const registerMobileBar = (lb) => {
+    if (!options.detailLink) return;
+    lb.pswp.ui.registerElement({
+      name: 'mobile-bar',
+      order: 10,
+      isButton: false,
+      appendTo: 'root',
+      html: '',
+      onInit: (el, pswp) => {
+        el.className += ' pswp__mobile-bar';
+        const render = async () => {
+          const slide = pswp.currSlide;
+          const mediaId = slide?.data?.mediaId;
+          const caption = slide?.data?.caption || '';
+          el.replaceChildren();
+          if (!mediaId) return;
+
+          const text = document.createElement('div');
+          text.className = 'pswp__mobile-bar-text';
+          const title = document.createElement('div');
+          title.className = 'pswp__mobile-bar-title';
+          title.textContent = caption;
+          text.appendChild(title);
+          const chips = document.createElement('div');
+          chips.className = 'pswp__mobile-bar-chips';
+          text.appendChild(chips);
+
+          const details = document.createElement('button');
+          details.type = 'button';
+          details.className = 'pswp__mobile-bar-details';
+          details.textContent = 'Détails';
+          details.addEventListener('click', () => openDetail(mediaId));
+
+          el.append(text, details);
+
+          const faces = await loadFaces(mediaId);
+          if (pswp.currSlide?.data?.mediaId !== mediaId) return;
+          const named = [];
+          let unknown = 0;
+          for (const f of faces) {
+            if (f.person?.name) {
+              if (!named.some((n) => n.id === f.person.id)) named.push(f.person);
+            } else if (f.status === 'unmatched') unknown++;
+          }
+          for (const p of named.slice(0, 4)) {
+            const chip = document.createElement('span');
+            chip.className = 'pswp__mobile-bar-chip';
+            const initials = document.createElement('span');
+            initials.className = 'pswp__mobile-bar-initials';
+            initials.textContent = p.name.split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+            chip.append(initials, document.createTextNode(p.name.split(/\s+/)[0]));
+            chips.appendChild(chip);
+          }
+          if (named.length > 4) {
+            const more = document.createElement('span');
+            more.className = 'pswp__mobile-bar-chip';
+            more.textContent = `+${named.length - 4}`;
+            chips.appendChild(more);
+          }
+          if (unknown > 0) {
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'pswp__mobile-bar-chip pswp__mobile-bar-chip--unknown';
+            chip.textContent = `${unknown} à identifier`;
+            chip.addEventListener('click', () => openDetail(mediaId));
+            chips.appendChild(chip);
+          }
+        };
+        pswp.on('change', render);
+      },
+    });
+  };
+
   // ---- Légende (desktop uniquement, masquée en CSS sur mobile) ------------
   const registerCaption = (lb) => {
     lb.pswp.ui.registerElement({
@@ -226,6 +315,7 @@ export function usePhotoSwipe(getMedia, options = {}) {
     lightbox.on('uiRegister', () => {
       registerInfoButton(lightbox);
       registerCaption(lightbox);
+      registerMobileBar(lightbox);
     });
 
     lightbox.init();
