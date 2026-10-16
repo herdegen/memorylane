@@ -7,8 +7,9 @@
   <div class="fixed inset-0 z-[60] bg-[#1c1917] text-white flex flex-col select-none" :style="{ paddingTop: 'env(safe-area-inset-top)' }">
     <!-- Haut : quitter, progression, série -->
     <div class="flex items-center gap-2 px-2 pt-2">
-      <button type="button" class="w-11 h-11 flex items-center justify-center shrink-0" aria-label="Quitter" @click="quit">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18L18 6M6 6l12 12" /></svg>
+      <button type="button" class="h-10 pl-2.5 pr-3.5 rounded-full bg-white/12 border border-white/20 flex items-center gap-1.5 text-[13px] font-bold shrink-0 active:bg-white/20" @click="quit">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18L18 6M6 6l12 12" /></svg>
+        Quitter
       </button>
       <div class="flex-1 min-w-0 flex flex-col gap-1.5">
         <div class="flex justify-between text-xs font-bold text-stone-300">
@@ -172,7 +173,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
@@ -362,12 +363,24 @@ const openPicker = async () => {
 };
 watch(pickerOpen, (v) => { if (!v) resetDrag(); });
 
+// Sortie : toujours vers une page connue de l'appli (l'album d'où l'on vient,
+// sinon l'accueil) — un « retour » navigateur pouvait ne mener nulle part.
 const quit = () => {
-  if (window.history.length > 1) window.history.back();
-  else router.visit(props.album ? `/albums/${props.album.id}` : '/dashboard');
+  router.visit(props.album ? `/albums/${props.album.id}` : '/dashboard');
 };
 
-onMounted(fill);
+// Échap (clavier) : ferme la photo entière, sinon quitte la partie.
+const onKey = (e) => {
+  if (e.key !== 'Escape' || pickerOpen.value) return;
+  if (showContext.value) showContext.value = false;
+  else quit();
+};
+
+onMounted(() => {
+  fill();
+  document.addEventListener('keydown', onKey);
+});
+onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
 </script>
 
 <style scoped>

@@ -204,20 +204,23 @@
             </div>
           </div>
 
-          <!-- Media info (right side - 1 column) -->
-          <div class="space-y-6">
+          <!-- Media info (right side - 1 column).
+               Téléphone : Personnes, souvenirs racontés, tags, géolocalisation,
+               puis Informations (repliées) et le reste — via `order-*`. -->
+          <div class="flex flex-col gap-4 sm:gap-6">
             <!-- Basic info with editor -->
-            <MediaInfoEditor :media="media" @updated="handleMediaUpdated" />
+            <MediaInfoEditor class="order-6 sm:order-none" :media="media" @updated="handleMediaUpdated" />
 
             <!-- Mémos vocaux : la famille raconte la photo -->
             <VoiceNotesPanel
+              class="order-3 sm:order-none"
               v-if="media.type === 'photo'"
               :media-id="media.id"
               :initial-notes="voiceNotes"
             />
 
             <!-- Tags -->
-            <div class="bg-white rounded-lg shadow-xs p-6">
+            <div class="order-4 sm:order-none bg-white rounded-lg shadow-xs p-4 sm:p-6">
               <h2 class="text-lg font-semibold text-surface-900 mb-4">Tags</h2>
               <TagInput :media-id="media.id" :initial-tags="media.tags || []" />
             </div>
@@ -225,7 +228,7 @@
             <!-- Détection de visages (100% navigateur, face-api.js) -->
             <div
               v-if="supportsFaces && canEditFaces && (detecting || detectError || notScanned)"
-              class="bg-white rounded-lg shadow-xs p-4"
+              class="order-7 sm:order-none bg-white rounded-lg shadow-xs p-4"
             >
               <div v-if="detecting" class="flex items-center gap-3">
                 <svg class="animate-spin h-5 w-5 text-brand-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -260,6 +263,7 @@
 
             <!-- Vision AI Status -->
             <VisionStatusBadge
+              class="order-7 sm:order-none"
               v-if="supportsFaces && !detecting && !detectError && !notScanned"
               :media-id="media.id"
               :initial-status="media.metadata?.vision_status"
@@ -273,7 +277,7 @@
             <button
               v-if="unidentifiedCount > 0 && !detecting"
               type="button"
-              class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-surface-300 text-sm font-medium text-surface-700 hover:bg-surface-50"
+              class="order-2 sm:order-none w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-surface-300 text-sm font-medium text-surface-700 hover:bg-surface-50"
               :disabled="markingStrangers"
               @click="markNoKnownFaces"
             >
@@ -286,7 +290,7 @@
             <button
               v-if="supportsFaces && serverFaces && isAdmin && !detecting"
               type="button"
-              class="w-full text-xs font-medium text-surface-500 hover:text-brand-700 underline underline-offset-2"
+              class="order-8 sm:order-none w-full text-xs font-medium text-surface-500 hover:text-brand-700 underline underline-offset-2"
               @click="forceDetection"
             >
               Tout recommencer sur cette photo (admin)
@@ -294,6 +298,7 @@
 
             <!-- Face Match Panel -->
             <FaceMatchPanel
+              class="order-first sm:order-none"
               v-if="selectedFace"
               :key="selectedFace.id"
               :face="selectedFace"
@@ -306,12 +311,14 @@
 
             <!-- Vision AI Labels -->
             <VisionLabels
+              class="order-7 sm:order-none"
               v-if="media.type === 'photo' && media.metadata?.vision_labels"
               :labels="media.metadata.vision_labels"
             />
 
             <!-- People -->
             <PersonInput
+              class="order-1 sm:order-none"
               :media-id="media.id"
               :initial-people="media.people || []"
               @people-updated="(list) => (mediaPeople = list)"
@@ -319,6 +326,7 @@
 
             <!-- « Ajouter à la fiche » : propriétaire du média ou admin -->
             <FichePanel
+              class="order-7 sm:order-none"
               v-if="isOwner || isAdmin"
               :key="mediaPeople.map((p) => p.id).join()"
               :media-id="media.id"
@@ -327,6 +335,7 @@
 
             <!-- Geolocation -->
             <GeolocationEditor
+              class="order-5 sm:order-none"
               :media-id="media.id"
               :initial-latitude="media.metadata?.latitude"
               :initial-longitude="media.metadata?.longitude"
@@ -334,7 +343,7 @@
             />
 
             <!-- Actions -->
-            <div class="bg-white rounded-lg shadow-xs p-6">
+            <div class="order-9 sm:order-none bg-white rounded-lg shadow-xs p-4 sm:p-6">
               <h2 class="text-lg font-semibold text-surface-900 mb-4">Actions</h2>
               <div class="space-y-2">
                 <a

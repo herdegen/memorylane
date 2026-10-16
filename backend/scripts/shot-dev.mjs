@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Captures mobiles (390×844, DPR 2) de l'environnement de DEV, connecté en
 // admin par lien magique. Usage : node scripts/shot-dev.mjs <lien-magique> <dossier> /chemin1 [/chemin2…]
-// Un chemin peut enchaîner un clic : « /media|click:.media-card » (voir plus bas).
+// Un chemin peut enchaîner un clic : « /media|click:.media-card », ou « |full » (page entière).
 // Le lien se génère dans ~/memorylane-dev :
 //   docker compose exec -T app php artisan tinker --execute='echo App\Notifications\MagicLoginLink::urlFor(App\Models\User::where("role","admin")->first());'
 // Identifiants basic-auth lus dans ~/.memorylane-dev-password.
@@ -32,7 +32,8 @@ for (const spec of paths) {
       await new Promise((r) => setTimeout(r, 1500));
     }
   }
-  await p.screenshot({ path: `${out}/d${i++}.png` });
+  // « |full » : page entière (défilement compris)
+  await p.screenshot({ path: `${out}/d${i++}.png`, fullPage: actions.includes('full') });
 }
 console.log('errors:', JSON.stringify(errs));
 await b.close();

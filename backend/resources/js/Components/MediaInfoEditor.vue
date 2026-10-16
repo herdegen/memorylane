@@ -1,15 +1,26 @@
 <template>
-  <div class="bg-white rounded-xl border border-surface-200 shadow-xs p-6">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold text-surface-900">Informations</h2>
+  <div class="bg-white rounded-xl border border-surface-200 shadow-xs p-4 sm:p-6">
+    <!-- Téléphone : section repliée par défaut (titre = bouton pour déplier) -->
+    <div class="flex items-center justify-between" :class="expanded ? 'mb-4' : 'sm:mb-4'">
+      <button
+        type="button"
+        class="flex items-center gap-2 text-left sm:pointer-events-none"
+        :aria-expanded="expanded"
+        @click="open = !open"
+      >
+        <h2 class="text-lg font-semibold text-surface-900">Informations</h2>
+        <svg class="sm:hidden w-5 h-5 text-surface-400 transition-transform" :class="expanded ? 'rotate-180' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+      </button>
       <button
         v-if="!isEditing"
         @click="startEditing"
         class="text-sm text-brand-600 hover:text-brand-800"
+        :class="expanded ? '' : 'hidden sm:inline'"
       >
         Modifier
       </button>
     </div>
+    <div :class="expanded ? '' : 'hidden sm:block'">
 
     <!-- Edit Mode -->
     <form v-if="isEditing" @submit.prevent="save" class="space-y-4">
@@ -155,6 +166,7 @@
         </div>
       </template>
     </dl>
+    </div>
   </div>
 </template>
 
@@ -181,6 +193,9 @@ const hasVideoMetadata = computed(() => {
 const emit = defineEmits(['updated']);
 
 const isEditing = ref(false);
+// Téléphone : replié par défaut ; toujours ouvert en édition (et sur desktop via CSS).
+const open = ref(false);
+const expanded = computed(() => open.value || isEditing.value);
 const saving = ref(false);
 
 // Convertit une date ISO en valeur d'<input type="datetime-local"> (heure locale).
