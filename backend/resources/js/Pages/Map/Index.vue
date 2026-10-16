@@ -192,14 +192,41 @@
         </button>
       </div>
     </div>
+
+    <!-- Plusieurs souvenirs au même endroit : liste complète (toucher sur
+         téléphone, clic au centre de la pile sur ordinateur). -->
+    <BottomSheet :open="!!placeSheet" :title="placeSheet ? `${placeSheet.items.length} souvenirs à cet endroit` : ''" @close="placeSheet = null">
+      <div v-if="placeSheet" class="-mx-4 divide-y divide-surface-100">
+        <Link
+          v-for="item in placeSheet.items"
+          :key="item.kind + item.id"
+          :href="item.href"
+          class="flex items-center gap-3 px-4 py-2.5 active:bg-surface-50 hover:bg-surface-50"
+          @click="placeSheet = null"
+        >
+          <span
+            class="w-14 h-14 rounded-xl overflow-hidden bg-surface-200 shrink-0 border-2"
+            :class="item.kind === 'album' ? 'border-amber-400' : 'border-transparent'"
+          >
+            <img v-if="item.thumb" :src="item.thumb" alt="" class="w-full h-full object-cover" loading="lazy" />
+          </span>
+          <span class="flex-1 min-w-0">
+            <span class="block text-[15px] font-bold text-surface-900 truncate">{{ item.title }}</span>
+            <span class="block text-xs text-surface-500 truncate">{{ item.sub }}</span>
+          </span>
+          <span class="text-surface-400">›</span>
+        </Link>
+      </div>
+    </BottomSheet>
   </AppLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PeopleSegments from '@/Components/PeopleSegments.vue';
+import BottomSheet from '@/Components/BottomSheet.vue';
 import { useCircle } from '@/Composables/useCircle';
 import { formatDate } from '@/utils/format';
 import { escapeHtml } from '@/utils/html';
@@ -344,54 +371,158 @@ function thumbIcon(thumbnailUrl, { badge = null, borderColor = '#fff' } = {}) {
   });
 }
 
+// Souvenirs au même endroit (à ~1 m près : même adresse) : une seule pile.
+const placeSheet = ref(null);
+// Au moins un pointeur qui survole (souris, pavé) : PC, y compris tactile.
+const canHover = () => window.matchMedia('(any-hover: hover)').matches;
+const placeKey = (lat, lng) => `${Number(lat).toFixed(5)},${Number(lng).toFixed(5)}`;
+
+// Album ou média, sous une forme commune (pile, éventail, feuille).
+const albumItem = (album) => ({
+  kind: 'album', id: album.id, lat: album.latitude, lng: album.longitude,
+  thumb: album.thumbnail_url, title: album.name,
+  sub: `Album · ${album.media_count} média${album.media_count > 1 ? 's' : ''}`,
+  href: `/albums/${encodeURIComponent(album.id)}`,
+  raw: album,
+});
+const mediaItem = (media) => ({
+  kind: 'media', id: media.id, lat: media.latitude, lng: media.longitude,
+  thumb: media.thumbnail_url,
+  title: media.taken_at ? formatDate(media.taken_at) : (media.original_name || 'Photo'),
+  sub: media.type === 'video' ? 'Vidéo' : 'Photo',
+  href: `/media/${encodeURIComponent(media.id)}`,
+  raw: media,
+});
+
+// Marqueur seul : vignette + bulle (comportement historique).
+function singleMarker(item) {
+  const marker = L.marker([item.lat, item.lng], {
+    icon: item.kind === 'album'
+      ? thumbIcon(item.thumb, { badge: item.raw.media_count, borderColor: '#f59e0b' })
+      : thumbIcon(item.thumb),
+  });
+  const name = escapeHtml(item.kind === 'album' ? item.raw.name : item.raw.original_name);
+  marker.bindPopup(item.kind === 'album' ? `
+      <div class="text-center">
+        <img src="${escapeHtml(item.thumb)}" alt="${name}" class="w-32 h-32 object-cover rounded-sm mb-2" />
+        <div class="font-medium text-sm">📁 ${name}</div>
+        <div class="text-xs text-surface-500">${escapeHtml(item.raw.media_count)} média(s)</div>
+        <div class="mt-2">
+          <a href="${escapeHtml(item.href)}" class="text-brand-600 hover:text-brand-800 text-sm">Voir l'album</a>
+        </div>
+      </div>
+    ` : `
+      <div class="text-center">
+        <img src="${escapeHtml(item.thumb)}" alt="${name}" class="w-32 h-32 object-cover rounded-sm mb-2" />
+        <div class="font-medium text-sm">${name}</div>
+        ${item.raw.taken_at ? `<div class="text-xs text-surface-500">${escapeHtml(formatDate(item.raw.taken_at))}</div>` : ''}
+        <div class="mt-2">
+          <a href="${escapeHtml(item.href)}" class="text-brand-600 hover:text-brand-800 text-sm">Voir le média</a>
+        </div>
+      </div>
+    `);
+  return marker;
+}
+
+// Pile : vignettes empilées + compteur. Au survol (ordinateur), elles
+// s'écartent en éventail autour du point, chacune avec son nom ; au-delà de
+// 8, la dernière carte « +N » ouvre la liste complète.
+const FAN_MAX = 8;
+function stackMarker(items) {
+  const shown = items.length > FAN_MAX ? items.slice(0, FAN_MAX - 1) : items;
+  const more = items.length - shown.length;
+  const m = shown.length + (more ? 1 : 0);
+  const radius = m <= 2 ? 70 : m <= 4 ? 84 : m <= 6 ? 104 : 120;
+  const start = m === 2 ? 180 : -90;
+  const hasAlbum = items.some((i) => i.kind === 'album');
+
+  const card = (k, inner, attrs) => {
+    const angle = ((start + (k * 360) / m) * Math.PI) / 180;
+    const dx = Math.round(Math.cos(angle) * radius);
+    const dy = Math.round(Math.sin(angle) * radius);
+    // Repos : 3 cartes visibles, légèrement décalées ; les suivantes dessous.
+    const rest = k < 3 ? [(k - 1) * 5, -k * 3, (k - 1) * 7] : [0, 0, 0];
+    return `<div class="ml-stack-card" ${attrs} style="--i:${k};--dx:${dx}px;--dy:${dy}px;--rx:${rest[0]}px;--ry:${rest[1]}px;--rot:${rest[2]}deg;z-index:${20 - k};">${inner}</div>`;
+  };
+
+  const cards = shown.map((item, k) => card(k,
+    `<div class="ml-stack-thumb${item.kind === 'album' ? ' is-album' : ''}"><img src="${escapeHtml(item.thumb)}" alt="" onerror="this.style.display='none'" /></div>
+     <span class="ml-stack-label">${escapeHtml(item.title)}</span>`,
+    `data-href="${escapeHtml(item.href)}" title="${escapeHtml(item.title)}"`)).join('');
+  const moreCard = more ? card(shown.length,
+    `<div class="ml-stack-thumb ml-stack-more">+${more}</div><span class="ml-stack-label">Tout voir</span>`,
+    'data-sheet="1"') : '';
+
+  const marker = L.marker([items[0].lat, items[0].lng], {
+    riseOnHover: true,
+    riseOffset: 2000,
+    icon: L.divIcon({
+      className: 'ml-stack-marker',
+      html: `<div class="ml-stack" style="--r:${radius}px">
+          <div class="ml-stack-hit"></div>
+          ${cards}${moreCard}
+          <div class="ml-stack-count" title="${items.length} souvenirs à cet endroit">${items.length}</div>
+          <div class="ml-stack-tip" style="border-top-color:${hasAlbum ? '#f59e0b' : '#fff'}"></div>
+        </div>`,
+      iconSize: [48, 56],
+      iconAnchor: [24, 56],
+    }),
+  });
+
+  // Près d'un bord, l'éventail se décale vers l'intérieur de la carte
+  // (sinon le conteneur Leaflet le coupe).
+  marker.on('mouseover', () => {
+    const el = marker.getElement()?.querySelector('.ml-stack');
+    if (!el || !canHover()) return;
+    const pt = map.latLngToContainerPoint(marker.getLatLng());
+    const size = map.getSize();
+    const cx = pt.x;          // centre de la pile (ancre en bas, carte de 48 px)
+    const cy = pt.y - 32;
+    const mx = radius + 70;   // demi-largeur utile (carte + étiquette)
+    const top = radius + 34;
+    const bottom = radius + 60;
+    const ox = cx - mx < 0 ? mx - cx : (cx + mx > size.x ? size.x - mx - cx : 0);
+    const oy = cy - top < 0 ? top - cy : (cy + bottom > size.y ? size.y - bottom - cy : 0);
+    el.style.setProperty('--ox', `${Math.round(ox)}px`);
+    el.style.setProperty('--oy', `${Math.round(oy)}px`);
+  });
+
+  // Ordinateur : clic sur une carte de l'éventail → l'album / la photo ;
+  // ailleurs (centre, « +N ») → la liste. Téléphone : toujours la liste.
+  marker.on('click', (e) => {
+    const target = e.originalEvent?.target;
+    const hit = target?.closest?.('[data-href]');
+    if (hit && canHover()) {
+      router.visit(hit.getAttribute('data-href'));
+      return;
+    }
+    placeSheet.value = { items };
+  });
+  return marker;
+}
+
 // Update markers on the map
 function updateMarkers() {
-  // Clear existing markers
   markersLayer.clearLayers();
+  placeSheet.value = null;
+
+  const items = [
+    ...geolocatedAlbums.value.map(albumItem),
+    ...geolocatedMedia.value.map(mediaItem),
+  ];
+  const groups = new Map();
+  for (const item of items) {
+    const key = placeKey(item.lat, item.lng);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(item);
+  }
 
   const bounds = [];
-
-  // Marqueurs d'album : le clic mène à l'album (permissions album respectées).
-  geolocatedAlbums.value.forEach(album => {
-    const marker = L.marker([album.latitude, album.longitude], {
-      icon: thumbIcon(album.thumbnail_url, { badge: album.media_count, borderColor: '#f59e0b' }),
-    });
-
-    const name = escapeHtml(album.name);
-    marker.bindPopup(`
-      <div class="text-center">
-        <img src="${escapeHtml(album.thumbnail_url)}" alt="${name}" class="w-32 h-32 object-cover rounded-sm mb-2" />
-        <div class="font-medium text-sm">📁 ${name}</div>
-        <div class="text-xs text-surface-500">${escapeHtml(album.media_count)} média(s)</div>
-        <div class="mt-2">
-          <a href="/albums/${encodeURIComponent(album.id)}" class="text-brand-600 hover:text-brand-800 text-sm">Voir l'album</a>
-        </div>
-      </div>
-    `);
+  for (const group of groups.values()) {
+    const marker = group.length === 1 ? singleMarker(group[0]) : stackMarker(group);
     marker.addTo(markersLayer);
-    bounds.push([album.latitude, album.longitude]);
-  });
-
-  // Marqueurs média (hors album) : le clic mène au média.
-  geolocatedMedia.value.forEach(media => {
-    const marker = L.marker([media.latitude, media.longitude], {
-      icon: thumbIcon(media.thumbnail_url),
-    });
-
-    const name = escapeHtml(media.original_name);
-    marker.bindPopup(`
-      <div class="text-center">
-        <img src="${escapeHtml(media.thumbnail_url)}" alt="${name}" class="w-32 h-32 object-cover rounded-sm mb-2" />
-        <div class="font-medium text-sm">${name}</div>
-        ${media.taken_at ? `<div class="text-xs text-surface-500">${escapeHtml(formatDate(media.taken_at))}</div>` : ''}
-        <div class="mt-2">
-          <a href="/media/${encodeURIComponent(media.id)}" class="text-brand-600 hover:text-brand-800 text-sm">Voir le média</a>
-        </div>
-      </div>
-    `);
-    marker.addTo(markersLayer);
-    bounds.push([media.latitude, media.longitude]);
-  });
+    bounds.push([group[0].lat, group[0].lng]);
+  }
 
   // Fit map to show all markers
   if (bounds.length > 0) {
@@ -567,3 +698,67 @@ function clearSelection() {
   border: none !important;
 }
 </style>
+
+<style>
+/* Pile de souvenirs au même endroit (marqueur Leaflet, injecté hors du
+   composant : styles globaux). */
+.ml-stack-marker { background: none; border: 0; }
+.ml-stack { position: relative; width: 48px; height: 56px; }
+.ml-stack-hit {
+  position: absolute; left: 50%; top: 24px;
+  width: calc(var(--r) * 2 + 130px); height: calc(var(--r) * 2 + 120px);
+  transform: translate(calc(-50% + var(--ox, 0px)), calc(-50% + var(--oy, 0px))); border-radius: 50%;
+  pointer-events: none;
+}
+.ml-stack-card {
+  position: absolute; left: 0; top: 0; width: 48px; height: 48px;
+  transform: translate(var(--rx), var(--ry)) rotate(var(--rot));
+  transition: transform .28s cubic-bezier(.2, .8, .2, 1) calc(var(--i) * 25ms);
+}
+.ml-stack-card:nth-child(n+5) { opacity: 0; }
+.ml-stack-thumb {
+  width: 48px; height: 48px; border-radius: 8px; overflow: hidden;
+  border: 3px solid #fff; background: #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .3);
+}
+.ml-stack-thumb.is-album { border-color: #f59e0b; }
+.ml-stack-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ml-stack-more {
+  display: flex; align-items: center; justify-content: center;
+  background: #1c1917; color: #fff; font: 700 14px/1 system-ui, sans-serif;
+}
+.ml-stack-label {
+  position: absolute; left: 50%; top: 52px; transform: translateX(-50%);
+  max-width: 112px; padding: 2px 8px; border-radius: 999px;
+  background: rgba(28, 25, 23, .85); color: #fff;
+  font: 600 11px/1.4 system-ui, sans-serif;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  opacity: 0; pointer-events: none; transition: opacity .2s ease;
+}
+.ml-stack-count {
+  position: absolute; top: -9px; right: -10px; z-index: 30;
+  min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px;
+  background: #1c1917; color: #fff; border: 2px solid #fff;
+  font: 700 12px/18px system-ui, sans-serif; text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .3); transition: opacity .2s ease;
+}
+.ml-stack-tip {
+  position: absolute; left: 16px; top: 48px; width: 0; height: 0;
+  border-left: 8px solid transparent; border-right: 8px solid transparent;
+  border-top: 8px solid #fff; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .2));
+}
+
+/* Ordinateur (souris ou pavé) : l'éventail s'ouvre au survol. */
+@media (any-hover: hover) {
+  .ml-stack { cursor: pointer; }
+  .ml-stack:hover .ml-stack-hit { pointer-events: auto; }
+  .ml-stack:hover .ml-stack-card {
+    opacity: 1;
+    transform: translate(calc(var(--dx) + var(--ox, 0px)), calc(var(--dy) + var(--oy, 0px))) rotate(0deg) scale(1.15);
+  }
+  .ml-stack:hover .ml-stack-card:hover { transform: translate(calc(var(--dx) + var(--ox, 0px)), calc(var(--dy) + var(--oy, 0px))) scale(1.3); z-index: 40 !important; }
+  .ml-stack:hover .ml-stack-label { opacity: 1; }
+  .ml-stack:hover .ml-stack-count { opacity: 0; }
+}
+</style>
+
