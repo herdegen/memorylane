@@ -158,6 +158,25 @@
         </div>
       </div>
 
+      <!-- Identifiées sur des photos mais sans l'album : l'ouvrir d'un coup -->
+      <div
+        v-if="taggedCount > 0"
+        class="mb-3 rounded-xl border border-brand-200 bg-brand-50 dark:border-brand-500/30 dark:bg-brand-500/10 px-3 py-2.5 flex flex-wrap items-center gap-2"
+      >
+        <p class="flex-1 min-w-[12rem] text-sm text-surface-800">
+          {{ taggedCount }} personne{{ taggedCount > 1 ? 's' : '' }} identifiée{{ taggedCount > 1 ? 's' : '' }} sur les photos
+          {{ taggedCount > 1 ? 'ne voient' : 'ne voit' }} que {{ taggedCount > 1 ? 'leurs' : 'ses' }} photos.
+        </p>
+        <button
+          type="button"
+          class="px-3 py-1.5 rounded-lg bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 disabled:opacity-50"
+          :disabled="grantingTagged"
+          @click="grantTagged"
+        >
+          {{ grantingTagged ? 'Partage…' : (taggedCount > 1 ? `Donner accès aux ${taggedCount}` : 'Lui donner accès') }}
+        </button>
+      </div>
+
       <!-- Liste des accès -->
       <ul class="space-y-1">
         <li
@@ -177,8 +196,16 @@
           >
             Retirer
           </button>
+          <button
+            v-else-if="a.origin === 'tagged'"
+            type="button"
+            class="text-xs font-semibold text-brand-700 dark:text-brand-400 hover:underline"
+            @click="grant({ id: a.user_id })"
+          >
+            Donner accès
+          </button>
           <span v-else class="text-xs text-surface-400">
-            {{ a.origin === 'owner' ? 'Propriétaire' : 'Tagué' }}
+            {{ a.origin === 'owner' ? 'Propriétaire' : 'Cercle' }}
           </span>
         </li>
       </ul>
@@ -187,7 +214,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useToast } from '@/Composables/useToast';
 import CircleKindIcon from '@/Components/CircleKindIcon.vue';
 import axios from 'axios';
 import { useConfirm } from '@/Composables/useConfirm';
@@ -207,6 +235,7 @@ const props = defineProps({
 
 const emit = defineEmits(['updated']);
 const { confirm } = useConfirm();
+const toast = useToast();
 
 const shareUrl = ref(props.album.share_url);
 const copied = ref(false);
@@ -305,9 +334,27 @@ const revoke = async (access) => {
   }
 };
 
+// Identifiées sur des photos, sans l'album entier.
+const taggedCount = computed(() => accesses.value.filter((a) => a.origin === 'tagged').length);
+const grantingTagged = ref(false);
+const grantTagged = async () => {
+  grantingTagged.value = true;
+  try {
+    const { data } = await axios.post(`/albums/${props.album.id}/access/tagged`);
+    toast.success(data.message);
+    await loadAccesses();
+    emit('updated');
+  } catch (e) {
+    errorMessage.value = e.response?.data?.message || 'Impossible de partager avec les personnes identifiées.';
+  } finally {
+    grantingTagged.value = false;
+  }
+};
+
 const originLabel = (a) => {
   if (a.origin === 'owner') return 'Propriétaire';
   if (a.origin === 'tagged') return 'Voit seulement les photos où il apparaît';
+  if (a.origin === 'circle') return 'Voit l\'album via un cercle';
   return 'Ajouté' + (a.granted_by ? ` par ${a.granted_by}` : '');
 };
 

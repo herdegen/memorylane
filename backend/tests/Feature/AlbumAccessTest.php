@@ -219,6 +219,58 @@ class AlbumAccessTest extends TestCase
         $this->assertSame('tagged', $byUser[$tagged->id]['origin']);
     }
 
+    /** Un compte dont la fiche est identifiée sur la photo. */
+    private function taggedUser(Media $media): User
+    {
+        $user = User::factory()->create();
+        $person = Person::factory()->create(['user_id' => $this->owner->id]);
+        $media->people()->attach($person->id);
+        $user->update(['person_id' => $person->id]);
+
+        return $user->fresh();
+    }
+
+    public function test_owner_opens_the_album_to_identified_people(): void
+    {
+        [$album, $media] = $this->albumWithMedia();
+        $other = Media::factory()->create(['user_id' => $this->owner->id, 'type' => 'photo']);
+        $album->media()->attach($other->id);
+        $alice = $this->taggedUser($media);
+        $bob = $this->taggedUser($media);
+
+        // Bob voit déjà l'album via un cercle : ni « tagué », ni nouvel accès.
+        $circle = \App\Models\Household::factory()->create(['created_by' => $this->owner->id]);
+        $circle->members()->attach([$this->owner->id, $bob->id]);
+        $album->households()->attach($circle->id, ['granted_by' => $this->owner->id]);
+
+        $list = collect($this->actingAs($this->owner)->getJson("/albums/{$album->id}/access")->json())->keyBy('user_id');
+        $this->assertSame('tagged', $list[$alice->id]['origin']);
+        $this->assertSame('circle', $list[$bob->id]['origin']);
+
+        $this->assertFalse($album->isAccessibleBy($alice));
+        $this->actingAs($this->owner)->postJson("/albums/{$album->id}/access/tagged")
+            ->assertOk()
+            ->assertJson(['granted' => 1]);
+
+        $this->assertTrue($album->fresh()->isAccessibleBy($alice));
+        $this->assertDatabaseMissing('album_access', ['album_id' => $album->id, 'user_id' => $bob->id]);
+        // Toute la galerie de l'album, plus seulement sa photo
+        $this->assertTrue(Media::accessibleBy($alice)->whereKey($other->id)->exists());
+
+        // Relancer ne recrée rien
+        $this->actingAs($this->owner)->postJson("/albums/{$album->id}/access/tagged")->assertJson(['granted' => 0]);
+    }
+
+    public function test_identified_person_cannot_open_the_album_to_identified_people(): void
+    {
+        [$album, $media] = $this->albumWithMedia();
+        $alice = $this->taggedUser($media);
+        $this->taggedUser($media);
+
+        $this->actingAs($alice)->postJson("/albums/{$album->id}/access/tagged")->assertForbidden();
+        $this->assertSame(0, AlbumAccess::where('album_id', $album->id)->count());
+    }
+
     public function test_albums_index_includes_owned_and_shared(): void
     {
         [$publicAlbum] = $this->albumWithMedia(); // partagé avec un cercle du viewer

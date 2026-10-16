@@ -242,6 +242,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::get('/{album}/access', [AlbumController::class, 'accessList'])->name('access.list');
         Route::get('/{album}/access/candidates', [AlbumController::class, 'grantCandidates'])->name('access.candidates');
         Route::post('/{album}/access', [AlbumController::class, 'grantAccess'])->name('access.grant');
+        Route::post('/{album}/access/tagged', [AlbumController::class, 'grantTaggedAccess'])->name('access.grantTagged');
         Route::delete('/{album}/access', [AlbumController::class, 'revokeAccess'])->name('access.revoke');
         // « Qui était du voyage ? »
         Route::get('/{album}/participants', [AlbumParticipantController::class, 'index'])->name('participants.index');

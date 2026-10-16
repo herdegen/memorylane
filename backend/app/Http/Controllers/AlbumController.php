@@ -718,17 +718,69 @@ class AlbumController extends Controller
         }
 
         // Personnes identifiées sur des photos de l'album, avec un compte :
-        // elles voient ces photos-là (pas l'album entier) — listées pour info.
+        // via un cercle de l'album, elles le voient déjà ; sinon elles ne
+        // voient que leurs photos — le partage peut leur ouvrir l'album.
         $listedIds = array_column($entries, 'user_id');
-        $taggedPersonIds = Person::whereHas('media', fn ($m) => $m->whereHas('albums', fn ($a) => $a->whereKey($album->id)))->pluck('id');
-        $taggedUsers = User::whereIn('person_id', $taggedPersonIds)
-            ->whereNotIn('id', $listedIds)
-            ->get();
-        foreach ($taggedUsers as $u) {
-            $entries[] = $this->accessEntry($u, 'tagged');
+        $circleMemberIds = $this->albumCircleMemberIds($album);
+        foreach ($this->taggedUsers($album)->whereNotIn('id', $listedIds) as $u) {
+            $entries[] = $this->accessEntry($u, in_array($u->id, $circleMemberIds, true) ? 'circle' : 'tagged');
         }
 
         return response()->json($entries);
+    }
+
+    /**
+     * « Donner accès aux personnes identifiées » : un accès pour chaque compte
+     * identifié sur une photo de l'album qui ne le voit pas encore en entier
+     * (ni propriétaire, ni accès accordé, ni membre d'un cercle de l'album).
+     * Liste recalculée ici, jamais fournie par le client.
+     */
+    public function grantTaggedAccess(Album $album, PushNotifier $push)
+    {
+        Gate::authorize('grantAccess', $album);
+
+        $already = $album->accesses()->pluck('user_id')
+            ->push($album->user_id)
+            ->merge($this->albumCircleMemberIds($album))
+            ->all();
+        $users = $this->taggedUsers($album)->whereNotIn('id', $already);
+
+        foreach ($users as $user) {
+            $access = AlbumAccess::firstOrCreate(
+                ['album_id' => $album->id, 'user_id' => $user->id],
+                ['granted_by' => auth()->id()],
+            );
+            if ($access->wasRecentlyCreated) {
+                $push->social(
+                    $user,
+                    new AlbumAccessGranted(PushNotification::firstName(auth()->user()->name), $album->name, $album->id),
+                    auth()->user(),
+                );
+            }
+        }
+
+        $n = $users->count();
+
+        return response()->json([
+            'granted' => $n,
+            'message' => $n ? "Accès accordé à {$n} personne".($n > 1 ? 's' : '').'.' : 'Tout le monde a déjà accès.',
+        ]);
+    }
+
+    /** Comptes dont la fiche est identifiée sur au moins une photo de l'album. */
+    private function taggedUsers(Album $album)
+    {
+        $taggedPersonIds = Person::whereHas('media', fn ($m) => $m->whereHas('albums', fn ($a) => $a->whereKey($album->id)))->pluck('id');
+
+        return User::whereIn('person_id', $taggedPersonIds)->orderBy('name')->get();
+    }
+
+    /** @return list<string> membres des cercles avec lesquels l'album est partagé */
+    private function albumCircleMemberIds(Album $album): array
+    {
+        return DB::table('household_user')
+            ->whereIn('household_id', $album->households()->pluck('households.id'))
+            ->pluck('user_id')->unique()->values()->all();
     }
 
     private function accessEntry(User $user, string $origin, ?string $grantedBy = null): array
