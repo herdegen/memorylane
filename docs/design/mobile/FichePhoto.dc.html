@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Détails de la photo</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap">
+<style>
+body{margin:0;font-family:Figtree,system-ui,sans-serif;background:#0c0a09;color:#44403c}
+a{color:#b45309;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #0c0a09">
+
+  <!-- La photo reste visible, réduite en haut -->
+  <div style="position: absolute; left: 0; right: 0; top: 0; height: 300px; background: linear-gradient(160deg, #57534e 0%, #292524 60%, #1c1917 100%)"></div>
+  <a href="Visionneuse.dc.html" aria-label="Revenir à la photo" style="position: absolute; left: 8px; top: 50px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #ffffff"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></a>
+
+  <!-- Feuille de détails (balayée vers le haut depuis la visionneuse) -->
+  <div style="position: absolute; left: 0; right: 0; top: 236px; bottom: 0; background: #faf7f1; border-radius: 24px 24px 0 0; display: flex; flex-direction: column; gap: 18px; padding: 10px 16px 24px; overflow: hidden">
+    <div style="width: 40px; height: 4px; border-radius: 999px; background: #d6d3d1; align-self: center"></div>
+
+    <div>
+      <div style="font-family: 'Playfair Display', Georgia, serif; font-size: 22px; color: #1c1917">Mariage — cocktail</div>
+      <div style="font-size: 13px; color: #78716c; margin-top: 2px">Envoyée par Bastien · Photo02_00A.jpg · 5,4 Mo</div>
+    </div>
+
+    <!-- Date et lieu : deux lignes tapables -->
+    <div style="background: #ffffff; border: 1px solid #e7e5e4; border-radius: 16px; overflow: hidden">
+      <button type="button" style="width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: none; background: transparent; text-align: left">
+        <span style="width: 36px; height: 36px; border-radius: 10px; background: #fef3c7; color: #b45309; display: inline-flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M8 3v4M16 3v4M3 10h18"></path></svg></span>
+        <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 600; color: #1c1917">Samedi 20 juin 2020, 18:42</span><span style="display: block; font-size: 12px; color: #78716c">Lue dans la photo</span></span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a8a29e" stroke-width="2.4" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+      </button>
+      <div style="height: 1px; background: #e7e5e4; margin: 0 14px"></div>
+      <button type="button" style="width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: none; background: transparent; text-align: left">
+        <span style="width: 36px; height: 36px; border-radius: 10px; background: #fef3c7; color: #b45309; display: inline-flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="10" r="3"></circle><path d="M12 21s-7-6.2-7-11a7 7 0 0114 0c0 4.8-7 11-7 11z"></path></svg></span>
+        <span style="flex: 1"><span style="display: block; font-size: 15px; font-weight: 600; color: #1c1917">Château de Ponzes</span><span style="display: block; font-size: 12px; color: #78716c">Voir sur la carte</span></span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a8a29e" stroke-width="2.4" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+      </button>
+    </div>
+
+    <!-- Personnes : avatars en ligne + visages à identifier -->
+    <div>
+      <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px">
+        <span style="font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #78716c">Sur la photo</span>
+        <a href="VisageSurPhoto.dc.html" style="font-size: 13px; font-weight: 600">2 visages à identifier</a>
+      </div>
+      <div style="display: flex; gap: 10px; overflow: hidden">
+        <a href="FichePersonne.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; width: 64px; flex: none"><span style="width: 56px; height: 56px; border-radius: 999px; background: #7c3aed; color: #ffffff; font-weight: 700; display: inline-flex; align-items: center; justify-content: center">Ma</span><span style="font-size: 12px; font-weight: 600; color: #1c1917">Marion</span></a>
+        <a href="FichePersonne.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; width: 64px; flex: none"><span style="width: 56px; height: 56px; border-radius: 999px; background: #b45309; color: #ffffff; font-weight: 700; display: inline-flex; align-items: center; justify-content: center">MH</span><span style="font-size: 12px; font-weight: 600; color: #1c1917">Matthieu</span></a>
+        <a href="VisageSurPhoto.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; width: 64px; flex: none"><span style="width: 56px; height: 56px; border-radius: 999px; background: #d6d3d1; border: 2px dashed #f59e0b; display: inline-flex; align-items: center; justify-content: center; color: #b45309; font-weight: 800">?</span><span style="font-size: 12px; font-weight: 600; color: #b45309">Qui ?</span></a>
+        <a href="VisageSurPhoto.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; width: 64px; flex: none"><span style="width: 56px; height: 56px; border-radius: 999px; background: #a8a29e; border: 2px dashed #f59e0b; display: inline-flex; align-items: center; justify-content: center; color: #b45309; font-weight: 800">?</span><span style="font-size: 12px; font-weight: 600; color: #b45309">Qui ?</span></a>
+        <button type="button" style="display: flex; flex-direction: column; align-items: center; gap: 4px; width: 64px; flex: none; border: none; background: transparent"><span style="width: 56px; height: 56px; border-radius: 999px; border: 1px solid #d6d3d1; display: inline-flex; align-items: center; justify-content: center; color: #57534e"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></span><span style="font-size: 12px; font-weight: 600; color: #57534e">Ajouter</span></button>
+      </div>
+    </div>
+
+    <!-- Albums + tags -->
+    <div style="display: flex; gap: 8px; flex-wrap: wrap">
+      <a href="Album.dc.html" style="display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 999px; background: #ffffff; border: 1px solid #e7e5e4; font-size: 13px; font-weight: 600; color: #1c1917"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"></rect><path d="M7 3h10"></path></svg>Mariage Matthieu Marion 2020</a>
+      <span style="display: inline-flex; align-items: center; height: 34px; padding: 0 12px; border-radius: 999px; background: #ffffff; border: 1px solid #e7e5e4; font-size: 13px; font-weight: 600; color: #1c1917"># mariage</span>
+      <button type="button" style="display: inline-flex; align-items: center; height: 34px; padding: 0 12px; border-radius: 999px; border: 1px dashed #d6d3d1; background: transparent; font-size: 13px; font-weight: 600; color: #57534e">+ Tag</button>
+    </div>
+
+    <!-- Souvenirs racontés -->
+    <div style="background: #ffffff; border: 1px solid #e7e5e4; border-radius: 16px; padding: 12px 14px; display: flex; align-items: center; gap: 12px">
+      <button type="button" aria-label="Écouter" style="width: 44px; height: 44px; border-radius: 999px; border: none; background: #1c1917; color: #ffffff; display: flex; align-items: center; justify-content: center; flex: none"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg></button>
+      <div style="flex: 1; min-width: 0">
+        <div style="font-size: 14px; font-weight: 700; color: #1c1917">Mamie raconte · 0:48</div>
+        <div style="display: flex; align-items: flex-end; gap: 2px; height: 18px; margin-top: 4px"><span style="width: 3px; height: 6px; background: #d97706"></span><span style="width: 3px; height: 14px; background: #d97706"></span><span style="width: 3px; height: 10px; background: #d97706"></span><span style="width: 3px; height: 18px; background: #d97706"></span><span style="width: 3px; height: 8px; background: #d97706"></span><span style="width: 3px; height: 12px; background: #d6d3d1"></span><span style="width: 3px; height: 16px; background: #d6d3d1"></span><span style="width: 3px; height: 7px; background: #d6d3d1"></span><span style="width: 3px; height: 11px; background: #d6d3d1"></span><span style="width: 3px; height: 9px; background: #d6d3d1"></span></div>
+      </div>
+      <button type="button" style="height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid #d6d3d1; background: #ffffff; font-size: 13px; font-weight: 600; color: #1c1917; flex: none">Raconter</button>
+    </div>
+
+    <!-- Actions secondaires -->
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+      <button type="button" style="height: 44px; border-radius: 12px; border: 1px solid #d6d3d1; background: #ffffff; font-size: 13px; font-weight: 600; color: #1c1917">Original</button>
+      <button type="button" style="height: 44px; border-radius: 12px; border: 1px solid #d6d3d1; background: #ffffff; font-size: 13px; font-weight: 600; color: #1c1917">Télécharger</button>
+      <button type="button" style="height: 44px; border-radius: 12px; border: 1px solid #d6d3d1; background: #ffffff; font-size: 13px; font-weight: 600; color: #b91c1c">Corbeille</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

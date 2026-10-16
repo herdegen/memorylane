@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Visionneuse plein écran</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;font-family:Figtree,system-ui,sans-serif;background:#0c0a09;color:#ffffff}
+a{color:#fcd34d;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #0c0a09">
+
+  <!-- Photo (balayer gauche/droite ; pincer pour zoomer ; tirer vers le bas pour fermer) -->
+  <div style="position: absolute; left: 0; right: 0; top: 0; bottom: 0; background: {{photo.bg}}"></div>
+
+  <!-- Zones tactiles gauche / droite (invisibles) -->
+  <button type="button" onClick="{{prev}}" aria-label="Photo précédente" style="position: absolute; left: 0; top: 120px; bottom: 200px; width: 120px; border: none; background: transparent; opacity: 0"></button>
+  <button type="button" onClick="{{next}}" aria-label="Photo suivante" style="position: absolute; right: 0; top: 120px; bottom: 200px; width: 120px; border: none; background: transparent; opacity: 0"></button>
+
+  <!-- Visages : un point par visage, tap = identifier -->
+  <sc-for list="{{photo.faces}}" as="f" hint-placeholder-count="2">
+    <a href="VisageSurPhoto.dc.html" aria-label="{{f.label}}" style="{{f.style}}">
+      <span style="{{f.dotStyle}}"></span>
+    </a>
+  </sc-for>
+
+  <!-- Haut : fermer, compteur, menu -->
+  <div style="position: absolute; left: 0; right: 0; top: 0; padding: 50px 8px 0; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,0))">
+    <a href="Photos.dc.html" aria-label="Fermer" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #ffffff"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M6 18L18 6M6 6l12 12"></path></svg></a>
+    <span style="font-size: 13px; font-weight: 600; color: rgba(255,255,255,.85)">{{photo.pos}} / 48</span>
+    <button type="button" aria-label="Plus d'actions" style="width: 44px; height: 44px; border: none; background: transparent; color: #ffffff; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="19" r="2"></circle></svg></button>
+  </div>
+
+  <!-- Bas : légende + actions + poignée « Détails » -->
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 60px 16px 18px; background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,.75)); display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; gap: 6px; flex-wrap: wrap">
+      <sc-for list="{{photo.people}}" as="p" hint-placeholder-count="2">
+        <span style="display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px 0 4px; border-radius: 999px; background: rgba(255,255,255,.18); backdrop-filter: blur(8px); font-size: 13px; font-weight: 600"><span style="width: 22px; height: 22px; border-radius: 999px; background: {{p.color}}; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center">{{p.initials}}</span>{{p.name}}</span>
+      </sc-for>
+      <span style="display: inline-flex; align-items: center; height: 30px; padding: 0 10px; border-radius: 999px; border: 1px dashed rgba(255,255,255,.5); font-size: 13px; font-weight: 600; color: rgba(255,255,255,.85)">{{photo.unknown}} à identifier</span>
+    </div>
+    <div>
+      <div style="font-size: 16px; font-weight: 700">{{photo.title}}</div>
+      <div style="font-size: 13px; color: rgba(255,255,255,.8)">{{photo.meta}}</div>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px">
+      <div style="display: flex; gap: 4px">
+        <button type="button" aria-label="Partager" style="width: 44px; height: 44px; border-radius: 999px; border: none; background: rgba(255,255,255,.14); color: #ffffff; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 12v7a1 1 0 001 1h14a1 1 0 001-1v-7M12 15V3m-4 4l4-4 4 4"></path></svg></button>
+        <button type="button" aria-label="Ajouter à un album" style="width: 44px; height: 44px; border-radius: 999px; border: none; background: rgba(255,255,255,.14); color: #ffffff; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"></rect><path d="M7 3h10M12 10v6m-3-3h6"></path></svg></button>
+        <button type="button" aria-label="Raconter (mémo vocal)" style="width: 44px; height: 44px; border-radius: 999px; border: none; background: rgba(255,255,255,.14); color: #ffffff; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0014 0M12 18v3"></path></svg></button>
+      </div>
+      <a href="FichePhoto.dc.html" style="display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 16px; border-radius: 999px; background: rgba(255,255,255,.14); color: #ffffff; font-size: 14px; font-weight: 600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 15l6-6 6 6"></path></svg>Détails</a>
+    </div>
+    <div style="display: flex; gap: 4px; justify-content: center; margin-top: 2px">
+      <sc-for list="{{dots}}" as="d" hint-placeholder-count="3"><span style="{{d.style}}"></span></sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(p){ super(p); this.state = { i: 0 }; }
+  renderVals() {
+    const photos = [
+      { bg: 'linear-gradient(160deg, #57534e 0%, #292524 60%, #1c1917 100%)', title: 'Mariage — cocktail', meta: '20 juin 2020 · Château de Ponzes · album « Mariage Matthieu Marion 2020 »', unknown: 2,
+        people: [{ name: 'Marion', initials: 'Ma', color: '#7c3aed' }, { name: 'Matthieu', initials: 'MH', color: '#b45309' }],
+        faces: [{ x: 42, y: 41 }, { x: 60, y: 44 }, { x: 78, y: 48, unknown: true }, { x: 22, y: 52, unknown: true }] },
+      { bg: 'linear-gradient(160deg, #78716c 0%, #44403c 60%, #1c1917 100%)', title: 'Mariage — la table des cousins', meta: '20 juin 2020 · Château de Ponzes', unknown: 5,
+        people: [{ name: 'Christian', initials: 'Ch', color: '#2563eb' }],
+        faces: [{ x: 30, y: 46 }, { x: 50, y: 42, unknown: true }, { x: 70, y: 47, unknown: true }] },
+      { bg: 'linear-gradient(160deg, #a8a29e 0%, #57534e 60%, #292524 100%)', title: 'Mariage — ouverture du bal', meta: '20 juin 2020 · 23:10', unknown: 0,
+        people: [{ name: 'Marion', initials: 'Ma', color: '#7c3aed' }, { name: 'Matthieu', initials: 'MH', color: '#b45309' }],
+        faces: [{ x: 45, y: 40 }, { x: 58, y: 43 }] },
+    ];
+    const i = this.state.i;
+    const p = photos[i];
+    return {
+      photo: {
+        ...p, pos: 12 + i,
+        faces: p.faces.map((f) => ({
+          label: f.unknown ? 'Visage à identifier' : 'Visage identifié',
+          style: 'position:absolute;left:' + f.x + '%;top:' + f.y + '%;width:44px;height:44px;margin:-22px 0 0 -22px;display:flex;align-items:center;justify-content:center;',
+          dotStyle: 'width:' + (f.unknown ? 18 : 12) + 'px;height:' + (f.unknown ? 18 : 12) + 'px;border-radius:999px;border:2px solid #ffffff;background:' + (f.unknown ? '#f59e0b' : 'rgba(255,255,255,.35)') + ';box-shadow:0 0 0 ' + (f.unknown ? 6 : 0) + 'px rgba(245,158,11,.35);',
+        })),
+      },
+      dots: photos.map((_, k) => ({ style: 'width:' + (k === i ? 16 : 5) + 'px;height:5px;border-radius:999px;background:' + (k === i ? '#ffffff' : 'rgba(255,255,255,.4)') + ';' })),
+      prev: () => this.setState({ i: (i + photos.length - 1) % photos.length }),
+      next: () => this.setState({ i: (i + 1) % photos.length }),
+    };
+  }
+}
+</script>
+</body>
+</html>

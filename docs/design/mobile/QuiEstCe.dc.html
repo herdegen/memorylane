@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Qui est-ce ? Jeu d'identification</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&amp;family=Playfair+Display:wght@600;700&amp;display=swap">
+<style>
+body{margin:0;font-family:Figtree,system-ui,sans-serif;background:#1c1917;color:#ffffff}
+a{color:#fcd34d;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #1c1917; display: flex; flex-direction: column">
+
+  <!-- Haut : fermer, progression, série -->
+  <div style="padding: 54px 8px 0 8px; display: flex; align-items: center; gap: 6px">
+    <a href="Accueil.dc.html" aria-label="Quitter" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #ffffff; flex: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M6 18L18 6M6 6l12 12"></path></svg></a>
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 6px">
+      <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #d6d3d1"><span>Qui est-ce ?</span><span>{{done}} / 12</span></div>
+      <div style="height: 6px; border-radius: 999px; background: rgba(255,255,255,.14); overflow: hidden"><div style="{{progressStyle}}"></div></div>
+    </div>
+    <div style="display: inline-flex; align-items: center; gap: 4px; height: 32px; padding: 0 10px; border-radius: 999px; background: {{streakBg}}; color: #1c1917; font-size: 13px; font-weight: 800; flex: none; margin-left: 6px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c1 4 5 5 5 10a5 5 0 01-10 0c0-2 1-3 1-3s0 2 2 2c0-4-1-6 2-9z"></path></svg>{{streak}}
+    </div>
+  </div>
+
+  <!-- Pile de cartes -->
+  <div style="flex: 1; position: relative; display: flex; align-items: center; justify-content: center; padding: 18px 16px 0">
+    <!-- cartes derrière -->
+    <div style="position: absolute; width: 318px; height: 470px; border-radius: 28px; background: #44403c; transform: translateY(24px) scale(.9); opacity: .5"></div>
+    <div style="position: absolute; width: 334px; height: 470px; border-radius: 28px; background: #57534e; transform: translateY(12px) scale(.95); opacity: .8"></div>
+
+    <!-- carte courante -->
+    <div style="{{cardStyle}}">
+      <!-- le visage, grand -->
+      <div style="position: relative; height: 300px; background: {{card.face}}; border-radius: 28px 28px 0 0">
+        <span style="position: absolute; left: 14px; top: 14px; padding: 5px 10px; border-radius: 999px; background: rgba(28,25,23,.75); color: #ffffff; font-size: 12px; font-weight: 700">{{card.where}}</span>
+        <!-- vignette de la photo entière : tap = voir le contexte -->
+        <a href="Visionneuse.dc.html" aria-label="Voir la photo entière" style="position: absolute; right: 12px; bottom: 12px; width: 64px; height: 48px; border-radius: 10px; background: {{card.photo}}; border: 2px solid #ffffff; box-shadow: 0 6px 16px rgba(0,0,0,.4)"></a>
+      </div>
+      <div style="padding: 16px 16px 14px; display: flex; flex-direction: column; gap: 12px">
+        <div style="font-family: 'Playfair Display', Georgia, serif; font-size: 20px; color: #1c1917">{{card.hint}}</div>
+        <!-- suggestions : une barre de ressemblance -->
+        <sc-for list="{{card.suggestions}}" as="s" hint-placeholder-count="2">
+          <button type="button" onClick="{{s.pick}}" style="display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 10px 0 6px; border-radius: 14px; border: 1px solid #e7e5e4; background: #faf7f1; text-align: left">
+            <span style="width: 36px; height: 36px; border-radius: 999px; background: {{s.color}}; color: #ffffff; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none">{{s.initials}}</span>
+            <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 700; color: #1c1917">{{s.name}}</span><span style="display: block; height: 4px; border-radius: 999px; background: #e7e5e4; margin-top: 4px; overflow: hidden"><span style="{{s.barStyle}}"></span></span></span>
+            <span style="font-size: 13px; font-weight: 700; color: #57534e; flex: none">{{s.pct}} %</span>
+          </button>
+        </sc-for>
+        <button type="button" style="height: 40px; border-radius: 12px; border: 1px dashed #d6d3d1; background: transparent; font-size: 14px; font-weight: 600; color: #57534e">Quelqu'un d'autre…</button>
+      </div>
+    </div>
+
+    <!-- retour visuel après réponse -->
+    <sc-if value="{{feedbackShown}}" hint-placeholder-val="{{ false }}">
+      <div style="position: absolute; top: 8px; padding: 10px 18px; border-radius: 999px; background: #fcd34d; color: #1c1917; font-size: 14px; font-weight: 800; box-shadow: 0 10px 30px rgba(0,0,0,.4)">{{feedback}}</div>
+    </sc-if>
+  </div>
+
+  <!-- Gestes : balayer ← inconnu · → c'est bien lui/elle · ↓ passer -->
+  <div style="padding: 14px 24px 34px; display: flex; align-items: center; justify-content: space-between">
+    <button type="button" onClick="{{reject}}" style="display: flex; flex-direction: column; align-items: center; gap: 6px; border: none; background: transparent; color: #d6d3d1; font-size: 11px; font-weight: 700">
+      <span style="width: 58px; height: 58px; border-radius: 999px; background: #292524; border: 2px solid #57534e; display: inline-flex; align-items: center; justify-content: center; color: #f87171"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M6 18L18 6M6 6l12 12"></path></svg></span>Inconnu
+    </button>
+    <button type="button" onClick="{{skip}}" style="display: flex; flex-direction: column; align-items: center; gap: 6px; border: none; background: transparent; color: #d6d3d1; font-size: 11px; font-weight: 700">
+      <span style="width: 48px; height: 48px; border-radius: 999px; background: #292524; border: 2px solid #57534e; display: inline-flex; align-items: center; justify-content: center; color: #d6d3d1"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M12 5v14m-6-6l6 6 6-6"></path></svg></span>Passer
+    </button>
+    <button type="button" onClick="{{confirm}}" style="display: flex; flex-direction: column; align-items: center; gap: 6px; border: none; background: transparent; color: #d6d3d1; font-size: 11px; font-weight: 700">
+      <span style="width: 58px; height: 58px; border-radius: 999px; background: #f59e0b; display: inline-flex; align-items: center; justify-content: center; color: #1c1917; box-shadow: 0 10px 24px -8px rgba(245,158,11,.8)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M5 13l4 4L19 7"></path></svg></span>C'est {{card.top}}
+    </button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(p){ super(p); this.state = { i: 0, done: 7, streak: 7, feedback: null }; }
+  renderVals() {
+    const cards = [
+      { face: 'radial-gradient(circle at 50% 40%, #d6d3d1 0, #a8a29e 45%, #78716c 100%)', photo: 'linear-gradient(135deg, #a8a29e, #44403c)', where: 'Bruges 2010 · avec Damien', hint: 'Sur une photo avec Damien, à Bruges',
+        suggestions: [{ name: 'Aurèle Marchand', initials: 'AM', color: '#0f766e', pct: 92 }, { name: 'Laura Gaugler', initials: 'LG', color: '#7c3aed', pct: 48 }] },
+      { face: 'radial-gradient(circle at 50% 40%, #e7e5e4 0, #a8a29e 45%, #57534e 100%)', photo: 'linear-gradient(135deg, #78716c, #292524)', where: 'Mariage 2020 · table des cousins', hint: 'Au mariage, à la table des cousins',
+        suggestions: [{ name: 'Christian Platteau', initials: 'CP', color: '#2563eb', pct: 81 }, { name: 'Bastien Platteau', initials: 'BP', color: '#2563eb', pct: 64 }] },
+      { face: 'radial-gradient(circle at 50% 40%, #d6d3d1 0, #78716c 50%, #44403c 100%)', photo: 'linear-gradient(135deg, #d6d3d1, #57534e)', where: 'Noël 2019', hint: 'Noël 2019, chez Mamie',
+        suggestions: [{ name: 'Élodie Platteau', initials: 'EP', color: '#c2410c', pct: 77 }] },
+    ];
+    const i = this.state.i % cards.length;
+    const c = cards[i];
+    const advance = (feedback, good) => {
+      this.setState({ i: i + 1, done: Math.min(12, this.state.done + 1), streak: good ? this.state.streak + 1 : 0, feedback });
+      setTimeout(() => this.setState({ feedback: null }), 1200);
+    };
+    const pick = (name) => () => advance('C’est ' + name.split(' ')[0] + ' ! +1', true);
+    return {
+      done: this.state.done, streak: this.state.streak,
+      streakBg: this.state.streak >= 5 ? '#fcd34d' : '#d6d3d1',
+      progressStyle: 'height:100%;border-radius:999px;background:#f59e0b;width:' + Math.round(100 * this.state.done / 12) + '%;',
+      cardStyle: 'position:relative;width:350px;border-radius:28px;background:#ffffff;box-shadow:0 30px 60px -20px rgba(0,0,0,.6);overflow:hidden;color:#1c1917;',
+      card: { ...c, top: c.suggestions[0].name.split(' ')[0],
+        suggestions: c.suggestions.map((s) => ({ ...s, pick: pick(s.name), barStyle: 'display:block;height:100%;border-radius:999px;background:' + (s.pct >= 75 ? '#16a34a' : '#f59e0b') + ';width:' + s.pct + '%;' })) },
+      feedbackShown: !!this.state.feedback, feedback: this.state.feedback,
+      confirm: pick(c.suggestions[0].name),
+      reject: () => advance('Marqué inconnu', true),
+      skip: () => advance('On y reviendra', false),
+    };
+  }
+}
+</script>
+</body>
+</html>

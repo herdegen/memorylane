@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Navigation mobile et principes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap">
+<style>
+body{margin:0;font-family:Figtree,system-ui,sans-serif;background:#faf7f1;color:#44403c}
+a{color:#b45309;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 1340px; height: 900px; box-sizing: border-box; padding: 40px 48px; display: flex; gap: 48px; background: #faf7f1">
+
+  <!-- Anatomie de l'écran -->
+  <div style="width: 390px; height: 820px; flex: none; position: relative; border-radius: 40px; background: #faf7f1; border: 1px solid #d6d3d1; overflow: hidden; box-shadow: 0 30px 60px -30px rgba(68,45,20,.35)">
+    <!-- Barre du haut -->
+    <div style="position: absolute; left: 0; right: 0; top: 0; height: 100px; padding: 54px 16px 0; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; background: #faf7f1">
+      <button type="button" style="display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px 0 4px; border-radius: 999px; border: 1px solid #fcd34d; background: #fef3c7; font-size: 14px; font-weight: 600; color: #1c1917">
+        <span style="width: 28px; height: 28px; border-radius: 999px; background: #d97706; color: #ffffff; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center">FK</span>
+        Famille Kormann
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#78716c" stroke-width="2.6" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+      </button>
+      <div style="display: flex; gap: 4px">
+        <button type="button" aria-label="Rechercher" style="width: 44px; height: 44px; border: none; background: transparent; color: #44403c; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></button>
+        <button type="button" aria-label="Mon compte" style="width: 44px; height: 44px; border: none; background: transparent; display: flex; align-items: center; justify-content: center"><span style="width: 32px; height: 32px; border-radius: 999px; background: #e7e5e4; color: #57534e; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center">MH</span></button>
+      </div>
+    </div>
+
+    <!-- Contenu (zone de défilement) -->
+    <div style="position: absolute; left: 16px; right: 16px; top: 112px; bottom: 110px; border: 2px dashed #d6d3d1; border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: #78716c; font-size: 14px; text-align: center; padding: 20px; box-sizing: border-box">
+      <div style="font-weight: 700; color: #1c1917">Contenu plein écran</div>
+      <div>Titre de page petit (22 px), 16 px de marge, cartes bord à bord quand ce sont des photos. Tirer vers le bas pour rafraîchir.</div>
+    </div>
+
+    <!-- Feuille du bas (exemple) -->
+    <div style="position: absolute; left: 0; right: 0; bottom: 86px; background: #ffffff; border-radius: 22px 22px 0 0; box-shadow: 0 -12px 30px -14px rgba(68,45,20,.3); padding: 10px 16px 14px; display: flex; flex-direction: column; gap: 10px">
+      <div style="width: 40px; height: 4px; border-radius: 999px; background: #d6d3d1; align-self: center"></div>
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #78716c">Feuille du bas = menu ⋯</div>
+      <div style="display: flex; gap: 8px">
+        <span style="flex: 1; height: 44px; border-radius: 12px; background: #f5f5f4; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: #1c1917">Partager</span>
+        <span style="flex: 1; height: 44px; border-radius: 12px; background: #f5f5f4; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: #1c1917">Album</span>
+        <span style="flex: 1; height: 44px; border-radius: 12px; background: #f5f5f4; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: #1c1917">Dater</span>
+      </div>
+    </div>
+
+    <!-- Barre d'onglets -->
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 86px; background: #ffffff; border-top: 1px solid #e7e5e4; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding-bottom: 22px; box-sizing: border-box">
+      <a href="Accueil.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px; font-weight: 700; color: #b45309"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1z"></path></svg>Accueil</a>
+      <a href="Photos.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px; font-weight: 600; color: #78716c"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"></rect><path d="M3 16l5-5 4 4 3-3 6 6"></path></svg>Photos</a>
+      <a href="Ajouter.dc.html" aria-label="Ajouter des photos" style="display: flex; align-items: center; justify-content: center"><span style="width: 56px; height: 56px; margin-top: -26px; border-radius: 999px; background: #d97706; color: #ffffff; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 10px 24px -8px rgba(217,119,6,.7)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></span></a>
+      <a href="Albums.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px; font-weight: 600; color: #78716c"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"></rect><path d="M7 3h10"></path></svg>Albums</a>
+      <a href="Proches.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px; font-weight: 600; color: #78716c"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><circle cx="17" cy="10" r="2.5"></circle><path d="M3 19a6 6 0 0112 0M15 19a4 4 0 016 0"></path></svg>Proches</a>
+    </div>
+  </div>
+
+  <!-- Principes -->
+  <div style="flex: 1; display: flex; flex-direction: column; gap: 22px; min-width: 0">
+    <div>
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #b45309">MemoryLane mobile</div>
+      <h1 style="margin: 4px 0 0; font-family: 'Playfair Display', Georgia, serif; font-size: 34px; color: #1c1917">Une vraie app, pas un site réduit</h1>
+      <p style="margin: 8px 0 0; font-size: 15px; color: #57534e; max-width: 760px; line-height: 1.5">Aujourd'hui le mobile reprend le site : barre haute, menu burger, gros titres, actions en haut de l'écran. Le nouveau cadre met tout sous le pouce et laisse la place aux photos.</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+      <div style="background: #ffffff; border: 1px solid #e7e5e4; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 8px">
+        <div style="font-weight: 700; color: #1c1917">Barre d'onglets, 5 entrées</div>
+        <div style="font-size: 14px; color: #57534e; line-height: 1.5">Accueil · Photos · <strong>+ Ajouter</strong> (bouton rond, mis en avant) · Albums · Proches. En mode amis, « Proches » devient « Amis ». Arbre, Réseau et Carte vivent dans Proches et Accueil : pas d'onglet en plus.</div>
+      </div>
+      <div style="background: #ffffff; border: 1px solid #e7e5e4; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 8px">
+        <div style="font-weight: 700; color: #1c1917">Barre du haut, minimale</div>
+        <div style="font-size: 14px; color: #57534e; line-height: 1.5">Le cercle courant à gauche (chip, un seul cercle = juste le nom), recherche et compte à droite. Pas de logo texte : l'app c'est l'icône. Les titres passent dans le contenu, en petit.</div>
+      </div>
+      <div style="background: #ffffff; border: 1px solid #e7e5e4; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 8px">
+        <div style="font-weight: 700; color: #1c1917">Feuilles au lieu de menus</div>
+        <div style="font-size: 14px; color: #57534e; line-height: 1.5">Tout menu ⋯, filtre ou formulaire s'ouvre en feuille depuis le bas, à hauteur de pouce, avec une poignée. On ferme en tirant vers le bas.</div>
+      </div>
+      <div style="background: #ffffff; border: 1px solid #e7e5e4; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 8px">
+        <div style="font-weight: 700; color: #1c1917">Gestes</div>
+        <div style="font-size: 14px; color: #57534e; line-height: 1.5">Balayer entre photos, pincer pour zoomer, tirer vers le bas pour fermer une photo ou rafraîchir, balayer vers le haut pour les détails, appui long = sélection.</div>
+      </div>
+      <div style="background: #ffffff; border: 1px solid #e7e5e4; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 8px">
+        <div style="font-weight: 700; color: #1c1917">Tailles</div>
+        <div style="font-size: 14px; color: #57534e; line-height: 1.5">Cibles de 44 px minimum, boutons principaux 48 px pleine largeur en bas. Texte courant 15–16 px, titres 22–26 px. Marges 16 px, photos bord à bord (écart 2 px).</div>
+      </div>
+      <div style="background: #ffffff; border: 1px solid #e7e5e4; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 8px">
+        <div style="font-weight: 700; color: #1c1917">Même palette, accent par mode</div>
+        <div style="font-size: 14px; color: #57534e; line-height: 1.5">Crème, ambre pour la famille, teal pour les amis ; Playfair pour les titres, Figtree pour le reste ; mode sombre conservé. Rien de nouveau à apprendre, juste mieux rangé.</div>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: auto">
+      <span style="font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #78716c; width: 100%">Composants</span>
+      <span style="height: 48px; padding: 0 22px; border-radius: 14px; background: #d97706; color: #ffffff; font-size: 16px; font-weight: 700; display: inline-flex; align-items: center">Bouton principal</span>
+      <span style="height: 48px; padding: 0 22px; border-radius: 14px; background: #ffffff; border: 1px solid #d6d3d1; color: #1c1917; font-size: 16px; font-weight: 600; display: inline-flex; align-items: center">Secondaire</span>
+      <span style="height: 36px; padding: 0 14px; border-radius: 999px; background: #fef3c7; color: #92400e; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center">Filtre actif</span>
+      <span style="height: 36px; padding: 0 14px; border-radius: 999px; background: #ffffff; border: 1px solid #d6d3d1; color: #44403c; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center">Filtre</span>
+      <span style="display: inline-flex; border-radius: 999px; background: #e7e5e4; padding: 3px"><span style="height: 32px; padding: 0 14px; border-radius: 999px; background: #ffffff; font-size: 13px; font-weight: 700; color: #1c1917; display: inline-flex; align-items: center">Photos</span><span style="height: 32px; padding: 0 14px; font-size: 13px; font-weight: 600; color: #57534e; display: inline-flex; align-items: center">Vidéos</span></span>
+      <span style="width: 44px; height: 44px; border-radius: 999px; background: #ffffff; border: 1px solid #d6d3d1; display: inline-flex; align-items: center; justify-content: center; color: #44403c"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1340,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

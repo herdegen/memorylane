@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Arbre généalogique sur mobile</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap">
+<style>
+body{margin:0;font-family:Figtree,system-ui,sans-serif;background:#faf7f1;color:#44403c}
+a{color:#b45309;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #faf7f1">
+
+  <div style="position: absolute; left: 0; right: 0; top: 0; padding: 54px 8px 0 16px; display: flex; align-items: center; justify-content: space-between; z-index: 2; background: #faf7f1">
+    <h1 style="margin: 0; font-family: 'Playfair Display', Georgia, serif; font-size: 26px; color: #1c1917">Proches</h1>
+    <button type="button" aria-label="Rechercher dans l'arbre" style="width: 44px; height: 44px; border: none; background: transparent; color: #44403c; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></button>
+  </div>
+  <div style="position: absolute; left: 16px; right: 16px; top: 106px; z-index: 2; display: flex; border-radius: 999px; background: #e7e5e4; padding: 3px">
+    <a href="Proches.dc.html" style="flex: 1; height: 36px; font-size: 14px; font-weight: 600; color: #57534e; display: inline-flex; align-items: center; justify-content: center">Personnes</a>
+    <span style="flex: 1; height: 36px; border-radius: 999px; background: #ffffff; font-size: 14px; font-weight: 700; color: #1c1917; display: inline-flex; align-items: center; justify-content: center">Arbre</span>
+    <span style="flex: 1; height: 36px; font-size: 14px; font-weight: 600; color: #57534e; display: inline-flex; align-items: center; justify-content: center">Carte</span>
+  </div>
+
+  <!-- Arbre vertical, centré sur « moi » : une génération au-dessus, une en dessous.
+       Glisser pour se déplacer, pincer pour zoomer, toucher une carte pour recentrer. -->
+  <div style="position: absolute; left: 0; right: 0; top: 160px; height: 470px">
+    <!-- Grands-parents (ligne du haut, petites cartes) -->
+    <div style="position: absolute; left: 0; right: 0; top: 0; display: flex; justify-content: center; gap: 8px">
+      <span style="width: 64px; height: 64px; border-radius: 14px; background: #a8a29e; display: block"></span>
+      <span style="width: 64px; height: 64px; border-radius: 14px; background: #78716c; display: block"></span>
+      <span style="width: 24px"></span>
+      <span style="width: 64px; height: 64px; border-radius: 14px; background: #d6d3d1; display: block"></span>
+      <span style="width: 64px; height: 64px; border-radius: 14px; background: #a8a29e; display: block"></span>
+    </div>
+    <div style="position: absolute; left: 50%; top: 64px; width: 2px; height: 26px; background: #d6d3d1; margin-left: -1px"></div>
+
+    <!-- Parents -->
+    <div style="position: absolute; left: 0; right: 0; top: 90px; display: flex; justify-content: center; gap: 12px">
+      <a href="FichePersonne.dc.html" style="width: 104px; border-radius: 16px; background: #ffffff; border: 1px solid #e7e5e4; overflow: hidden; display: block"><span style="display: block; height: 104px; background: #78716c"></span><span style="display: block; padding: 6px 8px; font-size: 12px; font-weight: 700; color: #1c1917">Vincent<span style="display: block; font-size: 11px; font-weight: 500; color: #78716c">1958</span></span></a>
+      <a href="FichePersonne.dc.html" style="width: 104px; border-radius: 16px; background: #ffffff; border: 1px solid #e7e5e4; overflow: hidden; display: block"><span style="display: block; height: 104px; background: #a8a29e"></span><span style="display: block; padding: 6px 8px; font-size: 12px; font-weight: 700; color: #1c1917">Christine<span style="display: block; font-size: 11px; font-weight: 500; color: #78716c">1960</span></span></a>
+    </div>
+    <div style="position: absolute; left: 50%; top: 238px; width: 2px; height: 22px; background: #d6d3d1; margin-left: -1px"></div>
+
+    <!-- Moi + conjoint (grandes cartes, « moi » surligné) -->
+    <div style="position: absolute; left: 0; right: 0; top: 260px; display: flex; justify-content: center; gap: 12px; align-items: flex-end">
+      <a href="FichePersonne.dc.html" style="width: 124px; border-radius: 18px; background: #ffffff; border: 2px solid #f59e0b; overflow: hidden; display: block; box-shadow: 0 10px 24px -12px rgba(217,119,6,.6)"><span style="display: block; height: 124px; background: #b45309"></span><span style="display: block; padding: 6px 10px; font-size: 13px; font-weight: 700; color: #1c1917">Matthieu <span style="color: #b45309">· moi</span><span style="display: block; font-size: 11px; font-weight: 500; color: #78716c">1988</span></span></a>
+      <a href="FichePersonne.dc.html" style="width: 124px; border-radius: 18px; background: #ffffff; border: 1px solid #e7e5e4; overflow: hidden; display: block"><span style="display: block; height: 124px; background: #7c3aed"></span><span style="display: block; padding: 6px 10px; font-size: 13px; font-weight: 700; color: #1c1917">Marion<span style="display: block; font-size: 11px; font-weight: 500; color: #78716c">1989</span></span></a>
+    </div>
+    <div style="position: absolute; left: 50%; top: 430px; width: 2px; height: 18px; background: #d6d3d1; margin-left: -1px"></div>
+    <!-- Enfants -->
+    <div style="position: absolute; left: 0; right: 0; top: 448px; display: flex; justify-content: center; gap: 10px">
+      <span style="width: 56px; height: 56px; border-radius: 14px; background: #2563eb; display: block"></span>
+    </div>
+  </div>
+
+  <!-- Commandes flottantes : recentrer sur moi, lien de parenté -->
+  <div style="position: absolute; right: 12px; bottom: 100px; display: flex; flex-direction: column; gap: 8px">
+    <button type="button" aria-label="Recentrer sur moi" style="width: 48px; height: 48px; border-radius: 999px; border: 1px solid #d6d3d1; background: #ffffff; color: #1c1917; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><circle cx="12" cy="12" r="8"></circle></svg></button>
+    <button type="button" aria-label="Lien de parenté" style="width: 48px; height: 48px; border-radius: 999px; border: none; background: #d97706; color: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 24px -10px rgba(217,119,6,.8)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg></button>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 86px; background: #ffffff; border-top: 1px solid #e7e5e4; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding-bottom: 22px; box-sizing: border-box">
+    <a href="Accueil.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px; font-weight: 600; color: #78716c"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1z"></path></svg>Accueil</a>
+    <a href="Photos.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px; font-weight: 600; color: #78716c"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"></rect><path d="M3 16l5-5 4 4 3-3 6 6"></path></svg>Photos</a>
+    <a href="Ajouter.dc.html" aria-label="Ajouter des photos" style="display: flex; align-items: center; justify-content: center"><span style="width: 56px; height: 56px; margin-top: -26px; border-radius: 999px; background: #d97706; color: #ffffff; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 10px 24px -8px rgba(217,119,6,.7)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></span></a>
+    <a href="Albums.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px; font-weight: 600; color: #78716c"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"></rect><path d="M7 3h10"></path></svg>Albums</a>
+    <a href="Proches.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px; font-weight: 700; color: #b45309"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><circle cx="17" cy="10" r="2.5"></circle><path d="M3 19a6 6 0 0112 0M15 19a4 4 0 016 0"></path></svg>Proches</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Diaporama mobile façon stories</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap">
+<style>
+body{margin:0;font-family:Figtree,system-ui,sans-serif;background:#0c0a09;color:#ffffff}
+a{color:#fcd34d;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #0c0a09">
+
+  <!-- Diapositive courante (fondu entre deux, Ken Burns léger) -->
+  <div style="position: absolute; left: 0; right: 0; top: 0; bottom: 0; background: {{slide.bg}}"></div>
+
+  <!-- Chapitre « lieu » : carte en haut (récit de vie) -->
+  <sc-if value="{{slide.map}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; left: 0; right: 0; top: 0; height: 300px; background: linear-gradient(180deg, #d6d3d1 0%, #e7e5e4 100%); display: flex; align-items: center; justify-content: center">
+      <div style="width: 220px; height: 140px; border-radius: 16px; background: #c7d2fe; position: relative"><span style="position: absolute; left: 110px; top: 60px; width: 18px; height: 18px; border-radius: 999px; background: #d97706; border: 3px solid #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,.4)"></span></div>
+    </div>
+  </sc-if>
+
+  <!-- Zones tactiles : gauche = précédent, droite = suivant, appui long = pause -->
+  <button type="button" onClick="{{prev}}" aria-label="Diapositive précédente" style="position: absolute; left: 0; top: 100px; bottom: 170px; width: 130px; border: none; background: transparent; opacity: 0"></button>
+  <button type="button" onClick="{{next}}" aria-label="Diapositive suivante" style="position: absolute; right: 0; top: 100px; bottom: 170px; width: 260px; border: none; background: transparent; opacity: 0"></button>
+
+  <!-- Barres de progression (une par diapositive) -->
+  <div style="position: absolute; left: 12px; right: 12px; top: 52px; display: flex; gap: 4px">
+    <sc-for list="{{bars}}" as="b" hint-placeholder-count="6"><span style="{{b.style}}"></span></sc-for>
+  </div>
+
+  <!-- En-tête : titre du diaporama + fermer -->
+  <div style="position: absolute; left: 16px; right: 8px; top: 64px; display: flex; align-items: center; justify-content: space-between">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <span style="width: 36px; height: 36px; border-radius: 999px; background: #d97706; color: #ffffff; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; border: 2px solid #ffffff">MH</span>
+      <span><span style="display: block; font-size: 14px; font-weight: 700; text-shadow: 0 1px 6px rgba(0,0,0,.6)">{{title}}</span><span style="display: block; font-size: 12px; color: rgba(255,255,255,.85); text-shadow: 0 1px 6px rgba(0,0,0,.6)">{{slide.when}}</span></span>
+    </div>
+    <div style="display: flex">
+      <button type="button" onClick="{{togglePause}}" aria-label="Pause" style="width: 44px; height: 44px; border: none; background: transparent; color: #ffffff; display: flex; align-items: center; justify-content: center">
+        <sc-if value="{{paused}}" hint-placeholder-val="{{ false }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg></sc-if>
+        <sc-if value="{{playing}}" hint-placeholder-val="{{ true }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14"></rect><rect x="14" y="5" width="4" height="14"></rect></svg></sc-if>
+      </button>
+      <a href="Accueil.dc.html" aria-label="Fermer" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #ffffff"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M6 18L18 6M6 6l12 12"></path></svg></a>
+    </div>
+  </div>
+
+  <!-- Légende de la diapositive (texte posé sur un dégradé bas) -->
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 80px 20px 40px; background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,.8)); display: flex; flex-direction: column; gap: 10px">
+    <sc-if value="{{slide.chapter}}" hint-placeholder-val="{{ true }}">
+      <span style="align-self: flex-start; padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,.18); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase">{{slide.chapter}}</span>
+    </sc-if>
+    <div style="font-family: 'Playfair Display', Georgia, serif; font-size: 28px; line-height: 1.15; text-shadow: 0 2px 10px rgba(0,0,0,.5)">{{slide.caption}}</div>
+    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
+      <sc-for list="{{slide.people}}" as="p" hint-placeholder-count="2">
+        <span style="display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px 0 3px; border-radius: 999px; background: rgba(255,255,255,.18); font-size: 13px; font-weight: 600"><span style="width: 22px; height: 22px; border-radius: 999px; background: {{p.color}}; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center">{{p.initials}}</span>{{p.name}}</span>
+      </sc-for>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px">
+      <span style="font-size: 12px; color: rgba(255,255,255,.75)">Touchez pour avancer · maintenez pour faire pause · balayez vers le bas pour fermer</span>
+    </div>
+    <div style="display: flex; gap: 8px">
+      <button type="button" aria-label="Écouter le souvenir raconté" style="height: 44px; padding: 0 14px; border-radius: 999px; border: none; background: rgba(255,255,255,.18); color: #ffffff; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0014 0M12 18v3"></path></svg>Mamie raconte</button>
+      <button type="button" aria-label="Partager" style="width: 44px; height: 44px; border-radius: 999px; border: none; background: rgba(255,255,255,.18); color: #ffffff; display: inline-flex; align-items: center; justify-content: center; margin-left: auto"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 12v7a1 1 0 001 1h14a1 1 0 001-1v-7M12 15V3m-4 4l4-4 4 4"></path></svg></button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["souvenir","récit de vie"],"default":"souvenir"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(p){ super(p); this.state = { i: 0, paused: false }; }
+  renderVals() {
+    const recit = (this.props.mode ?? 'souvenir') === 'récit de vie';
+    const slides = recit ? [
+      { bg: 'linear-gradient(180deg, #e7e5e4 0%, #78716c 100%)', map: true, chapter: 'Naissance · 1932', when: 'Lille', caption: 'Roger naît à Lille, rue de la Monnaie', people: [] },
+      { bg: 'linear-gradient(160deg, #a8a29e, #44403c)', chapter: '1954', when: 'Lille', caption: 'Le mariage avec Jeanne', people: [{ name: 'Jeanne', initials: 'JK', color: '#7c3aed' }] },
+      { bg: 'linear-gradient(180deg, #e7e5e4 0%, #78716c 100%)', map: true, chapter: 'Déménagement · 1961', when: 'Lille → Lyon', caption: 'La famille s’installe à Lyon', people: [] },
+      { bg: 'linear-gradient(160deg, #78716c, #292524)', chapter: '1961 – 1990', when: 'Lyon', caption: 'Trente ans de vie lyonnaise', people: [{ name: 'Jeanne', initials: 'JK', color: '#7c3aed' }, { name: 'Marianne', initials: 'MK', color: '#2563eb' }] },
+    ] : [
+      { bg: 'linear-gradient(160deg, #a8a29e 0%, #57534e 60%, #292524 100%)', chapter: 'Il y a 8 ans', when: '14 octobre 2018 · Annecy', caption: 'Week-end à Annecy', people: [{ name: 'Antoine', initials: 'An', color: '#0f766e' }, { name: 'Pauline', initials: 'Pa', color: '#0f766e' }] },
+      { bg: 'linear-gradient(160deg, #d6d3d1 0%, #78716c 60%, #44403c 100%)', chapter: '', when: '14 octobre 2018 · 11:20', caption: 'Le lac depuis le Semnoz', people: [] },
+      { bg: 'linear-gradient(160deg, #78716c 0%, #44403c 60%, #1c1917 100%)', chapter: '', when: '14 octobre 2018 · 13:05', caption: 'Pique-nique, vent dans les cheveux', people: [{ name: 'Bastien', initials: 'Ba', color: '#0f766e' }] },
+      { bg: 'linear-gradient(160deg, #57534e 0%, #292524 60%, #0c0a09 100%)', chapter: '', when: '14 octobre 2018 · 19:40', caption: 'Et la soirée qui s’étire…', people: [{ name: 'Antoine', initials: 'An', color: '#0f766e' }, { name: 'Pauline', initials: 'Pa', color: '#0f766e' }, { name: 'Bastien', initials: 'Ba', color: '#0f766e' }] },
+    ];
+    const i = this.state.i % slides.length;
+    return {
+      title: recit ? 'La vie de Roger' : 'Ce jour-là, il y a 8 ans',
+      slide: { ...slides[i], map: !!slides[i].map, chapter: slides[i].chapter },
+      bars: slides.map((_, k) => ({ style: 'flex:1;height:3px;border-radius:999px;background:' + (k < i ? '#ffffff' : (k === i ? 'linear-gradient(90deg,#ffffff 55%,rgba(255,255,255,.35) 55%)' : 'rgba(255,255,255,.35)')) + ';' })),
+      paused: this.state.paused, playing: !this.state.paused,
+      prev: () => this.setState({ i: (i + slides.length - 1) % slides.length }),
+      next: () => this.setState({ i: (i + 1) % slides.length }),
+      togglePause: () => this.setState({ paused: !this.state.paused }),
+    };
+  }
+}
+</script>
+</body>
+</html>
