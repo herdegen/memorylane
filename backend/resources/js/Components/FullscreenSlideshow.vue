@@ -60,9 +60,74 @@
       <!-- Diaporama qui voyage : carte entre deux étapes -->
       <TravelInterlude v-if="travel" ref="interlude" />
 
-      <!-- Contrôles (auto-masqués) -->
+      <!-- ===== Téléphone : façon « stories » =====
+           Zones tactiles (gauche = précédent, droite = suivant), maintien =
+           pause, balayage vers le bas = fermer ; barres de progression en
+           haut, légende sur dégradé en bas. -->
+      <template v-if="isMobile">
+        <div
+          class="absolute inset-0 touch-none"
+          @pointerdown.stop="onStoryDown"
+          @pointermove="onStoryMove"
+          @pointerup="onStoryUp"
+          @pointercancel="onStoryCancel"
+          @click.stop
+        ></div>
+
+        <!-- Barres de progression (une par diapositive, ou une seule au-delà de 24) -->
+        <div class="absolute left-3 right-3 flex gap-1 pointer-events-none" :style="{ top: 'calc(12px + env(safe-area-inset-top))' }">
+          <span
+            v-for="k in barCount"
+            :key="k"
+            class="flex-1 h-[3px] rounded-full bg-white/35 overflow-hidden"
+          >
+            <span
+              class="block h-full bg-white"
+              :class="{ 'story-fill': k - 1 === barIndex && currentItem?.type !== 'video' && !traveling }"
+              :style="k - 1 < barIndex ? { width: '100%' } : (k - 1 === barIndex ? { width: currentItem?.type === 'video' || traveling ? '100%' : undefined, '--story-dur': `${photoDuration}ms`, animationPlayState: isPaused ? 'paused' : 'running' } : { width: '0%' })"
+            ></span>
+          </span>
+        </div>
+
+        <!-- En-tête : titre + moment, pause, fermer -->
+        <div class="absolute left-4 right-2 flex items-center justify-between gap-2 pointer-events-none" :style="{ top: 'calc(24px + env(safe-area-inset-top))' }">
+          <div class="min-w-0 text-white [text-shadow:0_1px_6px_rgba(0,0,0,.6)]">
+            <div class="text-sm font-bold truncate">{{ title || currentItem?.label || '' }}</div>
+            <div v-if="currentItem?.when" class="text-xs text-white/85 truncate">{{ currentItem.when }}</div>
+          </div>
+          <div class="flex shrink-0 pointer-events-auto">
+            <button type="button" class="w-11 h-11 flex items-center justify-center text-white" :aria-label="isPaused ? 'Reprendre' : 'Pause'" @click.stop="togglePause">
+              <svg v-if="isPaused" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+              <svg v-else class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" /><rect x="14" y="5" width="4" height="14" /></svg>
+            </button>
+            <button type="button" class="w-11 h-11 flex items-center justify-center text-white" aria-label="Fermer" @click.stop="close">
+              <svg class="w-[22px] h-[22px]" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Légende -->
+        <div
+          v-if="currentItem && currentItem.type !== 'card'"
+          class="absolute inset-x-0 bottom-0 px-5 pt-20 pb-[calc(2rem+env(safe-area-inset-bottom))] bg-linear-to-t from-black/80 to-transparent flex flex-col gap-2.5 pointer-events-none text-white"
+        >
+          <span v-if="currentItem.chapter" class="self-start px-2.5 py-1 rounded-full bg-white/20 text-xs font-bold tracking-[.06em] uppercase">{{ currentItem.chapter }}</span>
+          <div v-if="storyCaption" class="font-display text-[26px] leading-[1.15] [text-shadow:0_2px_10px_rgba(0,0,0,.5)] line-clamp-3">{{ storyCaption }}</div>
+          <div v-if="currentItem.people?.length" class="flex flex-wrap gap-2">
+            <span v-for="name in currentItem.people.slice(0, 4)" :key="name" class="inline-flex items-center gap-1.5 h-7 pl-1 pr-2.5 rounded-full bg-white/20 text-[13px] font-semibold">
+              <span class="w-[22px] h-[22px] rounded-full bg-brand-600 text-[10px] font-bold flex items-center justify-center">{{ initials(name) }}</span>{{ name.split(/\s+/)[0] }}
+            </span>
+          </div>
+          <div class="flex items-center justify-between text-xs text-white/75">
+            <span>{{ pointer + 1 }} / {{ order.length }}</span>
+            <span v-if="storyHintVisible">Touchez pour avancer · maintenez pour faire pause</span>
+          </div>
+        </div>
+      </template>
+
+      <!-- Contrôles desktop (auto-masqués) -->
       <Transition name="fade">
-        <div v-if="controlsVisible" class="absolute inset-0 pointer-events-none">
+        <div v-if="controlsVisible && !isMobile" class="absolute inset-0 pointer-events-none">
           <!-- Fermer -->
           <button
             @click.stop="close"
@@ -113,7 +178,7 @@
 
             <p class="text-center text-white/70 text-sm mt-3">
               {{ pointer + 1 }} / {{ order.length }}
-              <span v-if="currentItem?.label" class="text-white/40">— {{ currentItem.label }}</span>
+              <span v-if="currentItem?.label || currentItem?.chapter" class="text-white/40">— {{ currentItem.label || currentItem.chapter }}</span>
             </p>
           </div>
         </div>
@@ -142,6 +207,9 @@ const props = defineProps({
   // Album à plusieurs étapes : slide.place = { index, label, latitude,
   // longitude } ; une carte vole d'une étape à la suivante entre deux slides.
   travel: { type: Boolean, default: false },
+  // Titre affiché en haut sur téléphone (façon stories) ; les slides peuvent
+  // porter `when` (moment), `chapter` (chip) et `people` (prénoms).
+  title: { type: String, default: '' },
 });
 
 const emit = defineEmits(['close']);
@@ -262,6 +330,65 @@ const togglePause = () => {
   scheduleAdvance();
 };
 
+// ---- Téléphone : façon « stories » ------------------------------------------
+const MOBILE_MAX = 767;
+const isMobile = ref(false);
+const barCount = computed(() => (order.value.length <= 24 ? order.value.length : 1));
+const barIndex = computed(() => (order.value.length <= 24 ? pointer.value : 0));
+const storyHintVisible = ref(true);
+// Légende : un titre saisi, jamais un nom de fichier (IMG_1234.jpg).
+const storyCaption = computed(() => {
+  const label = currentItem.value?.label || '';
+  return /\.[a-z0-9]{2,4}$/i.test(label) ? '' : label;
+});
+const initials = (name) => (name || '').split(/\s+/).slice(0, 2).map((w) => w[0] || '').join('').toUpperCase();
+
+// Un doigt posé : > 220 ms = pause tant qu'il reste ; relâché avant = tap
+// (gauche = précédent, droite = suivant) ; glissé vers le bas > 100 px = fermer.
+let story = null;
+let holdTimer = null;
+let heldPause = false;
+const onStoryDown = (e) => {
+  story = { x: e.clientX, y: e.clientY, t: Date.now(), moved: false };
+  heldPause = false;
+  holdTimer = setTimeout(() => {
+    if (!story || story.moved || isPaused.value) return;
+    heldPause = true;
+    togglePause();
+  }, 220);
+};
+const onStoryMove = (e) => {
+  if (!story) return;
+  if (Math.abs(e.clientX - story.x) > 12 || Math.abs(e.clientY - story.y) > 12) story.moved = true;
+};
+const onStoryUp = (e) => {
+  if (!story) return;
+  clearTimeout(holdTimer);
+  const dy = e.clientY - story.y;
+  const dx = e.clientX - story.x;
+  const current = story;
+  story = null;
+  storyHintVisible.value = false;
+  if (heldPause) {
+    heldPause = false;
+    if (isPaused.value) togglePause();
+    return;
+  }
+  if (dy > 100 && Math.abs(dx) < 80) { close(); return; }
+  if (current.moved) {
+    if (dx < -60) next();
+    else if (dx > 60) previous();
+    return;
+  }
+  if (Date.now() - current.t > 400) return;
+  e.clientX < window.innerWidth / 3 ? previous() : next();
+};
+const onStoryCancel = () => {
+  clearTimeout(holdTimer);
+  story = null;
+  if (heldPause) { heldPause = false; if (isPaused.value) togglePause(); }
+};
+
 const showControls = () => {
   controlsVisible.value = true;
   if (controlsTimer) clearTimeout(controlsTimer);
@@ -298,6 +425,8 @@ const open = (startIndex = 0) => {
   pointer.value = props.shuffle ? 0 : Math.min(startIndex, order.value.length - 1);
   isPaused.value = false;
   isOpen.value = true;
+  isMobile.value = window.innerWidth <= MOBILE_MAX;
+  storyHintVisible.value = true;
   lastPlace = null;
   interlude.value?.reset();
   refreshKenBurns();
@@ -333,6 +462,7 @@ watch(pointer, () => showControls());
 
 onBeforeUnmount(() => {
   clearPhotoTimer();
+  clearTimeout(holdTimer);
   if (controlsTimer) clearTimeout(controlsTimer);
   document.removeEventListener('keydown', handleKeydown);
   document.removeEventListener('fullscreenchange', handleFullscreenChange);
@@ -359,6 +489,15 @@ defineExpose({ open });
 .crossfade-enter-from,
 .crossfade-leave-to {
   opacity: 0;
+}
+
+/* Barre de progression de la diapositive courante (stories). */
+.story-fill {
+  animation: story-fill var(--story-dur, 5000ms) linear forwards;
+}
+@keyframes story-fill {
+  from { width: 0; }
+  to { width: 100%; }
 }
 
 /* Ken Burns : zoom/pan lent, une fois par slide. La translation en % est

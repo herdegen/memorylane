@@ -297,6 +297,9 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
     Route::prefix('quests')->name('quests.')->group(function () {
         Route::get('/next', [QuestController::class, 'next'])->name('next');
         Route::post('/answer', [QuestController::class, 'answer'])->name('answer');
+        // Jeu « Qui est-ce ? » plein écran (téléphone), ?album= pour un album
+        Route::get('/faces', [QuestController::class, 'faces'])->name('faces');
+        Route::get('/faces/next', [QuestController::class, 'facesNext'])->name('faces.next');
     });
 
     // People routes

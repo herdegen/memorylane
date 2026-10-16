@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\QuestType;
 use App\Exceptions\StaleQuestException;
+use App\Models\Album;
 use App\Models\Person;
 use App\Models\QuestAnswer;
 use App\Services\QuestAnswerApplier;
@@ -13,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Inertia\Inertia;
 
 /**
  * Gamification « quêtes » : questions de complétion de données posées sur le
@@ -35,6 +37,37 @@ class QuestController extends Controller
             'question' => $this->quests->next($user),
             'completed_count' => $this->quests->completedCount($user),
         ]);
+    }
+
+    /** Jeu « Qui est-ce ? » plein écran (téléphone), optionnellement limité à un album. */
+    public function faces(Request $request)
+    {
+        $album = $this->gameAlbum($request);
+
+        return Inertia::render('Quests/Faces', [
+            'album' => $album ? ['id' => $album->id, 'name' => $album->name] : null,
+        ]);
+    }
+
+    public function facesNext(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'exclude' => 'nullable|array|max:500',
+            'exclude.*' => 'uuid',
+        ]);
+
+        return response()->json($this->quests->faceQuestions(
+            $request->user(),
+            $this->gameAlbum($request),
+            $validated['exclude'] ?? [],
+        ));
+    }
+
+    private function gameAlbum(Request $request): ?Album
+    {
+        $id = $request->query('album');
+
+        return $id ? Album::accessibleBy($request->user())->findOrFail($id) : null;
     }
 
     public function answer(Request $request): JsonResponse

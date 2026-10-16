@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\QuestType;
+use App\Models\Album;
 use App\Models\DetectedFace;
 use App\Models\Media;
 use App\Models\Person;
@@ -372,15 +373,48 @@ class QuestService
         return $candidates;
     }
 
+    /**
+     * Jeu « Qui est-ce ? » (téléphone) : visages à identifier, hydratés,
+     * en dehors du lot mélangé du Dashboard. Limité à un album si demandé,
+     * sans ceux déjà vus dans la partie ($exclude). Renvoie les questions et
+     * le nombre total de visages qu'il reste à nommer (barre de progression).
+     *
+     * @param  list<string>  $exclude  ids de visages déjà passés dans la partie
+     * @return array{questions: list<array>, total: int}
+     */
+    public function faceQuestions(User $user, ?Album $album, array $exclude, int $limit = 3): array
+    {
+        $candidates = $this->filterExcluded($user, $this->detectFaceGaps($user, $album, self::GAME_SCAN_LIMIT));
+        $seen = array_flip($exclude);
+        $candidates = array_values(array_filter($candidates, fn ($c) => ! isset($seen[$c['subject_id']])));
+
+        $questions = [];
+        foreach ($candidates as $candidate) {
+            if (count($questions) >= $limit) {
+                break;
+            }
+            $face = DetectedFace::find($candidate['subject_id']);
+            if ($face && $this->gapExists(QuestType::FaceIdentify, $face, $user)) {
+                $questions[] = $this->present($user, QuestType::FaceIdentify, $face);
+            }
+        }
+
+        return ['questions' => $questions, 'total' => count($candidates)];
+    }
+
+    /** Visages parcourus pour une partie (au-delà, le total est « 200+ »). */
+    public const GAME_SCAN_LIMIT = 200;
+
     /** Visages non identifiés sur des photos que l'utilisateur peut voir. */
-    private function detectFaceGaps(User $user): array
+    private function detectFaceGaps(User $user, ?Album $album = null, ?int $take = null): array
     {
         // Photos du contexte : en mode amis, seulement les photos du cercle.
         $faces = DetectedFace::where('status', 'unmatched')
             ->whereNull('person_id')
-            ->whereHas('media', fn ($q) => $q->inContext($user)->where('type', 'photo'))
+            ->whereHas('media', fn ($q) => $q->inContext($user)->where('type', 'photo')
+                ->when($album, fn ($q) => $q->whereHas('albums', fn ($a) => $a->where('albums.id', $album->id))))
             ->latest()
-            ->limit(self::DETECTOR_LIMIT * 8)
+            ->limit(($take ?? self::DETECTOR_LIMIT) * 8)
             ->get(['id', 'media_id', 'bounding_box']);
 
         // Arrière-plan (passants, foules devant un monument) : pas proposé
@@ -393,7 +427,7 @@ class QuestService
 
         return $faces
             ->reject(fn ($f) => self::isBackgroundFace((float) ($f->bounding_box['width'] ?? 0), (float) ($largest[$f->media_id] ?? 0)))
-            ->take(self::DETECTOR_LIMIT)
+            ->take($take ?? self::DETECTOR_LIMIT)
             ->map(fn ($f) => ['type' => QuestType::FaceIdentify->value, 'subject_id' => $f->id, 'distance' => 1])
             ->values()
             ->all();

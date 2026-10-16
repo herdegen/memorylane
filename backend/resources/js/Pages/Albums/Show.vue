@@ -97,6 +97,10 @@
               <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
               Fond du titre par défaut
             </button>
+            <button v-if="pendingFacesCount > 0" @click="openFromMenu(() => unidentifiedOnly = !unidentifiedOnly)" class="dropdown-item w-full text-left flex items-center gap-2.5">
+              <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+              {{ unidentifiedOnly ? 'Toutes les photos' : `Visages à identifier (${pendingFacesCount})` }}
+            </button>
             <button @click="openFromMenu(() => showParticipants = true)" class="dropdown-item w-full text-left flex items-center gap-2.5">
               <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
               Qui était là ?
@@ -168,17 +172,14 @@
           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
           Diaporama
         </button>
-        <button
+        <Link
           v-if="pendingFacesCount > 0"
-          type="button"
-          class="h-12 rounded-2xl border text-sm font-bold flex items-center justify-center gap-1.5"
-          :class="unidentifiedOnly ? 'bg-brand-600 border-brand-600 text-white' : 'bg-white border-surface-300 text-surface-900'"
-          :aria-pressed="unidentifiedOnly"
-          @click="unidentifiedOnly = !unidentifiedOnly"
+          :href="`/quests/faces?album=${album.id}`"
+          class="h-12 rounded-2xl border bg-white border-surface-300 text-surface-900 text-sm font-bold flex items-center justify-center gap-1.5"
         >
-          <span class="inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full text-[11px] font-bold" :class="unidentifiedOnly ? 'bg-white/25' : 'bg-brand-100 text-brand-800'">{{ pendingFacesCount > 999 ? '999+' : pendingFacesCount }}</span>
+          <span class="inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full text-[11px] font-bold bg-brand-100 text-brand-800">{{ pendingFacesCount > 999 ? '999+' : pendingFacesCount }}</span>
           <span class="text-[13px] whitespace-nowrap">Qui est-ce ?</span>
-        </button>
+        </Link>
         <button
           type="button"
           class="h-12 rounded-2xl border text-sm font-bold flex items-center justify-center gap-1.5"
@@ -301,6 +302,7 @@
       :slides="slideshowSlides"
       :shuffle="!travels"
       :travel="travels"
+      :title="album.name"
       ken-burns
     />
 
@@ -458,6 +460,7 @@ import BaseModal from '@/Components/BaseModal.vue';
 import { formatDuration } from '@/utils/format';
 import { usePhotoSwipe } from '@/Composables/usePhotoSwipe';
 import { useToast } from '@/Composables/useToast';
+import { formatLongDate } from '@/utils/format';
 import { useConfirm } from '@/Composables/useConfirm';
 import { slideUrl } from '@/utils/media';
 import AlbumParticipantsModal from '@/Components/AlbumParticipantsModal.vue';
@@ -859,6 +862,7 @@ const slideshowSlides = computed(() => {
       type: m.type,
       src: slideUrl(m),
       label: m.title || m.original_name,
+      when: m.taken_at ? formatLongDate(m.taken_at) : null,
       weight: m.matched_faces_count > 0 ? 3 : 1,
       place: place ? { index: place.index, label: place.label, latitude: place.latitude, longitude: place.longitude } : null,
     };

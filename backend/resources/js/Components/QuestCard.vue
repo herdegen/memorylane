@@ -242,6 +242,11 @@
               <p v-if="question.face.with?.length" class="text-sm text-surface-500">
                 Sur cette photo avec {{ joinNames(question.face.with) }}.
               </p>
+              <!-- Téléphone : le jeu plein écran enchaîne les visages -->
+              <Link href="/quests/faces" class="sm:hidden flex items-center justify-center gap-2 h-11 rounded-xl bg-brand-600 text-white text-sm font-bold">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+                Jouer à « Qui est-ce ? »
+              </Link>
               <div v-if="question.face.suggestions.length" class="flex flex-wrap gap-2">
                 <button
                   v-for="s in question.face.suggestions"

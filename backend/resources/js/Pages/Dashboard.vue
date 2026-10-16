@@ -247,7 +247,7 @@
     </div>
 
     <!-- Diaporama des souvenirs -->
-    <FullscreenSlideshow ref="memoriesSlideshow" :slides="memorySlides" :photo-duration="6000" />
+    <FullscreenSlideshow ref="memoriesSlideshow" :slides="memorySlides" :photo-duration="6000" title="Ce jour-là" />
   </AppLayout>
 </template>
 
@@ -256,6 +256,7 @@ import { ref, computed } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { formatLongDate } from '@/utils/format';
 import FullscreenSlideshow from '@/Components/FullscreenSlideshow.vue';
 import QuestCard from '@/Components/QuestCard.vue';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
@@ -313,7 +314,9 @@ const memorySlides = computed(() =>
       key: m.id,
       type: m.type === 'video' ? 'video' : 'photo',
       src: slideUrl(m),
-      label: group.years_ago === 1 ? 'Il y a 1 an' : `Il y a ${group.years_ago} ans`,
+      label: m.title || null,
+      chapter: group.years_ago === 1 ? 'Il y a 1 an' : `Il y a ${group.years_ago} ans`,
+      when: m.taken_at ? formatLongDate(m.taken_at) : null,
     }))
   )
 );
