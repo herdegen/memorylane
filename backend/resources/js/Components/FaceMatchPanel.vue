@@ -266,14 +266,15 @@ const filteredPeople = computed(() => {
     onAlbum: !!s.on_album,
   }));
   // Puis les personnes déjà identifiées dans l'album (même d'un autre cercle),
-  // puis le reste de l'annuaire.
+  // puis les fiches du cercle courant — pas celles des autres cercles
+  // (« elsewhere »), qu'on ne retrouve qu'en tapant leur nom.
   const onAlbum = albumPeople.value
     .filter((p) => !ranked.some((r) => r.id === p.id))
     .map((p) => ({ ...p, onAlbum: true }));
   const shownIds = new Set([...ranked, ...onAlbum].map((p) => p.id));
 
   const others = people.value
-    .filter((p) => !shownIds.has(p.id))
+    .filter((p) => !p.elsewhere && !shownIds.has(p.id))
     .slice()
     .sort(byKinshipThenBirth);
 

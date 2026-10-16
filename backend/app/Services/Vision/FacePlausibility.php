@@ -38,8 +38,17 @@ class FacePlausibility
     /** Visages identifiés et datés nécessaires pour estimer une naissance inconnue. */
     public const MIN_AGE_SAMPLES = 5;
 
+    /** Écart minimal (ans) entre un parent et son enfant, pour borner une naissance inconnue par l'arbre. */
+    public const MIN_PARENT_GAP = 18;
+
+    /** Au-delà de cet âge (naissance la plus tardive possible d'après l'arbre), présumé disparu. */
+    public const PRESUMED_MAX_AGE = 100;
+
     /** @var array<string, int>|null */
     private ?array $birthEstimates = null;
+
+    /** @var array<string, array{latest: ?int, earliest: ?int}>|null */
+    private ?array $genealogyBounds = null;
 
     /** Raison pour laquelle la personne ne peut pas figurer sur la photo, ou null. */
     public function impossibility(Person $person, Media $media): ?string
@@ -96,6 +105,9 @@ class FacePlausibility
         if ($person->birth_date && $person->birth_date->gt($takenAt)) {
             return true;
         }
+        if ($this->genealogyImplausible($person, $takenAt->year)) {
+            return true;
+        }
         $birthYear = $person->birth_date?->year ?? ($this->birthEstimates()[$person->id] ?? null);
         if ($faceAge === null || $birthYear === null) {
             return false;
@@ -129,9 +141,123 @@ class FacePlausibility
             ->all());
     }
 
+    /**
+     * Naissance inconnue, mais l'arbre la borne : présumé disparu (né au plus
+     * tard en X d'après ses descendants datés, donc plus de 100 ans à la date
+     * de la photo — ex. un arrière-arrière-grand-parent sur une photo de 2020),
+     * ou pas encore né (né au plus tôt en Y d'après ses ascendants datés).
+     */
+    public function genealogyImplausible(Person $person, int $year): bool
+    {
+        if ($person->birth_date || $person->death_date) {
+            return false;   // dates connues : impossibility() s'en charge
+        }
+        $bounds = $this->genealogyBounds()[$person->id] ?? null;
+        if (! $bounds) {
+            return false;
+        }
+
+        return ($bounds['latest'] !== null && $year - $bounds['latest'] > self::PRESUMED_MAX_AGE)
+            || ($bounds['earliest'] !== null && $bounds['earliest'] > $year + self::DATE_TOLERANCE_YEARS);
+    }
+
+    /**
+     * Bornes de naissance des fiches SANS date, déduites de l'arbre : au plus
+     * tard (année de naissance d'un descendant − 18 ans par génération), au
+     * plus tôt (année d'un ascendant + 18 ans par génération). En cache tant
+     * que l'arbre ne change pas.
+     *
+     * @return array<string, array{latest: ?int, earliest: ?int}>
+     */
+    public function genealogyBounds(): array
+    {
+        if ($this->genealogyBounds !== null) {
+            return $this->genealogyBounds;
+        }
+        $stamp = DB::table('people')->selectRaw('count(*) as n, max(updated_at) as u')->first();
+        $key = 'face-genealogy-bounds:'.md5(($stamp->n ?? 0).'|'.($stamp->u ?? ''));
+
+        return $this->genealogyBounds = Cache::remember($key, now()->addDay(), function () {
+            $people = DB::table('people')->whereNull('deleted_at')
+                ->get(['id', 'father_id', 'mother_id', 'birth_date']);
+            $known = [];
+            $parents = [];
+            foreach ($people as $p) {
+                if ($p->birth_date) {
+                    $known[$p->id] = (int) substr((string) $p->birth_date, 0, 4);
+                }
+                $parents[$p->id] = array_values(array_filter([$p->father_id, $p->mother_id]));
+            }
+
+            // Au plus tard : remonte des enfants vers les parents (point fixe).
+            $latest = $known;
+            for ($round = 0, $changed = true; $changed && $round < 20; $round++) {
+                $changed = false;
+                foreach ($parents as $child => $ps) {
+                    if (! isset($latest[$child])) {
+                        continue;
+                    }
+                    foreach ($ps as $parent) {
+                        if (isset($known[$parent])) {
+                            continue;
+                        }
+                        $bound = $latest[$child] - self::MIN_PARENT_GAP;
+                        if (! isset($latest[$parent]) || $bound < $latest[$parent]) {
+                            $latest[$parent] = $bound;
+                            $changed = true;
+                        }
+                    }
+                }
+            }
+
+            // Au plus tôt : descend des parents vers les enfants.
+            $earliest = $known;
+            for ($round = 0, $changed = true; $changed && $round < 20; $round++) {
+                $changed = false;
+                foreach ($parents as $child => $ps) {
+                    if (isset($known[$child])) {
+                        continue;
+                    }
+                    foreach ($ps as $parent) {
+                        if (! isset($earliest[$parent])) {
+                            continue;
+                        }
+                        $bound = $earliest[$parent] + self::MIN_PARENT_GAP;
+                        if (! isset($earliest[$child]) || $bound > $earliest[$child]) {
+                            $earliest[$child] = $bound;
+                            $changed = true;
+                        }
+                    }
+                }
+            }
+
+            $bounds = [];
+            foreach ($parents as $id => $_) {
+                if (isset($known[$id])) {
+                    continue;
+                }
+                $l = $latest[$id] ?? null;
+                $e = $earliest[$id] ?? null;
+                if ($l !== null || $e !== null) {
+                    $bounds[$id] = ['latest' => $l, 'earliest' => $e];
+                }
+            }
+
+            return $bounds;
+        });
+    }
+
     public function doubts(Person $person, Media $media, ?array $kin = null): array
     {
         $doubts = [];
+
+        // Choisi à la main malgré tout : on signale ce que dit l'arbre.
+        if ($media->taken_at && $this->genealogyImplausible($person, $media->taken_at->year)) {
+            $bounds = $this->genealogyBounds()[$person->id];
+            $doubts[] = ['code' => 'generation', 'label' => $bounds['latest'] !== null && $media->taken_at->year - $bounds['latest'] > self::PRESUMED_MAX_AGE
+                ? "D'après l'arbre, né".($person->gender === 'F' ? 'e' : '')." avant {$bounds['latest']}"
+                : "D'après l'arbre, pas encore né".($person->gender === 'F' ? 'e' : '')];
+        }
 
         if ($media->taken_at && $person->birth_date && $person->birth_date->lte($media->taken_at)) {
             $age = (int) $person->birth_date->diffInYears($media->taken_at);
