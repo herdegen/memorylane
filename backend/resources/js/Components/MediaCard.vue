@@ -2,8 +2,8 @@
   <div
     class="relative group overflow-hidden bg-surface-100 cursor-pointer transition-transform duration-200"
     :class="[
-      fill ? 'w-full h-full rounded-xs' : 'aspect-square rounded-lg hover:scale-105 hover:shadow-warm-lg',
-      { 'ring-2 ring-brand-500 ring-offset-2': selectable && isSelected },
+      fill ? 'w-full h-full rounded-xs' : 'aspect-square rounded-none sm:rounded-lg sm:hover:scale-105 sm:hover:shadow-warm-lg',
+      { 'ring-2 ring-brand-500 ring-inset sm:ring-offset-2 sm:ring-inset-0': selectable && isSelected },
     ]"
     @click="$emit('click', media, $event)"
   >
@@ -113,10 +113,11 @@
       </div>
     </div>
 
-    <!-- Selection Checkbox (if selectable) -->
+    <!-- Selection Checkbox (if selectable) — téléphone : seulement en mode sélection -->
     <div
       v-if="selectable"
       class="absolute top-2 right-2 z-10"
+      :class="selectionActive || isSelected ? '' : 'hidden sm:block'"
       @click.stop="$emit('toggle-selection', media, $event)"
     >
       <div
@@ -173,6 +174,12 @@ const props = defineProps({
   isSelected: {
     type: Boolean,
     default: false,
+  },
+  // Sélection en cours (téléphone : les cases n'apparaissent qu'alors ;
+  // explicitement false dans la galerie tant qu'on n'a pas touché « Sélectionner »).
+  selectionActive: {
+    type: Boolean,
+    default: true,
   },
   // Mode mosaïque : la tuile remplit sa cellule de grille (spans variables)
   // au lieu d'être carrée ; coins quasi droits, pas de zoom au survol.

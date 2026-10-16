@@ -1,20 +1,31 @@
 <template>
   <Head title="Mes photos" />
   <AppLayout>
-    <div class="py-12">
+    <div class="py-3 sm:py-12">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Page Header -->
-        <div class="mb-6 flex items-center justify-between gap-4">
-          <div>
-            <h1 class="text-display text-4xl text-surface-900">Mes photos</h1>
-            <p class="mt-2 text-surface-600">
+        <!-- Page Header (téléphone : titre compact + compteur, « Sélectionner ») -->
+        <div class="mb-3 sm:mb-6 flex items-center justify-between gap-4">
+          <div class="min-w-0">
+            <h1 class="text-display text-[26px] sm:text-4xl text-surface-900 truncate">
+              <span class="sm:hidden">Photos</span><span class="hidden sm:inline">Mes photos</span>
+              <span v-if="totalCount" class="font-sans text-sm font-semibold text-surface-500 ml-1">{{ totalCount }}</span>
+            </h1>
+            <p class="mt-2 text-surface-600 hidden sm:block">
               Parcourez vos photos, vidéos et documents
             </p>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              class="sm:hidden h-9 px-3.5 rounded-full border text-sm font-semibold"
+              :class="selectionMode ? 'bg-brand-600 border-brand-600 text-white' : 'bg-white border-surface-300 text-surface-900'"
+              @click="toggleSelectionMode"
+            >
+              {{ selectionMode ? 'Terminer' : 'Sélectionner' }}
+            </button>
             <Link
               href="/media/upload"
-              class="btn-primary"
+              class="btn-primary hidden sm:inline-flex"
             >
               <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -25,14 +36,16 @@
         </div>
 
         <!-- Barre d'actions de sélection -->
+        <!-- Téléphone : barre fixée en bas (sous le pouce, par-dessus les onglets) ; desktop : collante en haut -->
         <div
           v-if="selectedIds.length > 0"
-          class="mb-6 sticky top-2 z-20 flex flex-wrap items-center gap-3 rounded-lg bg-brand-600 px-4 py-3 text-white shadow-md"
+          class="fixed inset-x-0 bottom-0 z-50 pb-[env(safe-area-inset-bottom)] sm:pb-3 sm:static sm:mb-6 sm:sticky sm:top-2 sm:z-20 sm:inset-auto
+                 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-3 sm:rounded-lg bg-brand-600 px-4 py-3 text-white shadow-md"
         >
           <span class="font-medium">
             {{ selectedIds.length }} sélectionné{{ selectedIds.length > 1 ? 's' : '' }}
           </span>
-          <div class="flex flex-wrap items-center gap-2 sm:ml-auto">
+          <div class="flex flex-nowrap sm:flex-wrap items-center gap-2 sm:ml-auto overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible [&>button]:shrink-0">
             <button
               type="button"
               class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-white/15 hover:bg-white/25 transition disabled:opacity-50"
@@ -126,8 +139,8 @@
           </Link>
         </div>
 
-        <!-- Search & Filters Bar -->
-        <div class="mb-6 bg-white rounded-lg shadow-xs p-4 space-y-4">
+        <!-- Search & Filters Bar (téléphone : sans carte, une ligne de filtres qui défile) -->
+        <div class="mb-3 sm:mb-6 sm:bg-white sm:rounded-lg sm:shadow-xs sm:p-4 space-y-3 sm:space-y-4">
           <!-- Search -->
           <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -139,7 +152,7 @@
               v-model="searchQuery"
               type="text"
               placeholder="Rechercher dans vos médias..."
-              class="block w-full pl-10 pr-3 py-2 border border-surface-300 rounded-md leading-5 bg-white placeholder-surface-500 focus:outline-hidden focus:placeholder-surface-400 focus:ring-1 focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
+              class="block w-full pl-10 pr-3 py-2 border border-surface-300 rounded-full sm:rounded-md leading-5 bg-white placeholder-surface-500 focus:outline-hidden focus:placeholder-surface-400 focus:ring-1 focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
               @input="debouncedSearch"
             />
           </div>
@@ -230,8 +243,8 @@
           />
         </div>
 
-        <!-- Media Grid -->
-        <div class="bg-white rounded-lg shadow-xs p-6" data-tour="gallery">
+        <!-- Media Grid (téléphone : bord à bord, sans carte) -->
+        <div class="-mx-4 sm:mx-0 sm:bg-white sm:rounded-lg sm:shadow-xs sm:p-6" data-tour="gallery">
           <MediaGrid
             :media="mediaItems"
             :loading="loading"
@@ -242,7 +255,7 @@
             :empty-state-message="emptyStateMessage"
             :group-by="filterState.sort === 'added' ? 'added' : 'taken'"
             :selectable="true"
-            :selection-active="selectedIds.length > 0"
+            :selection-active="selectedIds.length > 0 || selectionMode"
             :selected-ids="selectedIds"
             @filter-change="handleFilterChange"
             @media-click="handleMediaClick"
@@ -349,6 +362,14 @@ let searchTimeout = null;
 
 // Sélection multiple + ajout à un album.
 const selectedIds = ref([]);
+
+// Téléphone : « Sélectionner » bascule la grille en mode sélection (un
+// toucher coche) sans attendre une première case ; « Terminer » vide tout.
+const selectionMode = ref(false);
+const toggleSelectionMode = () => {
+  selectionMode.value = !selectionMode.value;
+  if (!selectionMode.value) selectedIds.value = [];
+};
 const selectingAll = ref(false);
 const toast = useToast();
 
@@ -418,6 +439,9 @@ watch(
 const mediaItems = computed(() => items.value);
 
 const hasMorePages = computed(() => page.value < lastPage.value);
+
+// Compteur du titre (téléphone) : total de l'onglet « Tous ».
+const totalCount = computed(() => (filterTabs.value || []).find((t) => t.value === 'all')?.count ?? null);
 
 const filterTabs = computed(() => [
   { value: 'all', label: 'Tous', count: props.media.total },

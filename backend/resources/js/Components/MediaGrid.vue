@@ -1,14 +1,14 @@
 <template>
   <div class="media-grid">
     <!-- Filter Tabs -->
-    <div class="mb-6 border-b border-surface-200">
-      <nav class="-mb-px flex space-x-8">
+    <div class="mb-2 sm:mb-6 border-b border-surface-200 px-4 sm:px-0">
+      <nav class="-mb-px flex space-x-6 sm:space-x-8 overflow-x-auto">
         <button
           v-for="tab in filterTabs"
           :key="tab.value"
           @click="$emit('filter-change', tab.value)"
           :class="[
-            'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-150',
+            'whitespace-nowrap py-3 sm:py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-150 shrink-0',
             currentFilter === tab.value
               ? 'border-brand-500 text-brand-600'
               : 'border-transparent text-surface-500 hover:text-surface-700 hover:border-surface-300'
@@ -84,20 +84,21 @@
       <div
         v-for="grp in groupedMedia"
         :key="'section-' + grp.key"
-        class="[&:not(:first-child)]:mt-8"
+        class="[&:not(:first-child)]:mt-4 sm:[&:not(:first-child)]:mt-8"
       >
         <!-- En-tête de section, collant juste sous la barre de navigation (h-16) -->
-        <div class="sticky top-16 z-10 -mx-6 mb-4 border-b border-surface-100 bg-white/95 px-6 py-2 backdrop-blur-sm">
+        <div class="sticky top-16 z-10 sm:-mx-6 mb-0.5 sm:mb-4 border-b border-surface-100 bg-page/95 sm:bg-white/95 px-4 sm:px-6 py-2 backdrop-blur-sm">
           <h2 class="text-sm font-semibold uppercase tracking-wide text-surface-500">
             {{ grp.label }}
           </h2>
         </div>
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div class="grid grid-cols-3 gap-0.5 sm:gap-4 md:grid-cols-4 lg:grid-cols-6">
           <MediaCard
             v-for="{ item, index } in grp.items"
             :key="item.id"
             :media="item"
             :selectable="selectable"
+            :selection-active="selectionActive"
             :is-selected="isSelected(item.id)"
             @click="(media, event) => handleTileClick(item, index, event)"
             @toggle-selection="(media, event) => applySelection(item, index, event)"
