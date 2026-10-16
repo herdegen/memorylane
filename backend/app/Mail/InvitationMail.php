@@ -121,7 +121,8 @@ class InvitationMail extends Mailable
             'inviterFirstName' => self::firstName($inviter?->name ?? $authorName),
             'authorFirstName' => self::firstName($authorName),
             'authorEmail' => config('mail.invitations.admin_from_address'),
-            'contactPhone' => config('mail.invitations.contact_phone'),
+            // Numéro de téléphone : seulement dans le mail famille, pas entre amis.
+            'contactPhone' => $this->friendsCircle() ? null : config('mail.invitations.contact_phone'),
             'repliesToAuthor' => self::sentFromAdminGmail($invitation),
             'personalMessage' => $invitation->message,
             'peopleCount' => self::roundDown(Person::count()),

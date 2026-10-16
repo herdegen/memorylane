@@ -323,4 +323,22 @@ class InvitationTest extends TestCase
         $this->assertStringContainsString('Et la famille ?', $html);
         $this->assertStringNotContainsString('arbre de la famille', $html);
     }
+
+    public function test_mail_amis_sans_numero_de_telephone(): void
+    {
+        config(['mail.invitations.contact_phone' => '0600000000']);
+        $friends = Household::factory()->friends()->create(['created_by' => $this->admin->id]);
+        $friend = Person::factory()->create(['user_id' => $this->admin->id, 'in_family_directory' => false, 'death_date' => null]);
+        $friend->circles()->attach($friends->id);
+        $invitation = app(InvitationService::class)->create($this->admin, 'ami@example.fr', $friend, ['household_id' => $friends->id]);
+
+        $mail = new \App\Mail\InvitationMail($invitation, 'https://example.test/bienvenue/x');
+        $this->assertStringNotContainsString('0600000000', $mail->render());
+        $this->assertStringNotContainsString('0600000000', view('mail.invitation-friends-text', $mail->viewData())->render());
+
+        // Le mail famille garde le numéro
+        $family = Person::factory()->create(['user_id' => $this->admin->id, 'death_date' => null]);
+        $familyMail = new \App\Mail\InvitationMail(app(InvitationService::class)->create($this->admin, 'cousin@example.fr', $family), 'https://example.test/bienvenue/y');
+        $this->assertSame('0600000000', $familyMail->viewData()['contactPhone']);
+    }
 }
