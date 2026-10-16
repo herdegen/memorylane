@@ -2,14 +2,14 @@
   <Head title="Accueil" />
   <AppLayout>
     <div class="page-container">
-      <div class="page-content space-y-9 px-4 sm:px-6 lg:px-8">
+      <div class="page-content flex flex-col gap-6 sm:gap-9 px-4 sm:px-6 lg:px-8">
 
         <!-- Salutation compacte -->
-        <div class="flex flex-wrap items-baseline justify-between gap-2">
-          <h1 class="font-display text-4xl font-bold text-surface-900">
+        <div class="order-first flex flex-col sm:flex-row sm:flex-wrap sm:items-baseline sm:justify-between gap-0.5 sm:gap-2">
+          <h1 class="font-display text-[26px] sm:text-4xl font-bold text-surface-900">
             Bonjour<span v-if="user">, {{ user.name.split(' ')[0] }}</span>.
           </h1>
-          <span class="text-sm text-surface-400">{{ formattedToday }}</span>
+          <span class="text-[13px] sm:text-sm text-surface-400">{{ formattedToday }}</span>
         </div>
 
         <!-- Installer l'application (téléphone, hors appli installée) -->
@@ -31,12 +31,12 @@
             </button>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="flex overflow-x-auto snap-x snap-mandatory gap-3 -mx-4 px-4 pb-1 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-4 sm:mx-0 sm:px-0 sm:overflow-visible">
             <button
               v-for="(group, gi) in onThisDay"
               :key="group.year"
               type="button"
-              class="relative h-72 rounded-2xl overflow-hidden shadow-warm-md text-left group hover:shadow-warm-lg transition"
+              class="relative w-[300px] sm:w-auto shrink-0 snap-start h-52 sm:h-72 rounded-2xl overflow-hidden shadow-warm-md text-left group hover:shadow-warm-lg transition"
               @click="playMemories(memoryOffset(gi))"
             >
               <!-- 1re couverture = image principale du haut de page : pas de lazy -->
@@ -117,12 +117,12 @@
         <!-- ============ Fêtes & anniversaires ============ -->
         <div v-if="celebrations.length > 0" class="space-y-4">
           <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400">Fêtes, anniversaires &amp; souvenirs</h2>
-          <div class="flex flex-wrap gap-3">
+          <div class="flex flex-nowrap sm:flex-wrap gap-3 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible">
             <Link
               v-for="(c, i) in celebrations"
               :key="i"
               :href="`/people/${c.person_id}`"
-              class="flex items-center gap-3 py-2.5 pl-3 pr-5 bg-white rounded-full shadow-warm-sm transition hover:shadow-warm-md"
+              class="flex items-center gap-3 py-2.5 pl-3 pr-5 bg-white rounded-full shadow-warm-sm transition hover:shadow-warm-md shrink-0 whitespace-nowrap"
               :class="[
                 c.days_until === 0 ? 'border' : 'border border-dashed opacity-80 hover:opacity-100',
                 c.kind === 'memorial' ? 'border-surface-300' : (c.days_until === 0 ? 'border-brand-300' : 'border-surface-300'),
@@ -143,8 +143,10 @@
           </div>
         </div>
 
-        <!-- ============ Quêtes : complétez la mémoire familiale ============ -->
-        <QuestCard data-tour="quests" />
+        <!-- ============ Quêtes : complétez la mémoire familiale (téléphone : en premier) ============ -->
+        <div class="order-first sm:order-none">
+          <QuestCard data-tour="quests" />
+        </div>
 
         <!-- ============ Notifications push (invitation, masquable) ============ -->
         <PushPromptCard />
@@ -152,7 +154,7 @@
         <!-- ============ Bien démarrer (masquable par personne) ============ -->
         <div
           v-if="guideVisible"
-          class="relative flex flex-col sm:flex-row sm:items-center gap-5 bg-linear-to-br from-brand-50 to-white border border-brand-200 rounded-2xl px-6 sm:px-7 py-5"
+          class="relative flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 bg-linear-to-br from-brand-50 to-white border border-brand-200 rounded-2xl px-4 sm:px-7 py-4 sm:py-5"
         >
           <button
             @click="hideGuide"
@@ -179,8 +181,8 @@
           </Link>
         </div>
 
-        <!-- ============ Accès rapide ============ -->
-        <div>
+        <!-- ============ Accès rapide (desktop ; sur téléphone la barre d'onglets suffit) ============ -->
+        <div class="hidden sm:block">
           <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400 mb-4">Accès rapide</h2>
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Link href="/media/upload" class="action-card group">

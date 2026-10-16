@@ -15,7 +15,7 @@
       <div
         v-if="question"
         :key="question.key"
-        class="flex flex-col sm:flex-row gap-5 bg-white border border-surface-200 rounded-2xl shadow-warm-md px-6 py-5"
+        class="flex flex-col sm:flex-row gap-4 sm:gap-5 bg-white border border-surface-200 rounded-2xl shadow-warm-md px-4 sm:px-6 py-4 sm:py-5"
       >
         <!-- Visuel : avatar / visage / photo (cliquable si une photo entière existe) -->
         <div class="shrink-0 flex sm:block justify-center">
