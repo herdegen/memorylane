@@ -8,7 +8,7 @@
              focus:outline-hidden focus:ring-2 focus:ring-brand-500 transition-colors max-w-56"
       :aria-expanded="open"
       aria-haspopup="menu"
-      @click="open = !open"
+      @click="sheet ? $emit('open') : (open = !open)"
     >
       <span class="w-7 h-7 shrink-0 rounded-full bg-brand-600 text-white flex items-center justify-center">
         <CircleKindIcon :kind="current?.kind" class="w-4 h-4" />
@@ -17,7 +17,7 @@
       <IconChevron class="w-4 h-4 shrink-0 text-surface-500 transition-transform" :class="{ 'rotate-180': open }" />
     </button>
 
-    <div v-show="open" role="menu" class="absolute left-0 mt-2 w-80 bg-white border border-surface-200 rounded-2xl shadow-warm-lg p-2 z-50">
+    <div v-show="open && !sheet" role="menu" class="absolute left-0 mt-2 w-80 bg-white border border-surface-200 rounded-2xl shadow-warm-lg p-2 z-50">
       <div class="px-3 pt-2 pb-1 text-xs font-semibold uppercase tracking-wider text-surface-500">Mes cercles</div>
       <button
         v-for="c in circles"
@@ -59,6 +59,11 @@ import { Link, router } from '@inertiajs/vue3';
 import { IconChevron } from '@/Components/Icons';
 import CircleKindIcon from '@/Components/CircleKindIcon.vue';
 import { useCircle, KIND_LABELS } from '@/Composables/useCircle';
+
+// `sheet` (téléphone) : le chip n'ouvre pas de menu déroulant mais demande
+// l'ouverture de la feuille « Cercles & compte ».
+defineProps({ sheet: { type: Boolean, default: false } });
+defineEmits(['open']);
 
 const { circles, current, canManage, canCreate } = useCircle();
 

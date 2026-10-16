@@ -9,7 +9,7 @@
           <!-- Logo + nav links -->
           <div class="flex">
             <div class="shrink-0 flex items-center">
-              <Link href="/dashboard" class="flex items-center gap-2 group">
+              <Link href="/dashboard" class="flex items-center gap-2 group" aria-label="Accueil">
                 <!-- Logo SVG polaroid -->
                 <span class="w-8 h-8 rounded-lg bg-brand-100 flex items-center justify-center group-hover:bg-brand-200 transition-colors">
                   <svg class="w-5 h-5 text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -18,14 +18,17 @@
                     <path d="M3 16l4-4 3 3 4-5 4 6"/>
                   </svg>
                 </span>
-                <span class="text-display text-lg text-surface-900 group-hover:text-brand-700 transition-colors">
+                <span class="hidden sm:inline text-display text-lg text-surface-900 group-hover:text-brand-700 transition-colors">
                   MemoryLane
                 </span>
               </Link>
             </div>
 
-            <div v-if="user" class="hidden sm:flex items-center ml-5">
-              <CircleSwitcher />
+            <div v-if="user" class="flex items-center ml-3 sm:ml-5 min-w-0">
+              <CircleSwitcher class="hidden sm:block" />
+              <CircleSwitcher sheet class="sm:hidden" @open="showAccountSheet = true" />
+              <!-- Un seul cercle (téléphone) : juste son nom, pas de sélecteur -->
+              <span v-if="circles.length <= 1 && current" class="sm:hidden text-sm font-semibold text-surface-700 truncate">{{ current.name }}</span>
             </div>
 
             <div class="hidden sm:ml-6 sm:flex sm:space-x-1">
@@ -93,8 +96,8 @@
             </template>
           </div>
 
-          <!-- Mobile menu button -->
-          <div class="flex items-center gap-1 sm:hidden">
+          <!-- Téléphone : recherche + compte (feuille) ; la navigation est dans la barre d'onglets -->
+          <div class="flex items-center sm:hidden">
             <!-- Recherche (téléphone) : ouvre un panneau sous la barre -->
             <button
               v-if="user"
@@ -111,22 +114,15 @@
               </svg>
             </button>
             <button
-              @click="toggleTheme"
-              class="p-2 rounded-lg text-surface-500 hover:text-surface-700 hover:bg-surface-100 focus:outline-hidden focus:ring-2 focus:ring-brand-500 transition-colors"
-              :aria-label="isDark ? 'Passer en mode clair' : 'Passer en mode sombre'"
-            >
-              <IconTheme :dark="isDark" icon-class="w-6 h-6" />
-            </button>
-            <button
+              v-if="user"
               type="button"
-              @click="toggleMobileMenu"
-              class="p-2 rounded-lg text-surface-500 hover:text-surface-700 hover:bg-surface-100 focus:outline-hidden focus:ring-2 focus:ring-brand-500 transition-colors"
-              :aria-label="showMobileMenu ? 'Fermer le menu' : 'Ouvrir le menu'"
-              :aria-expanded="showMobileMenu"
-              aria-controls="mobile-menu"
+              class="w-11 h-11 flex items-center justify-center rounded-full focus:outline-hidden focus:ring-2 focus:ring-brand-500"
+              aria-label="Cercles et compte"
+              @click="showAccountSheet = true"
             >
-              <IconMenu :open="showMobileMenu" />
+              <PersonAvatar :name="user.name" :size="8" />
             </button>
+            <Link v-else href="/login" class="btn-primary">Connexion</Link>
           </div>
         </div>
       </div>
@@ -140,67 +136,26 @@
         <SearchBar full-width autofocus />
       </div>
 
-      <!-- Mobile menu -->
-      <div v-show="showMobileMenu" id="mobile-menu" class="sm:hidden border-t border-surface-100 bg-surface-50">
-        <div v-if="user && circles.length > 1" class="px-3 pt-3">
-          <CircleSwitcher />
-        </div>
-        <div class="py-2 space-y-0.5 px-3">
-          <MobileNavLink href="/dashboard" :active="$page.component === 'Dashboard'">Accueil</MobileNavLink>
-          <MobileNavLink href="/media" :active="$page.component.startsWith('Media/') && $page.component !== 'Media/Upload'">Mes photos</MobileNavLink>
-          <MobileNavLink href="/media/upload" :active="$page.component === 'Media/Upload'">Ajouter des photos</MobileNavLink>
-          <MobileNavLink href="/albums" :active="$page.component.startsWith('Albums/')">Albums</MobileNavLink>
-          <MobileNavLink href="/people" :active="$page.component.startsWith('People/')">{{ peopleLabel }}</MobileNavLink>
-          <MobileNavLink v-if="isFriends" href="/network" :active="$page.component.startsWith('Network/')">Réseau</MobileNavLink>
-          <MobileNavLink v-else href="/family-tree" :active="$page.component.startsWith('FamilyTree/') || $page.component.startsWith('Network/')">Arbre</MobileNavLink>
-          <MobileNavLink href="/map" :active="$page.component.startsWith('Map/')">Carte</MobileNavLink>
-        </div>
-        <div class="pt-3 pb-4 border-t border-surface-200 mx-3">
-          <template v-if="user">
-            <div class="flex items-center gap-3 px-1 mb-3">
-              <PersonAvatar :name="user.name" :size="9" />
-              <div>
-                <div class="text-sm font-semibold text-surface-900">{{ user.name }}</div>
-                <div class="text-xs text-surface-500">{{ user.email }}</div>
-              </div>
-            </div>
-            <div class="space-y-0.5">
-              <MobileNavLink href="/profile">Mon profil</MobileNavLink>
-              <MobileNavLink href="/households" :active="$page.component.startsWith('Households/')">Cercles</MobileNavLink>
-              <MobileNavLink href="/tags" :active="$page.component.startsWith('Tags/')">Tags</MobileNavLink>
-              <MobileNavLink href="/guide" :active="$page.component === 'Guide'">Guide d'utilisation</MobileNavLink>
-              <button type="button"
-                class="block w-full text-left pl-3 pr-4 py-2.5 border-l-4 border-transparent text-base font-medium text-surface-600 hover:bg-surface-100 hover:border-surface-300 rounded-r-lg transition-all"
-                @click="launchTour">
-                Visite guidée
-              </button>
-              <button v-if="showInstallEntry" type="button"
-                class="block w-full text-left pl-3 pr-4 py-2.5 border-l-4 border-transparent text-base font-medium text-brand-700 hover:bg-brand-50 hover:border-brand-300 rounded-r-lg transition-all"
-                @click="openInstall">
-                Installer l'application
-              </button>
-              <a v-if="isAdmin" href="/admin"
-                class="block pl-3 pr-4 py-2.5 border-l-4 border-transparent text-base font-medium
-                       text-brand-700 hover:bg-brand-50 hover:border-brand-300 rounded-r-lg transition-all">
-                Administration
-              </a>
-              <button type="button" @click="logout" :disabled="loggingOut"
-                class="block w-full text-left pl-3 pr-4 py-2.5 border-l-4 border-transparent text-base font-medium
-                       text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:border-red-300 dark:hover:border-red-500/40 rounded-r-lg transition-all">
-                Déconnexion
-              </button>
-            </div>
-          </template>
-          <template v-else>
-            <Link href="/login" class="btn-primary btn-full">Connexion</Link>
-          </template>
-        </div>
-      </div>
     </nav>
 
-    <main>
+    <main class="pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-0">
       <slot />
     </main>
+
+    <!-- Téléphone : barre d'onglets + feuilles « Ajouter » et « Cercles & compte » -->
+    <template v-if="user">
+      <MobileTabBar @add="showAddSheet = true" />
+      <AddSheet :open="showAddSheet" @close="showAddSheet = false" />
+      <AccountSheet
+        :open="showAccountSheet"
+        :show-install="showInstallEntry"
+        :logging-out="loggingOut"
+        @close="showAccountSheet = false"
+        @logout="logout"
+        @tour="launchTour"
+        @install="openInstall"
+      />
+    </template>
 
     <ToastContainer />
     <BringInDialog />
@@ -215,7 +170,9 @@ import { ref, watchEffect, onMounted, onUnmounted } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import NavLink from '@/Components/NavLink.vue';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
-import MobileNavLink from '@/Components/MobileNavLink.vue';
+import MobileTabBar from '@/Components/MobileTabBar.vue';
+import AddSheet from '@/Components/AddSheet.vue';
+import AccountSheet from '@/Components/AccountSheet.vue';
 import SearchBar from '@/Components/SearchBar.vue';
 import CircleSwitcher from '@/Components/CircleSwitcher.vue';
 import ToastContainer from '@/Components/ToastContainer.vue';
@@ -226,7 +183,7 @@ import { startTour } from '@/Composables/useTour';
 import InstallAppTutorial from '@/Components/InstallAppTutorial.vue';
 import { useInstallApp } from '@/Composables/useInstallApp';
 import axios from 'axios';
-import { IconSettings, IconChevron, IconMenu, IconTheme } from '@/Components/Icons';
+import { IconSettings, IconChevron, IconTheme } from '@/Components/Icons';
 import { useAuth } from '@/Composables/useAuth';
 import { useTheme } from '@/Composables/useTheme';
 import { startBackgroundFaceScan } from '@/Composables/useBackgroundFaceScan';
@@ -238,7 +195,7 @@ import { useCircle } from '@/Composables/useCircle';
 const { user, isAdmin } = useAuth();
 const { isDark, toggle: toggleTheme } = useTheme();
 const { syncOnce: syncPushSubscription, unsubscribeThisDevice, permission: pushPermission } = usePush();
-const { mode, isFriends, circles, peopleLabel } = useCircle();
+const { mode, isFriends, circles, current, peopleLabel } = useCircle();
 
 // Accent du mode (ambre famille, teal amis) : app.css recolore la palette
 // `brand` sous [data-mode=friends].
@@ -247,18 +204,20 @@ watchEffect(() => {
 });
 
 const showDropdown = ref(false);
-const showMobileMenu = ref(false);
 const showMobileSearch = ref(false);
+const showAddSheet = ref(false);
+const showAccountSheet = ref(false);
 
-// Téléphone : recherche et menu s'excluent (un seul panneau sous la barre).
 const toggleMobileSearch = () => {
   showMobileSearch.value = !showMobileSearch.value;
-  if (showMobileSearch.value) showMobileMenu.value = false;
 };
-const toggleMobileMenu = () => {
-  showMobileMenu.value = !showMobileMenu.value;
-  if (showMobileMenu.value) showMobileSearch.value = false;
-};
+
+// Toute navigation referme les feuilles et la recherche.
+router.on('navigate', () => {
+  showAddSheet.value = false;
+  showAccountSheet.value = false;
+  showMobileSearch.value = false;
+});
 
 // Déconnexion : cet appareil ne doit plus recevoir les notifications du
 // compte. On le désabonne AVANT (le DELETE serveur exige encore la session),
@@ -270,6 +229,7 @@ const logout = async () => {
   if (loggingOut.value) return;
   loggingOut.value = true;
   showDropdown.value = false;
+  showAccountSheet.value = false;
   if (pushPermission.value === 'granted') {
     try {
       await Promise.race([
@@ -288,7 +248,7 @@ const logout = async () => {
 const page = usePage();
 const launchTour = () => {
   showDropdown.value = false;
-  showMobileMenu.value = false;
+  showAccountSheet.value = false;
   startTour(page);
 };
 
@@ -299,7 +259,7 @@ const { device: installDevice, isMobile, standalone, canPromptNative, promptInst
 const showInstallEntry = isMobile && !standalone;
 const showInstallTutorial = ref(false);
 const openInstall = async () => {
-  showMobileMenu.value = false;
+  showAccountSheet.value = false;
   if (canPromptNative.value && await promptInstall()) return;
   showInstallTutorial.value = true;
 };

@@ -250,6 +250,7 @@ import { fetchOwnedAlbums, createAlbumWithMedia, addMediaToAlbum } from '@/utils
 import { useCircle } from '@/Composables/useCircle';
 import { useConfirm } from '@/Composables/useConfirm';
 import { apiError } from '@/utils/apiError';
+import { takePendingFiles } from '@/utils/pendingUpload';
 
 // `album-attached` : { albumId, albumName, count, isNew } ; `organize` : ids
 // envoyés, pour proposer un rangement en album après coup.
@@ -288,6 +289,11 @@ const ownedAlbums = ref([]);
 const loadingAlbums = ref(false);
 
 onMounted(async () => {
+  // Fichiers choisis depuis la feuille « Ajouter » (barre d'onglets) :
+  // on les prend en charge directement, sans second sélecteur.
+  const pending = takePendingFiles();
+  if (pending.length) addFiles(pending);
+
   if (props.targetAlbumId) return;
   loadingAlbums.value = true;
   try {
