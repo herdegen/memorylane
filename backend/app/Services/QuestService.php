@@ -433,6 +433,39 @@ class QuestService
             ->all();
     }
 
+    /** Réponse « personne inconnue » donnée depuis un cercle (vaut pour lui seul). */
+    private static function isCircleStranger(QuestAnswer $a): bool
+    {
+        return $a->question_type === QuestType::FaceIdentify->value
+            && $a->answer_kind === 'no'
+            && $a->household_id !== null
+            && ($a->payload['reason'] ?? null) === 'stranger';
+    }
+
+    /**
+     * Parmi ces visages, ceux dits « inconnus » dans le cercle courant du
+     * compte (à ne plus compter comme « à identifier » pour lui).
+     *
+     * @param  iterable<string>  $faceIds
+     * @return array<string, true>
+     */
+    public function circleStrangerFaceIds(User $user, iterable $faceIds): array
+    {
+        $circleId = $user->currentCircle()?->id;
+        $keys = collect($faceIds)->map(fn ($id) => QuestType::FaceIdentify->key($id))->all();
+        if (! $circleId || $keys === []) {
+            return [];
+        }
+
+        return QuestAnswer::where('household_id', $circleId)
+            ->whereIn('question_key', $keys)
+            ->where('answer_kind', 'no')
+            ->get(['subject_id', 'household_id', 'question_type', 'answer_kind', 'payload'])
+            ->filter(fn ($a) => self::isCircleStranger($a))
+            ->mapWithKeys(fn ($a) => [$a->subject_id => true])
+            ->all();
+    }
+
     /** Visage d'arrière-plan : minuscule, ou bien plus petit que le plus grand de la photo. */
     public const BACKGROUND_MIN_WIDTH = 1.5;    // % de la largeur de la photo
 
@@ -484,10 +517,21 @@ class QuestService
         );
 
         $answers = QuestAnswer::whereIn('question_key', array_unique($keys))
-            ->get(['question_key', 'user_id', 'answer_kind', 'question_type', 'created_at']);
+            ->get(['question_key', 'user_id', 'household_id', 'answer_kind', 'question_type', 'payload', 'created_at']);
 
+        $circleId = $user->currentCircle()?->id;
         $excluded = [];
         foreach ($answers as $a) {
+            // Visage « inconnu / pas du groupe » : éteint seulement dans le
+            // cercle où on l'a dit.
+            if (self::isCircleStranger($a)) {
+                if ($a->household_id === $circleId) {
+                    $excluded[$a->question_key] = true;
+                }
+
+                continue;
+            }
+
             $perUser = QuestType::from($a->question_type)->perUser();
 
             $globallyExcluded = ! $perUser && match ($a->answer_kind) {
@@ -598,16 +642,35 @@ class QuestService
                 // « Sur cette photo avec Antoine et Pauline » : les personnes
                 // déjà identifiées (visibles) aident à reconnaître la suivante.
                 'with' => $subject->media->people()->visibleTo($user)->orderBy('name')->limit(4)->pluck('people.name'),
-                'suggestions' => array_slice($this->faceMatcher->rankedCandidates(
+                'suggestions' => $this->contextSuggestions($user, $this->faceMatcher->rankedCandidates(
                     $subject,
                     $this->faceMatcher->matchThreshold(),
                     $subject->media->user_id,
                     $user,
-                ), 0, 4),
+                )),
             ];
         }
 
         return $question;
+    }
+
+    /**
+     * Suggestions d'un « Qui est-ce ? » limitées aux fiches du cercle courant :
+     * on ne propose pas, à l'aveugle, les noms d'une autre famille ou d'un
+     * autre groupe (même présents à l'événement, même pour un admin). Les 4
+     * meilleures.
+     */
+    private function contextSuggestions(User $user, array $ranked): array
+    {
+        if ($ranked === []) {
+            return [];
+        }
+        $allowed = Person::inContext($user)
+            ->whereIn('people.id', array_map(fn ($s) => $s['person']['id'], $ranked))
+            ->pluck('people.id')
+            ->flip();
+
+        return array_slice(array_values(array_filter($ranked, fn ($s) => isset($allowed[$s['person']['id']]))), 0, 4);
     }
 
     /**

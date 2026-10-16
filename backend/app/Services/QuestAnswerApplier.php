@@ -119,6 +119,13 @@ class QuestAnswerApplier
         $this->authorize($user, $type, $subject);
 
         if ($type === QuestType::FaceIdentify && $subject->status === 'unmatched') {
+            // « Personne inconnue / pas du groupe » depuis un cercle : vaut pour
+            // ce cercle seulement (journal quest_answers.household_id) — le
+            // visage reste à identifier pour les autres familles et groupes.
+            // « Pas un visage », ou sans cercle : pour tout le monde.
+            if ($reason === 'stranger' && $user->currentCircle()) {
+                return;
+            }
             $this->faceMatcher->disassociate($subject, $reason === 'stranger' ? FaceMatcher::REJECTED_STATUS : 'dismissed');
         }
     }

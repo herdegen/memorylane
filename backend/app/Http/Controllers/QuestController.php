@@ -107,6 +107,7 @@ class QuestController extends Controller
 
                 QuestAnswer::create([
                     'user_id' => $user->id,
+                    'household_id' => $user->currentCircle()?->id,
                     'question_type' => $type->value,
                     'question_key' => $type->key($subject->id),
                     'subject_type' => $subject->getMorphClass(),

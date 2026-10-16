@@ -4,10 +4,11 @@
        trois gestes — ← inconnu · ↓ passer · → c'est la première suggestion.
        Les réponses passent par /quests/answer (même journal que le Dashboard). -->
   <Head title="Qui est-ce ?" />
-  <div class="fixed inset-0 z-[60] bg-[#1c1917] text-white flex flex-col select-none" :style="{ paddingTop: 'env(safe-area-inset-top)' }">
+  <!-- Couleurs fixes (snow, pas white) : le mode sombre redéfinit « white » en sombre. -->
+  <div class="fixed inset-0 z-[60] bg-[#1c1917] text-snow flex flex-col select-none" :style="{ paddingTop: 'env(safe-area-inset-top)' }">
     <!-- Haut : quitter, progression, série -->
     <div class="flex items-center gap-2 px-2 pt-2">
-      <button type="button" class="h-10 pl-2.5 pr-3.5 rounded-full bg-white/12 border border-white/20 flex items-center gap-1.5 text-[13px] font-bold shrink-0 active:bg-white/20" @click="quit">
+      <button type="button" class="h-10 pl-2.5 pr-3.5 rounded-full bg-snow/12 border border-snow/20 flex items-center gap-1.5 text-[13px] font-bold shrink-0 active:bg-snow/20" @click="quit">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18L18 6M6 6l12 12" /></svg>
         Quitter
       </button>
@@ -16,7 +17,7 @@
           <span class="truncate">{{ album ? album.name : 'Qui est-ce ?' }}</span>
           <span class="shrink-0 ml-2">{{ done }} / {{ totalLabel }}</span>
         </div>
-        <div class="h-1.5 rounded-full bg-white/15 overflow-hidden">
+        <div class="h-1.5 rounded-full bg-snow/15 overflow-hidden">
           <div class="h-full rounded-full bg-amber-500 transition-all duration-500" :style="{ width: progress + '%' }"></div>
         </div>
       </div>
@@ -43,7 +44,7 @@
         <div
           ref="cardEl"
           :key="card.subject_id"
-          class="relative w-full rounded-[28px] bg-white text-[#1c1917] shadow-[0_30px_60px_-20px_rgba(0,0,0,.6)] overflow-hidden touch-none"
+          class="relative w-full rounded-[28px] bg-snow text-[#1c1917] shadow-[0_30px_60px_-20px_rgba(0,0,0,.6)] overflow-hidden touch-none"
           :class="{ 'card-leave': leaving }"
           :style="cardStyle"
           @pointerdown="onPointerDown"
@@ -54,11 +55,11 @@
           <!-- Le visage, grand -->
           <div class="relative h-[300px] bg-stone-200">
             <img :src="card.face.crop_url" alt="" class="absolute inset-0 w-full h-full object-cover" draggable="false" />
-            <span v-if="whereLabel" class="absolute left-3.5 top-3.5 max-w-[70%] truncate px-2.5 py-1 rounded-full bg-[#1c1917]/75 text-white text-xs font-bold">{{ whereLabel }}</span>
+            <span v-if="whereLabel" class="absolute left-3.5 top-3.5 max-w-[70%] truncate px-2.5 py-1 rounded-full bg-[#1c1917]/75 text-snow text-xs font-bold">{{ whereLabel }}</span>
             <!-- Vignette de la photo entière : tap = voir le contexte -->
             <button
               type="button"
-              class="absolute right-3 bottom-3 w-16 h-12 rounded-[10px] overflow-hidden border-2 border-white shadow-[0_6px_16px_rgba(0,0,0,.4)] bg-stone-300"
+              class="absolute right-3 bottom-3 w-16 h-12 rounded-[10px] overflow-hidden border-2 border-snow shadow-[0_6px_16px_rgba(0,0,0,.4)] bg-stone-300"
               aria-label="Voir la photo entière"
               @click.stop="showContext = true"
             >
@@ -97,7 +98,7 @@
 
       <!-- Chargement / fin de partie -->
       <div v-else-if="loading" class="text-stone-400 text-sm">Chargement des visages…</div>
-      <div v-else class="w-full max-w-[350px] rounded-[28px] bg-white text-[#1c1917] p-7 text-center flex flex-col items-center gap-3">
+      <div v-else class="w-full max-w-[350px] rounded-[28px] bg-snow text-[#1c1917] p-7 text-center flex flex-col items-center gap-3">
         <span class="text-5xl">🎉</span>
         <h2 class="font-display text-2xl">{{ done ? 'Bravo !' : 'Rien à identifier' }}</h2>
         <p class="text-sm text-stone-600">
@@ -133,7 +134,7 @@
         <img :src="card.face.image_url" alt="" class="max-w-[100vw] max-h-[100dvh] object-contain" />
         <div v-if="boxStyle" class="absolute border-2 border-amber-400 rounded-sm shadow-[0_0_0_9999px_rgba(0,0,0,.35)]" :style="boxStyle"></div>
       </div>
-      <button type="button" class="absolute top-3 right-3 w-11 h-11 rounded-full bg-white/15 text-white flex items-center justify-center" aria-label="Fermer" :style="{ marginTop: 'env(safe-area-inset-top)' }">
+      <button type="button" class="absolute top-3 right-3 w-11 h-11 rounded-full bg-snow/15 text-snow flex items-center justify-center" aria-label="Fermer" :style="{ marginTop: 'env(safe-area-inset-top)' }">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18L18 6M6 6l12 12" /></svg>
       </button>
     </div>

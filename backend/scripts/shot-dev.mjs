@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Captures mobiles (390×844, DPR 2) de l'environnement de DEV, connecté en
 // admin par lien magique. Usage : node scripts/shot-dev.mjs <lien-magique> <dossier> /chemin1 [/chemin2…]
+// DARK=1 node scripts/shot-dev.mjs … : en mode sombre.
 // Un chemin peut enchaîner un clic : « /media|click:.media-card », ou « |full » (page entière).
 // Le lien se génère dans ~/memorylane-dev :
 //   docker compose exec -T app php artisan tinker --execute='echo App\Notifications\MagicLoginLink::urlFor(App\Models\User::where("role","admin")->first());'
@@ -14,6 +15,8 @@ const origin = new URL(magic).origin;
 mkdirSync(out, { recursive: true });
 const b = await puppeteer.launch({ headless: 'shell', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
 const p = await b.newPage();
+// DARK=1 : captures en mode sombre (préférence système, sans toucher au compte)
+if (process.env.DARK) await p.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }]);
 await p.authenticate({ username: creds['identifiant'], password: creds['mot de passe'] });
 const errs = []; p.on('pageerror', (e) => errs.push(String(e))); p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
 await p.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });

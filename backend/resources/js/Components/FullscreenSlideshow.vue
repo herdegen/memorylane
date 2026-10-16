@@ -41,13 +41,13 @@
             <div class="text-center max-w-2xl">
               <div v-if="currentItem.card.icon" class="text-6xl mb-4">{{ currentItem.card.icon }}</div>
               <p v-if="currentItem.card.date" class="text-brand-300 text-lg mb-2">{{ currentItem.card.date }}</p>
-              <h2 class="text-white text-3xl font-semibold mb-2">{{ currentItem.card.title }}</h2>
-              <p v-if="currentItem.card.place" class="text-white/70 text-lg">{{ currentItem.card.place }}</p>
-              <p v-if="currentItem.card.description" class="text-white/60 mt-3 whitespace-pre-wrap">{{ currentItem.card.description }}</p>
+              <h2 class="text-snow text-3xl font-semibold mb-2">{{ currentItem.card.title }}</h2>
+              <p v-if="currentItem.card.place" class="text-snow/70 text-lg">{{ currentItem.card.place }}</p>
+              <p v-if="currentItem.card.description" class="text-snow/60 mt-3 whitespace-pre-wrap">{{ currentItem.card.description }}</p>
               <img
                 v-if="currentItem.card.avatarUrl"
                 :src="currentItem.card.avatarUrl"
-                class="w-24 h-24 rounded-full object-cover mx-auto mt-5 border-2 border-white/30"
+                class="w-24 h-24 rounded-full object-cover mx-auto mt-5 border-2 border-snow/30"
               />
             </div>
           </div>
@@ -79,10 +79,10 @@
           <span
             v-for="k in barCount"
             :key="k"
-            class="flex-1 h-[3px] rounded-full bg-white/35 overflow-hidden"
+            class="flex-1 h-[3px] rounded-full bg-snow/35 overflow-hidden"
           >
             <span
-              class="block h-full bg-white"
+              class="block h-full bg-snow"
               :class="{ 'story-fill': k - 1 === barIndex && currentItem?.type !== 'video' && !traveling }"
               :style="k - 1 < barIndex ? { width: '100%' } : (k - 1 === barIndex ? { width: currentItem?.type === 'video' || traveling ? '100%' : undefined, '--story-dur': `${photoDuration}ms`, animationPlayState: isPaused ? 'paused' : 'running' } : { width: '0%' })"
             ></span>
@@ -91,16 +91,16 @@
 
         <!-- En-tête : titre + moment, pause, fermer -->
         <div class="absolute left-4 right-2 flex items-center justify-between gap-2 pointer-events-none" :style="{ top: 'calc(24px + env(safe-area-inset-top))' }">
-          <div class="min-w-0 text-white [text-shadow:0_1px_6px_rgba(0,0,0,.6)]">
+          <div class="min-w-0 text-snow [text-shadow:0_1px_6px_rgba(0,0,0,.6)]">
             <div class="text-sm font-bold truncate">{{ title || currentItem?.label || '' }}</div>
-            <div v-if="currentItem?.when" class="text-xs text-white/85 truncate">{{ currentItem.when }}</div>
+            <div v-if="currentItem?.when" class="text-xs text-snow/85 truncate">{{ currentItem.when }}</div>
           </div>
           <div class="flex shrink-0 pointer-events-auto">
-            <button type="button" class="w-11 h-11 flex items-center justify-center text-white" :aria-label="isPaused ? 'Reprendre' : 'Pause'" @click.stop="togglePause">
+            <button type="button" class="w-11 h-11 flex items-center justify-center text-snow" :aria-label="isPaused ? 'Reprendre' : 'Pause'" @click.stop="togglePause">
               <svg v-if="isPaused" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
               <svg v-else class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" /><rect x="14" y="5" width="4" height="14" /></svg>
             </button>
-            <button type="button" class="w-11 h-11 flex items-center justify-center text-white" aria-label="Fermer" @click.stop="close">
+            <button type="button" class="w-11 h-11 flex items-center justify-center text-snow" aria-label="Fermer" @click.stop="close">
               <svg class="w-[22px] h-[22px]" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
@@ -109,16 +109,16 @@
         <!-- Légende -->
         <div
           v-if="currentItem && currentItem.type !== 'card'"
-          class="absolute inset-x-0 bottom-0 px-5 pt-20 pb-[calc(2rem+env(safe-area-inset-bottom))] bg-linear-to-t from-black/80 to-transparent flex flex-col gap-2.5 pointer-events-none text-white"
+          class="absolute inset-x-0 bottom-0 px-5 pt-20 pb-[calc(2rem+env(safe-area-inset-bottom))] bg-linear-to-t from-black/80 to-transparent flex flex-col gap-2.5 pointer-events-none text-snow"
         >
-          <span v-if="currentItem.chapter" class="self-start px-2.5 py-1 rounded-full bg-white/20 text-xs font-bold tracking-[.06em] uppercase">{{ currentItem.chapter }}</span>
+          <span v-if="currentItem.chapter" class="self-start px-2.5 py-1 rounded-full bg-snow/20 text-xs font-bold tracking-[.06em] uppercase">{{ currentItem.chapter }}</span>
           <div v-if="storyCaption" class="font-display text-[26px] leading-[1.15] [text-shadow:0_2px_10px_rgba(0,0,0,.5)] line-clamp-3">{{ storyCaption }}</div>
           <div v-if="currentItem.people?.length" class="flex flex-wrap gap-2">
-            <span v-for="name in currentItem.people.slice(0, 4)" :key="name" class="inline-flex items-center gap-1.5 h-7 pl-1 pr-2.5 rounded-full bg-white/20 text-[13px] font-semibold">
+            <span v-for="name in currentItem.people.slice(0, 4)" :key="name" class="inline-flex items-center gap-1.5 h-7 pl-1 pr-2.5 rounded-full bg-snow/20 text-[13px] font-semibold">
               <span class="w-[22px] h-[22px] rounded-full bg-brand-600 text-[10px] font-bold flex items-center justify-center">{{ initials(name) }}</span>{{ name.split(/\s+/)[0] }}
             </span>
           </div>
-          <div class="flex items-center justify-between text-xs text-white/75">
+          <div class="flex items-center justify-between text-xs text-snow/75">
             <span>{{ pointer + 1 }} / {{ order.length }}</span>
             <span v-if="storyHintVisible">Touchez pour avancer · maintenez pour faire pause</span>
           </div>
@@ -131,7 +131,7 @@
           <!-- Fermer -->
           <button
             @click.stop="close"
-            class="absolute top-4 right-4 pointer-events-auto w-11 h-11 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+            class="absolute top-4 right-4 pointer-events-auto w-11 h-11 rounded-full bg-black/50 text-snow flex items-center justify-center hover:bg-black/70 transition-colors"
             title="Quitter le diaporama"
           >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -144,7 +144,7 @@
             <div class="flex items-center justify-center gap-4">
               <button
                 @click.stop="previous"
-                class="w-11 h-11 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors"
+                class="w-11 h-11 rounded-full bg-snow/10 text-snow flex items-center justify-center hover:bg-snow/20 transition-colors"
                 title="Précédent"
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -154,7 +154,7 @@
 
               <button
                 @click.stop="togglePause"
-                class="w-14 h-14 rounded-full bg-white/15 text-white flex items-center justify-center hover:bg-white/25 transition-colors"
+                class="w-14 h-14 rounded-full bg-snow/15 text-snow flex items-center justify-center hover:bg-snow/25 transition-colors"
                 :title="isPaused ? 'Reprendre' : 'Pause'"
               >
                 <svg v-if="isPaused" class="w-7 h-7 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
@@ -167,7 +167,7 @@
 
               <button
                 @click.stop="next"
-                class="w-11 h-11 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors"
+                class="w-11 h-11 rounded-full bg-snow/10 text-snow flex items-center justify-center hover:bg-snow/20 transition-colors"
                 title="Suivant"
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -176,9 +176,9 @@
               </button>
             </div>
 
-            <p class="text-center text-white/70 text-sm mt-3">
+            <p class="text-center text-snow/70 text-sm mt-3">
               {{ pointer + 1 }} / {{ order.length }}
-              <span v-if="currentItem?.label || currentItem?.chapter" class="text-white/40">— {{ currentItem.label || currentItem.chapter }}</span>
+              <span v-if="currentItem?.label || currentItem?.chapter" class="text-snow/40">— {{ currentItem.label || currentItem.chapter }}</span>
             </p>
           </div>
         </div>

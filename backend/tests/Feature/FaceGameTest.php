@@ -3,8 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\Album;
+use App\Models\DetectedFace;
+use App\Models\Household;
 use App\Models\Media;
+use App\Models\Person;
 use App\Models\User;
+use App\Services\Vision\FaceMatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -71,6 +75,86 @@ class FaceGameTest extends TestCase
         $this->actingAs($user)->get("/quests/faces?album={$album->id}")
             ->assertOk()
             ->assertInertia(fn ($page) => $page->component('Quests/Faces', false)->where('album.id', $album->id));
+    }
+
+    /** Un compte membre d'une famille et d'un groupe d'amis, une photo partagée aux deux. */
+    private function twoWorlds(): array
+    {
+        $me = User::factory()->create();
+        $family = Household::factory()->create();
+        $friends = Household::factory()->friends()->create();
+        $family->members()->attach($me->id);
+        $friends->members()->attach($me->id);
+        $media = Media::factory()->photo()->create(['user_id' => $me->id]);
+        $media->households()->attach([$family->id, $friends->id]);
+
+        return [$me, $family, $friends, $media];
+    }
+
+    public function test_inconnu_dans_un_groupe_ne_verrouille_pas_les_autres_cercles(): void
+    {
+        [$me, $family, $friends, $media] = $this->twoWorlds();
+        $face = $this->unmatchedFace($media);
+
+        $me->forceFill(['current_household_id' => $friends->id])->save();
+        $this->actingAs($me)->postJson('/quests/answer', [
+            'question_type' => 'face_identify',
+            'subject_id' => $face->id,
+            'answer_kind' => 'no',
+            'payload' => ['reason' => 'stranger'],
+        ])->assertSuccessful();
+
+        // Le visage reste à identifier pour tout le monde…
+        $this->assertSame('unmatched', $face->fresh()->status);
+        $this->assertDatabaseHas('quest_answers', ['subject_id' => $face->id, 'household_id' => $friends->id]);
+
+        // …n'est plus proposé dans le groupe d'amis…
+        $inFriends = $this->actingAs($me)->getJson('/quests/faces/next')->json();
+        $this->assertNotContains($face->id, array_column($inFriends['questions'], 'subject_id'));
+
+        // …mais l'est toujours dans la famille.
+        $me->forceFill(['current_household_id' => $family->id])->save();
+        $inFamily = $this->actingAs($me->fresh())->getJson('/quests/faces/next')->json();
+        $this->assertContains($face->id, array_column($inFamily['questions'], 'subject_id'));
+    }
+
+    public function test_pas_un_visage_vaut_pour_tout_le_monde(): void
+    {
+        [$me, , $friends, $media] = $this->twoWorlds();
+        $face = $this->unmatchedFace($media);
+        $me->forceFill(['current_household_id' => $friends->id])->save();
+
+        $this->actingAs($me)->postJson('/quests/answer', [
+            'question_type' => 'face_identify',
+            'subject_id' => $face->id,
+            'answer_kind' => 'no',
+            'payload' => ['reason' => 'not_face'],
+        ])->assertSuccessful();
+
+        $this->assertSame('dismissed', $face->fresh()->status);
+    }
+
+    public function test_suggestions_limitees_aux_fiches_du_cercle_courant(): void
+    {
+        [$me, $family, $friends, $media] = $this->twoWorlds();
+        $face = $this->unmatchedFace($media);
+        $lea = Person::factory()->create(['name' => 'Léa Amie', 'in_family_directory' => false]);
+        $lea->circles()->attach($friends->id);
+        $paul = Person::factory()->create(['name' => 'Paul Cousin', 'in_family_directory' => true]);
+
+        $this->partialMock(FaceMatcher::class, fn ($m) => $m->shouldReceive('rankedCandidates')->andReturn([
+            ['person' => ['id' => $paul->id, 'name' => $paul->name], 'distance' => 0.3, 'score' => 0.9],
+            ['person' => ['id' => $lea->id, 'name' => $lea->name], 'distance' => 0.4, 'score' => 0.7],
+        ]));
+
+        $me->forceFill(['current_household_id' => $friends->id])->save();
+        $q = $this->actingAs($me)->getJson('/quests/faces/next')->json('questions.0');
+        $this->assertSame($face->id, $q['subject_id']);
+        $this->assertSame([$lea->id], array_column(array_column($q['face']['suggestions'], 'person'), 'id'));
+
+        $me->forceFill(['current_household_id' => $family->id])->save();
+        $q = $this->actingAs($me->fresh())->getJson('/quests/faces/next')->json('questions.0');
+        $this->assertSame([$paul->id], array_column(array_column($q['face']['suggestions'], 'person'), 'id'));
     }
 
     public function test_album_inaccessible_refuse(): void

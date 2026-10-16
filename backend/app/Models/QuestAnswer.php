@@ -10,6 +10,7 @@ class QuestAnswer extends Model
     use HasUuids;
 
     protected $fillable = [
+        'household_id',
         'user_id',
         'question_type',
         'question_key',

@@ -201,6 +201,18 @@ class AlbumController extends Controller
             'detectedFaces as pending_faces_count' => fn ($q) => $q->where('status', 'unmatched')->whereNull('person_id'),
         ]);
 
+        // Visages dits « inconnus » dans le cercle courant : plus à identifier ici.
+        $strangers = app(\App\Services\QuestService::class)->circleStrangerFaceIds(
+            $request->user(),
+            \App\Models\DetectedFace::whereIn('media_id', $album->media->pluck('id'))
+                ->where('status', 'unmatched')->whereNull('person_id')->pluck('id'),
+        );
+        if ($strangers !== []) {
+            $perMedia = \App\Models\DetectedFace::whereIn('id', array_keys($strangers))
+                ->selectRaw('media_id, count(*) as n')->groupBy('media_id')->pluck('n', 'media_id');
+            $album->media->each(fn ($m) => $m->pending_faces_count = max(0, $m->pending_faces_count - (int) ($perMedia[$m->id] ?? 0)));
+        }
+
         // « Qui était là ? » : aperçu des participants déclarés (carte sous le
         // héro sur téléphone) ; la liste complète s'édite dans la modale.
         $album->participants_preview = $album->participants()
