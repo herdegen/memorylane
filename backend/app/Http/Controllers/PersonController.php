@@ -56,6 +56,11 @@ class PersonController extends Controller
         // l'utilisateur, sur le graphe parents/enfants/conjoints. Sert au tri.
         $selfPersonId = auth()->user()->person_id;
         $proximity = $this->genealogy->proximity($selfPersonId);
+        // Libellé de parenté (« votre fils », « votre tante ») pour les proches
+        // à 4 liens au plus — liste téléphone. Jamais entre amis.
+        $paths = ($selfPersonId && $request->user()->mode() !== 'friends')
+            ? $this->genealogy->pathsFrom($selfPersonId, 4)
+            : [];
 
         // Annuaire allégé : seuls les champs lus par la page et les sélecteurs
         // de personne (plus de notes, lieux, ni photo de profil complète).
@@ -67,6 +72,10 @@ class PersonController extends Controller
             'avatar_url' => $this->resolveAvatarUrl($person),
             'proximity' => $proximity['distance'][$person->id] ?? null,
             'relatives_count' => $proximity['degree'][$person->id] ?? 0,
+            'is_self' => $person->id === $selfPersonId,
+            'relation_label' => isset($paths[$person->id])
+                ? \App\Services\GenealogyService::relationLabel($paths[$person->id], $person->gender)
+                : null,
         ]);
 
         if ($request->wantsJson()) {

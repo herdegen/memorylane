@@ -39,7 +39,7 @@ const props = defineProps({
   name: { type: String, default: undefined },
   src: { type: String, default: undefined },
   position: { type: String, default: undefined },
-  // Préréglages : 5, 6, 7, 8 ou 9 (w-N h-N + taille de l'initiale).
+  // Préréglages : 5, 6, 7, 8, 9, 10 ou 12 (w-N h-N + taille de l'initiale).
   size: { type: [Number, String], default: null },
   // circle (rounded-full) | rounded (rounded-xl) | none (le parent arrondit).
   shape: { type: String, default: 'circle' },
@@ -57,6 +57,8 @@ const SIZES = {
   7: 'w-7 h-7 text-xs',
   8: 'w-8 h-8 text-xs',
   9: 'w-9 h-9 text-sm',
+  10: 'w-10 h-10 text-sm',
+  12: 'w-12 h-12 text-base',
 };
 
 const SHAPES = {

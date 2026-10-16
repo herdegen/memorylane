@@ -180,6 +180,15 @@
    Layout
    ============================================================================= */
 @layer components {
+  /* Pages plein écran (arbre, réseau, carte) : sous la barre du haut (4rem) ;
+     téléphone : moins le segmenté « Proches » (3.25rem) et la barre d'onglets
+     (4rem + zone sûre). */
+  .app-viewport {
+    height: calc(100dvh - 4rem - 3.25rem - 4rem - env(safe-area-inset-bottom, 0px));
+  }
+  @media (min-width: 640px) {
+    .app-viewport { height: calc(100dvh - 4rem); }
+  }
   .page-container {
     @apply py-4 sm:py-10;
   }

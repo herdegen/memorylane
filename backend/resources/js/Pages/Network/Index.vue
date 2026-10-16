@@ -1,7 +1,8 @@
 <template>
   <Head title="Réseau" />
   <AppLayout title="Réseau">
-    <div class="h-[calc(100vh-4rem)] flex relative">
+    <PeopleSegments />
+    <div class="app-viewport flex relative">
       <!-- Zone graphe -->
       <div class="relative flex-1 min-w-0 bg-page">
         <svg
@@ -189,7 +190,7 @@
         v-if="!loading && rawEdges.length"
         class="bg-white border-surface-200 overflow-y-auto
                md:w-80 md:border-l md:p-5 md:static
-               max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-30 max-md:max-h-[60vh]
+               max-md:fixed max-md:inset-x-0 max-md:bottom-[calc(4rem+env(safe-area-inset-bottom))] max-md:z-30 max-md:max-h-[60vh]
                max-md:rounded-t-2xl max-md:border-t max-md:shadow-warm-lg max-md:p-4
                max-md:transition-transform max-md:duration-300"
         :class="selected ? 'max-md:translate-y-0' : 'max-md:translate-y-full'"
@@ -299,6 +300,7 @@
 import { ref, shallowRef, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import PeopleSegments from '@/Components/PeopleSegments.vue';
 import axios from 'axios';
 import { forceSimulation, forceLink, forceManyBody, forceCollide, forceX, forceY } from 'd3-force';
 import { zoom as d3zoom, zoomIdentity } from 'd3-zoom';

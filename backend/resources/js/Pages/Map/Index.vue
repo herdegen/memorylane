@@ -1,12 +1,13 @@
 <template>
   <Head title="Carte" />
   <AppLayout title="Carte">
-    <div class="h-[calc(100dvh-4rem)] flex relative">
+    <PeopleSegments />
+    <div class="app-viewport flex relative">
       <!-- Fond assombri (téléphone, panneau des filtres ouvert) -->
       <div
         v-if="filtersOpen"
         @click="filtersOpen = false"
-        class="md:hidden fixed inset-x-0 top-16 bottom-0 z-20 bg-black/40"
+        class="md:hidden fixed inset-x-0 top-16 bottom-0 z-50 bg-black/40"
         aria-hidden="true"
       ></div>
 
@@ -15,7 +16,7 @@
       <aside
         id="map-filters"
         class="w-80 bg-white shadow-lg p-4 overflow-y-auto shrink-0
-               max-md:fixed max-md:top-16 max-md:bottom-0 max-md:left-0 max-md:z-30
+               max-md:fixed max-md:top-16 max-md:bottom-0 max-md:left-0 max-md:z-50
                max-md:w-[85%] max-md:max-w-xs max-md:shadow-warm-lg
                max-md:transition-transform max-md:duration-300"
         :class="filtersOpen ? 'max-md:translate-x-0' : 'max-md:-translate-x-full'"
@@ -198,6 +199,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import PeopleSegments from '@/Components/PeopleSegments.vue';
 import { useCircle } from '@/Composables/useCircle';
 import { formatDate } from '@/utils/format';
 import { escapeHtml } from '@/utils/html';

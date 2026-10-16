@@ -1,19 +1,20 @@
 <template>
   <Head title="Arbre généalogique" />
   <AppLayout title="Arbre genealogique">
-    <div class="h-[calc(100vh-4rem)] flex relative">
+    <PeopleSegments />
+    <div class="app-viewport flex relative">
       <!-- Backdrop (mobile, tiroir ouvert) -->
       <div
         v-if="drawerOpen"
         @click="drawerOpen = false"
-        class="md:hidden fixed inset-x-0 top-16 bottom-0 z-20 bg-black/40"
+        class="md:hidden fixed inset-x-0 top-16 bottom-0 z-50 bg-black/40"
         aria-hidden="true"
       ></div>
 
       <!-- Sidebar — colonne fixe sur desktop, tiroir escamotable sur mobile -->
       <div
         class="w-80 bg-surface-100 border-r border-surface-200 p-4 overflow-y-auto shrink-0
-               max-md:fixed max-md:top-16 max-md:bottom-0 max-md:left-0 max-md:z-30
+               max-md:fixed max-md:top-16 max-md:bottom-0 max-md:left-0 max-md:z-50
                max-md:w-[85%] max-md:max-w-xs max-md:shadow-warm-lg
                max-md:transition-transform max-md:duration-300"
         :class="drawerOpen ? 'max-md:translate-x-0' : 'max-md:-translate-x-full'"
@@ -442,6 +443,7 @@
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import PeopleSegments from '@/Components/PeopleSegments.vue';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
 import axios from 'axios';
 import * as f3 from 'family-chart';
