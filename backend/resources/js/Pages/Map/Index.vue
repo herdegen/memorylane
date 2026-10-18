@@ -288,7 +288,9 @@ const activeFilterCount = computed(() =>
   (filters.value.type ? 1 : 0)
   + (filters.value.search ? 1 : 0)
   + selectedTags.value.length
-  + (heatmapEnabled.value ? 1 : 0)
+  // Couche « où vit la famille » : active par défaut, la pastille signale
+  // seulement qu'on l'a coupée.
+  + (heatmapEnabled.value ? 0 : 1)
   + (selectedLocation.value ? 1 : 0));
 
 // Initialize map
@@ -307,6 +309,8 @@ onMounted(async () => {
 
   // Tags (filtres) et médias géolocalisés : indépendants, chargés en parallèle.
   await Promise.all([loadTags(), loadGeolocatedMedia()]);
+  // « Où vit la famille / où vivent mes amis » : affichée d'office.
+  showHeatmap();
 });
 
 onUnmounted(() => {
@@ -532,13 +536,10 @@ function updateMarkers() {
 
 // Couche heatmap : les points arrivent déjà arrondis (~1 km) et anonymes
 // du serveur ; le grand radius accentue volontairement l'aspect « nuage ».
-async function toggleHeatmap() {
-  heatmapEnabled.value = !heatmapEnabled.value;
-
-  if (!heatmapEnabled.value) {
-    if (heatLayer) map.removeLayer(heatLayer);
-    return;
-  }
+// Activée par défaut. Le calque est recréé à chaque affichage : leaflet.heat
+// ne se réaffiche pas correctement une fois retiré puis réajouté.
+async function showHeatmap() {
+  heatmapEnabled.value = true;
 
   if (!heatPoints) {
     try {
@@ -555,21 +556,38 @@ async function toggleHeatmap() {
       return;
     }
   }
+  // Désactivée pendant le chargement : on n'affiche rien.
+  if (!heatmapEnabled.value || !map) return;
 
+  if (heatLayer) map.removeLayer(heatLayer);
   // Réglé pour de FAIBLES densités (souvent 1 personne par ville, max 2-3) :
   // - maxZoom bas : leaflet.heat divise l'intensité par 2^(maxZoom - zoom),
   //   avec la valeur par défaut un point isolé est invisible au niveau France ;
-  // - max: 1.5 : 1 personne = tache orange bien visible, 2+ = rouge saturé ;
+  // - max: 3 : 1 personne = halo clair, 2 = plus soutenu, 3+ = la teinte
+  //   la plus foncée — jamais de rouge, aux couleurs du cercle (ambre en
+  //   famille, sarcelle entre amis) ;
   // - minOpacity garde le halo lisible sur les tuiles claires.
-  heatLayer ??= L.heatLayer(heatPoints, {
+  heatLayer = L.heatLayer(heatPoints, {
     radius: 45,
     blur: 25,
     maxZoom: 6,
-    max: 1.5,
-    minOpacity: 0.35,
-  });
-  heatLayer.setLatLngs(heatPoints).addTo(map);
+    max: 3,
+    minOpacity: 0.3,
+    gradient: isFriends.value
+      ? { 0.15: '#ccfbf1', 0.4: '#5eead4', 0.7: '#14b8a6', 1: '#0f766e' }
+      : { 0.15: '#fef3c7', 0.4: '#fcd34d', 0.7: '#f59e0b', 1: '#d97706' },
+  }).addTo(map);
 }
+
+function hideHeatmap() {
+  heatmapEnabled.value = false;
+  if (heatLayer) {
+    map.removeLayer(heatLayer);
+    heatLayer = null;
+  }
+}
+
+const toggleHeatmap = () => (heatmapEnabled.value ? hideHeatmap() : showHeatmap());
 
 // Toggle tag filter
 function toggleTag(tagId) {
