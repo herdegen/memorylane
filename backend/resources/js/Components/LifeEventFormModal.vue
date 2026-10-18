@@ -78,47 +78,47 @@
           </select>
         </div>
 
-        <!-- Photo d'illustration (parmi les photos de la personne) -->
-        <div v-if="photoOptions.length > 0">
-          <label class="block text-sm font-medium text-surface-700 mb-1">Photo (optionnel)</label>
-          <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-            <button
-              v-for="opt in photoOptions"
-              :key="opt.media.id"
-              type="button"
-              @click="form.media_id = form.media_id === opt.media.id ? null : opt.media.id"
-              class="w-14 h-14 rounded-lg overflow-hidden border-2 transition"
-              :class="form.media_id === opt.media.id ? 'border-brand-500' : 'border-transparent hover:border-surface-300'"
-            >
-              <img :src="opt.media.thumbnail_url || opt.media.url" class="w-full h-full object-cover" loading="lazy" decoding="async" />
+        <!-- Photos du moment : choisies dans tout ce qu'on voit (récentes,
+             autour de la date, avec la personne, un album). La première (ou
+             celle à l'étoile) illustre le moment ; l'ordre est celui de la
+             rafale du récit de vie. -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-sm font-medium text-surface-700">
+              Photos (optionnel)
+              <span v-if="selectedPhotos.length" class="font-normal text-surface-500">— {{ selectedPhotos.length }}</span>
+            </label>
+            <button type="button" class="text-sm font-semibold text-brand-700 dark:text-brand-400 hover:underline" @click="pickerOpen = true">
+              {{ selectedPhotos.length ? 'Modifier' : 'Choisir des photos' }}
             </button>
           </div>
-        </div>
-
-        <!-- Galerie du moment : plusieurs photos, dans l'ordre des clics
-             (le numéro indique la place dans la rafale du récit). -->
-        <div v-if="photoOptions.length > 0">
-          <label class="block text-sm font-medium text-surface-700 mb-1">
-            Galerie du moment (optionnel)
-            <span v-if="form.photos.length" class="font-normal text-surface-500">— {{ form.photos.length }} photo{{ form.photos.length > 1 ? 's' : '' }}, dans l'ordre des clics</span>
-          </label>
-          <div class="flex flex-wrap gap-2 max-h-40 overflow-y-auto">
-            <button
-              v-for="opt in photoOptions"
-              :key="'g-' + opt.media.id"
-              type="button"
-              @click="toggleGalleryPhoto(opt.media.id)"
-              class="relative w-14 h-14 rounded-lg overflow-hidden border-2 transition"
-              :class="galleryIndex(opt.media.id) >= 0 ? 'border-brand-500' : 'border-transparent hover:border-surface-300'"
-              :title="opt.title || ''"
-            >
-              <img :src="opt.media.thumbnail_url || opt.media.url" class="w-full h-full object-cover" loading="lazy" decoding="async" />
-              <span
-                v-if="galleryIndex(opt.media.id) >= 0"
-                class="absolute top-0.5 left-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-brand-600 text-white text-[11px] font-semibold flex items-center justify-center"
-              >{{ galleryIndex(opt.media.id) + 1 }}</span>
-            </button>
+          <div v-if="selectedPhotos.length" class="flex gap-2 overflow-x-auto pb-1">
+            <div v-for="(p, i) in selectedPhotos" :key="p.id" class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden border-2" :class="illustrationId === p.id ? 'border-amber-400' : 'border-transparent'">
+              <img :src="p.thumbnail_url" alt="" class="w-full h-full object-cover" loading="lazy" decoding="async" />
+              <span class="absolute bottom-0.5 left-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-black/60 text-white text-[11px] font-semibold flex items-center justify-center">{{ i + 1 }}</span>
+              <button
+                type="button"
+                class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full flex items-center justify-center text-[12px]"
+                :class="illustrationId === p.id ? 'bg-amber-400 text-white' : 'bg-black/45 text-white/80'"
+                :title="illustrationId === p.id ? 'Photo d\'illustration' : 'En faire la photo d\'illustration'"
+                @click="form.media_id = p.id"
+              >★</button>
+              <button
+                type="button"
+                class="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/55 text-white text-xs flex items-center justify-center"
+                title="Retirer"
+                @click="removePhoto(p.id)"
+              >×</button>
+            </div>
           </div>
+          <button
+            v-else
+            type="button"
+            class="w-full h-16 rounded-lg border-2 border-dashed border-surface-300 text-sm text-surface-500 hover:border-brand-300 hover:text-brand-700"
+            @click="pickerOpen = true"
+          >
+            + Ajouter des photos (récentes, de la date, d'un album…)
+          </button>
         </div>
 
         <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
@@ -145,6 +145,16 @@
       @close="showMapPicker = false"
       @apply="applyCoordinates"
     />
+
+    <PhotoPicker
+      :open="pickerOpen"
+      :person-id="personId"
+      :person-name="personName"
+      :around="form.event_date"
+      :initial="selectedPhotos"
+      @close="pickerOpen = false"
+      @done="onPicked"
+    />
   </BaseModal>
 </template>
 
@@ -152,6 +162,7 @@
 import { computed, onMounted, ref, reactive, defineAsyncComponent } from 'vue';
 import axios from 'axios';
 import BaseModal from '@/Components/BaseModal.vue';
+import PhotoPicker from '@/Components/PhotoPicker.vue';
 
 // Chargé à l'ouverture seulement : la carte embarque Leaflet (~45 ko gzip).
 const GeolocatePickerModal = defineAsyncComponent(() => import('@/Components/GeolocatePickerModal.vue'));
@@ -159,7 +170,11 @@ const GeolocatePickerModal = defineAsyncComponent(() => import('@/Components/Geo
 const props = defineProps({
   personId: { type: String, required: true },
   event: { type: Object, default: null }, // item de frise (life_event) pour l'édition
-  photoOptions: { type: Array, default: () => [] }, // items kind==='photo'
+  photoOptions: { type: Array, default: () => [] }, // (ancien) items kind==='photo'
+  personName: { type: String, default: '' },
+  // Nouveau moment pré-rempli (« En faire un moment » depuis des photos) :
+  // { title, event_date, latitude, longitude, photos: [{ id, thumbnail_url }] }
+  prefill: { type: Object, default: null },
 });
 
 const emit = defineEmits(['close', 'saved']);
@@ -213,16 +228,15 @@ const allTypes = typeGroups.flatMap((g) => g.types);
 
 const form = reactive({
   type: props.event?.kind && allTypes.some(t => t.value === props.event.kind) ? props.event.kind : 'moment',
-  title: props.event?.title || '',
-  event_date: props.event?.date || '',
+  title: props.event?.title || props.prefill?.title || '',
+  event_date: props.event?.date || props.prefill?.event_date || '',
   end_date: props.event?.end_date || '',
   date_precision: props.event?.date_precision || 'day',
   place: props.event?.place || '',
-  latitude: props.event?.latitude ?? null,
-  longitude: props.event?.longitude ?? null,
+  latitude: props.event?.latitude ?? props.prefill?.latitude ?? null,
+  longitude: props.event?.longitude ?? props.prefill?.longitude ?? null,
   description: props.event?.description || '',
   media_id: props.event?.media?.id || null,
-  photos: (props.event?.photos || []).map((p) => p.id),
   album_id: props.event?.album?.id || null,
 });
 
@@ -252,12 +266,28 @@ const clearCoordinates = () => {
   form.longitude = null;
 };
 
-// Galerie : un clic ajoute en fin de liste, un second clic retire.
-const galleryIndex = (id) => form.photos.indexOf(id);
-const toggleGalleryPhoto = (id) => {
-  const i = galleryIndex(id);
-  if (i >= 0) form.photos.splice(i, 1);
-  else form.photos.push(id);
+// Photos du moment, dans l'ordre : l'illustration historique (si elle n'est
+// pas dans la galerie) en tête, puis la galerie.
+const thumbOf = (m) => m?.thumbnail_url || m?.url || '';
+const selectedPhotos = ref((() => {
+  if (props.prefill?.photos) return props.prefill.photos.map((p) => ({ id: p.id, thumbnail_url: thumbOf(p) }));
+  const list = (props.event?.photos || []).map((p) => ({ id: p.id, thumbnail_url: thumbOf(p) }));
+  const ill = props.event?.media;
+  if (ill && !list.some((p) => p.id === ill.id)) list.unshift({ id: ill.id, thumbnail_url: thumbOf(ill) });
+  return list;
+})());
+// Illustration : l'étoile, sinon la première photo.
+const illustrationId = computed(() =>
+  (form.media_id && selectedPhotos.value.some((p) => p.id === form.media_id)) ? form.media_id : (selectedPhotos.value[0]?.id || null));
+
+const pickerOpen = ref(false);
+const onPicked = (list) => {
+  selectedPhotos.value = list;
+  pickerOpen.value = false;
+};
+const removePhoto = (id) => {
+  selectedPhotos.value = selectedPhotos.value.filter((p) => p.id !== id);
+  if (form.media_id === id) form.media_id = null;
 };
 
 const saving = ref(false);
@@ -276,8 +306,8 @@ const save = async () => {
     latitude: form.latitude,
     longitude: form.longitude,
     description: form.description || null,
-    media_id: form.media_id || null,
-    photos: form.photos,
+    media_id: illustrationId.value,
+    photos: selectedPhotos.value.map((p) => p.id),
     album_id: form.album_id || null,
   };
   try {

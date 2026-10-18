@@ -161,6 +161,8 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         // IDs de tous les médias du filtre courant (« tout sélectionner »).
         // Déclarée avant /{media} pour ne pas être capturée comme un id.
         Route::get('/ids', [MediaController::class, 'ids'])->name('ids');
+        // Sélecteur de photos (moments…) : récentes, autour d'une date, personne, album.
+        Route::get('/pick', [MediaController::class, 'pick'])->name('pick');
         Route::get('/people', [MediaController::class, 'people'])->name('people');
         Route::get('/upload', [MediaController::class, 'create'])->name('create');
         Route::post('/', [MediaController::class, 'store'])->name('store');

@@ -129,7 +129,7 @@
       v-if="showModal"
       :person-id="personId"
       :event="editing"
-      :photo-options="photoItems"
+      :person-name="personName"
       @close="showModal = false"
       @saved="onSaved"
     />

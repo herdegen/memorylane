@@ -40,6 +40,69 @@ class MediaController extends Controller
     /**
      * Display a listing of media.
      */
+    /**
+     * Sélecteur de photos (moments de la frise…) : photos visibles dans le
+     * contexte courant, par onglet — récentes (mes derniers envois), autour
+     * d'une date, avec une personne, d'un album — avec une recherche texte.
+     */
+    public function pick(Request $request)
+    {
+        $validated = $request->validate([
+            'tab' => 'required|in:recent,date,person,album',
+            'around' => 'nullable|date',
+            'person_id' => ['nullable', 'uuid', new \App\Rules\VisiblePerson],
+            'album_id' => 'nullable|uuid',
+            'q' => 'nullable|string|max:100',
+            'page' => 'nullable|integer|min:1',
+        ]);
+        $user = $request->user();
+
+        $query = Media::inContext($user)->where('type', 'photo')->where('is_source', false);
+
+        match ($validated['tab']) {
+            'recent' => $query->where('user_id', $user->id)->orderByDesc('uploaded_at')->orderByDesc('id'),
+            'date' => isset($validated['around'])
+                // Dans l'année autour de la date, les plus proches d'abord.
+                ? $query->whereBetween('taken_at', [
+                    \Carbon\Carbon::parse($validated['around'])->subYear(),
+                    \Carbon\Carbon::parse($validated['around'])->addYear()->endOfDay(),
+                ])->orderByRaw('abs(extract(epoch from (taken_at - ?::timestamp)))', [$validated['around']])
+                : $query->whereRaw('1 = 0'),
+            'person' => isset($validated['person_id'])
+                ? $query->whereHas('people', fn ($p) => $p->where('people.id', $validated['person_id']))->orderByDesc('taken_at')
+                : $query->whereRaw('1 = 0'),
+            'album' => isset($validated['album_id'])
+                ? $query->whereHas('albums', fn ($a) => $a->whereKey(
+                    \App\Models\Album::accessibleBy($user)->whereKey($validated['album_id'])->value('id') ?? '00000000-0000-0000-0000-000000000000'
+                ))->orderBy('taken_at')
+                : $query->whereRaw('1 = 0'),
+        };
+
+        if ($q = trim($validated['q'] ?? '')) {
+            // Sans accents ni casse des deux côtés : « asterix » trouve « Astérix ».
+            $from = 'àâäáãåéèêëíìîïóòôöõúùûüçñÿ';
+            $to = 'aaaaaaeeeeiiiiooooouuuucny';
+            $norm = fn (string $col) => "translate(lower({$col}), '{$from}', '{$to}') like ?";
+            $like = '%'.str_replace(['%', '_'], ['\\%', '\\_'], \Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii($q))).'%';
+            $query->where(fn ($w) => $w->whereRaw($norm('media.title'), [$like])
+                ->orWhereRaw($norm('media.original_name'), [$like])
+                ->orWhereHas('albums', fn ($a) => $a->whereRaw($norm('albums.name'), [$like]))
+                ->orWhereHas('people', fn ($p) => $p->whereRaw($norm('people.name'), [$like])));
+        }
+
+        $page = $query->with('conversions')->simplePaginate(60, ['media.*']);
+
+        return response()->json([
+            'data' => collect($page->items())->map(fn (Media $m) => [
+                'id' => $m->id,
+                'title' => $m->title,
+                'taken_at' => $m->taken_at?->toDateString(),
+                'thumbnail_url' => $this->mediaService->thumbnailUrl($m, ['small', 'thumbnail']),
+            ])->values(),
+            'next_page' => $page->hasMorePages() ? $page->currentPage() + 1 : null,
+        ]);
+    }
+
     public function index(Request $request)
     {
         $filters = $request->only(self::FILTER_KEYS);
@@ -220,6 +283,21 @@ class MediaController extends Controller
             'ficheRequest' => $ficheRequest,
             // « Ajouter une personne » : présents sur l'album, même d'un autre cercle
             'albumPeople' => app(\App\Services\Vision\AlbumParticipants::class)->identifiedAround($media, auth()->user()),
+            // Moments de frise qui utilisent cette photo (illustration ou galerie),
+            // sur des fiches visibles du visiteur.
+            'moments' => \App\Models\LifeEvent::query()
+                ->where(fn ($q) => $q->where('media_id', $media->id)
+                    ->orWhereHas('photos', fn ($p) => $p->where('media.id', $media->id)))
+                ->whereHas('person', fn ($p) => $p->visibleTo($viewer))
+                ->with('person:id,name')
+                ->orderBy('event_date')
+                ->get()
+                ->map(fn ($ev) => [
+                    'id' => $ev->id,
+                    'title' => $ev->title,
+                    'date' => $ev->event_date?->toDateString(),
+                    'person' => ['id' => $ev->person->id, 'name' => $ev->person->name],
+                ])->values(),
         ]);
     }
 

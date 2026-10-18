@@ -325,6 +325,36 @@
               @people-updated="(list) => (mediaPeople = list)"
             />
 
+            <!-- Moments de frise : ceux qui utilisent déjà la photo, et
+                 « En faire un moment » (pour qui, puis formulaire pré-rempli). -->
+            <div
+              v-if="media.type === 'photo' && (moments.length || canMakeMoment)"
+              class="order-2 sm:order-none bg-white rounded-xl border border-surface-200 shadow-xs p-4 sm:p-6"
+            >
+              <div class="flex items-center justify-between gap-3" :class="moments.length ? 'mb-3' : ''">
+                <h2 class="text-lg font-semibold text-surface-900">Moments</h2>
+                <button
+                  v-if="canMakeMoment"
+                  type="button"
+                  class="text-sm font-semibold text-brand-700 dark:text-brand-400 hover:underline"
+                  @click="showMakeMoment = true"
+                >
+                  + En faire un moment
+                </button>
+              </div>
+              <ul v-if="moments.length" class="space-y-1.5">
+                <li v-for="m in moments" :key="m.id">
+                  <Link :href="`/people/${m.person.id}`" class="flex items-baseline gap-2 text-sm hover:underline">
+                    <span class="text-surface-900 font-medium">« {{ m.title }} »</span>
+                    <span class="text-surface-500">— {{ m.person.name }}{{ m.date ? ', ' + formatDate(m.date) : '' }}</span>
+                  </Link>
+                </li>
+              </ul>
+              <p v-else class="text-sm text-surface-500 mt-1">
+                Faites de cette photo un moment de la frise d'une personne (mariage, voyage, fête…).
+              </p>
+            </div>
+
             <!-- « Ajouter à la fiche » : propriétaire du média ou admin -->
             <FichePanel
               class="order-7 sm:order-none"
@@ -372,6 +402,14 @@
         </div>
       </div>
     </div>
+    <MomentFromPhotos
+      :open="showMakeMoment"
+      :photos="[{ id: media.id, thumbnail_url: smallThumbUrl(media), taken_at: media.taken_at }]"
+      :people="(mediaPeople || []).filter((p) => !p.restricted)"
+      :prefill="{ title: media.title || '', latitude: media.metadata?.latitude ?? null, longitude: media.metadata?.longitude ?? null }"
+      @close="showMakeMoment = false"
+      @saved="router.reload({ only: ['moments'] })"
+    />
     <OriginalViewer
       v-if="viewingOriginal"
       :original-url="media.url"
@@ -402,14 +440,15 @@ import OriginalViewer from '@/Components/OriginalViewer.vue';
 import VisionStatusBadge from '@/Components/VisionStatusBadge.vue';
 import VisionLabels from '@/Components/VisionLabels.vue';
 import VoiceNotesPanel from '@/Components/VoiceNotesPanel.vue';
+import MomentFromPhotos from '@/Components/MomentFromPhotos.vue';
 import VideoPlayer from '@/Components/VideoPlayer.vue';
 import { useFaceDetection } from '@/Composables/useFaceDetection';
 import { useToast } from '@/Composables/useToast';
 import { useConfirm } from '@/Composables/useConfirm';
 import { apiError } from '@/utils/apiError';
-import { formatFileSize, formatDuration } from '@/utils/format';
+import { formatFileSize, formatDuration, formatDate } from '@/utils/format';
 import { backTarget } from '@/utils/navigation';
-import { conversionUrl, displayUrl, webVideoUrl } from '@/utils/media';
+import { conversionUrl, displayUrl, webVideoUrl, thumbnailUrl as smallThumbUrl } from '@/utils/media';
 import axios from 'axios';
 
 // Éditeur de découpe : chargé seulement pour une vidéo. (VideoPlayer, lui,
@@ -439,6 +478,11 @@ const props = defineProps({
     required: true,
   },
   albumPeople: {
+    type: Array,
+    default: () => [],
+  },
+  // Moments de frise utilisant cette photo : [{ id, title, date, person }]
+  moments: {
     type: Array,
     default: () => [],
   },
@@ -482,6 +526,12 @@ const openFaceFromViewer = (face) => {
 // envoyé la photo seulement (la famille contribue via les quêtes).
 const isOwner = computed(() => props.media.user_id === usePage().props.auth?.user?.id);
 const isAdmin = computed(() => usePage().props.auth?.user?.role === 'admin');
+// « En faire un moment » : tout membre (pas un invité temporaire).
+const canMakeMoment = computed(() => {
+  const u = usePage().props.auth?.user;
+  return !!u && !u.is_guest && !u.simple_mode;
+});
+const showMakeMoment = ref(false);
 const canEditFaces = computed(() => isOwner.value || isAdmin.value);
 
 // Référence au lecteur vidéo (pour capturer le temps courant dans l'éditeur de découpe).

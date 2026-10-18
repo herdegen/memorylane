@@ -69,6 +69,15 @@
             <button
               type="button"
               class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-white text-brand-700 hover:bg-brand-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="selectedIds.length === 0 || selectedIds.length > 24"
+              :title="selectedIds.length > 24 ? '24 photos au plus par moment' : ''"
+              @click="showMakeMoment = true"
+            >
+              Créer un moment
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-white text-brand-700 hover:bg-brand-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
               :disabled="selectedIds.length === 0"
               @click="showDateModal = true"
             >
@@ -299,6 +308,12 @@
       @close="closeBulkModals"
       @apply="applyBulkGeolocation"
     />
+    <MomentFromPhotos
+      :open="showMakeMoment"
+      :photos="selectedPhotosForMoment"
+      @close="showMakeMoment = false"
+      @saved="selectedIds = []; selectionMode = false"
+    />
   </AppLayout>
 </template>
 
@@ -316,6 +331,8 @@ import { usePhotoSwipe } from '@/Composables/usePhotoSwipe';
 import { useToast } from '@/Composables/useToast';
 import { apiError } from '@/utils/apiError';
 import { useTags } from '@/Composables/useTags';
+import MomentFromPhotos from '@/Components/MomentFromPhotos.vue';
+import { thumbnailUrl as smallThumbUrl } from '@/utils/media';
 
 // Chargé à l'ouverture seulement : la carte embarque Leaflet (~45 ko gzip).
 const GeolocatePickerModal = defineAsyncComponent(() => import('@/Components/GeolocatePickerModal.vue'));
@@ -437,6 +454,15 @@ watch(
 
 // Computed properties
 const mediaItems = computed(() => items.value);
+
+// « Créer un moment » avec la sélection (photos seulement, dans l'ordre de la galerie).
+const showMakeMoment = ref(false);
+const selectedPhotosForMoment = computed(() => {
+  const ids = new Set(selectedIds.value);
+  return mediaItems.value
+    .filter((m) => ids.has(m.id) && m.type === 'photo')
+    .map((m) => ({ id: m.id, thumbnail_url: smallThumbUrl(m), taken_at: m.taken_at }));
+});
 
 const hasMorePages = computed(() => page.value < lastPage.value);
 

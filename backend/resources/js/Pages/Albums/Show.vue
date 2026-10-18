@@ -236,6 +236,13 @@
       </span>
       <div class="flex flex-nowrap sm:flex-wrap items-center gap-2 sm:ml-auto overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible [&>button]:shrink-0 [&>button]:whitespace-nowrap">
         <button
+          v-if="selectedMediaIds.length > 0 && selectedMediaIds.length <= 24"
+          @click="showMakeMoment = true"
+          class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-white text-brand-700 hover:bg-brand-50 transition"
+        >
+          Créer un moment
+        </button>
+        <button
           v-if="selectedMediaIds.length === 1"
           @click="editSelected"
           class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-white text-brand-700 hover:bg-brand-50 transition"
@@ -442,6 +449,13 @@
       @close="showParticipants = false"
       @saved="router.reload({ only: ['album'] })"
     />
+    <MomentFromPhotos
+      :open="showMakeMoment"
+      :photos="selectedPhotosForMoment"
+      :prefill="{ title: album.name, latitude: album.hero_location?.latitude ?? null, longitude: album.hero_location?.longitude ?? null }"
+      @close="showMakeMoment = false"
+      @saved="toggleSelectionMode"
+    />
   </AppLayout>
 </template>
 
@@ -464,6 +478,8 @@ import { formatLongDate } from '@/utils/format';
 import { useConfirm } from '@/Composables/useConfirm';
 import { slideUrl } from '@/utils/media';
 import AlbumParticipantsModal from '@/Components/AlbumParticipantsModal.vue';
+import MomentFromPhotos from '@/Components/MomentFromPhotos.vue';
+import { thumbnailUrl as smallThumbUrl } from '@/utils/media';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
 
 // Chargé à l'ouverture seulement : la carte embarque Leaflet (~45 ko gzip).
@@ -633,6 +649,15 @@ const applyAlbumGeolocation = async ({ latitude, longitude }) => {
 // via le menu ⋯ (demande UX : pas de cases par défaut).
 const selectionMode = ref(false);
 const selectedMediaIds = ref([]);
+
+// « Créer un moment » avec la sélection, titre et position de l'album en suggestion.
+const showMakeMoment = ref(false);
+const selectedPhotosForMoment = computed(() => {
+  const ids = new Set(selectedMediaIds.value);
+  return (props.album.media || [])
+    .filter((m) => ids.has(m.id) && m.type === 'photo')
+    .map((m) => ({ id: m.id, thumbnail_url: smallThumbUrl(m), taken_at: m.taken_at }));
+});
 
 const toggleSelectionMode = () => {
   selectionMode.value = !selectionMode.value;
