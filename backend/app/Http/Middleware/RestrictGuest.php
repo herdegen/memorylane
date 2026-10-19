@@ -26,6 +26,15 @@ class RestrictGuest
     {
         $user = $request->user();
 
+        // Compte « en mémoire » : une session restée ouverte est fermée.
+        if ($user?->isMemorial()) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login')->withErrors(['email' => 'Ce compte est conservé en mémoire : il n\'est plus possible de s\'y connecter.']);
+        }
+
         if (! $user?->isGuest()) {
             return $next($request);
         }

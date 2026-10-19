@@ -150,7 +150,10 @@
             {{ person.notes }}
           </p>
           <!-- Compte MemoryLane : présent, invitation en cours, ou bouton d'invitation -->
-          <div v-if="account.hasAccount" class="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+          <div v-if="account.memorial" class="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-surface-500">
+            🕯️ En mémoire
+          </div>
+          <div v-else-if="account.hasAccount" class="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
             <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
             Sur MemoryLane
           </div>

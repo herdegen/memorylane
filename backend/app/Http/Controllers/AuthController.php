@@ -44,6 +44,11 @@ class AuthController extends Controller
         }
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
+            if ($request->user()->isMemorial()) {
+                Auth::logout();
+
+                return back()->withErrors(['email' => 'Ce compte est conservé en mémoire : il n\'est plus possible de s\'y connecter.'])->onlyInput('email');
+            }
             RateLimiter::clear($throttleKey);
             $request->session()->regenerate();
 
@@ -86,7 +91,9 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        if ($user) {
+        // Même réponse dans tous les cas (pas d'énumération des comptes) ;
+        // aucun lien pour un compte « en mémoire ».
+        if ($user && ! $user->isMemorial()) {
             $user->notify(new MagicLoginLink());
         }
 
@@ -105,6 +112,11 @@ class AuthController extends Controller
         if (! MagicLoginLink::consume($user, (string) $request->query('n'))) {
             return redirect()->route('login')->withErrors([
                 'email' => 'Ce lien de connexion a déjà servi ou a expiré. Demandez-en un nouveau.',
+            ]);
+        }
+        if ($user->isMemorial()) {
+            return redirect()->route('login')->withErrors([
+                'email' => 'Ce compte est conservé en mémoire : il n\'est plus possible de s\'y connecter.',
             ]);
         }
 

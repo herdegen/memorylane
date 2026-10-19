@@ -65,6 +65,7 @@ class User extends Authenticatable implements FilamentUser
             'preferences' => 'json',
             'guest_expires_at' => 'datetime',
             'simple_mode' => 'boolean',
+            'memorial_at' => 'datetime',
         ];
     }
 
@@ -91,7 +92,30 @@ class User extends Authenticatable implements FilamentUser
      */
     public function scopeRealPeople($query)
     {
-        return $query->whereNull('guest_expires_at')->where('simple_mode', false);
+        // Ni invités, ni tablettes, ni comptes « en mémoire » (personne pour
+        // recevoir une notification, un accès ou valider une photo).
+        return $query->whereNull('guest_expires_at')->where('simple_mode', false)->whereNull('memorial_at');
+    }
+
+    /** Compte « en mémoire » (membre décédé) : conservé, plus de connexion. */
+    public function isMemorial(): bool
+    {
+        return $this->memorial_at !== null;
+    }
+
+    /**
+     * Passe le compte « en mémoire » : connexion et notifications coupées,
+     * rien n'est supprimé (photos, souvenirs, fiche, albums restent).
+     */
+    public function markMemorial(): void
+    {
+        $this->forceFill(['memorial_at' => now(), 'remember_token' => null])->save();
+        $this->pushSubscriptions()->delete();
+    }
+
+    public function unmarkMemorial(): void
+    {
+        $this->forceFill(['memorial_at' => null])->save();
     }
 
     /**

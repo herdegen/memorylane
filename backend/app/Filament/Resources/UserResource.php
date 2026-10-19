@@ -7,8 +7,6 @@ use App\Filament\Resources\UserResource\Pages\EditUser;
 use App\Filament\Resources\UserResource\Pages\ListUsers;
 use App\Models\User;
 use Filament\Actions\Action;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
@@ -61,7 +59,14 @@ class UserResource extends Resource
                     ])
                     ->default('user')
                     ->required()
-                    ->label('Rôle'),
+                    ->label('Rôle')
+                    ->helperText('Plusieurs administrateurs possibles (succession) ; il en faut toujours au moins un.')
+                    // Le dernier administrateur ne peut pas perdre son rôle.
+                    ->rule(fn (?User $record) => function (string $attribute, $value, \Closure $fail) use ($record) {
+                        if ($record?->isAdmin() && $value !== 'admin' && User::where('role', 'admin')->count() <= 1) {
+                            $fail('C\'est le dernier administrateur : nommez-en un autre avant de lui retirer ce rôle.');
+                        }
+                    }),
                 Select::make('person_id')
                     ->label('Personne liée')
                     ->relationship('person', 'name')
@@ -92,6 +97,11 @@ class UserResource extends Resource
                         default => 'gray',
                     })
                     ->sortable(),
+                TextColumn::make('memorial_at')
+                    ->label('Statut')
+                    ->formatStateUsing(fn ($state) => $state ? '🕯️ En mémoire' : null)
+                    ->placeholder('Actif')
+                    ->toggleable(),
                 TextColumn::make('person.name')
                     ->label('Personne liée')
                     ->placeholder('—')
@@ -135,13 +145,34 @@ class UserResource extends Resource
                         app(\App\Services\Impersonation::class)->start(auth()->user(), $record);
                         $livewire->redirect($record->simple_mode ? '/simple' : '/dashboard');
                     }),
+                // Membre décédé : on conserve tout, on coupe connexion et notifications.
+                Action::make('memorial')
+                    ->label('En mémoire')
+                    ->icon('heroicon-o-heart')
+                    ->color('gray')
+                    ->visible(fn (User $record) => ! $record->isMemorial() && $record->id !== auth()->id())
+                    ->requiresConfirmation()
+                    ->modalHeading(fn (User $record) => 'Conserver le compte de '.$record->name.' en mémoire')
+                    ->modalDescription('Plus de connexion ni de notification. Rien n\'est supprimé : ses photos, albums, souvenirs racontés et sa fiche restent visibles comme aujourd\'hui. Réversible.')
+                    ->modalSubmitActionLabel('Passer en mémoire')
+                    ->action(function (User $record) {
+                        abort_if($record->isAdmin() && User::where('role', 'admin')->whereNull('memorial_at')->count() <= 1, 422, 'Dernier administrateur : nommez-en un autre d\'abord.');
+                        $record->markMemorial();
+                        \Filament\Notifications\Notification::make()->title('Compte conservé en mémoire')->success()->send();
+                    }),
+                Action::make('unmemorial')
+                    ->label('Réactiver')
+                    ->icon('heroicon-o-arrow-uturn-left')
+                    ->color('gray')
+                    ->visible(fn (User $record) => $record->isMemorial())
+                    ->requiresConfirmation()
+                    ->action(fn (User $record) => $record->unmarkMemorial()),
                 EditAction::make(),
             ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
-            ]);
+            // Pas de suppression ici : un départ passe par la procédure qui
+            // transfère ou retire d'abord photos, albums, fiches et cercles
+            // (la base refuse de supprimer un compte qui en possède encore).
+            ->toolbarActions([]);
     }
 
     public static function getRelations(): array

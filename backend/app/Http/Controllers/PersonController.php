@@ -1072,7 +1072,8 @@ class PersonController extends Controller
     private function accountPayload(Person $person): array
     {
         $viewer = auth()->user();
-        $hasAccount = User::where('person_id', $person->id)->exists();
+        $account = User::where('person_id', $person->id)->first(['id', 'memorial_at']);
+        $hasAccount = $account !== null;
         $pending = $hasAccount ? null : Invitation::open()
             ->where('person_id', $person->id)
             ->with('inviter:id,name')
@@ -1081,6 +1082,8 @@ class PersonController extends Controller
 
         return [
             'hasAccount' => $hasAccount,
+            // Compte conservé « en mémoire » (membre décédé).
+            'memorial' => (bool) $account?->memorial_at,
             'pendingInvitation' => $pending ? [
                 'sent_at' => $pending->sent_at?->toIso8601String(),
                 'inviter' => $pending->inviter?->name,
