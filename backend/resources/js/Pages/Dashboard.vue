@@ -144,9 +144,7 @@
         </div>
 
         <!-- ============ Quêtes : complétez la mémoire familiale (téléphone : en premier) ============ -->
-        <div class="order-first sm:order-none">
-          <QuestCard data-tour="quests" />
-        </div>
+        <QuestCard data-tour="quests" class="order-first sm:order-none" />
 
         <!-- ============ Notifications push (invitation, masquable) ============ -->
         <PushPromptCard />

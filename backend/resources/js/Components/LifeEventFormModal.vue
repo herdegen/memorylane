@@ -95,17 +95,17 @@
           <div v-if="selectedPhotos.length" class="flex gap-2 overflow-x-auto pb-1">
             <div v-for="(p, i) in selectedPhotos" :key="p.id" class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden border-2" :class="illustrationId === p.id ? 'border-amber-400' : 'border-transparent'">
               <img :src="p.thumbnail_url" alt="" class="w-full h-full object-cover" loading="lazy" decoding="async" />
-              <span class="absolute bottom-0.5 left-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-black/60 text-white text-[11px] font-semibold flex items-center justify-center">{{ i + 1 }}</span>
+              <span class="absolute bottom-0.5 left-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-black/60 text-snow text-[11px] font-semibold flex items-center justify-center">{{ i + 1 }}</span>
               <button
                 type="button"
                 class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full flex items-center justify-center text-[12px]"
-                :class="illustrationId === p.id ? 'bg-amber-400 text-white' : 'bg-black/45 text-white/80'"
+                :class="illustrationId === p.id ? 'bg-amber-400 text-snow' : 'bg-black/45 text-snow/80'"
                 :title="illustrationId === p.id ? 'Photo d\'illustration' : 'En faire la photo d\'illustration'"
-                @click="form.media_id = p.id"
+                @click="form.media_id = p.id; photosTouched = true"
               >★</button>
               <button
                 type="button"
-                class="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/55 text-white text-xs flex items-center justify-center"
+                class="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/55 text-snow text-xs flex items-center justify-center"
                 title="Retirer"
                 @click="removePhoto(p.id)"
               >×</button>
@@ -170,7 +170,6 @@ const GeolocatePickerModal = defineAsyncComponent(() => import('@/Components/Geo
 const props = defineProps({
   personId: { type: String, required: true },
   event: { type: Object, default: null }, // item de frise (life_event) pour l'édition
-  photoOptions: { type: Array, default: () => [] }, // (ancien) items kind==='photo'
   personName: { type: String, default: '' },
   // Nouveau moment pré-rempli (« En faire un moment » depuis des photos) :
   // { title, event_date, latitude, longitude, photos: [{ id, thumbnail_url }] }
@@ -280,14 +279,19 @@ const selectedPhotos = ref((() => {
 const illustrationId = computed(() =>
   (form.media_id && selectedPhotos.value.some((p) => p.id === form.media_id)) ? form.media_id : (selectedPhotos.value[0]?.id || null));
 
+// Photos envoyées seulement si on y a touché : sinon le moment garde sa
+// galerie telle quelle (y compris ce que l'éditeur ne voit pas).
+const photosTouched = ref(!!props.prefill?.photos);
 const pickerOpen = ref(false);
 const onPicked = (list) => {
   selectedPhotos.value = list;
+  photosTouched.value = true;
   pickerOpen.value = false;
 };
 const removePhoto = (id) => {
   selectedPhotos.value = selectedPhotos.value.filter((p) => p.id !== id);
   if (form.media_id === id) form.media_id = null;
+  photosTouched.value = true;
 };
 
 const saving = ref(false);
@@ -306,8 +310,10 @@ const save = async () => {
     latitude: form.latitude,
     longitude: form.longitude,
     description: form.description || null,
-    media_id: illustrationId.value,
-    photos: selectedPhotos.value.map((p) => p.id),
+    ...(photosTouched.value || !props.event ? {
+      media_id: illustrationId.value,
+      photos: selectedPhotos.value.slice(0, 24).map((p) => p.id),
+    } : {}),
     album_id: form.album_id || null,
   };
   try {

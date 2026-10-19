@@ -185,7 +185,7 @@ class MediaService
             // nature, ne font que du bruit ici).
             'none' => $query->whereDoesntHave('people')->where('type', '!=', 'document'),
             // Au moins un visage détecté encore à identifier.
-            'unidentified' => $query->whereHas('detectedFaces', fn ($q) => $q->unidentified()),
+            'unidentified' => $query->whereHas('detectedFaces', fn ($q) => $q->unidentified(auth()->user())),
             default => null,
         };
 

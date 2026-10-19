@@ -20,7 +20,9 @@ class ComputePersonFaceCandidates implements ShouldBeUniqueUntilProcessing, Shou
 
     public int $timeout = 600;
 
-    public int $tries = 1;
+    // Calcul sans effet de bord : interrompu (redémarrage des workers au
+    // déploiement), il est simplement refait au lieu d'échouer.
+    public int $tries = 2;
 
     public function handle(PersonFaceCandidates $candidates): void
     {

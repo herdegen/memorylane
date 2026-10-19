@@ -66,6 +66,7 @@ class QuestController extends Controller
     private function gameAlbum(Request $request): ?Album
     {
         $id = $request->query('album');
+        abort_if($id !== null && ! \Illuminate\Support\Str::isUuid((string) $id), 404);
 
         return $id ? Album::accessibleBy($request->user())->findOrFail($id) : null;
     }

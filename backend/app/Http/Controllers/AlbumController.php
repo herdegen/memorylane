@@ -198,24 +198,17 @@ class AlbumController extends Controller
         // (téléphone) qui ne montre que ces photos.
         $album->media->loadCount([
             'detectedFaces as matched_faces_count' => fn ($q) => $q->where('status', 'matched'),
-            'detectedFaces as pending_faces_count' => fn ($q) => $q->where('status', 'unmatched')->whereNull('person_id'),
         ]);
 
-        // Visages dits « inconnus » dans le cercle courant : plus à identifier ici.
-        $strangers = app(\App\Services\QuestService::class)->circleStrangerFaceIds(
-            $request->user(),
-            \App\Models\DetectedFace::whereIn('media_id', $album->media->pluck('id'))
-                ->where('status', 'unmatched')->whereNull('person_id')->pluck('id'),
-        );
-        if ($strangers !== []) {
-            $perMedia = \App\Models\DetectedFace::whereIn('id', array_keys($strangers))
-                ->selectRaw('media_id, count(*) as n')->groupBy('media_id')->pluck('n', 'media_id');
-            $album->media->each(fn ($m) => $m->pending_faces_count = max(0, $m->pending_faces_count - (int) ($perMedia[$m->id] ?? 0)));
-        }
+        // Visages à identifier par photo, tels que le jeu « Qui est-ce ? » les
+        // proposera (arrière-plans, inconnus du cercle, mes « passer » écartés).
+        $pending = app(\App\Services\QuestService::class)->pendingFacesByMedia($request->user(), $album);
+        $album->media->each(fn ($m) => $m->pending_faces_count = $pending[$m->id] ?? 0);
 
         // « Qui était là ? » : aperçu des participants déclarés (carte sous le
         // héro sur téléphone) ; la liste complète s'édite dans la modale.
         $album->participants_preview = $album->participants()
+            ->visibleTo($request->user())
             ->orderBy('name')
             ->get(['people.id', 'people.name'])
             ->map(fn (Person $p) => ['id' => $p->id, 'name' => $p->name])
@@ -722,7 +715,7 @@ class AlbumController extends Controller
         // voient que leurs photos — le partage peut leur ouvrir l'album.
         $listedIds = array_column($entries, 'user_id');
         $circleMemberIds = $this->albumCircleMemberIds($album);
-        foreach ($this->taggedUsers($album)->whereNotIn('id', $listedIds) as $u) {
+        foreach ($this->taggedUsers($album, auth()->user())->whereNotIn('id', $listedIds) as $u) {
             $entries[] = $this->accessEntry($u, in_array($u->id, $circleMemberIds, true) ? 'circle' : 'tagged');
         }
 
@@ -743,7 +736,7 @@ class AlbumController extends Controller
             ->push($album->user_id)
             ->merge($this->albumCircleMemberIds($album))
             ->all();
-        $users = $this->taggedUsers($album)->whereNotIn('id', $already);
+        $users = $this->taggedUsers($album, auth()->user())->whereNotIn('id', $already);
 
         foreach ($users as $user) {
             $access = AlbumAccess::firstOrCreate(
@@ -767,12 +760,32 @@ class AlbumController extends Controller
         ]);
     }
 
-    /** Comptes dont la fiche est identifiée sur au moins une photo de l'album. */
-    private function taggedUsers(Album $album)
+    /**
+     * Comptes (vraies personnes) dont la fiche est identifiée sur au moins une
+     * photo de l'album PAR UN HUMAIN : nommée à la main (pas de visage d'elle
+     * sur la photo) ou visage validé — jamais sur la seule foi d'une
+     * association automatique. Avec $granter : seulement les comptes qu'il
+     * peut voir (comme le choix manuel d'un membre).
+     */
+    private function taggedUsers(Album $album, ?User $granter = null)
     {
-        $taggedPersonIds = Person::whereHas('media', fn ($m) => $m->whereHas('albums', fn ($a) => $a->whereKey($album->id)))->pluck('id');
+        $taggedPersonIds = DB::table('media_person as mp')
+            ->join('album_media as am', 'am.media_id', '=', 'mp.media_id')
+            ->where('am.album_id', $album->id)
+            ->where(fn ($w) => $w
+                ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('detected_faces as df')
+                    ->whereColumn('df.media_id', 'mp.media_id')->whereColumn('df.person_id', 'mp.person_id'))
+                ->orWhereExists(fn ($q) => $q->selectRaw('1')->from('detected_faces as df')
+                    ->whereColumn('df.media_id', 'mp.media_id')->whereColumn('df.person_id', 'mp.person_id')
+                    ->whereNotNull('df.verified_at')))
+            ->distinct()
+            ->pluck('mp.person_id');
 
-        return User::whereIn('person_id', $taggedPersonIds)->orderBy('name')->get();
+        return User::realPeople()
+            ->whereIn('person_id', $taggedPersonIds)
+            ->when($granter, fn ($q) => $q->visibleTo($granter))
+            ->orderBy('name')
+            ->get();
     }
 
     /** @return list<string> membres des cercles avec lesquels l'album est partagé */

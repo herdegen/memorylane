@@ -204,9 +204,9 @@
             :key="p.id"
             :name="p.name"
             :size="8"
-            class="ring-2 ring-white dark:ring-surface-900"
+            class="ring-2 ring-white"
           />
-          <span v-if="participantsPreview.length > 4" class="w-8 h-8 rounded-full bg-surface-200 text-surface-700 text-[11px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-surface-900">
+          <span v-if="participantsPreview.length > 4" class="w-8 h-8 rounded-full bg-surface-200 text-surface-700 text-[11px] font-bold flex items-center justify-center ring-2 ring-white">
             +{{ participantsPreview.length - 4 }}
           </span>
         </div>
@@ -346,6 +346,7 @@
       v-if="album.media && album.media.length > 0"
       id="album-grid"
       class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 auto-rows-[124px] sm:auto-rows-[200px] xl:auto-rows-[230px] grid-flow-dense gap-0.5 sm:gap-1 p-0.5 sm:p-1 mt-2 sm:mt-0"
+      :class="selectionMode ? 'max-sm:pb-28' : ''"
     >
       <div
         v-for="(media, index) in albumMedia"
@@ -471,15 +472,13 @@ import SharePanel from '@/Components/SharePanel.vue';
 import MediaPickerModal from '@/Components/MediaPickerModal.vue';
 import FullscreenSlideshow from '@/Components/FullscreenSlideshow.vue';
 import BaseModal from '@/Components/BaseModal.vue';
-import { formatDuration } from '@/utils/format';
+import { formatDuration, formatLongDate } from '@/utils/format';
 import { usePhotoSwipe } from '@/Composables/usePhotoSwipe';
 import { useToast } from '@/Composables/useToast';
-import { formatLongDate } from '@/utils/format';
 import { useConfirm } from '@/Composables/useConfirm';
-import { slideUrl } from '@/utils/media';
+import { slideUrl, thumbnailUrl as smallThumbUrl } from '@/utils/media';
 import AlbumParticipantsModal from '@/Components/AlbumParticipantsModal.vue';
 import MomentFromPhotos from '@/Components/MomentFromPhotos.vue';
-import { thumbnailUrl as smallThumbUrl } from '@/utils/media';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
 
 // Chargé à l'ouverture seulement : la carte embarque Leaflet (~45 ko gzip).

@@ -119,7 +119,8 @@ class QuestService
             QuestType::Education => ! $subject->lifeEvents()->whereIn('type', ['education', 'diplome'])->exists(),
             QuestType::Residence => ! $subject->lifeEvents()->where('type', 'residence')->exists(),
             QuestType::Address => $subject->address === null,
-            QuestType::FaceIdentify => $subject->status === 'unmatched' && $subject->media !== null,
+            QuestType::FaceIdentify => $subject->status === 'unmatched' && $subject->media !== null
+                && ! $this->strangerInCircle($subject, $user),
             QuestType::MediaDate => $subject->taken_at === null,
             QuestType::MediaGeo => $subject->metadata()->whereNotNull('latitude')->doesntExist(),
         };
@@ -413,6 +414,11 @@ class QuestService
             ->whereNull('person_id')
             ->whereHas('media', fn ($q) => $q->inContext($user)->where('type', 'photo')
                 ->when($album, fn ($q) => $q->whereHas('albums', fn ($a) => $a->where('albums.id', $album->id))))
+            // Écartés AVANT la limite (sinon quelques « inconnu » ou « passer »
+            // sur les plus récents suffisaient à tarir les questions) :
+            // inconnus du cercle courant, et mes « passer » / « je ne sais pas »
+            // encore valables. Le reste du journal est filtré ensuite.
+            ->whereNotExists(fn ($q) => $this->answeredFacesFor($q, $user))
             ->latest()
             ->limit(($take ?? self::DETECTOR_LIMIT) * 8)
             ->get(['id', 'media_id', 'bounding_box']);
@@ -431,6 +437,57 @@ class QuestService
             ->map(fn ($f) => ['type' => QuestType::FaceIdentify->value, 'subject_id' => $f->id, 'distance' => 1])
             ->values()
             ->all();
+    }
+
+    /**
+     * Sous-requête : réponses du journal qui écartent ce visage pour le compte
+     * (inconnu dans son cercle courant, ses passer / je ne sais pas récents).
+     */
+    private function answeredFacesFor($q, User $user): void
+    {
+        $circleId = $user->currentCircle()?->id;
+        $q->selectRaw('1')->from('quest_answers as qa')
+            ->whereRaw("qa.question_key = ? || detected_faces.id::text", [QuestType::FaceIdentify->value.':'])
+            ->where(function ($w) use ($user, $circleId) {
+                if ($circleId) {
+                    $w->orWhere(fn ($x) => $x->where('qa.household_id', $circleId)
+                        ->where('qa.answer_kind', 'no')
+                        ->whereRaw("qa.payload->>'reason' = 'stranger'"));
+                }
+                $w->orWhere(fn ($x) => $x->where('qa.user_id', $user->id)->where(fn ($k) => $k
+                    ->where(fn ($d) => $d->where('qa.answer_kind', 'dont_know')->where('qa.created_at', '>', now()->subDays(self::DONT_KNOW_TTL_DAYS)))
+                    ->orWhere(fn ($d) => $d->where('qa.answer_kind', 'skipped')->where('qa.created_at', '>', now()->subDays(self::SKIPPED_TTL_DAYS)))));
+            });
+    }
+
+    /**
+     * Visages à identifier par photo d'un album, tels que le jeu les proposera
+     * (contexte, arrière-plans et réponses du journal écartés) : [media_id => n].
+     *
+     * @return array<string, int>
+     */
+    public function pendingFacesByMedia(User $user, Album $album): array
+    {
+        $ids = array_column($this->filterExcluded($user, $this->detectFaceGaps($user, $album, 2000)), 'subject_id');
+        if ($ids === []) {
+            return [];
+        }
+
+        return DetectedFace::whereIn('id', $ids)
+            ->selectRaw('media_id, count(*) as n')->groupBy('media_id')
+            ->pluck('n', 'media_id')->map(fn ($n) => (int) $n)->all();
+    }
+
+    /** Ce visage a-t-il été dit « inconnu » dans le cercle courant du compte ? */
+    private function strangerInCircle(DetectedFace $face, ?User $user): bool
+    {
+        $circleId = $user?->currentCircle()?->id;
+
+        return $circleId !== null && QuestAnswer::where('household_id', $circleId)
+            ->where('question_key', QuestType::FaceIdentify->key($face->id))
+            ->where('answer_kind', 'no')
+            ->whereRaw("payload->>'reason' = 'stranger'")
+            ->exists();
     }
 
     /** Réponse « personne inconnue » donnée depuis un cercle (vaut pour lui seul). */

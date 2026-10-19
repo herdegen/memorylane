@@ -84,9 +84,24 @@ class DetectedFace extends Model
      * Visages encore « à identifier » (ni identifiés, ni écartés comme
      * inconnus ou faux cadres).
      */
-    public function scopeUnidentified($query)
+    /**
+     * Visages à identifier. Avec un compte : sans ceux dits « inconnu » dans
+     * son cercle courant (réponse propre au cercle, le visage reste
+     * « unmatched » pour les autres).
+     */
+    public function scopeUnidentified($query, ?User $user = null)
     {
-        return $query->where('detected_faces.status', 'unmatched')->whereNull('detected_faces.person_id');
+        $query->where('detected_faces.status', 'unmatched')->whereNull('detected_faces.person_id');
+
+        if ($circleId = $user?->currentCircle()?->id) {
+            $query->whereNotExists(fn ($q) => $q->selectRaw('1')->from('quest_answers as qa')
+                ->whereRaw("qa.question_key = 'face_identify:' || detected_faces.id::text")
+                ->where('qa.household_id', $circleId)
+                ->where('qa.answer_kind', 'no')
+                ->whereRaw("qa.payload->>'reason' = 'stranger'"));
+        }
+
+        return $query;
     }
 
     public function media()

@@ -318,8 +318,15 @@ onUnmounted(() => {
   clearTimeout(filterTimeout);
   if (map) {
     map.remove();
+    // Les chargements encore en route (marqueurs, chaleur) voient la carte
+    // disparue et s'arrêtent, au lieu d'écrire sur une carte détruite.
+    map = null;
   }
 });
+
+// Une seule réponse fait foi : la dernière demandée (filtres, recherche
+// autour d'un lieu) — une réponse lente ne réécrase pas une plus récente.
+let markersRequest = 0;
 
 // Load all tags (liste partagée, souvent déjà en cache)
 const tagList = useTags();
@@ -342,7 +349,9 @@ async function loadGeolocatedMedia() {
       selectedTags.value.forEach(tag => params.append('tags[]', tag));
     }
 
+    const id = ++markersRequest;
     const response = await axios.get(`/map/media?${params.toString()}`);
+    if (id !== markersRequest || !map) return;
     geolocatedMedia.value = response.data.media || [];
     geolocatedAlbums.value = response.data.albums || [];
 
@@ -507,6 +516,7 @@ function stackMarker(items) {
 
 // Update markers on the map
 function updateMarkers() {
+  if (!map) return;
   markersLayer.clearLayers();
   placeSheet.value = null;
 
@@ -676,6 +686,7 @@ async function searchNearby() {
   if (!selectedLocation.value) return;
 
   try {
+    const id = ++markersRequest;
     const response = await axios.get('/map/nearby', {
       params: {
         latitude: selectedLocation.value.lat,
@@ -684,6 +695,7 @@ async function searchNearby() {
       }
     });
 
+    if (id !== markersRequest || !map) return;
     geolocatedMedia.value = response.data;
     geolocatedAlbums.value = [];
     updateMarkers();

@@ -517,9 +517,12 @@
   /* !important : la feuille PhotoSwipe (chargée après, dans le chunk de la
      visionneuse) réaffiche le zoom via `.pswp--zoom-allowed`. */
   .pswp .pswp__custom-caption,
-  .pswp .pswp__button--zoom,
-  .pswp .pswp__button--info {
+  .pswp .pswp__button--zoom {
     display: none !important;
   }
+}
+/* Téléphone (barre d'onglets, < sm) : bande du bas à la place du « i ». */
+@media (max-width: 639px) {
+  .pswp .pswp__button--info { display: none !important; }
   .pswp .pswp__mobile-bar { display: flex; }
 }

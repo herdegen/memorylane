@@ -214,11 +214,12 @@ const toggleMobileSearch = () => {
 };
 
 // Toute navigation referme les feuilles et la recherche.
-router.on('navigate', () => {
+const offNavigate = router.on('navigate', () => {
   showAddSheet.value = false;
   showAccountSheet.value = false;
   showMobileSearch.value = false;
 });
+onUnmounted(offNavigate);
 
 // Déconnexion : cet appareil ne doit plus recevoir les notifications du
 // compte. On le désabonne AVANT (le DELETE serveur exige encore la session),

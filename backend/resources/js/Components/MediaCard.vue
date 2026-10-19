@@ -3,7 +3,7 @@
     class="relative group overflow-hidden bg-surface-100 cursor-pointer transition-transform duration-200"
     :class="[
       fill ? 'w-full h-full rounded-xs' : 'aspect-square rounded-none sm:rounded-lg sm:hover:scale-105 sm:hover:shadow-warm-lg',
-      { 'ring-2 ring-brand-500 ring-inset sm:ring-offset-2 sm:ring-inset-0': selectable && isSelected },
+      { 'ring-2 ring-brand-500 max-sm:ring-inset sm:ring-offset-2': selectable && isSelected },
     ]"
     @click="$emit('click', media, $event)"
   >

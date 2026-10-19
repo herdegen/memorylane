@@ -38,8 +38,15 @@ class FacePlausibility
     /** Visages identifiés et datés nécessaires pour estimer une naissance inconnue. */
     public const MIN_AGE_SAMPLES = 5;
 
-    /** Écart minimal (ans) entre un parent et son enfant, pour borner une naissance inconnue par l'arbre. */
+    /**
+     * Écart (ans) entre un parent et son enfant pour borner une naissance
+     * inconnue par l'arbre : 18 pour « né au plus tard » (écarter les ancêtres
+     * d'une photo récente), 14 pour « né au plus tôt » (ne pas cacher l'enfant
+     * d'un parent très jeune).
+     */
     public const MIN_PARENT_GAP = 18;
+
+    public const MIN_PARENT_GAP_EARLIEST = 14;
 
     /** Au-delà de cet âge (naissance la plus tardive possible d'après l'arbre), présumé disparu. */
     public const PRESUMED_MAX_AGE = 100;
@@ -174,8 +181,10 @@ class FacePlausibility
         if ($this->genealogyBounds !== null) {
             return $this->genealogyBounds;
         }
-        $stamp = DB::table('people')->selectRaw('count(*) as n, max(updated_at) as u')->first();
-        $key = 'face-genealogy-bounds:'.md5(($stamp->n ?? 0).'|'.($stamp->u ?? ''));
+        // Empreinte de l'arbre : y compris les liens parents écrits sans
+        // updated_at (requêtes directes, imports).
+        $stamp = DB::table('people')->selectRaw("count(*) as n, max(updated_at) as u, sum(hashtext(coalesce(father_id::text, '') || coalesce(mother_id::text, '') || coalesce(birth_date::text, ''))) as h")->first();
+        $key = 'face-genealogy-bounds:'.md5(($stamp->n ?? 0).'|'.($stamp->u ?? '').'|'.($stamp->h ?? ''));
 
         return $this->genealogyBounds = Cache::remember($key, now()->addDay(), function () {
             $people = DB::table('people')->whereNull('deleted_at')
@@ -222,7 +231,7 @@ class FacePlausibility
                         if (! isset($earliest[$parent])) {
                             continue;
                         }
-                        $bound = $earliest[$parent] + self::MIN_PARENT_GAP;
+                        $bound = $earliest[$parent] + self::MIN_PARENT_GAP_EARLIEST;
                         if (! isset($earliest[$child]) || $bound > $earliest[$child]) {
                             $earliest[$child] = $bound;
                             $changed = true;

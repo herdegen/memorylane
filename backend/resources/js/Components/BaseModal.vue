@@ -39,17 +39,14 @@
 </template>
 
 <script>
-// Pile des modales ouvertes — portée MODULE (une seule pile pour toute
-// l'app, pas une par instance) : seule la modale du dessus réagit à Échap,
-// et le verrou de scroll n'est rendu qu'à la fermeture de la dernière.
-const openModals = [];
-
 // Compteur module pour générer un id de titre unique par instance.
 let titleUid = 0;
 </script>
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+// Pile partagée avec BottomSheet : Échap et verrou de défilement communs.
+import { pushOverlay, popOverlay, isTopOverlay } from '@/utils/modalStack';
 
 // Enveloppe commune de toutes les modales : Teleport vers <body>, backdrop,
 // fermeture à Échap et au clic hors panneau, focus initial + restitution du
@@ -101,7 +98,7 @@ const focusables = () =>
 
 const handleKeydown = (event) => {
   if (event.key === 'Escape') {
-    if (openModals[openModals.length - 1] === handleKeydown) {
+    if (isTopOverlay(handleKeydown)) {
       emit('close');
     }
     return;
@@ -129,9 +126,8 @@ const handleKeydown = (event) => {
 
 onMounted(() => {
   previouslyFocused = document.activeElement;
-  openModals.push(handleKeydown);
+  pushOverlay(handleKeydown);
   document.addEventListener('keydown', handleKeydown);
-  document.body.style.overflow = 'hidden';
   nextTick(() => {
     // Priorité à un éventuel [autofocus], sinon premier élément focusable.
     const target = panel.value?.querySelector('[autofocus]') || focusables()[0];
@@ -141,11 +137,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleKeydown);
-  const index = openModals.indexOf(handleKeydown);
-  if (index !== -1) openModals.splice(index, 1);
-  if (openModals.length === 0) {
-    document.body.style.overflow = '';
-  }
+  popOverlay(handleKeydown);
   previouslyFocused?.focus?.();
 });
 </script>

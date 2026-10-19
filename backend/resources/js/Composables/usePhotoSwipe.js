@@ -160,12 +160,16 @@ export function usePhotoSwipe(getMedia, options = {}) {
   const facesCache = new Map();
   const loadFaces = async (mediaId) => {
     if (!facesCache.has(mediaId)) {
-      facesCache.set(
-        mediaId,
-        fetch(`/vision/media/${mediaId}/faces`, { headers: { Accept: 'application/json' } })
-          .then((r) => (r.ok ? r.json() : []))
-          .catch(() => []),
-      );
+      const request = fetch(`/vision/media/${mediaId}/faces`, { headers: { Accept: 'application/json' } })
+        .then((r) => {
+          if (!r.ok) throw new Error(String(r.status));
+          return r.json();
+        })
+        .catch(() => {
+          facesCache.delete(mediaId); // échec : on réessaiera au prochain passage
+          return [];
+        });
+      facesCache.set(mediaId, request);
     }
     return facesCache.get(mediaId);
   };
@@ -205,6 +209,8 @@ export function usePhotoSwipe(getMedia, options = {}) {
 
           el.append(text, details);
 
+          // Bande masquée sur ordinateur (CSS) : pas de requête pour rien.
+          if (window.innerWidth > 639) return;
           const faces = await loadFaces(mediaId);
           if (pswp.currSlide?.data?.mediaId !== mediaId) return;
           const named = [];

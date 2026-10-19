@@ -58,7 +58,7 @@ class PersonController extends Controller
         $proximity = $this->genealogy->proximity($selfPersonId);
         // Libellé de parenté (« votre fils », « votre tante ») pour les proches
         // à 4 liens au plus — liste téléphone. Jamais entre amis.
-        $paths = ($selfPersonId && $request->user()->mode() !== 'friends')
+        $paths = ($selfPersonId && $request->user()->mode() !== 'friends' && ! $request->wantsJson())
             ? $this->genealogy->pathsFrom($selfPersonId, 4)
             : [];
 
@@ -602,7 +602,9 @@ class PersonController extends Controller
                 'longitude' => $ev->longitude,
                 'media' => $ev->media ? $this->mediaPayload($ev->media) : null,
                 // Galerie du moment (photos rattachées directement).
-                'photos' => $ev->photos->take(self::ALBUM_MEDIA_LIMIT)->map(fn (Media $m) => $this->mediaPayload($m))->values()->all(),
+                // Jusqu'à 24 (la limite du formulaire) : en dessous, modifier le
+                // moment aurait retiré les photos non chargées.
+                'photos' => $ev->photos->take(24)->map(fn (Media $m) => $this->mediaPayload($m))->values()->all(),
                 // Album lié (avec ses photos : la galerie du moment, pour la
                 // rafale du récit de vie), seulement s'il est accessible au visiteur.
                 'album' => $ev->album && $accessibleAlbumIds->contains($ev->album->id)

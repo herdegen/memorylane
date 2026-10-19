@@ -190,7 +190,7 @@
         v-if="!loading && rawEdges.length"
         class="bg-white border-surface-200 overflow-y-auto
                md:w-80 md:border-l md:p-5 md:static
-               max-md:fixed max-md:inset-x-0 max-md:bottom-[calc(4rem+env(safe-area-inset-bottom))] max-md:z-30 max-md:max-h-[60vh]
+               max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-sm:bottom-[calc(4rem+env(safe-area-inset-bottom))] max-md:z-30 max-md:max-h-[60vh]
                max-md:rounded-t-2xl max-md:border-t max-md:shadow-warm-lg max-md:p-4
                max-md:transition-transform max-md:duration-300"
         :class="selected ? 'max-md:translate-y-0' : 'max-md:translate-y-full'"

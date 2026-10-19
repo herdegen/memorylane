@@ -48,7 +48,7 @@ class FaceGenealogyBoundsTest extends TestCase
 
         $pl = new FacePlausibility();
 
-        $this->assertSame(2018, $pl->genealogyBounds()[$child->id]['earliest']);
+        $this->assertSame(2014, $pl->genealogyBounds()[$child->id]['earliest']); // parent né en 2000 + 14 ans
         $this->assertTrue($pl->genealogyImplausible($child->fresh(), 1995));
         $this->assertFalse($pl->genealogyImplausible($child->fresh(), 2024));
     }

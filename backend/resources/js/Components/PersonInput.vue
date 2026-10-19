@@ -72,7 +72,7 @@
           <span class="text-sm text-surface-900">{{ personLabel(person) }}</span>
           <span v-if="person.onAlbum" class="text-xs text-surface-400">· sur l'album</span>
           <span v-else-if="person.elsewhere" class="text-xs text-surface-400">· {{ person.elsewhere_label }}</span>
-          <span class="text-xs text-surface-500 ml-auto">{{ person.media_count }} médias</span>
+          <span v-if="person.media_count != null" class="text-xs text-surface-500 ml-auto">{{ person.media_count }} médias</span>
         </button>
       </div>
 

@@ -49,7 +49,7 @@ class MediaController extends Controller
     {
         $validated = $request->validate([
             'tab' => 'required|in:recent,date,person,album',
-            'around' => 'nullable|date',
+            'around' => 'nullable|date_format:Y-m-d',
             'person_id' => ['nullable', 'uuid', new \App\Rules\VisiblePerson],
             'album_id' => 'nullable|uuid',
             'q' => 'nullable|string|max:100',
@@ -69,14 +69,17 @@ class MediaController extends Controller
                 ])->orderByRaw('abs(extract(epoch from (taken_at - ?::timestamp)))', [$validated['around']])
                 : $query->whereRaw('1 = 0'),
             'person' => isset($validated['person_id'])
-                ? $query->whereHas('people', fn ($p) => $p->where('people.id', $validated['person_id']))->orderByDesc('taken_at')
+                ? $query->whereHas('people', fn ($p) => $p->where('people.id', $validated['person_id']))->orderByRaw('taken_at desc nulls last')
                 : $query->whereRaw('1 = 0'),
             'album' => isset($validated['album_id'])
                 ? $query->whereHas('albums', fn ($a) => $a->whereKey(
                     \App\Models\Album::accessibleBy($user)->whereKey($validated['album_id'])->value('id') ?? '00000000-0000-0000-0000-000000000000'
-                ))->orderBy('taken_at')
+                ))->orderByRaw('taken_at asc nulls last')
                 : $query->whereRaw('1 = 0'),
         };
+        // Départage stable : sans lui, la pagination répète ou saute des photos
+        // de même date.
+        $query->orderBy('media.id');
 
         if ($q = trim($validated['q'] ?? '')) {
             // Sans accents ni casse des deux côtés : « asterix » trouve « Astérix ».
@@ -136,7 +139,7 @@ class MediaController extends Controller
             'counts' => [
                 'undated' => $gallery()->whereNull('taken_at')->count(),
                 'no_people' => $gallery()->whereDoesntHave('people')->where('type', '!=', 'document')->count(),
-                'unidentified' => $gallery()->whereHas('detectedFaces', fn ($q) => $q->unidentified())->count(),
+                'unidentified' => $gallery()->whereHas('detectedFaces', fn ($q) => $q->unidentified($request->user()))->count(),
             ],
             // Noms des personnes filtrées (chips), limités aux fiches visibles.
             'filterPeople' => Person::visibleTo($request->user())

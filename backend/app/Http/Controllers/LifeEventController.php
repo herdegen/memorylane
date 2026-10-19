@@ -57,6 +57,17 @@ class LifeEventController extends Controller
         $photos = $data['photos'] ?? null;
         unset($data['photos']);
 
+        // Ce que l'éditeur ne voit pas (photo d'un autre cercle, privée) n'est
+        // ni retiré ni remplacé : il ne pouvait pas le choisir.
+        $hidden = $lifeEvent->photos()->whereNotIn('media.id', Media::accessibleBy($request->user())->select('id'))->pluck('media.id')->all();
+        if ($photos !== null && $hidden !== []) {
+            $photos = array_values(array_unique([...$photos, ...$hidden]));
+        }
+        if ($lifeEvent->media_id && array_key_exists('media_id', $data)
+            && ! Media::accessibleBy($request->user())->whereKey($lifeEvent->media_id)->exists()) {
+            unset($data['media_id']);
+        }
+
         $lifeEvent->update($data);
         $this->syncPhotos($lifeEvent, $photos);
 

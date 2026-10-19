@@ -36,7 +36,7 @@
           <!-- Slide « carte » : événement de vie, texte… (frise personne) -->
           <div
             v-else-if="currentItem.type === 'card'"
-            class="w-full h-full flex items-center justify-center bg-linear-to-br from-brand-900 to-surface-900 px-8"
+            class="w-full h-full flex items-center justify-center bg-linear-to-br from-[#78350f] to-[#1c1917] px-8"
           >
             <div class="text-center max-w-2xl">
               <div v-if="currentItem.card.icon" class="text-6xl mb-4">{{ currentItem.card.icon }}</div>
@@ -82,6 +82,7 @@
             class="flex-1 h-[3px] rounded-full bg-snow/35 overflow-hidden"
           >
             <span
+              :key="k - 1 === barIndex ? `p${pointer}` : `b${k}`"
               class="block h-full bg-snow"
               :class="{ 'story-fill': k - 1 === barIndex && currentItem?.type !== 'video' && !traveling }"
               :style="k - 1 < barIndex ? { width: '100%' } : (k - 1 === barIndex ? { width: currentItem?.type === 'video' || traveling ? '100%' : undefined, '--story-dur': `${photoDuration}ms`, animationPlayState: isPaused ? 'paused' : 'running' } : { width: '0%' })"
@@ -266,13 +267,19 @@ const clearPhotoTimer = () => {
   }
 };
 
-const scheduleAdvance = () => {
+// Temps restant de la diapositive en cours (la pause le conserve : sinon la
+// photo durait plus longtemps à chaque pause et la barre finissait trop tôt).
+let remaining = 0;
+let startedAt = 0;
+const scheduleAdvance = ({ resume = false } = {}) => {
   clearPhotoTimer();
+  if (!resume) remaining = props.photoDuration;
   if (isPaused.value || !currentItem.value) return;
 
   // Photos et cartes avancent après un délai ; les vidéos sur @ended.
   if (currentItem.value.type !== 'video') {
-    photoTimer = setTimeout(next, props.photoDuration);
+    startedAt = Date.now();
+    photoTimer = setTimeout(next, remaining);
   }
 };
 
@@ -327,11 +334,16 @@ const togglePause = () => {
     isPaused.value ? videoEl.value.pause() : videoEl.value.play();
   }
 
-  scheduleAdvance();
+  if (isPaused.value) {
+    if (photoTimer) remaining = Math.max(0, remaining - (Date.now() - startedAt));
+    clearPhotoTimer();
+  } else {
+    scheduleAdvance({ resume: true });
+  }
 };
 
 // ---- Téléphone : façon « stories » ------------------------------------------
-const MOBILE_MAX = 767;
+const MOBILE_MAX = 639;
 const isMobile = ref(false);
 const barCount = computed(() => (order.value.length <= 24 ? order.value.length : 1));
 const barIndex = computed(() => (order.value.length <= 24 ? pointer.value : 0));
@@ -349,6 +361,7 @@ let story = null;
 let holdTimer = null;
 let heldPause = false;
 const onStoryDown = (e) => {
+  clearTimeout(holdTimer);
   story = { x: e.clientX, y: e.clientY, t: Date.now(), moved: false };
   heldPause = false;
   holdTimer = setTimeout(() => {

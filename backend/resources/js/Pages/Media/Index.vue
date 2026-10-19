@@ -253,7 +253,11 @@
         </div>
 
         <!-- Media Grid (téléphone : bord à bord, sans carte) -->
-        <div class="-mx-4 sm:mx-0 sm:bg-white sm:rounded-lg sm:shadow-xs sm:p-6" data-tour="gallery">
+        <div
+          class="-mx-4 sm:mx-0 sm:bg-white sm:rounded-lg sm:shadow-xs sm:p-6"
+          :class="selectedIds.length > 0 ? 'max-sm:pb-28' : ''"
+          data-tour="gallery"
+        >
           <MediaGrid
             :media="mediaItems"
             :loading="loading"

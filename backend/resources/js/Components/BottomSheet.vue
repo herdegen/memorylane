@@ -11,7 +11,8 @@
         aria-modal="true"
         :aria-label="title || undefined"
       >
-        <div class="absolute inset-0 bg-surface-900/50" @click="$emit('close')"></div>
+        <!-- Voile en noir fixe : surface-900 devient clair en mode sombre. -->
+        <div class="absolute inset-0 bg-black/50" @click="$emit('close')"></div>
         <div
           ref="panel"
           class="sheet-panel absolute inset-x-0 bottom-0 sm:left-1/2 sm:right-auto sm:w-[420px] sm:-translate-x-1/2
@@ -48,6 +49,7 @@
 
 <script setup>
 import { ref, watch, onBeforeUnmount } from 'vue';
+import { pushOverlay, popOverlay, isTopOverlay } from '@/utils/modalStack';
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -62,10 +64,13 @@ const dragging = ref(false);
 let startY = 0;
 
 const onTouchStart = (e) => {
-  // Seulement depuis le haut de la feuille (poignée/titre) ou quand le
-  // contenu est en haut : sinon on laisse défiler.
-  const scroller = panel.value?.querySelector('.overflow-y-auto');
-  if (scroller && scroller.scrollTop > 0) return;
+  // Seulement depuis le haut de la feuille (poignée/titre) ou quand la zone
+  // qui défile SOUS LE DOIGT est en haut (une grille, une liste imbriquée…) :
+  // sinon on laisse défiler.
+  const scroller = e.target.closest?.('.overflow-y-auto, .overflow-auto');
+  if (scroller && panel.value?.contains(scroller) && scroller.scrollTop > 0) return;
+  const sheetScroller = panel.value?.querySelector('.overflow-y-auto');
+  if (sheetScroller && sheetScroller.scrollTop > 0) return;
   startY = e.touches[0].clientY;
   dragging.value = true;
 };
@@ -81,18 +86,25 @@ const onTouchEnd = () => {
   if (shouldClose) emit('close');
 };
 
+// Échap et verrou de défilement : pile partagée avec BaseModal (une feuille
+// ouverte sur une modale ne libère pas son verrou, Échap ne ferme qu'elle).
 const onKey = (e) => {
-  if (e.key === 'Escape' && props.open) emit('close');
+  if (e.key === 'Escape' && props.open && isTopOverlay(onKey)) emit('close');
 };
-watch(() => props.open, (v) => {
-  if (v) document.addEventListener('keydown', onKey);
-  else document.removeEventListener('keydown', onKey);
-  document.body.style.overflow = v ? 'hidden' : '';
-}, { immediate: true });
-onBeforeUnmount(() => {
-  document.removeEventListener('keydown', onKey);
-  document.body.style.overflow = '';
-});
+let stacked = false;
+const setOpen = (v) => {
+  if (v && !stacked) {
+    stacked = true;
+    pushOverlay(onKey);
+    document.addEventListener('keydown', onKey);
+  } else if (!v && stacked) {
+    stacked = false;
+    document.removeEventListener('keydown', onKey);
+    popOverlay(onKey);
+  }
+};
+watch(() => props.open, setOpen, { immediate: true });
+onBeforeUnmount(() => setOpen(false));
 </script>
 
 <style scoped>
@@ -100,7 +112,6 @@ onBeforeUnmount(() => {
 .sheet-enter-active .sheet-panel, .sheet-leave-active .sheet-panel { transition: transform .25s cubic-bezier(.2,.8,.2,1); }
 .sheet-enter-from, .sheet-leave-to { opacity: 0; }
 .sheet-enter-from .sheet-panel, .sheet-leave-to .sheet-panel { transform: translateY(100%); }
-@media (min-width: 640px) {
-  .sheet-enter-from .sheet-panel, .sheet-leave-to .sheet-panel { transform: translate(-50%, 100%); }
-}
+/* Desktop : le centrage passe par la propriété CSS `translate` (Tailwind v4,
+   sm:-translate-x-1/2) ; l'animation ne joue que sur `transform`, en Y. */
 </style>

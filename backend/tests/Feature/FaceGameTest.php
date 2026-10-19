@@ -118,6 +118,36 @@ class FaceGameTest extends TestCase
         $this->assertContains($face->id, array_column($inFamily['questions'], 'subject_id'));
     }
 
+    public function test_des_inconnus_recents_ne_tarissent_pas_les_questions(): void
+    {
+        [$me, , $friends, $media] = $this->twoWorlds();
+        $me->forceFill(['current_household_id' => $friends->id])->save();
+        // 12 visages, sur des photos distinctes (pas d'arrière-plan) ; les
+        // 10 plus récents sont dits « inconnu » dans le groupe.
+        $faces = [];
+        foreach (range(1, 12) as $i) {
+            $photo = Media::factory()->photo()->create(['user_id' => $me->id]);
+            $photo->households()->attach($friends->id);
+            $face = $this->unmatchedFace($photo);
+            $face->forceFill(['created_at' => now()->subMinutes(100 - $i)])->saveQuietly();
+            $faces[] = $face;
+        }
+        foreach (array_slice($faces, 2) as $face) {
+            \App\Models\QuestAnswer::create([
+                'user_id' => $me->id, 'household_id' => $friends->id,
+                'question_type' => 'face_identify', 'question_key' => 'face_identify:'.$face->id,
+                'subject_type' => $face->getMorphClass(), 'subject_id' => $face->id,
+                'answer_kind' => 'no', 'payload' => ['reason' => 'stranger'],
+            ]);
+        }
+
+        $keys = array_map(fn ($c) => $c['subject_id'], app(\App\Services\QuestService::class)->candidates($me->fresh()));
+
+        $this->assertContains($faces[0]->id, $keys);
+        $this->assertContains($faces[1]->id, $keys);
+        $this->assertNotContains($faces[11]->id, $keys);
+    }
+
     public function test_pas_un_visage_vaut_pour_tout_le_monde(): void
     {
         [$me, , $friends, $media] = $this->twoWorlds();

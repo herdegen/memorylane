@@ -50,10 +50,10 @@
           @pointerdown="onPointerDown"
           @pointermove="onPointerMove"
           @pointerup="onPointerUp"
-          @pointercancel="onPointerUp"
+          @pointercancel="onPointerCancel"
         >
           <!-- Le visage, grand -->
-          <div class="relative h-[300px] bg-stone-200">
+          <div class="relative h-[min(300px,36dvh)] bg-stone-200">
             <img :src="card.face.crop_url" alt="" class="absolute inset-0 w-full h-full object-cover" draggable="false" />
             <span v-if="whereLabel" class="absolute left-3.5 top-3.5 max-w-[70%] truncate px-2.5 py-1 rounded-full bg-[#1c1917]/75 text-snow text-xs font-bold">{{ whereLabel }}</span>
             <!-- Vignette de la photo entière : tap = voir le contexte -->
@@ -139,6 +139,9 @@
       </button>
     </div>
 
+    <!-- Pas d'AppLayout ici : les messages d'erreur ont leur propre conteneur. -->
+    <ToastContainer />
+
     <!-- Quelqu'un d'autre : recherche dans les fiches du cercle -->
     <BottomSheet :open="pickerOpen" title="Qui est-ce ?" @close="pickerOpen = false">
       <input
@@ -155,7 +158,8 @@
           v-for="p in pickerResults"
           :key="p.id"
           type="button"
-          class="w-full flex items-center gap-3 px-4 h-14 text-left active:bg-surface-50"
+          class="w-full flex items-center gap-3 px-4 h-14 text-left active:bg-surface-50 disabled:opacity-50"
+          :disabled="busy"
           @click="confirmPerson(p)"
         >
           <PersonAvatar :person="p" :size="10" class="shrink-0" />
@@ -179,6 +183,7 @@ import { Head, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
 import BottomSheet from '@/Components/BottomSheet.vue';
+import ToastContainer from '@/Components/ToastContainer.vue';
 import { searchPeople } from '@/utils/personSearch';
 import { useToast } from '@/Composables/useToast';
 
@@ -227,18 +232,27 @@ const hint = computed(() => {
 
 const params = (extra = {}) => ({ album: props.album?.id || undefined, ...extra });
 
-const fill = async () => {
-  if (queue.value.length >= 2) return;
-  try {
-    const { data } = await axios.get('/quests/faces/next', { params: params({ exclude: seen.value.slice(-300) }) });
-    const known = new Set(queue.value.map((q) => q.subject_id));
-    for (const q of data.questions) if (!known.has(q.subject_id)) queue.value.push(q);
-    if (!total.value && !done.value) total.value = data.total;
-  } catch (e) {
-    toast.error('Impossible de charger les visages.');
-  } finally {
-    loading.value = false;
-  }
+// Un seul chargement à la fois ; les visages déjà passés dans la partie
+// (même pendant le chargement) ne reviennent pas. File vide pendant le
+// chargement : on affiche « Chargement… », pas l'écran de fin.
+let filling = null;
+const fill = () => {
+  if (queue.value.length >= 2) return filling;
+  filling ??= (async () => {
+    if (!queue.value.length) loading.value = true;
+    try {
+      const { data } = await axios.get('/quests/faces/next', { params: params({ exclude: seen.value.slice(-300) }) });
+      const skip = new Set([...queue.value.map((q) => q.subject_id), ...seen.value]);
+      for (const q of data.questions) if (!skip.has(q.subject_id)) queue.value.push(q);
+      if (!total.value && !done.value) total.value = data.total;
+    } catch (e) {
+      toast.error('Impossible de charger les visages.');
+    } finally {
+      loading.value = false;
+      filling = null;
+    }
+  })();
+  return filling;
 };
 
 const advance = (text, good) => {
@@ -308,19 +322,32 @@ const dragHint = computed(() => {
 });
 const resetDrag = () => { dx.value = 0; dy.value = 0; dragging.value = false; start = null; };
 
+// Un seul doigt suivi. La capture du pointeur n'est prise qu'une fois le
+// glissé engagé (> 8 px) : capturé dès l'appui, le « clic » serait renvoyé à
+// la carte et les boutons (suggestions, « Quelqu'un d'autre… », vignette)
+// ne répondraient plus au doigt.
 const onPointerDown = (e) => {
-  if (busy.value || e.button) return;
-  start = { x: e.clientX, y: e.clientY };
+  if (busy.value || e.button || start) return;
+  start = { x: e.clientX, y: e.clientY, id: e.pointerId, captured: false };
   dragging.value = true;
-  cardEl.value?.setPointerCapture?.(e.pointerId);
 };
 const onPointerMove = (e) => {
-  if (!dragging.value || !start) return;
+  if (!dragging.value || !start || e.pointerId !== start.id) return;
   dx.value = e.clientX - start.x;
   dy.value = Math.max(0, e.clientY - start.y);
+  if (!start.captured && Math.hypot(dx.value, dy.value) > 8) {
+    start.captured = true;
+    cardEl.value?.setPointerCapture?.(e.pointerId);
+  }
 };
-const onPointerUp = () => {
-  if (!dragging.value) return;
+// Geste interrompu (appel, défilement système…) : on remet la carte, sans répondre.
+const onPointerCancel = (e) => {
+  if (start && e.pointerId !== start.id) return;
+  resetDrag();
+};
+const onPointerUp = (e) => {
+  if (!dragging.value || !start || e.pointerId !== start.id) return;
+  start = null;
   dragging.value = false;
   if (dx.value > THRESHOLD && top.value) { dx.value = 500; confirmPerson(top.value); return; }
   if (dx.value < -THRESHOLD) { dx.value = -500; reject(); return; }

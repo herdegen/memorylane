@@ -206,10 +206,7 @@ class AlbumAccessTest extends TestCase
         [$album, $media] = $this->albumWithMedia();
         AlbumAccess::create(['album_id' => $album->id, 'user_id' => $this->viewer->id, 'granted_by' => $this->owner->id]);
 
-        $tagged = User::factory()->create();
-        $person = Person::factory()->create(['user_id' => $this->owner->id]);
-        $media->people()->attach($person->id);
-        $tagged->update(['person_id' => $person->id]);
+        $tagged = $this->taggedUser($media);
 
         $data = $this->actingAs($this->owner)->getJson("/albums/{$album->id}/access")->assertOk()->json();
         $byUser = collect($data)->keyBy('user_id');
@@ -219,15 +216,23 @@ class AlbumAccessTest extends TestCase
         $this->assertSame('tagged', $byUser[$tagged->id]['origin']);
     }
 
-    /** Un compte dont la fiche est identifiée sur la photo. */
+    /** Un compte dont la fiche est identifiée (à la main) sur la photo, dans un cercle du propriétaire. */
     private function taggedUser(Media $media): User
     {
         $user = User::factory()->create();
         $person = Person::factory()->create(['user_id' => $this->owner->id]);
         $media->people()->attach($person->id);
         $user->update(['person_id' => $person->id]);
+        $this->sharedCircle()->members()->syncWithoutDetaching([$this->owner->id, $user->id]);
 
         return $user->fresh();
+    }
+
+    private ?\App\Models\Household $circle = null;
+
+    private function sharedCircle(): \App\Models\Household
+    {
+        return $this->circle ??= \App\Models\Household::factory()->create(['created_by' => $this->owner->id]);
     }
 
     public function test_owner_opens_the_album_to_identified_people(): void
@@ -259,6 +264,31 @@ class AlbumAccessTest extends TestCase
 
         // Relancer ne recrée rien
         $this->actingAs($this->owner)->postJson("/albums/{$album->id}/access/tagged")->assertJson(['granted' => 0]);
+    }
+
+    public function test_bulk_grant_ignores_unverified_auto_matches_and_strangers(): void
+    {
+        [$album, $media] = $this->albumWithMedia();
+
+        // Associé automatiquement, pas validé : pas d'accès d'office.
+        $auto = $this->taggedUser($media);
+        $media->detectedFaces()->create([
+            'person_id' => $auto->person_id, 'status' => 'matched', 'provider' => 'insightface',
+            'bounding_box' => ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5],
+        ]);
+        // Identifié à la main mais sans aucun cercle commun avec le propriétaire.
+        $stranger = User::factory()->create();
+        $p = Person::factory()->create(['user_id' => $this->owner->id]);
+        $media->people()->attach($p->id);
+        $stranger->update(['person_id' => $p->id]);
+
+        $this->actingAs($this->owner)->postJson("/albums/{$album->id}/access/tagged")->assertJson(['granted' => 0]);
+        $this->assertSame(0, AlbumAccess::where('album_id', $album->id)->count());
+
+        // Une fois le visage validé par un humain, il compte.
+        $media->detectedFaces()->update(['verified_at' => now()]);
+        $this->actingAs($this->owner)->postJson("/albums/{$album->id}/access/tagged")->assertJson(['granted' => 1]);
+        $this->assertTrue($album->fresh()->isAccessibleBy($auto->fresh()));
     }
 
     public function test_identified_person_cannot_open_the_album_to_identified_people(): void

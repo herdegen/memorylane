@@ -39,7 +39,9 @@ function buildSteps(page) {
   const seesFamily = circle.family !== false;
   // Téléphone (barre d'onglets visible, sous sm) : on montre les onglets et le
   // bouton ⊕ plutôt que la page d'envoi, et le compte est l'initiale en haut.
-  const mobile = typeof window !== 'undefined' && window.innerWidth < 640;
+  // Fixé au début de la visite (mémorisé avec l'étape) : tourner le téléphone
+  // en cours de route ne doit pas changer la liste des étapes.
+  const mobile = tourMobile();
   const menuHint = mobile ? 'depuis votre compte (votre initiale, en haut à droite)' : 'depuis le menu';
 
   const steps = [
@@ -121,17 +123,21 @@ function buildSteps(page) {
 // Une visite abandonnée en route ne reprend pas des heures plus tard.
 const STALE_MS = 30 * 60 * 1000;
 
-const readStep = () => {
+const readSaved = () => {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-    if (!saved || Date.now() - saved.t > STALE_MS) return null;
-    return saved.i;
+    return saved && Date.now() - saved.t <= STALE_MS ? saved : null;
   } catch (_) {
     return null;
   }
 };
+const readStep = () => readSaved()?.i ?? null;
+const screenIsMobile = () => typeof window !== 'undefined' && window.innerWidth < 640;
+// Parcours téléphone ou ordinateur : celui de la visite en cours, sinon l'écran actuel.
+const tourMobile = () => readSaved()?.m ?? screenIsMobile();
 const writeStep = (i) => {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ i, t: Date.now() })); } catch (_) { /* navigation privée */ }
+  const m = i === 0 ? screenIsMobile() : tourMobile();
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ i, m, t: Date.now() })); } catch (_) { /* navigation privée */ }
 };
 const clearStep = () => {
   try { localStorage.removeItem(STORAGE_KEY); } catch (_) { /* idem */ }

@@ -54,9 +54,9 @@
             <img :src="m.thumbnail_url" alt="" class="w-full h-full object-cover" loading="lazy" decoding="async" />
             <span
               v-if="indexOf(m.id) >= 0"
-              class="absolute top-1 left-1 min-w-6 h-6 px-1.5 rounded-full bg-brand-600 text-white text-xs font-bold flex items-center justify-center shadow"
+              class="absolute top-1 left-1 min-w-6 h-6 px-1.5 rounded-full bg-brand-600 text-snow text-xs font-bold flex items-center justify-center shadow"
             >{{ indexOf(m.id) + 1 }}</span>
-            <span v-if="m.taken_at" class="absolute bottom-0 inset-x-0 px-1.5 py-0.5 text-[10px] text-white bg-linear-to-t from-black/60 to-transparent text-left">
+            <span v-if="m.taken_at" class="absolute bottom-0 inset-x-0 px-1.5 py-0.5 text-[10px] text-snow bg-linear-to-t from-black/60 to-transparent text-left">
               {{ shortDate(m.taken_at) }}
             </span>
           </button>
@@ -134,12 +134,14 @@ const hint = computed(() => {
 
 let reqId = 0;
 const fetchPage = async (page) => {
+  // Toute nouvelle demande invalide celles en cours (réponse d'un autre onglet).
+  const id = ++reqId;
   if (tab.value === 'album' && !albumId.value) {
     items.value = [];
     nextPage.value = null;
+    loading.value = false;
     return;
   }
-  const id = ++reqId;
   loading.value = true;
   try {
     const { data } = await axios.get('/media/pick', {
@@ -153,7 +155,9 @@ const fetchPage = async (page) => {
       },
     });
     if (id !== reqId) return;
-    items.value = page === 1 ? data.data : [...items.value, ...data.data];
+    // Pas de doublon d'une page à l'autre (même date de prise de vue).
+    const known = new Set(page === 1 ? [] : items.value.map((m) => m.id));
+    items.value = page === 1 ? data.data : [...items.value, ...data.data.filter((m) => !known.has(m.id))];
     nextPage.value = data.next_page;
   } finally {
     if (id === reqId) loading.value = false;
