@@ -294,4 +294,30 @@ class FaceRecognitionAdminTest extends TestCase
         $this->assertNull($face->fresh()->person_id);
         $this->assertFalse($media->people()->where('people.id', $person->id)->exists());
     }
+
+    /** Même chose depuis le bouton d'une ligne (il passe collect([$record])). */
+    public function test_relation_manager_desassocie_depuis_une_ligne(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $person = Person::factory()->create(['user_id' => $admin->id]);
+        $media = Media::factory()->photo()->create(['user_id' => $admin->id]);
+        $face = $media->detectedFaces()->create([
+            'person_id' => $person->id,
+            'bounding_box' => ['x' => 0.1, 'y' => 0.1, 'width' => 0.2, 'height' => 0.2],
+            'provider' => 'faceapi',
+            'status' => 'matched',
+        ]);
+        $media->people()->attach($person->id, ['face_coordinates' => '{}']);
+
+        Livewire::actingAs($admin)
+            ->test(IdentifiedPhotosRelationManager::class, [
+                'ownerRecord' => $person,
+                'pageClass' => EditPerson::class,
+            ])
+            ->callTableAction('disassociate', $face)
+            ->assertHasNoTableActionErrors();
+
+        $this->assertSame('rejected', $face->fresh()->status);
+        $this->assertNull($face->fresh()->person_id);
+    }
 }

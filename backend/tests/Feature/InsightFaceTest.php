@@ -449,6 +449,32 @@ class InsightFaceTest extends TestCase
             ->assertSeeInOrder(['Tom (2)', 'Léa (1)', 'Aline']);
     }
 
+    public function test_row_actions_confirm_and_not_this_person(): void
+    {
+        // Boutons d'une ligne (pas l'action groupée) : ils passaient
+        // collect([$record]) à des aides typées « collection Eloquent » (erreur 500).
+        $admin = User::factory()->admin()->create();
+        $tom = Person::create(['user_id' => $this->user->id, 'name' => 'Tom']);
+        $box = ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5];
+        foreach ([0.0, 0.1, 0.2] as $n) {
+            $this->face($this->photo(), $box, $tom, v2: $this->vec(2, $n));
+        }
+        $yes = $this->face($this->photo(), $box, v2: $this->vec(2, 0.05));
+        $no = $this->face($this->photo(), $box, v2: $this->vec(2, 0.06));
+
+        $this->actingAs($admin);
+        \Livewire\Livewire::test(\App\Filament\Resources\PersonFaceResource\Pages\ListPersonFaces::class)
+            ->filterTable('person', $tom->id)
+            ->callTableAction('confirm', $yes)
+            ->assertHasNoTableActionErrors()
+            ->callTableAction('notThem', $no)
+            ->assertHasNoTableActionErrors();
+
+        $this->assertSame($tom->id, $yes->fresh()->person_id);
+        $this->assertSame('unmatched', $no->fresh()->status);
+        $this->assertArrayNotHasKey($no->id, app(\App\Services\Vision\PersonFaceCandidates::class)->for($tom->id));
+    }
+
     public function test_not_this_person_is_never_proposed_again(): void
     {
         $admin = User::factory()->admin()->create();

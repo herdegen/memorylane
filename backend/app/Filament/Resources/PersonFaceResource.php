@@ -217,7 +217,9 @@ class PersonFaceResource extends Resource
     }
 
     /** « Ce n'est pas elle » : exclusions visage ↔ personne choisie. */
-    private static function exclude(Collection $faces, $livewire): void
+    // Collection « simple » acceptée : les actions de ligne passent collect([$record]),
+    // les actions groupées une collection Eloquent (qui en hérite).
+    private static function exclude(\Illuminate\Support\Collection $faces, $livewire): void
     {
         if ($personId = self::personId($livewire)) {
             $faces->each(fn (DetectedFace $f) => app(FaceMatcher::class)->exclude($f, $personId, auth()->id()));
@@ -225,7 +227,7 @@ class PersonFaceResource extends Resource
     }
 
     /** Identifie les visages comme la personne choisie ; renvoie le nombre réussi. */
-    private static function apply(Collection $faces, $livewire): int
+    private static function apply(\Illuminate\Support\Collection $faces, $livewire): int
     {
         $personId = self::personId($livewire);
         if (! $personId) {

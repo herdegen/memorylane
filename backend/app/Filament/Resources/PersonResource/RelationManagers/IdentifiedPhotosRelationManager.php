@@ -97,7 +97,7 @@ class IdentifiedPhotosRelationManager extends RelationManager
      * Désassocie une collection de visages de la personne (désassociation
      * collante) et notifie.
      */
-    protected static function disassociateFaces(Collection $records): void
+    protected static function disassociateFaces(\Illuminate\Support\Collection $records): void
     {
         $matcher = app(FaceMatcher::class);
 
