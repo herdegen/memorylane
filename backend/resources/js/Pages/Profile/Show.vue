@@ -135,6 +135,17 @@
           </div>
         </div>
 
+        <!-- Mes données : tous mes originaux, en archives ZIP envoyées par mail -->
+        <div class="bg-white overflow-hidden shadow-xs sm:rounded-lg">
+          <div class="p-6 space-y-3">
+            <div>
+              <h2 class="text-lg font-medium text-surface-900">Mes photos</h2>
+              <p class="mt-1 text-sm text-surface-600">Récupérez tous les originaux que vous avez envoyés, rangés par année, avec un index (date, albums, personnes). Vous recevrez les liens par mail.</p>
+            </div>
+            <ExportMediaButton />
+          </div>
+        </div>
+
         <!-- Quitter l'application : page dédiée (récapitulatif, choix, 30 jours) -->
         <div class="bg-white overflow-hidden shadow-xs sm:rounded-lg">
           <div class="p-6 flex flex-wrap items-center justify-between gap-3">
@@ -154,6 +165,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import ExportMediaButton from '@/Components/ExportMediaButton.vue';
 import { Head, useForm, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FormField from '@/Components/Forms/FormField.vue';

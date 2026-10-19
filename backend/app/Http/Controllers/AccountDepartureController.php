@@ -52,6 +52,21 @@ class AccountDepartureController extends Controller
         return redirect()->route('account.departure')->with('success', 'Départ programmé : vous pouvez encore l\'annuler.');
     }
 
+    /**
+     * « Télécharger mes photos » : archives préparées en tâche de fond,
+     * liens envoyés par mail. Une demande toutes les 6 heures au plus.
+     */
+    public function export(Request $request)
+    {
+        $user = $request->user();
+        if (! \Illuminate\Support\Facades\Cache::add("media-export:{$user->id}", true, now()->addHours(6))) {
+            return response()->json(['message' => 'Un export est déjà en préparation : vous recevrez un mail.'], 429);
+        }
+        \App\Jobs\ExportUserMedia::dispatch($user);
+
+        return response()->json(['message' => 'C\'est parti : vous recevrez un mail avec les liens de téléchargement (quelques minutes à une heure selon le nombre de photos).']);
+    }
+
     public function destroy(Request $request)
     {
         $this->departures->cancelAccountDeparture($request->user());

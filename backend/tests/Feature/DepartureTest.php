@@ -12,6 +12,8 @@ use App\Models\VoiceNote;
 use App\Services\DepartureService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -28,7 +30,7 @@ class DepartureTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Storage::fake();
+        Storage::fake(config('filesystems.default'));
         $this->admin = User::factory()->admin()->create(['created_at' => now()->subYear()]);
     }
 
@@ -179,6 +181,93 @@ class DepartureTest extends TestCase
         $this->assertNotNull($theirPhoto->fresh(), 'les photos des autres restent');
         $this->assertFalse($theirPhoto->people()->where('people.id', $mine->id)->exists(), 'son nom retiré');
         $this->assertNotNull($mine->fresh(), 'sa fiche reste');
+    }
+
+    // ------------------------------------------------------- retraits (admin)
+
+    public function test_le_responsable_retire_un_membre_et_ses_photos(): void
+    {
+        Notification::fake();
+        $owner = User::factory()->create();
+        $member = User::factory()->create();
+        $circle = Household::factory()->friends()->create(['created_by' => $owner->id, 'name' => 'Les copains']);
+        $circle->members()->attach([$owner->id, $member->id]);
+        $photo = $this->sharedPhoto($member, $circle);
+
+        // Un simple membre ne retire personne.
+        $this->actingAs($member)->deleteJson("/households/{$circle->id}/members/{$owner->id}", ['photos' => 'keep'])->assertForbidden();
+
+        $this->assertSame(1, $this->actingAs($owner)->getJson("/households/{$circle->id}/members/{$member->id}/removal")->assertOk()->json('shared_photos'));
+        $this->actingAs($owner)->deleteJson("/households/{$circle->id}/members/{$member->id}", ['photos' => 'withdraw'])->assertOk();
+
+        $this->assertFalse($circle->isMember($member->fresh()));
+        $this->assertFalse(DB::table('household_media')->where('media_id', $photo->id)->exists());
+        Notification::assertSentTo($member, \App\Notifications\RemovedFromCircle::class, fn ($n) => $n->circleName === 'Les copains' && $n->photosWithdrawn);
+    }
+
+    public function test_l_admin_retire_un_compte_depuis_l_administration(): void
+    {
+        Notification::fake();
+        $member = User::factory()->create(['name' => 'Paul Test']);
+        $private = Media::factory()->photo()->create(['user_id' => $member->id]);
+        $fiche = Person::factory()->create(['user_id' => $member->id]);
+
+        $this->actingAs($this->admin);
+        \Livewire\Livewire::test(\App\Filament\Resources\UserResource\Pages\ListUsers::class)
+            ->callTableAction('removeAccount', $member, ['photos' => 'keep_shared', 'voice_notes' => 'keep', 'untag_me' => false, 'confirm' => 'paul'])
+            ->assertHasNoTableActionErrors();
+
+        $this->assertDatabaseMissing('users', ['id' => $member->id]);
+        $this->assertNull(Media::withTrashed()->find($private->id));
+        $this->assertSame($this->admin->id, $fiche->fresh()->user_id);
+        Notification::assertSentTo($member, \App\Notifications\AccountRemovedByAdmin::class);
+    }
+
+    // ------------------------------------------------------------------ export
+
+    public function test_export_des_photos_en_archive_avec_index(): void
+    {
+        Notification::fake();
+        $disk = Storage::disk(config('filesystems.default'));
+        $me = User::factory()->create();
+        $a = Media::factory()->photo()->create(['user_id' => $me->id, 'original_name' => 'plage.jpg', 'taken_at' => '2020-07-14 10:00:00']);
+        $b = Media::factory()->photo()->create(['user_id' => $me->id, 'original_name' => 'plage.jpg', 'taken_at' => '2020-07-14 10:00:00']);
+        $c = Media::factory()->photo()->create(['user_id' => $me->id, 'original_name' => 'vieux.jpg', 'taken_at' => null]);
+        foreach ([$a, $b, $c] as $m) {
+            $disk->put($m->file_path, 'jpeg-'.$m->id);
+        }
+        $album = Album::factory()->create(['user_id' => $me->id, 'name' => 'Vacances']);
+        $album->media()->attach($a->id);
+        Media::factory()->photo()->create(); // celle d'un autre : pas exportée
+
+        // Le ménage différé (8 jours) ne doit pas tourner tout de suite ici.
+        \Illuminate\Support\Facades\Bus::fake([\App\Jobs\DeleteExportFiles::class]);
+        (new \App\Jobs\ExportUserMedia($me))->handle(app(\App\Services\S3Service::class));
+        \Illuminate\Support\Facades\Bus::assertDispatched(\App\Jobs\DeleteExportFiles::class);
+
+        $zips = collect($disk->allFiles('exports'))->filter(fn ($f) => str_ends_with($f, '.zip'))->values();
+        $this->assertCount(1, $zips);
+        $tmp = tempnam(sys_get_temp_dir(), 'zip');
+        file_put_contents($tmp, $disk->get($zips[0]));
+        $zip = new \ZipArchive();
+        $zip->open($tmp);
+        $names = collect(range(0, $zip->numFiles - 1))->map(fn ($i) => $zip->getNameIndex($i))->sort()->values()->all();
+        $this->assertSame(['2020/2020-07-14_plage (2).jpg', '2020/2020-07-14_plage.jpg', 'index.csv', 'sans-date/vieux.jpg'], $names);
+        $this->assertStringContainsString('Vacances', $zip->getFromName('index.csv'));
+        $zip->close();
+        @unlink($tmp);
+
+        Notification::assertSentTo($me, \App\Notifications\MediaExportReady::class, fn ($n) => $n->count === 3 && count($n->parts) === 1);
+    }
+
+    public function test_une_demande_d_export_toutes_les_6_heures(): void
+    {
+        Queue::fake();
+        $me = User::factory()->create();
+
+        $this->actingAs($me)->postJson('/account/export')->assertOk();
+        $this->actingAs($me)->postJson('/account/export')->assertStatus(429);
+        Queue::assertPushed(\App\Jobs\ExportUserMedia::class, 1);
     }
 
     public function test_un_depart_recent_n_est_pas_encore_applique(): void

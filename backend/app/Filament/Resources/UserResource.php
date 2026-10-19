@@ -160,6 +160,66 @@ class UserResource extends Resource
                         $record->markMemorial();
                         \Filament\Notifications\Notification::make()->title('Compte conservé en mémoire')->success()->send();
                     }),
+                // Fermer un compte (départ décidé par l'admin) : mêmes choix
+                // qu'un départ, appliqué tout de suite ; la personne est prévenue.
+                Action::make('removeAccount')
+                    ->label('Retirer de MemoryLane')
+                    ->icon('heroicon-o-user-minus')
+                    ->color('danger')
+                    ->visible(fn (User $record) => $record->id !== auth()->id())
+                    ->modalHeading(fn (User $record) => 'Retirer '.$record->name.' de MemoryLane')
+                    ->modalDescription('Sa fiche reste dans l\'arbre ; les fiches, moments et récits qu\'il ou elle a créés passent à un administrateur. Irréversible.')
+                    ->schema([
+                        \Filament\Forms\Components\Radio::make('photos')
+                            ->label('Ses photos et albums')
+                            ->options([
+                                'keep_shared' => 'Garder ce qui est partagé (repris par un administrateur), retirer le privé',
+                                'keep_all' => 'Tout garder (repris par un administrateur)',
+                                'remove_all' => 'Tout retirer',
+                            ])
+                            ->default('keep_shared')
+                            ->required(),
+                        \Filament\Forms\Components\Radio::make('voice_notes')
+                            ->label('Ses souvenirs racontés')
+                            ->options(['keep' => 'Les garder', 'remove' => 'Les retirer'])
+                            ->default('keep')
+                            ->required(),
+                        \Filament\Forms\Components\Toggle::make('untag_me')
+                            ->label('Retirer son nom des photos des autres')
+                            ->default(false),
+                        \Filament\Forms\Components\TextInput::make('confirm')
+                            ->label(fn (User $record) => 'Tapez « '.explode(' ', trim($record->name))[0].' » pour confirmer')
+                            ->required()
+                            ->rule(fn (User $record) => function (string $attribute, $value, \Closure $fail) use ($record) {
+                                if (mb_strtolower(trim((string) $value)) !== mb_strtolower(explode(' ', trim($record->name))[0])) {
+                                    $fail('Le prénom ne correspond pas.');
+                                }
+                            }),
+                    ])
+                    ->modalSubmitActionLabel('Retirer définitivement')
+                    ->action(function (User $record, array $data) {
+                        $departures = app(\App\Services\DepartureService::class);
+                        if ($record->isAdmin() && $departures->fallbackOwner($record) === null) {
+                            \Filament\Notifications\Notification::make()->title('Dernier administrateur : nommez-en un autre d\'abord.')->danger()->send();
+
+                            return;
+                        }
+                        $record->forceFill(['departure_options' => [
+                            'photos' => $data['photos'],
+                            'voice_notes' => $data['voice_notes'],
+                            'untag_me' => (bool) $data['untag_me'],
+                        ]])->save();
+                        if (! $record->isMemorial() && $record->email) {
+                            try {
+                                $record->notifyNow(new \App\Notifications\AccountRemovedByAdmin(auth()->user()->name));
+                            } catch (\Throwable $e) {
+                                report($e); // le mail ne doit pas bloquer le retrait
+                            }
+                        }
+                        $name = $record->name;
+                        $departures->finalizeAccountDeparture($record->fresh());
+                        \Filament\Notifications\Notification::make()->title("{$name} a été retiré·e de MemoryLane")->success()->send();
+                    }),
                 Action::make('unmemorial')
                     ->label('Réactiver')
                     ->icon('heroicon-o-arrow-uturn-left')

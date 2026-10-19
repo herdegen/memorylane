@@ -111,7 +111,7 @@
               </span>
             </div>
             <button
-              v-if="household.can_manage"
+              v-if="household.can_manage && m.user_id !== $page.props.auth?.user?.id"
               @click="removeMember(m)"
               class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
             >
@@ -197,6 +197,7 @@
       </div>
     </div>
     <LeaveCircleModal v-if="showLeave" :household="household" @close="showLeave = false" @left="onLeft" />
+    <LeaveCircleModal v-if="removing" :household="household" :member="removing" @close="removing = null" @left="onRemoved" />
   </AppLayout>
 </template>
 
@@ -270,20 +271,13 @@ const invite = async (candidate) => {
   }
 };
 
-const removeMember = async (member) => {
-  const ok = await confirm({
-    title: 'Retirer ce membre',
-    message: `Retirer ${member.name} du cercle ?`,
-    confirmLabel: 'Retirer',
-    danger: true,
-  });
-  if (!ok) return;
-  try {
-    await axios.delete(`/households/${props.household.id}/members/${member.user_id}`);
-    router.reload();
-  } catch (error) {
-    toast.error(error.response?.data?.message || 'Erreur lors du retrait du membre.');
-  }
+// Retirer un membre : mêmes choix qu'un départ (ses photos, successeur).
+const removing = ref(null);
+const removeMember = (member) => { removing.value = member; };
+const onRemoved = () => {
+  toast.success(`${removing.value.name} a été retiré·e du cercle.`);
+  removing.value = null;
+  router.reload();
 };
 
 // ---- Qui peut inviter (administrateur) ----

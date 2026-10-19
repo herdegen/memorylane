@@ -135,6 +135,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
     Route::get('/account/departure', [\App\Http\Controllers\AccountDepartureController::class, 'show'])->name('account.departure');
     Route::post('/account/departure', [\App\Http\Controllers\AccountDepartureController::class, 'store'])->name('account.departure.store');
     Route::delete('/account/departure', [\App\Http\Controllers\AccountDepartureController::class, 'destroy'])->name('account.departure.cancel');
+    Route::post('/account/export', [\App\Http\Controllers\AccountDepartureController::class, 'export'])->name('account.export');
 
     Route::prefix('profile')->name('profile.')->group(function () {
         Route::get('/', [ProfileController::class, 'show'])->name('show');
@@ -275,6 +276,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
 
         Route::get('/{household}/members/candidates', [HouseholdController::class, 'inviteCandidates'])->name('members.candidates');
         Route::post('/{household}/members', [HouseholdController::class, 'invite'])->name('members.invite');
+        Route::get('/{household}/members/{user}/removal', [HouseholdController::class, 'removalSummary'])->name('members.removal');
         Route::delete('/{household}/members/{user}', [HouseholdController::class, 'removeMember'])->name('members.remove');
 
         // Fiches rattachées à un cercle d'amis (administrateur)

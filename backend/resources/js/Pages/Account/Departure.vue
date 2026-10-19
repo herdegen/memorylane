@@ -29,6 +29,13 @@
           </p>
         </section>
 
+        <!-- Avant de partir : récupérer ses originaux -->
+        <section v-if="summary.photos" class="bg-white rounded-2xl border border-surface-200 p-5 mb-5 space-y-3">
+          <h2 class="text-base font-semibold text-surface-900">Avant de partir : gardez vos photos</h2>
+          <p class="text-sm text-surface-600">Tous vos originaux, rangés par année, en archives ZIP envoyées par mail (liens valables 7 jours).</p>
+          <ExportMediaButton />
+        </section>
+
         <div v-if="summary.is_last_admin" class="rounded-xl bg-red-50 dark:bg-red-500/10 text-red-800 dark:text-red-300 px-4 py-3 mb-5 text-sm">
           Vous êtes le dernier administrateur : nommez-en un autre (Administration → Utilisateurs) avant de partir.
         </div>
@@ -100,6 +107,7 @@ import { computed } from 'vue';
 import { Head, useForm, usePage, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { formatLongDate } from '@/utils/format';
+import ExportMediaButton from '@/Components/ExportMediaButton.vue';
 
 const props = defineProps({
   summary: { type: Object, required: true },

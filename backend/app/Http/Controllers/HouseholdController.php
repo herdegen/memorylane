@@ -213,11 +213,36 @@ class HouseholdController extends Controller
     /**
      * Retire un membre (admin).
      */
+    /** Ce que le retrait de ce membre concerne (mêmes choix qu'un départ). */
+    public function removalSummary(Request $request, Household $household, User $user)
+    {
+        Gate::authorize('manageMembers', $household);
+        abort_unless($household->isMember($user), 404);
+
+        return response()->json(app(\App\Services\DepartureService::class)->circleSummary($user, $household));
+    }
+
+    /**
+     * Retirer un membre : comme un départ, mais c'est le responsable qui
+     * choisit (ses photos restent au cercle ou en sont retirées, successeur
+     * s'il avait créé le groupe) ; la personne est prévenue par mail.
+     */
     public function removeMember(Request $request, Household $household, User $user)
     {
         Gate::authorize('manageMembers', $household);
+        abort_unless($household->isMember($user), 404);
+        abort_if($user->id === $request->user()->id, 422, 'Pour vous-même, utilisez « Quitter le cercle ».');
+        $data = $request->validate([
+            'photos' => ['nullable', \Illuminate\Validation\Rule::in(['keep', 'withdraw'])],
+            'successor_id' => ['nullable', 'uuid'],
+        ]);
+        $photos = $data['photos'] ?? 'keep';
 
-        $household->members()->detach($user->id);
+        app(\App\Services\DepartureService::class)->leaveCircle($user, $household, $photos, $data['successor_id'] ?? null);
+
+        if (! $user->isMemorial() && $user->email) {
+            $user->notify(new \App\Notifications\RemovedFromCircle($household->name, $request->user()->name, $photos === 'withdraw'));
+        }
 
         return response()->json(['message' => 'Membre retiré.']);
     }
