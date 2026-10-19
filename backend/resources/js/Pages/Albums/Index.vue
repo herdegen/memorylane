@@ -29,6 +29,63 @@
         </button>
       </div>
 
+      <!-- ============ À l'honneur : change à chaque visite ============ -->
+      <section
+        v-if="showDiscovery && featured"
+        class="relative mb-6 sm:mb-8 -mx-4 sm:mx-0 h-64 sm:h-[340px] sm:rounded-3xl overflow-hidden cursor-pointer group"
+        :data-live-card="featured.id"
+        @click="goToAlbum(featured)"
+      >
+        <img
+          v-for="(p, k) in featuredFrames"
+          :key="p"
+          :src="p"
+          alt=""
+          class="absolute inset-0 w-full h-full object-cover transition-[opacity,transform] ease-out"
+          :class="k === heroIndex ? 'opacity-100' : 'opacity-0'"
+          :style="{ transitionDuration: '1200ms, 6000ms', transform: k === heroIndex && !reducedMotion ? 'scale(1.08)' : 'scale(1)' }"
+          decoding="async"
+        />
+        <!-- Voile : lisible même sur une photo claire (scans de documents…) -->
+        <div class="absolute inset-0 bg-black/20"></div>
+        <div class="absolute inset-0 bg-linear-to-t from-black/85 via-black/45 to-transparent"></div>
+        <div class="absolute inset-0 bg-linear-to-r from-black/45 to-transparent sm:via-transparent"></div>
+        <div class="absolute inset-x-0 bottom-0 p-5 sm:p-8 text-snow">
+          <span class="inline-block px-3 py-1 rounded-full bg-snow/20 backdrop-blur text-xs font-bold tracking-wide uppercase">{{ discovery.featured.reason }}</span>
+          <h2 class="mt-2 font-display text-[28px] sm:text-5xl font-bold leading-tight [text-shadow:0_2px_12px_rgba(0,0,0,.45)]">{{ featured.name }}</h2>
+          <p class="mt-1 text-sm sm:text-base text-snow/85">
+            {{ featured.media_count }} médias<span v-if="periodOf(featured)"> · {{ periodOf(featured) }}</span>
+          </p>
+          <span class="mt-3 inline-flex items-center gap-2 h-10 px-4 rounded-full bg-snow text-ink text-sm font-bold group-hover:bg-snow/90">
+            Ouvrir l'album
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+          </span>
+        </div>
+      </section>
+
+      <!-- ============ Rangées thématiques (défilent sur le côté) ============ -->
+      <template v-if="showDiscovery">
+        <section v-for="row in discoveryRows" :key="row.key" class="mb-6 sm:mb-8">
+          <h2 class="font-display text-xl sm:text-2xl font-semibold text-surface-900 mb-3">{{ row.title }}</h2>
+          <div class="flex gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0 pb-2">
+            <div
+              v-for="album in row.albums"
+              :key="row.key + album.id"
+              class="snap-start shrink-0 w-60 sm:w-72"
+              :data-live-card="row.key + album.id"
+            >
+              <AlbumCard
+                :album="album"
+                :live="liveKey === row.key + album.id"
+                :owner-name="album.is_owner === false ? album.user?.name : null"
+                @click="goToAlbum(album)"
+              />
+            </div>
+          </div>
+        </section>
+        <h2 class="font-display text-xl sm:text-2xl font-semibold text-surface-900 mb-3">Tous les albums</h2>
+      </template>
+
       <!-- Filtres (fusionne « Partagés avec moi » dans la page) ;
            téléphone : une seule ligne qui défile -->
       <div class="flex flex-nowrap sm:flex-wrap gap-2 mb-4 sm:mb-6 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible [&>button]:shrink-0">
@@ -47,6 +104,21 @@
         </button>
       </div>
 
+      <!-- Par décennie -->
+      <div v-if="decades.length > 1" class="flex flex-nowrap sm:flex-wrap items-center gap-2 -mt-2 sm:-mt-3 mb-4 sm:mb-6 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 [&>button]:shrink-0">
+        <span class="text-xs font-semibold uppercase tracking-wider text-surface-500 mr-1 shrink-0">Par décennie</span>
+        <button
+          v-for="d in decades"
+          :key="d.decade"
+          type="button"
+          class="px-3.5 py-1.5 rounded-full text-[13px] font-medium whitespace-nowrap border transition"
+          :class="decade === d.decade ? 'bg-surface-900 border-surface-900 text-page' : 'bg-white border-surface-300 text-surface-600 hover:bg-surface-50'"
+          @click="decade = decade === d.decade ? null : d.decade"
+        >
+          Années {{ d.decade < 2000 ? String(d.decade).slice(2) : d.decade }} <span class="opacity-60">· {{ d.ids.length }}</span>
+        </button>
+      </div>
+
       <!-- Grille : albums du cercle courant -->
       <h2 v-if="hereAlbums.length && elsewhereAlbums.length && current" class="text-sm font-semibold uppercase tracking-wider text-surface-500 mb-3">
         Albums de {{ current.name }}
@@ -62,6 +134,8 @@
           v-for="(album, i) in hereAlbums"
           :key="album.id"
           :album="album"
+          :live="liveKey === 'grid' + album.id"
+          :data-live-card="'grid' + album.id"
           :owner-name="album.is_owner === false ? album.user?.name : null"
           :class="i === 0 ? 'col-span-2 sm:col-span-1' : ''"
           @click="goToAlbum(album)"
@@ -153,7 +227,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AlbumCard from '@/Components/AlbumCard.vue';
@@ -168,6 +242,11 @@ const props = defineProps({
   albums: {
     type: Array,
     default: () => [],
+  },
+  // À l'honneur, rangées, décennies (calculés à chaque visite)
+  discovery: {
+    type: Object,
+    default: () => ({ featured: null, rows: [], decades: [] }),
   },
 });
 
@@ -195,7 +274,77 @@ const filters = computed(() => [
   { value: 'smart', label: 'Intelligents', count: props.albums.filter(matchers.smart).length },
 ]);
 
-const filteredAlbums = computed(() => props.albums.filter(matchers[filter.value] || matchers.all));
+// Décennie choisie (null : toutes).
+const decade = ref(null);
+const decades = computed(() => props.discovery?.decades || []);
+const decadeIds = computed(() => new Set(decades.value.find((d) => d.decade === decade.value)?.ids || []));
+
+const filteredAlbums = computed(() => props.albums
+  .filter(matchers[filter.value] || matchers.all)
+  .filter((a) => decade.value === null || decadeIds.value.has(a.id)));
+
+// ---- Découverte : à l'honneur et rangées (seulement sur « Tous ») -----------
+const byId = computed(() => Object.fromEntries(props.albums.map((a) => [a.id, a])));
+const showDiscovery = computed(() => filter.value === 'all' && decade.value === null);
+const featured = computed(() => byId.value[props.discovery?.featured?.id] || null);
+const featuredFrames = computed(() => (featured.value?.previews || []).map((p) => p.medium));
+const discoveryRows = computed(() => (props.discovery?.rows || [])
+  .map((r) => ({ ...r, albums: r.ids.map((id) => byId.value[id]).filter(Boolean) }))
+  .filter((r) => r.albums.length));
+const reducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+// Diaporama muet de l'album à l'honneur.
+const heroIndex = ref(0);
+let heroTimer = null;
+onMounted(() => {
+  if (!reducedMotion && featuredFrames.value.length > 1) {
+    heroTimer = setInterval(() => { heroIndex.value = (heroIndex.value + 1) % featuredFrames.value.length; }, 4500);
+  }
+});
+
+// Téléphone (pas de survol) : la carte la plus proche du centre de l'écran
+// s'anime ; une seule à la fois.
+const liveKey = ref(null);
+const canHover = typeof window !== 'undefined' && window.matchMedia?.('(any-hover: hover)').matches;
+let frame = 0;
+const pickLive = () => {
+  frame = 0;
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2;
+  let best = null;
+  let bestDist = Infinity;
+  for (const el of document.querySelectorAll('[data-live-card]')) {
+    const r = el.getBoundingClientRect();
+    if (r.bottom < 0 || r.top > window.innerHeight || r.right < 0 || r.left > window.innerWidth) continue;
+    const d = Math.hypot(r.left + r.width / 2 - cx, r.top + r.height / 2 - cy);
+    if (d < bestDist) { bestDist = d; best = el.dataset.liveCard; }
+  }
+  liveKey.value = best;
+};
+const onScroll = () => { if (!frame) frame = requestAnimationFrame(pickLive); };
+onMounted(() => {
+  if (canHover || reducedMotion) return;
+  window.addEventListener('scroll', onScroll, { passive: true });
+  document.addEventListener('scroll', onScroll, { passive: true, capture: true }); // rangées horizontales
+  pickLive();
+});
+onBeforeUnmount(() => {
+  clearInterval(heroTimer);
+  window.removeEventListener('scroll', onScroll);
+  document.removeEventListener('scroll', onScroll, { capture: true });
+  if (frame) cancelAnimationFrame(frame);
+});
+
+// « juin 2020 » ou « 1939 → 1972 »
+const periodOf = (a) => {
+  if (!a?.first_at) return null;
+  const f = a.first_at;
+  const l = a.last_at || f;
+  if (f.slice(0, 4) === l.slice(0, 4)) return f.slice(0, 7) === l.slice(0, 7)
+    ? new Date(`${f}T12:00:00`).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+    : f.slice(0, 4);
+  return `${f.slice(0, 4)} → ${l.slice(0, 4)}`;
+};
 
 // Rangement par cercle courant : ses albums d'abord, les autres à part.
 const { current } = useCircle();

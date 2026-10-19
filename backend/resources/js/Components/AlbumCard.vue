@@ -2,10 +2,27 @@
   <div
     class="relative group aspect-[4/3] rounded-2xl overflow-hidden bg-surface-100 cursor-pointer shadow-warm-sm transition-all duration-200 hover:shadow-warm-md hover:scale-[1.01]"
     @click="$emit('click', album)"
+    @mouseenter="hovering = true"
+    @mouseleave="hovering = false"
   >
-    <!-- Couverture plein cadre -->
+    <!-- Couverture vivante : les photos de l'album défilent en fondu (survol
+         sur ordinateur, carte au centre de l'écran sur téléphone). Seule la
+         première est chargée tant que la carte n'a pas été animée. -->
+    <template v-if="frames.length">
+      <img
+        v-for="(src, k) in loadedFrames"
+        :key="src"
+        :src="src"
+        :alt="k === 0 ? album.name : ''"
+        class="absolute inset-0 w-full h-full object-cover transition-[opacity,transform] ease-out"
+        :class="k === index ? 'opacity-100' : 'opacity-0'"
+        :style="{ transitionDuration: k === index && animating ? '700ms, 2600ms' : '700ms, 300ms', transform: k === index && animating ? 'scale(1.08)' : 'scale(1)' }"
+        loading="lazy"
+        decoding="async"
+      />
+    </template>
     <img
-      v-if="album.cover_url"
+      v-else-if="album.cover_url"
       :src="album.cover_url"
       :alt="album.name"
       class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
@@ -53,12 +70,17 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch, onBeforeUnmount } from 'vue';
 
 const props = defineProps({
   album: {
     type: Object,
     required: true,
+  },
+  // Téléphone : la carte au centre de l'écran s'anime (choisie par la page).
+  live: {
+    type: Boolean,
+    default: false,
   },
   // Nom du propriétaire, affiché quand l'album est partagé AVEC moi.
   ownerName: {
@@ -68,6 +90,25 @@ const props = defineProps({
 });
 
 defineEmits(['click']);
+
+// ---- Couverture vivante ------------------------------------------------------
+const frames = computed(() => (props.album.previews || []).map((p) => p.small));
+const index = ref(0);
+const hovering = ref(false);
+const activated = ref(false);
+const reducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+const animating = computed(() => !reducedMotion && frames.value.length > 1 && (hovering.value || props.live));
+// Les photos suivantes ne sont chargées qu'à la première animation.
+const loadedFrames = computed(() => (activated.value ? frames.value : frames.value.slice(0, 1)));
+let timer = null;
+const stop = () => { clearInterval(timer); timer = null; };
+watch(animating, (on) => {
+  stop();
+  if (!on) return;
+  activated.value = true;
+  timer = setInterval(() => { index.value = (index.value + 1) % frames.value.length; }, 1600);
+});
+onBeforeUnmount(stop);
 
 const visibility = computed(() => {
   if ((props.album.households_count || 0) > 0) {
@@ -79,10 +120,21 @@ const visibility = computed(() => {
   return { label: 'Privé', class: 'bg-white/85 text-surface-600' };
 });
 
+// « juin 2020 », ou « 1939 → 1972 » pour un album qui couvre plusieurs années.
+const monthYear = (d) => new Date(`${d}T12:00:00`).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+const period = computed(() => {
+  const { first_at: a, last_at: b } = props.album;
+  if (!a) return null;
+  if (!b || a.slice(0, 7) === b.slice(0, 7)) return monthYear(a);
+  if (a.slice(0, 4) === b.slice(0, 4)) return a.slice(0, 4);
+  return `${a.slice(0, 4)} → ${b.slice(0, 4)}`;
+});
+
 const subLine = computed(() => {
   const count = props.album.media_count || 0;
   return [
     `${count} ${count === 1 ? 'média' : 'médias'}`,
+    period.value,
     props.ownerName ? `partagé par ${props.ownerName}` : null,
     props.album.description || null,
   ].filter(Boolean).join(' · ');
