@@ -168,6 +168,34 @@ class PersonAddressTest extends TestCase
 
     // ---------------------------------------------------------------- heatmap
 
+    public function test_heatmap_compte_un_foyer_une_fois(): void
+    {
+        $owner = User::factory()->create();
+        $father = Person::factory()->create(['user_id' => $owner->id]);
+        $viewer = User::factory()->create();
+        $me = Person::factory()->create(['user_id' => $owner->id, 'father_id' => $father->id]);
+        $viewer->update(['person_id' => $me->id]);
+        // Quatre sous le même toit (le père, moi, deux frères et sœurs)…
+        $siblings = Person::factory()->count(2)->create(['user_id' => $owner->id, 'father_id' => $father->id]);
+        foreach ([$father, $me, ...$siblings] as $p) {
+            $p->forceFill(['address_latitude' => 47.21451, 'address_longitude' => 2.36012])->saveQuietly();
+        }
+        // …et un voisin du même village (autre adresse, même point arrondi).
+        $uncle = Person::factory()->create(['user_id' => $owner->id, 'father_id' => null]);
+        $father->forceFill(['father_id' => null])->saveQuietly();
+        $cousin = Person::factory()->create(['user_id' => $owner->id, 'father_id' => $father->id]);
+        $cousin->forceFill(['address_latitude' => 47.21211, 'address_longitude' => 2.35588])->saveQuietly();
+
+        $points = $this->actingAs($viewer)->getJson('/map/heatmap')->assertOk()->json('points');
+
+        // Un seul point arrondi, qui compte 2 foyers (pas 5 personnes).
+        $this->assertSame([[47.21, 2.36, 2]], $points);
+
+        // La même adresse saisie sans numéro (géocodée ~120 m plus loin) : même foyer.
+        $siblings[0]->forceFill(['address_latitude' => 47.21391, 'address_longitude' => 2.36132])->saveQuietly();
+        $this->assertSame([[47.21, 2.36, 2]], $this->actingAs($viewer)->getJson('/map/heatmap')->json('points'));
+    }
+
     public function test_heatmap_renvoie_des_points_arrondis_sans_identite(): void
     {
         $owner = User::factory()->create();
@@ -198,7 +226,8 @@ class PersonAddressTest extends TestCase
 
         $points = $response->json('points');
         $this->assertCount(1, $points);
-        $this->assertSame(2, $points[0][2]);
+        // Père et mère à la même adresse : un seul foyer.
+        $this->assertSame(1, $points[0][2]);
     }
 
     public function test_heatmap_montre_sa_famille_et_sa_belle_famille_pas_celle_des_autres(): void

@@ -119,7 +119,7 @@ class MapController extends Controller
      * Couche « où vit la famille » : heatmap volontairement grossière des
      * adresses de résidence. Coordonnées arrondies à 0,01° (~1 km) CÔTÉ
      * SERVEUR — les coordonnées précises ne quittent jamais le backend — et
-     * agrégées par point arrondi (le poids = nombre de personnes), sans
+     * agrégées par point arrondi (le poids = nombre de foyers), sans
      * aucun identifiant. Toutes les adresses comptent, opt-in ou non :
      * l'opt-in ne gouverne que l'affichage de l'adresse précise sur la fiche.
      */
@@ -151,11 +151,43 @@ class MapController extends Controller
             ->map(function ($group, $key) {
                 [$lat, $lng] = explode(',', $key);
 
-                return [(float) $lat, (float) $lng, $group->count()];
+                // Poids = nombre de FOYERS, pas de personnes : une famille de
+                // 4 sous le même toit pèse autant qu'une personne seule.
+                return [(float) $lat, (float) $lng, self::householdCount($group)];
             })
             ->values();
 
         return response()->json(['points' => $points]);
+    }
+
+    /** Adresses à moins de cette distance : un même foyer (même adresse saisie avec ou sans numéro). */
+    public const HOUSEHOLD_RADIUS_METERS = 200;
+
+    /**
+     * Nombre de foyers parmi des fiches géocodées : regroupement glouton des
+     * positions à moins de HOUSEHOLD_RADIUS_METERS les unes des autres.
+     */
+    private static function householdCount($people): int
+    {
+        $centers = [];
+        foreach ($people as $p) {
+            $lat = (float) $p->address_latitude;
+            $lng = (float) $p->address_longitude;
+            $found = false;
+            foreach ($centers as [$clat, $clng]) {
+                $dy = ($lat - $clat) * 111_320;
+                $dx = ($lng - $clng) * 111_320 * cos(deg2rad($lat));
+                if (sqrt($dx * $dx + $dy * $dy) < self::HOUSEHOLD_RADIUS_METERS) {
+                    $found = true;
+                    break;
+                }
+            }
+            if (! $found) {
+                $centers[] = [$lat, $lng];
+            }
+        }
+
+        return count($centers);
     }
 
     /**

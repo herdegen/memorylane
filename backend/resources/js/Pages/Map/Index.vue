@@ -560,22 +560,18 @@ async function showHeatmap() {
   if (!heatmapEnabled.value || !map) return;
 
   if (heatLayer) map.removeLayer(heatLayer);
-  // Réglé pour de FAIBLES densités (souvent 1 personne par ville, max 2-3) :
+  // Le poids d'un point est un nombre de FOYERS (serveur) : une famille
+  // sous le même toit compte pour un. Réglé pour de faibles densités :
   // - maxZoom bas : leaflet.heat divise l'intensité par 2^(maxZoom - zoom),
   //   avec la valeur par défaut un point isolé est invisible au niveau France ;
-  // - max: 3 : 1 personne = halo clair, 2 = plus soutenu, 3+ = la teinte
-  //   la plus foncée — jamais de rouge, aux couleurs du cercle (ambre en
-  //   famille, sarcelle entre amis) ;
+  // - max: 1.5 : 1 foyer = tache orange bien visible, 2+ foyers proches = rouge ;
   // - minOpacity garde le halo lisible sur les tuiles claires.
   heatLayer = L.heatLayer(heatPoints, {
     radius: 45,
     blur: 25,
     maxZoom: 6,
-    max: 3,
-    minOpacity: 0.3,
-    gradient: isFriends.value
-      ? { 0.15: '#ccfbf1', 0.4: '#5eead4', 0.7: '#14b8a6', 1: '#0f766e' }
-      : { 0.15: '#fef3c7', 0.4: '#fcd34d', 0.7: '#f59e0b', 1: '#d97706' },
+    max: 1.5,
+    minOpacity: 0.35,
   }).addTo(map);
 }
 
