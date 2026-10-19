@@ -225,13 +225,32 @@ class HouseholdController extends Controller
     /**
      * L'utilisateur quitte le foyer (le créateur doit plutôt le supprimer).
      */
-    public function leave(Request $request, Household $household)
+    /** Ce que le départ de ce cercle concerne (écran de confirmation). */
+    public function leaveSummary(Request $request, Household $household)
     {
         abort_unless($household->isMember($request->user()), 403);
 
-        $household->members()->detach($request->user()->id);
+        return response()->json(app(\App\Services\DepartureService::class)->circleSummary($request->user(), $household));
+    }
 
-        return response()->json(['message' => 'Vous avez quitté le foyer.']);
+    /**
+     * Quitter le cercle : mes photos et albums partagés y restent (« keep »)
+     * ou en sont retirés (« withdraw ») ; le créateur d'un groupe d'amis
+     * désigne qui le reprend ; le dernier membre ferme le groupe.
+     */
+    public function leave(Request $request, Household $household)
+    {
+        abort_unless($household->isMember($request->user()), 403);
+        $data = $request->validate([
+            'photos' => ['nullable', \Illuminate\Validation\Rule::in(['keep', 'withdraw'])],
+            'successor_id' => ['nullable', 'uuid'],
+        ]);
+
+        app(\App\Services\DepartureService::class)->leaveCircle(
+            $request->user(), $household, $data['photos'] ?? 'keep', $data['successor_id'] ?? null,
+        );
+
+        return response()->json(['message' => 'Vous avez quitté le cercle.']);
     }
 
     /**

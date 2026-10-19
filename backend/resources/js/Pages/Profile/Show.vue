@@ -134,6 +134,19 @@
             </form>
           </div>
         </div>
+
+        <!-- Quitter l'application : page dédiée (récapitulatif, choix, 30 jours) -->
+        <div class="bg-white overflow-hidden shadow-xs sm:rounded-lg">
+          <div class="p-6 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 class="text-lg font-medium text-surface-900">Quitter MemoryLane</h2>
+              <p class="mt-1 text-sm text-surface-600">Supprimer votre compte, en choisissant ce que vous laissez à la famille.</p>
+            </div>
+            <Link href="/account/departure" class="px-4 py-2 rounded-lg border border-red-300 dark:border-red-500/40 text-sm font-semibold text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10">
+              Quitter MemoryLane…
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   </AppLayout>
@@ -141,7 +154,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, useForm, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FormField from '@/Components/Forms/FormField.vue';
 import FormButton from '@/Components/Forms/FormButton.vue';

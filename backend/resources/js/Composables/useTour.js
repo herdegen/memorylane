@@ -13,6 +13,7 @@ import { escapeHtml } from '@/utils/html';
 const STORAGE_KEY = 'ml_tour_step';
 let active = null; // instance driver.js courante
 let ctx = null; // { page } fourni par GuidedTour
+let tourNavigating = false; // vrai pendant une navigation lancée par la visite
 
 // driver.js (JS + CSS) n'est chargé qu'à l'affichage d'une étape : la visite
 // est rare, inutile de l'embarquer dans le layout de toutes les pages.
@@ -187,6 +188,7 @@ function goTo(i) {
   const step = steps[i];
   if (ctx.page.component !== step.component) {
     closeActive();
+    tourNavigating = true; // c'est la visite qui change de page
     router.visit(step.path); // GuidedTour reprend sur la page suivante
     return;
   }
@@ -261,7 +263,18 @@ export function attachTour(page) {
   if (!user || user.simple_mode || user.is_guest) return;
 
   const current = readStep();
+  const fromTour = tourNavigating;
+  tourNavigating = false;
   if (current !== null) {
+    // Partie ailleurs par elle-même (onglet, lien) alors que l'étape vit sur
+    // une autre page : on n'impose pas un retour en arrière — la visite
+    // s'efface (sans être marquée faite : l'accueil la reproposera).
+    const step = buildSteps(page)[current];
+    if (!fromTour && step && step.component !== page.component) {
+      closeActive();
+      clearStep();
+      return;
+    }
     goTo(current);
     return;
   }

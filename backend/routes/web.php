@@ -131,6 +131,11 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
     Route::post('/takeout', [TakeoutImportController::class, 'store'])->name('takeout.store');
 
     // Profile routes — page unique (consultation + modification fusionnées)
+    // « Quitter MemoryLane » : départ programmé (30 jours), annulable.
+    Route::get('/account/departure', [\App\Http\Controllers\AccountDepartureController::class, 'show'])->name('account.departure');
+    Route::post('/account/departure', [\App\Http\Controllers\AccountDepartureController::class, 'store'])->name('account.departure.store');
+    Route::delete('/account/departure', [\App\Http\Controllers\AccountDepartureController::class, 'destroy'])->name('account.departure.cancel');
+
     Route::prefix('profile')->name('profile.')->group(function () {
         Route::get('/', [ProfileController::class, 'show'])->name('show');
         // Ancienne page « Paramètres » : redirige vers la page unique.
@@ -265,6 +270,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::get('/{household}', [HouseholdController::class, 'show'])->name('show');
         Route::patch('/{household}', [HouseholdController::class, 'update'])->name('update');
         Route::delete('/{household}', [HouseholdController::class, 'destroy'])->name('destroy');
+        Route::get('/{household}/leave', [HouseholdController::class, 'leaveSummary'])->name('leave.summary');
         Route::post('/{household}/leave', [HouseholdController::class, 'leave'])->name('leave');
 
         Route::get('/{household}/members/candidates', [HouseholdController::class, 'inviteCandidates'])->name('members.candidates');

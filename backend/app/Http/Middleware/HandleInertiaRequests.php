@@ -45,6 +45,9 @@ class HandleInertiaRequests extends Middleware
                     'person_id' => $request->user()->person_id,
                     'simple_mode' => (bool) $request->user()->simple_mode,
                     'is_guest' => $request->user()->isGuest(),
+                    // Départ de l'application programmé : date d'effet (bandeau d'annulation).
+                    'departure_at' => $request->user()->departure_requested_at
+                        ?->copy()->addDays(\App\Services\DepartureService::GRACE_DAYS)->toDateString(),
                     // Premiers pas déjà vus (mini-tuto d'envoi, visite guidée).
                     'onboarding' => (object) ($request->user()->preferences['onboarding'] ?? []),
                 ] : null,

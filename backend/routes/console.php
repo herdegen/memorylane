@@ -22,6 +22,8 @@ Schedule::command('memorylane:birthday-push')->dailyAt('09:00')->timezone('Europ
 
 // Nettoyage des uploads multipart abandonnés (parts orphelines S3, issue #23)
 Schedule::command('memorylane:prune-upload-sessions')->dailyAt('03:30');
+// Départs de l'application arrivés au bout des 30 jours de grâce.
+Schedule::command('memorylane:process-departures')->dailyAt('03:45');
 
 // Fêtes des prénoms : précharge le cache Nominis pour les prochains jours.
 Schedule::command('memorylane:refresh-namedays')->dailyAt('00:10');

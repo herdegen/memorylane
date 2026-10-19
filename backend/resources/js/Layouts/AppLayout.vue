@@ -139,6 +139,12 @@
 
     </nav>
 
+    <!-- Départ de l'application programmé : rappel et annulation, partout. -->
+    <div v-if="user?.departure_at" class="bg-amber-100 dark:bg-amber-500/15 text-amber-900 dark:text-amber-200 text-sm px-4 py-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+      <span>Votre départ de MemoryLane est programmé pour le {{ formatLongDate(user.departure_at) }}.</span>
+      <Link href="/account/departure" class="font-semibold underline">Annuler ou voir les détails</Link>
+    </div>
+
     <main class="pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-0">
       <slot />
     </main>
@@ -168,6 +174,7 @@
 
 <script setup>
 import { ref, watchEffect, onMounted, onUnmounted } from 'vue';
+import { formatLongDate } from '@/utils/format';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import NavLink from '@/Components/NavLink.vue';
 import PersonAvatar from '@/Components/PersonAvatar.vue';

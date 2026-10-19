@@ -196,6 +196,7 @@
         </div>
       </div>
     </div>
+    <LeaveCircleModal v-if="showLeave" :household="household" @close="showLeave = false" @left="onLeft" />
   </AppLayout>
 </template>
 
@@ -205,6 +206,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import CircleKindIcon from '@/Components/CircleKindIcon.vue';
+import LeaveCircleModal from '@/Components/LeaveCircleModal.vue';
 import { KIND_LABELS } from '@/Composables/useCircle';
 import MediaCard from '@/Components/MediaCard.vue';
 import { useToast } from '@/Composables/useToast';
@@ -349,20 +351,13 @@ const removePerson = async (p) => {
   }
 };
 
-const leaveHousehold = async () => {
-  const ok = await confirm({
-    title: 'Quitter ce cercle',
-    message: 'Quitter ce cercle ?',
-    confirmLabel: 'Quitter',
-    danger: true,
-  });
-  if (!ok) return;
-  try {
-    await axios.post(`/households/${props.household.id}/leave`);
-    router.visit('/households');
-  } catch (error) {
-    toast.error(error.response?.data?.message || 'Erreur : impossible de quitter le cercle.');
-  }
+// Quitter : fenêtre dédiée (sort de mes photos partagées, successeur…).
+const showLeave = ref(false);
+const leaveHousehold = () => { showLeave.value = true; };
+const onLeft = () => {
+  showLeave.value = false;
+  toast.success('Vous avez quitté le cercle.');
+  router.visit('/households');
 };
 
 const destroyHousehold = async () => {

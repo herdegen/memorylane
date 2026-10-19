@@ -2,7 +2,7 @@
 // Captures mobiles (390×844, DPR 2) de l'environnement de DEV, connecté en
 // admin par lien magique. Usage : node scripts/shot-dev.mjs <lien-magique> <dossier> /chemin1 [/chemin2…]
 // DARK=1 node scripts/shot-dev.mjs … : en mode sombre.
-// Un chemin peut enchaîner un clic : « /media|click:.media-card », ou « |full » (page entière).
+// Un chemin peut enchaîner un clic : « /media|click:.media-card », « |text:Quitter le cercle », ou « |full » (page entière).
 // Le lien se génère dans ~/memorylane-dev :
 //   docker compose exec -T app php artisan tinker --execute='echo App\Notifications\MagicLoginLink::urlFor(App\Models\User::where("role","admin")->first());'
 // Identifiants basic-auth lus dans ~/.memorylane-dev-password.
@@ -32,6 +32,11 @@ for (const spec of paths) {
   for (const a of actions) {
     if (a.startsWith('click:')) {
       await p.click(a.slice(6));
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+    // « text:Quitter le cercle » : clique le premier bouton/lien visible portant ce texte
+    if (a.startsWith('text:')) {
+      await p.evaluate((t) => [...document.querySelectorAll('button, a')].find((el) => el.textContent.trim().includes(t) && el.offsetParent !== null)?.click(), a.slice(5));
       await new Promise((r) => setTimeout(r, 1500));
     }
   }

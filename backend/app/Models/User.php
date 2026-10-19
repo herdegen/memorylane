@@ -66,6 +66,8 @@ class User extends Authenticatable implements FilamentUser
             'guest_expires_at' => 'datetime',
             'simple_mode' => 'boolean',
             'memorial_at' => 'datetime',
+            'departure_requested_at' => 'datetime',
+            'departure_options' => 'array',
         ];
     }
 
