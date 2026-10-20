@@ -226,7 +226,7 @@ class SimpleModeController extends Controller
         return [
             'id' => $media->id,
             'url' => $this->mediaService->thumbnailUrl($media, ['large', 'medium']),
-            'title' => $this->caption($media),
+            'title' => self::caption($media),
             'when' => $media->taken_at ? self::whenLabel($media->taken_at) : null,
             'who' => $media->people
                 ->map(fn (Person $p) => $p->id === $user->person_id ? 'vous' : self::shortName($p))
@@ -237,7 +237,7 @@ class SimpleModeController extends Controller
     }
 
     /** Titre saisi s'il est parlant, sinon le nom de l'album, sinon rien. */
-    private function caption(Media $media): ?string
+    public static function caption(Media $media): ?string
     {
         $title = trim((string) $media->title);
         $looksLikeFile = $title === ''

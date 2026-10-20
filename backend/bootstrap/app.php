@@ -21,8 +21,17 @@ return Application::configure(basePath: dirname(__DIR__))
         );
 
         $middleware->web(append: [
+            // Télévision reliée : reconnexion par son jeton d'appareil.
+            \App\Http\Middleware\TvDeviceLogin::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
         ]);
+
+        // Avant l'authentification des routes (sinon « auth » renverrait la
+        // TV vers /login avant qu'elle ait pu se reconnecter avec son jeton).
+        $middleware->appendToPriorityList(
+            \Illuminate\Session\Middleware\StartSession::class,
+            \App\Http\Middleware\TvDeviceLogin::class,
+        );
 
         // Alias « admin » : réserve une route aux administrateurs.
         $middleware->alias([

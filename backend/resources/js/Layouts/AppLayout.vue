@@ -83,6 +83,7 @@
                   <Link href="/households" class="dropdown-item" @click="showDropdown = false">Cercles</Link>
                   <Link href="/tags" class="dropdown-item" @click="showDropdown = false">Tags</Link>
                   <Link href="/guide" class="dropdown-item" @click="showDropdown = false">Guide d'utilisation</Link>
+                  <Link href="/tv" class="dropdown-item" @click="showDropdown = false">Relier une télévision</Link>
                   <button type="button" class="dropdown-item w-full text-left" @click="launchTour">Visite guidée</button>
                   <hr class="dropdown-divider" />
                   <button type="button" @click="logout" :disabled="loggingOut" class="dropdown-item w-full text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-300">

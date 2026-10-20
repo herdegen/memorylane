@@ -65,6 +65,9 @@
           <Link href="/guide" :class="ROW" @click="$emit('close')">
             <svg class="w-5 h-5 text-surface-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M9.1 9a3 3 0 015.8 1c0 2-3 2-3 4M12 17h.01" /></svg>Guide d'utilisation<span class="ml-auto text-surface-400">›</span>
           </Link>
+          <Link href="/tv" :class="ROW" @click="$emit('close')">
+            <svg class="w-5 h-5 text-surface-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="13" rx="2" /><path d="M8 21h8M12 17v4" /></svg>Relier une télévision<span class="ml-auto text-surface-400">›</span>
+          </Link>
           <button type="button" :class="[ROW, 'w-full']" @click="$emit('tour')">
             <svg class="w-5 h-5 text-surface-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>Visite guidée
           </button>

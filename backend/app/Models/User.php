@@ -156,6 +156,12 @@ class User extends Authenticatable implements FilamentUser
         return $this->belongsTo(Person::class);
     }
 
+    /** Télévisions reliées au compte (et codes d'appairage validés). */
+    public function tvDevices()
+    {
+        return $this->hasMany(TvDevice::class);
+    }
+
     /**
      * Foyers dont l'utilisateur est membre (plusieurs possibles).
      */

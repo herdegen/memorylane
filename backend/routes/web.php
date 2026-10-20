@@ -68,8 +68,32 @@ Route::get('/tablette/{token}', [AuthController::class, 'loginWithTabletLink'])
     ->middleware('throttle:10,1')
     ->name('tablet.login');
 
+// Appli télévision : écran d'appairage (TV pas encore reliée) et ses appels.
+Route::get('/tv/ecran', [\App\Http\Controllers\TvPairingController::class, 'screen'])->name('tv.screen');
+Route::post('/tv/ecran/code', [\App\Http\Controllers\TvPairingController::class, 'start'])
+    ->middleware('throttle:20,1')->name('tv.screen.code');
+Route::get('/tv/ecran/code', [\App\Http\Controllers\TvPairingController::class, 'status'])
+    ->middleware('throttle:60,1')->name('tv.screen.status');
+
 // Protected routes
-Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\Middleware\RestrictSimpleMode::class])->group(function () {
+Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\Middleware\RestrictSimpleMode::class, \App\Http\Middleware\RestrictTv::class])->group(function () {
+    // Appli télévision (session d'une TV reliée, ou aperçu dans un navigateur)
+    Route::prefix('tv/ecran')->name('tv.screen.')->controller(\App\Http\Controllers\TvController::class)->group(function () {
+        Route::get('/accueil', 'home')->name('home');
+        Route::get('/albums', 'albums')->name('albums');
+        Route::get('/albums/{album}', 'album')->name('album');
+        Route::get('/proches/{person}', 'person')->name('person');
+        Route::get('/ce-jour-la', 'memories')->name('memories');
+        Route::get('/qui-est-ce', 'game')->name('game');
+        Route::post('/cercle', 'circle')->name('circle');
+        Route::post('/delier', 'unlink')->name('unlink');
+    });
+    // Téléphone : relier une télévision (code affiché sur la TV), la délier.
+    Route::get('/tv', [\App\Http\Controllers\TvPairingController::class, 'link'])->name('tv.link');
+    Route::post('/tv', [\App\Http\Controllers\TvPairingController::class, 'confirm'])
+        ->middleware('throttle:10,1')->name('tv.link.confirm');
+    Route::delete('/tv/{tvDevice}', [\App\Http\Controllers\TvPairingController::class, 'destroy'])->name('tv.link.destroy');
+
     // Mode grand-parent : interface simplifiée (tablette)
     Route::prefix('simple')->name('simple.')->controller(\App\Http\Controllers\SimpleModeController::class)->group(function () {
         Route::get('/', 'home')->name('home');
