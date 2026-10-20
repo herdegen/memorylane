@@ -228,6 +228,4 @@ html:has(.tv-root) { scrollbar-width: none; }
 .tv-root .tv-btn:focus { transform: scale(1.05); }
 .tv-root .tv-btn:not(.tv-btn-primary):focus { background: #f7f2ea; color: #14110d; }
 .tv-card:focus { transform: scale(1.06); }
-/* Carte sombre (récit de vie, carte) : tuiles OpenStreetMap inversées. */
-.tv-dark-tiles { filter: invert(1) hue-rotate(180deg) brightness(.82) contrast(.92) saturate(.45); }
 </style>

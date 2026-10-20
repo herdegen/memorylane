@@ -56,9 +56,8 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 import { onTvKey, tvActivity } from '@/Tv/remote';
+import { L, createTvMap, showAll, showPlace } from '@/Tv/map';
 
 const props = defineProps({
   events: { type: Array, required: true },
@@ -93,16 +92,9 @@ let marker = null;
 const located = (e) => e && e.latitude != null && e.longitude != null;
 
 const initMap = () => {
-  map = L.map(mapEl.value, {
-    zoomControl: false, attributionControl: true, dragging: false, keyboard: false,
-    scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, touchZoom: false,
-  });
-  // Tuiles OpenStreetMap (comme le reste du site), assombries pour la salle.
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 18, attribution: '© OpenStreetMap', className: 'tv-dark-tiles',
-  }).addTo(map);
+  map = createTvMap(mapEl.value);
   const points = props.events.filter(located).map((e) => [e.latitude, e.longitude]);
-  if (points.length) map.fitBounds(L.latLngBounds(points).pad(0.3), { maxZoom: 8 });
+  if (points.length) showAll(map, points, { maxZoom: 8, animate: false });
   else map.setView([46.6, 2.3], 5);
   path = L.polyline([], { color: '#f59e0b', weight: 4, opacity: 0.85 }).addTo(map);
 };
@@ -118,7 +110,8 @@ const travel = () => {
   if (marker) marker.setLatLng(at);
   else marker = L.circleMarker(at, { radius: 14, color: '#fef3c7', weight: 4, fillColor: '#f59e0b', fillOpacity: 1 }).addTo(map);
   // Le lieu à droite de l'écran (le texte occupe la gauche).
-  map.flyTo(at, 9, { duration: 2.2 });
+  // Glissement si le lieu est proche, sinon fondu (pas de survol : trop lourd pour un projecteur).
+  showPlace(map, at, 9);
 };
 
 // ---- Lecture ----------------------------------------------------------------

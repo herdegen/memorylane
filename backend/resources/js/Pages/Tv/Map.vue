@@ -49,10 +49,9 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 import TvLayout from '@/Layouts/TvLayout.vue';
 import { onTvKey } from '@/Tv/remote';
+import { L, createTvMap, showAll, showPlace } from '@/Tv/map';
 
 const props = defineProps({ tab: String, circle: Object, circles: Array, account: Object, places: Array });
 
@@ -74,20 +73,14 @@ const styleMarkers = () => {
   markers[index.value]?.bringToFront();
 };
 
-const overview = () => {
-  const pts = props.places.map((p) => [p.lat, p.lng]);
-  if (pts.length) map.flyToBounds(L.latLngBounds(pts).pad(0.15), { duration: 1.6, maxZoom: 9, paddingBottomRight: [0, Math.round(map.getSize().y * 0.35)] });
-};
+const points = () => props.places.map((p) => [p.lat, p.lng]);
 
 // Le lieu montré dans la moitié haute (le panneau occupe le bas de l'écran).
 const show = () => {
   styleMarkers();
-  if (index.value < 0) return overview();
+  if (index.value < 0) return showAll(map, points(), { bottom: 0.35 });
   const p = place.value;
-  const zoom = 11;
-  // Décalage proportionnel à l'écran (la densité varie d'un téléviseur à l'autre).
-  const target = map.project([p.lat, p.lng], zoom).add([0, Math.round(map.getSize().y * 0.16)]);
-  map.flyTo(map.unproject(target, zoom), zoom, { duration: 2 });
+  showPlace(map, [p.lat, p.lng], 11, { offsetY: 0.16 });
   for (const src of props.places[index.value + 1]?.previews || []) new Image().src = src;
 };
 
@@ -112,20 +105,13 @@ onTvKey((action) => {
 });
 
 onMounted(() => {
-  map = L.map(mapEl.value, {
-    zoomControl: false, attributionControl: true, dragging: false, keyboard: false,
-    scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, touchZoom: false,
-  });
-  // Tuiles OpenStreetMap (comme le reste du site), assombries pour la salle.
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 18, attribution: '© OpenStreetMap', className: 'tv-dark-tiles',
-  }).addTo(map);
+  map = createTvMap(mapEl.value);
   map.setView([46.6, 2.3], 5);
   props.places.forEach((p, i) => {
     markers.push(L.circleMarker([p.lat, p.lng], {}).addTo(map).on('click', () => { index.value = i; show(); }));
   });
   styleMarkers();
-  if (props.places.length) map.fitBounds(L.latLngBounds(props.places.map((p) => [p.lat, p.lng])).pad(0.15), { maxZoom: 9, paddingBottomRight: [0, Math.round(map.getSize().y * 0.35)] });
+  showAll(map, points(), { bottom: 0.35, animate: false });
 });
 onBeforeUnmount(() => map?.remove());
 </script>
