@@ -151,7 +151,7 @@ import { Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useToast } from '@/Composables/useToast';
 import { useConfirm } from '@/Composables/useConfirm';
-import { formatPartialDate } from '@/utils/format';
+import { buildStoryEvents, kindIcon, kindLabel, formatEventDate } from '@/utils/lifeStory';
 
 // Modale d'un moment et diaporama chargés à la demande : tous deux embarquent
 // Leaflet (~45 ko gzip), inutile tant qu'on ne les ouvre pas.
@@ -251,87 +251,17 @@ const playSlideshow = async () => {
 // Le bouton « Diaporama de sa vie » vit dans l'en-tête de la fiche personne.
 defineExpose({ play: playSlideshow, hasPlayable });
 
-// Chapitres du récit de vie : les événements datés, enrichis de leur icône,
-// de leur date lisible et de leur RAFALE de photos. La galerie du moment,
-// ce sont ses photos rattachées (ou, à défaut, son album lié), illustration en tête ; à défaut, les photos de la
-// personne prises dans la fourchette de l'événement, élargie à sa précision
-// (un moment « en 1950 » rassemble les photos de 1950).
-const BURST_MAX = 8;
-
-const windowFor = (ev) => {
-  const d = ev.date || '';
-  const end = ev.end_date || d;
-  const p = ev.date_precision || 'day';
-  if (p === 'year') return [`${d.slice(0, 4)}-01-01`, `${end.slice(0, 4)}-12-31`];
-  if (p === 'month') return [`${d.slice(0, 7)}-01`, `${end.slice(0, 7)}-31`];
-  return [d, end];
-};
-
-const storyEvents = computed(() => {
-  // Photos déjà « prises » par un moment (illustration ou album lié) : le
-  // repli par fenêtre de dates ne les reprend pas, sinon un moment étalé sur
-  // deux ans rejouerait les photos de tous ses voisins.
-  const claimed = new Set();
-  for (const ev of eventItems.value) {
-    if (ev.media?.id) claimed.add(ev.media.id);
-    for (const m of ev.photos || []) claimed.add(m.id);
-    for (const m of ev.album?.media || []) claimed.add(m.id);
-  }
-
-  return eventItems.value.map((ev) => {
-  const burst = [];
-  const push = (m) => {
-    const src = m?.medium_url || m?.url;
-    if (src && burst.length < BURST_MAX && !burst.some((b) => b.src === src)) {
-      burst.push({ src, full: m.url || src, title: m.title || '' });
-    }
-  };
-  push(ev.media);
-  const gallery = ev.photos?.length ? ev.photos : (ev.album?.media || []);
-  if (gallery.length) {
-    gallery.forEach(push);
-  } else {
-    const [from, to] = windowFor(ev);
-    for (const p of photoItems.value) {
-      if (p.date && p.date >= from && p.date <= to && !claimed.has(p.media?.id)) push(p.media);
-    }
-  }
-  return {
-    ...ev,
-    icon: kindIcon(ev.kind),
-    dateLabel: formatEventDate(ev.date, ev.date_precision),
-    // Une seule photo n'est pas une rafale : la carte-chapitre suffit.
-    burst: burst.length > 1 ? burst : [],
-  };
-  });
-});
+// Chapitres du récit de vie (logique partagée avec la télévision).
+const storyEvents = computed(() => buildStoryEvents(items.value));
 
 const thumb = (item) => item.media?.medium_url || item.media?.thumbnail_url || item.related?.avatar_url || null;
 
-const ICONS = {
-  birth: '🎂', death: '🕯️', marriage: '💍', child: '👶',
-  job: '💼', education: '🎓', residence: '🏠', photo: '📷',
-  voyage: '🧭', military: '🎖️', distinction: '🏅',
-  // Fêtes (« sous-moments » définis, cf. LifeEventFormModal)
-  bapteme: '🕊️', communion: '🕊️', confirmation: '🕊️', mariage_religieux: '⛪',
-  mariage: '💍', fiancailles: '💍', anniversaire: '🎈', diplome: '🎓', fete: '🎉',
-  moment: '★', custom: '★',
-};
-const LABELS = {
-  birth: 'Naissance', death: 'Décès', marriage: 'Mariage', child: 'Enfant',
-  job: 'Emploi', education: 'Études', residence: 'Résidence', photo: 'Photo',
-  voyage: 'Voyage', military: 'Parcours militaire', distinction: 'Distinction',
-  bapteme: 'Baptême', communion: 'Communion', confirmation: 'Confirmation', mariage_religieux: 'Mariage religieux',
-  mariage: 'Mariage', fiancailles: 'Fiançailles', anniversaire: 'Anniversaire', diplome: 'Remise de diplôme', fete: 'Fête',
-  moment: 'Moment', custom: 'Moment',
-};
-const kindIcon = (k) => ICONS[k] || '★';
-const kindLabel = (k) => LABELS[k] || 'Moment';
+
 
 // Wrapper autour du formatteur partagé : le formatteur renvoie '' pour une
 // date invalide, ici on conserve l'ancien comportement (afficher la string
 // brute, ex. « vers 1950 »).
-const formatEventDate = (d, precision = 'day') => formatPartialDate(d, precision) || d || '';
+
 
 // --- Navigation desktop du rail : flèches + cliquer-glisser ---------------
 const railEl = ref(null);

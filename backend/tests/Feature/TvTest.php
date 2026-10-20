@@ -214,7 +214,7 @@ class TvTest extends TestCase
                 ->where('rows', fn ($rows) => ($ids = collect($rows)->flatMap(fn ($r) => collect($r['people'])->pluck('id')))
                     ->contains($mamie->id) && ! $ids->contains($ancetre->id)));
         $this->get("/tv/ecran/proches/{$mamie->id}")->assertOk()
-            ->assertInertia(fn ($page) => $page->component('Tv/Collection', false)->has('items', 1));
+            ->assertInertia(fn ($page) => $page->component('Tv/Person', false)->has('items', 1));
 
         $this->getJson('/tv/ecran/recherche/resultats?q=Suz')->assertOk()
             ->assertJsonPath('people.0.id', $mamie->id)
@@ -234,5 +234,73 @@ class TvTest extends TestCase
             ->assertDownload('MemoryLane-TV.apk');
         $this->actingAs($this->me)->get('/tv')
             ->assertInertia(fn ($page) => $page->where('app.version', fn ($v) => is_string($v) && $v !== ''));
+    }
+
+    public function test_arbre_a_la_telecommande(): void
+    {
+        $this->actingAs($this->me);
+        $mk = fn (array $a) => Person::factory()->create(['user_id' => $this->me->id, 'in_family_directory' => true] + $a);
+        $papa = $mk(['first_name' => 'Paul', 'name' => 'Paul Martin', 'gender' => 'M']);
+        $moi = $mk(['first_name' => 'Léa', 'name' => 'Léa Martin', 'gender' => 'F', 'father_id' => $papa->id, 'birth_date' => '1990-01-02']);
+        $frere = $mk(['first_name' => 'Tom', 'name' => 'Tom Martin', 'gender' => 'M', 'father_id' => $papa->id]);
+        $mari = $mk(['first_name' => 'Hugo', 'name' => 'Hugo Roy', 'gender' => 'M']);
+        $fille = $mk(['first_name' => 'Zoé', 'name' => 'Zoé Roy', 'gender' => 'F', 'mother_id' => $moi->id]);
+        \App\Models\PersonRelationship::create(['person1_id' => $moi->id, 'person2_id' => $mari->id, 'type' => 'spouse', 'start_date' => '2015-06-20']);
+        $this->me->forceFill(['person_id' => $moi->id])->save();
+
+        $this->get('/tv/ecran/arbre')->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Tv/Tree', false)
+                ->where('start.focus.id', $moi->id)
+                ->where('start.focus.relation', 'Vous')
+                ->where('start.parents.0.id', $papa->id)
+                ->where('start.parents.0.relation', 'Votre père')
+                ->where('start.siblings.0.id', $frere->id)
+                ->where('start.spouses.0.union', 'Mariés en 2015')
+                ->where('start.children.0.id', $fille->id)
+                ->where('family', true));
+
+        $this->getJson("/tv/ecran/arbre/{$papa->id}/famille")->assertOk()
+            ->assertJsonPath('focus.id', $papa->id)
+            ->assertJsonCount(2, 'children');
+
+        // Fiche : page dédiée, frise lisible depuis la session TV.
+        $this->get("/tv/ecran/proches/{$moi->id}")->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Tv/Person', false)->where('inTree', true)->where('showLife', true));
+
+        // Cercle d'amis : pas d'arbre.
+        $this->me->forceFill(['current_household_id' => $this->friends->id])->save();
+        $this->get('/tv/ecran/arbre')->assertNotFound();
+    }
+
+    public function test_frise_lisible_par_une_tv(): void
+    {
+        $this->pairTv();
+        $p = Person::factory()->create(['user_id' => $this->me->id, 'in_family_directory' => true, 'birth_date' => '1950-03-04']);
+        $this->getJson("/people/{$p->id}/timeline")->assertOk()->assertJsonPath('0.kind', 'birth');
+    }
+
+    public function test_carte_par_lieux(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+        $this->actingAs($this->me);
+        foreach ($this->album->media as $i => $m) {
+            $m->metadata()->create(['latitude' => 48.65 + $i * 0.001, 'longitude' => -2.01]);
+        }
+        $paris = Media::factory()->photo()->create(['user_id' => $this->me->id]);
+        $paris->metadata()->create(['latitude' => 48.85, 'longitude' => 2.35]);
+
+        $this->get('/tv/ecran/carte')->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Tv/Map', false)
+                ->has('places', 2)
+                ->where('places.0.count', 3)
+                ->where('places.0.key', '48.7_-2.0')
+                // Pas encore de nom de lieu : l'album le plus présent.
+                ->where('places.0.name', 'Vacances'));
+        \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\ResolvePlaceNames::class);
+
+        $this->get('/tv/ecran/carte/48.7_-2.0?nom=Saint-Malo')->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Tv/Collection', false)->has('items', 3)->where('title', 'Saint-Malo'));
+        $this->get('/tv/ecran/carte/12.3_4.5')->assertNotFound();
+        $this->get('/tv/ecran/carte/nimporte')->assertNotFound();
     }
 }

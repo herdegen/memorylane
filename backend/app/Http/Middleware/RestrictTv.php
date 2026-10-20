@@ -21,6 +21,8 @@ class RestrictTv
         'media.file', 'people.faceAvatar', 'people.avatarImage', 'voice-notes.file',
         'vision.image', 'vision.faceCrop',
         'quests.faces.next', 'quests.answer',
+        // Frise de vie d'une fiche (lecture seule).
+        'people.timeline',
     ];
 
     public function handle(Request $request, Closure $next): Response

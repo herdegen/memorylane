@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -127,18 +128,24 @@ class TvController extends Controller
             $relation = GenealogyService::relationLabel($path['edges'], $person->gender);
         }
 
-        return Inertia::render('Tv/Collection', [
+        $family = $this->familyMode($user);
+
+        return Inertia::render('Tv/Person', [
             ...$this->frame($request, 'people'),
-            'title' => $person->name,
-            'subtitle' => implode(' · ', array_filter([
-                $relation ? ucfirst($relation) : null,
-                $this->lifeLabel($person),
-                $this->countLabel($media),
-            ])),
-            'avatar' => $this->avatarUrl($person),
+            'person' => [
+                'id' => $person->id,
+                'name' => $person->name,
+                'relation' => $relation ? ucfirst($relation) : ($person->id === $user->person_id ? 'Vous' : null),
+                'life' => $this->lifeLabel($person),
+                'count' => $this->countLabel($media),
+                'avatar' => $this->avatarUrl($person),
+            ],
             'items' => $media->map(fn (Media $m) => $this->item($m, $user))->values(),
-            'gameAlbumId' => null,
-            'back' => route('tv.screen.people'),
+            // Frise et arbre : mode famille seulement (comme sur la fiche du site).
+            'showLife' => $family,
+            'inTree' => $family && $person->in_family_directory,
+            'back' => url()->previous() !== url()->current() && str_contains(url()->previous(), '/tv/ecran/')
+                ? url()->previous() : route('tv.screen.people'),
         ]);
     }
 
@@ -406,6 +413,221 @@ class TvController extends Controller
         ])->values()]);
     }
 
+    // ---- Arbre de la famille -----------------------------------------------
+
+    /** Arbre centré sur une personne (par défaut : soi), parcouru à la télécommande. */
+    public function tree(Request $request, ?string $person = null)
+    {
+        $user = $request->user();
+        abort_unless($this->familyMode($user), 404);
+
+        $start = $person
+            ? $this->familyQuery($user)->whereKey($person)->value('id')
+            : ($user->person_id && $this->familyQuery($user)->whereKey($user->person_id)->exists()
+                ? $user->person_id
+                // Sans fiche à soi : la personne la plus photographiée de la famille.
+                : $this->familyQuery($user)->withCount('media')->orderByDesc('media_count')->value('id'));
+        abort_unless($start, 404);
+
+        return Inertia::render('Tv/Tree', [
+            ...$this->frame($request, 'tree'),
+            'start' => $this->treeFamily($user, $start),
+        ]);
+    }
+
+    /** Une personne, ses parents, son ou ses conjoints, ses frères et sœurs, ses enfants. */
+    public function treeData(Request $request, string $person): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($this->familyMode($user), 404);
+
+        return response()->json($this->treeFamily($user, $person));
+    }
+
+    private function familyQuery(User $user)
+    {
+        return Person::visibleTo($user)->where('in_family_directory', true);
+    }
+
+    private function treeFamily(User $user, string $personId): array
+    {
+        $q = fn () => $this->familyQuery($user)->with('avatar')->withMatchedFacesCount()
+            ->withCount(['media as tv_photos' => fn ($m) => $m->inContext($user)->whereIn('type', ['photo', 'video'])]);
+        $focus = $q()->findOrFail($personId);
+        $byBirth = fn ($query) => $query->orderByRaw('birth_date IS NULL')->orderBy('birth_date')->orderBy('name');
+
+        $parents = $byBirth($q()->whereIn('id', array_filter([$focus->father_id, $focus->mother_id])))->get()
+            ->sortBy(fn ($p) => $p->id === $focus->father_id ? 0 : 1)->values();
+        $children = $byBirth($q()->where(fn ($w) => $w->where('father_id', $focus->id)->orWhere('mother_id', $focus->id)))->get();
+        $siblings = ($focus->father_id || $focus->mother_id)
+            ? $byBirth($q()->where('id', '!=', $focus->id)->where(fn ($w) => $w
+                ->when($focus->father_id, fn ($x) => $x->orWhere('father_id', $focus->father_id))
+                ->when($focus->mother_id, fn ($x) => $x->orWhere('mother_id', $focus->mother_id))))->get()
+            : collect();
+
+        $unions = DB::table('person_relationships')
+            ->where('person1_id', $focus->id)->orWhere('person2_id', $focus->id)
+            ->get()->keyBy(fn ($r) => $r->person1_id === $focus->id ? $r->person2_id : $r->person1_id);
+        $spouses = $q()->whereIn('id', $unions->keys())->get()
+            ->sortBy(fn ($p) => [$unions[$p->id]->end_date ? 1 : 0, $unions[$p->id]->start_date ?? '9999'])->values();
+
+        // Lien de parenté avec soi, pour chaque carte.
+        $paths = $user->person_id ? $this->genealogy->pathsFrom($user->person_id, 8) : [];
+        // Qui a encore de la famille au-delà (flèches sur les cartes).
+        $ids = collect([$focus])->concat($parents)->concat($children)->concat($siblings)->concat($spouses)->pluck('id');
+        $withChildren = Person::whereIn('father_id', $ids)->pluck('father_id')
+            ->concat(Person::whereIn('mother_id', $ids)->pluck('mother_id'))->flip();
+
+        $node = function (Person $p) use ($paths, $user, $withChildren) {
+            $relation = $p->id === $user->person_id ? 'Vous'
+                : (isset($paths[$p->id]) ? GenealogyService::relationLabel($paths[$p->id], $p->gender) : null);
+
+            return [
+                'id' => $p->id,
+                'name' => $p->name,
+                'first_name' => SimpleModeController::shortName($p),
+                'life' => $this->lifeLabel($p),
+                'relation' => $relation ? ucfirst($relation) : null,
+                'avatar_url' => $this->avatarUrl($p),
+                'gender' => $p->gender,
+                'deceased' => $p->death_date !== null,
+                'photos' => (int) $p->tv_photos,
+                'has_parents' => (bool) ($p->father_id || $p->mother_id),
+                'has_children' => isset($withChildren[$p->id]),
+            ];
+        };
+
+        return [
+            'focus' => $node($focus),
+            'parents' => $parents->map($node)->values(),
+            'spouses' => $spouses->map(fn ($p) => $node($p) + ['union' => $this->unionLabel($unions[$p->id], $p)])->values(),
+            'siblings' => $siblings->map($node)->values(),
+            'children' => $children->map($node)->values(),
+        ];
+    }
+
+    /** « Mariés en 1955 », « En couple », « Séparés en 1990 ». */
+    private function unionLabel(object $union, Person $spouse): string
+    {
+        $married = $union->type !== 'partner';
+        if ($union->end_date) {
+            return ($married ? 'Divorcés' : 'Séparés').' en '.substr($union->end_date, 0, 4);
+        }
+        if ($union->start_date) {
+            return ($married ? 'Mariés' : 'En couple depuis').' '.($married ? 'en ' : '').substr($union->start_date, 0, 4);
+        }
+
+        return $married ? 'Mariés' : 'En couple';
+    }
+
+    private function familyMode(User $user): bool
+    {
+        return $user->mode() !== \App\Models\Household::KIND_FRIENDS && $user->canSeeFamilyDirectory();
+    }
+
+    // ---- Carte ---------------------------------------------------------------
+
+    /** Lieux de grille (~10 km) : arrondi des coordonnées à 0,1°. */
+    private const MAP_CELL = 1;
+
+    /** Lieux montrés au plus sur la carte. */
+    private const MAP_PLACES = 120;
+
+    /** Les endroits où la famille a pris des photos, du plus photographié au moins. */
+    public function map(Request $request)
+    {
+        $user = $request->user();
+        $ids = Media::inContext($user)->whereIn('type', ['photo', 'video'])->select('media.id');
+        $cell = 'round(mm.latitude::numeric, '.self::MAP_CELL.')';
+        $cellLng = 'round(mm.longitude::numeric, '.self::MAP_CELL.')';
+
+        $places = DB::table('media_metadata as mm')->join('media as m', 'm.id', '=', 'mm.media_id')
+            ->whereIn('mm.media_id', $ids)->whereNotNull('mm.latitude')->whereNotNull('mm.longitude')
+            ->selectRaw("{$cell} as clat, {$cellLng} as clng, avg(mm.latitude) as lat, avg(mm.longitude) as lng, count(*) as n,
+                min(m.taken_at) as first_at, max(m.taken_at) as last_at")
+            ->groupByRaw('1, 2')->orderByDesc('n')->limit(self::MAP_PLACES)->get();
+
+        // Aperçus : 6 photos par lieu (des proches identifiés d'abord).
+        $previews = collect(DB::select("select clat, clng, media_id from (
+                select {$cell} as clat, {$cellLng} as clng, mm.media_id, row_number() over (
+                    partition by {$cell}, {$cellLng}
+                    order by exists (select 1 from detected_faces df where df.media_id = mm.media_id and df.person_id is not null) desc,
+                             md5(mm.media_id::text || ?)
+                ) as rn
+                from media_metadata mm join media m on m.id = mm.media_id
+                where m.type = 'photo' and m.deleted_at is null and mm.latitude is not null and mm.longitude is not null
+                  and mm.media_id in (".$ids->toSql().")
+            ) t where rn <= 6", [today()->toDateString(), ...$ids->getBindings()]));
+        $media = Media::with('conversions')->whereIn('id', $previews->pluck('media_id')->unique())->get()->keyBy('id');
+        $previewsByCell = $previews->groupBy(fn ($r) => $r->clat.'_'.$r->clng);
+
+        // Noms : géocodage inverse (cache), sinon l'album le plus présent ; les manquants en arrière-plan.
+        $albumNames = DB::table('media_metadata as mm')->join('album_media as am', 'am.media_id', '=', 'mm.media_id')
+            ->join('albums as a', 'a.id', '=', 'am.album_id')
+            ->whereIn('mm.media_id', $ids)->whereNotNull('mm.latitude')->whereNull('a.deleted_at')
+            ->selectRaw("{$cell} as clat, {$cellLng} as clng, a.name, count(*) as n")
+            ->groupByRaw('1, 2, 3')->orderByDesc('n')->get()
+            ->groupBy(fn ($r) => $r->clat.'_'.$r->clng)->map(fn ($g) => $g->first()->name);
+
+        $geocoder = app(\App\Services\GeocodeService::class);
+        $missing = [];
+        $payload = $places->map(function ($p) use ($geocoder, &$missing, $previewsByCell, $media, $albumNames) {
+            $key = $p->clat.'_'.$p->clng;
+            $name = $geocoder->cachedPlaceName((float) $p->lat, (float) $p->lng);
+            if (! $name && ! $geocoder->isPlaceNameResolved((float) $p->lat, (float) $p->lng)) {
+                $missing[] = [round((float) $p->lat, 4), round((float) $p->lng, 4)];
+            }
+            $from = $p->first_at ? substr($p->first_at, 0, 4) : null;
+            $to = $p->last_at ? substr($p->last_at, 0, 4) : null;
+
+            return [
+                'key' => $key,
+                'name' => $name ?? ($albumNames[$key] ?? 'Lieu sans nom'),
+                'album' => $name ? ($albumNames[$key] ?? null) : null,
+                'lat' => (float) $p->lat,
+                'lng' => (float) $p->lng,
+                'count' => (int) $p->n,
+                'years' => $from ? ($from === $to ? $from : "{$from} → {$to}") : null,
+                'previews' => ($previewsByCell[$key] ?? collect())->map(fn ($r) => isset($media[$r->media_id])
+                    ? $this->mediaService->thumbnailUrl($media[$r->media_id], ['medium', 'small', 'thumbnail']) : null)
+                    ->filter()->values(),
+            ];
+        })->values();
+        \App\Jobs\ResolvePlaceNames::dispatchOnce($missing);
+
+        return Inertia::render('Tv/Map', [
+            ...$this->frame($request, 'map'),
+            'places' => $payload,
+        ]);
+    }
+
+    /** Les photos d'un lieu de la carte. */
+    public function place(Request $request, string $place)
+    {
+        abort_unless(preg_match('/^(-?\d{1,3}(?:\.\d)?)_(-?\d{1,3}(?:\.\d)?)$/', $place, $m), 404);
+        $user = $request->user();
+
+        $media = Media::inContext($user)->whereIn('type', ['photo', 'video'])
+            ->whereIn('media.id', DB::table('media_metadata as mm')->select('mm.media_id')
+                ->whereRaw('round(mm.latitude::numeric, '.self::MAP_CELL.') = ?', [(float) $m[1]])
+                ->whereRaw('round(mm.longitude::numeric, '.self::MAP_CELL.') = ?', [(float) $m[2]]))
+            ->with(self::ITEM_RELATIONS)
+            ->orderByRaw('taken_at IS NULL')->orderBy('taken_at')
+            ->limit(self::ITEMS_LIMIT)->get();
+        abort_if($media->isEmpty(), 404);
+
+        $name = $request->query('nom') ?: 'Ce lieu';
+
+        return Inertia::render('Tv/Collection', [
+            ...$this->frame($request, 'map'),
+            'title' => mb_substr($name, 0, 80),
+            'subtitle' => $this->countLabel($media),
+            'items' => $media->map(fn (Media $m) => $this->item($m, $user))->values(),
+            'gameAlbumId' => null,
+            'back' => route('tv.screen.map'),
+        ]);
+    }
+
     // ---- Données communes -------------------------------------------------
 
     private function device(Request $request): ?TvDevice
@@ -429,6 +651,8 @@ class TvController extends Controller
                 'name' => strtok($user->name, ' '),
                 'device' => $this->device($request)?->name,
             ],
+            // Onglet Arbre : cercle familial seulement.
+            'family' => $this->familyMode($user),
         ];
     }
 

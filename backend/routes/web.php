@@ -93,6 +93,10 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::get('/recherche', 'search')->name('search');
         Route::get('/recherche/resultats', 'searchResults')->name('search.results');
         Route::get('/cadre', 'frameMode')->name('frame');
+        Route::get('/arbre/{person}/famille', 'treeData')->name('tree.data');
+        Route::get('/arbre/{person?}', 'tree')->name('tree');
+        Route::get('/carte', 'map')->name('map');
+        Route::get('/carte/{place}', 'place')->name('place');
         Route::get('/ce-jour-la', 'memories')->name('memories');
         Route::get('/qui-est-ce', 'game')->name('game');
         Route::post('/cercle', 'circle')->name('circle');

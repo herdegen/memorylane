@@ -15,6 +15,8 @@ class GeocodeService
 {
     private const ENDPOINT = 'https://nominatim.openstreetmap.org/search';
 
+    private const REVERSE_ENDPOINT = 'https://nominatim.openstreetmap.org/reverse';
+
     /** API Adresse de l'État (BAN) : adresses françaises, sans clé, rapide. */
     private const BAN_ENDPOINT = 'https://api-adresse.data.gouv.fr/search/';
 
@@ -138,6 +140,82 @@ class GeocodeService
             Log::warning('GeocodeService: échec BAN', ['address' => $address, 'error' => $e->getMessage()]);
 
             return false;
+        }
+    }
+
+    /**
+     * Nom lisible d'un endroit (« Saint-Malo », « Barcelone, Espagne ») d'après
+     * ses coordonnées : cache seulement, sans appel réseau (null si inconnu
+     * ou pas encore résolu — voir ResolvePlaceNames).
+     */
+    public function cachedPlaceName(float $lat, float $lng): ?string
+    {
+        $cached = Cache::get($this->reverseKey($lat, $lng));
+
+        return is_string($cached) && $cached !== 'miss' ? $cached : null;
+    }
+
+    public function isPlaceNameResolved(float $lat, float $lng): bool
+    {
+        return Cache::has($this->reverseKey($lat, $lng));
+    }
+
+    /** Nom lisible d'un endroit, résolu par Nominatim (géocodage inverse) si besoin. */
+    public function placeNameFor(float $lat, float $lng): ?string
+    {
+        $key = $this->reverseKey($lat, $lng);
+        $cached = Cache::get($key);
+        if ($cached !== null) {
+            return $cached === 'miss' ? null : $cached;
+        }
+
+        $name = $this->fetchReverse($lat, $lng);
+        Cache::put($key, $name ?? 'miss', now()->addDays($name ? self::HIT_TTL_DAYS : self::MISS_TTL_DAYS));
+
+        return $name;
+    }
+
+    /** Cellule d'environ 1 km : des points voisins partagent leur nom. */
+    private function reverseKey(float $lat, float $lng): string
+    {
+        return 'geocode:rev:'.round($lat, 2).','.round($lng, 2);
+    }
+
+    private function fetchReverse(float $lat, float $lng): ?string
+    {
+        try {
+            $elapsed = microtime(true) - self::$lastFetchAt;
+            if ($elapsed < 1.1) {
+                usleep((int) ((1.1 - $elapsed) * 1_000_000));
+            }
+            self::$lastFetchAt = microtime(true);
+
+            $response = Http::withHeaders([
+                'User-Agent' => 'MemoryLane/1.3.0 (family media hub)',
+                'Accept-Language' => 'fr',
+            ])->timeout(6)->get(self::REVERSE_ENDPOINT, [
+                'lat' => $lat,
+                'lon' => $lng,
+                'format' => 'json',
+                'zoom' => 10,
+                'addressdetails' => 1,
+            ]);
+
+            $a = $response->ok() ? ($response->json('address') ?? null) : null;
+            if (! is_array($a)) {
+                return null;
+            }
+            $name = $a['city'] ?? $a['town'] ?? $a['village'] ?? $a['municipality'] ?? $a['county'] ?? $a['state'] ?? null;
+            if (! $name) {
+                return $a['country'] ?? null;
+            }
+            $country = $a['country_code'] ?? null;
+
+            return $country && $country !== 'fr' && ! empty($a['country']) ? "{$name}, {$a['country']}" : $name;
+        } catch (\Throwable $e) {
+            Log::warning('GeocodeService: échec Nominatim inverse', ['lat' => $lat, 'lng' => $lng, 'error' => $e->getMessage()]);
+
+            return null;
         }
     }
 

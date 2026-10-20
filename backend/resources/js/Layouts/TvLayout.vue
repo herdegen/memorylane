@@ -4,9 +4,9 @@
        1080p) : l'écran garde ses proportions quelle que soit la résolution
        annoncée par le téléviseur. Couleurs fixes (pas de mode clair/sombre). -->
   <div class="tv-root min-h-screen bg-[#12100c] text-[#f7f2ea] font-sans flex flex-col" :class="{ 'h-screen overflow-hidden': fill }">
-    <nav v-if="!bare" aria-label="Navigation" class="shrink-0 flex items-center gap-12 h-[4.5rem] mx-24 mt-[3.375rem]" :class="navClass">
-      <div class="font-display text-[2.5rem] font-bold">MemoryLane</div>
-      <div class="flex gap-3 flex-1" data-tv-row>
+    <nav v-if="!bare" aria-label="Navigation" class="shrink-0 flex items-center gap-9 h-[4.5rem] mx-24 mt-[3.375rem]" :class="navClass">
+      <div class="font-display text-[2.25rem] font-bold whitespace-nowrap">MemoryLane</div>
+      <div class="flex gap-1.5 flex-1 min-w-0" data-tv-row>
         <Link v-for="t in TABS" :key="t.key" :href="t.href" data-tv class="tv-pill" :class="{ 'tv-pill-on': tab === t.key }">{{ t.label }}</Link>
         <Link href="/tv/ecran/recherche" data-tv class="tv-pill flex items-center" :class="{ 'tv-pill-on': tab === 'search' }" aria-label="Recherche">
           <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></svg>
@@ -66,8 +66,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
-import { Link, router } from '@inertiajs/vue3';
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import { installRemote, focusInitial, onTvKey, tvActivity } from '@/Tv/remote';
 import TvFrame from '@/Components/Tv/TvFrame.vue';
@@ -87,15 +87,22 @@ const props = defineProps({
   // Page à hauteur d'écran (pas de défilement de la page entière).
   fill: { type: Boolean, default: false },
   navClass: { type: String, default: '' },
+  // Cercle familial : onglet Arbre.
+  family: { type: Boolean, default: false },
 });
 
-const TABS = [
+const ALL_TABS = [
   { key: 'home', label: 'Accueil', href: '/tv/ecran/accueil' },
   { key: 'albums', label: 'Albums', href: '/tv/ecran/albums' },
   { key: 'photos', label: 'Photos', href: '/tv/ecran/photos' },
   { key: 'people', label: 'Proches', href: '/tv/ecran/proches' },
+  { key: 'tree', label: 'Arbre', href: '/tv/ecran/arbre', family: true },
+  { key: 'map', label: 'Carte', href: '/tv/ecran/carte' },
   { key: 'game', label: 'Qui est-ce ?', href: '/tv/ecran/qui-est-ce' },
 ];
+// L'arbre n'a de sens que dans un cercle familial.
+const page = usePage();
+const TABS = computed(() => ALL_TABS.filter((t) => !t.family || props.family || page.props.family));
 
 /** Cadre photo après ce temps sans toucher à la télécommande. */
 const FRAME_AFTER_MS = 10 * 60 * 1000;
@@ -210,7 +217,7 @@ html:has(.tv-root) { scrollbar-width: none; }
    vieilles WebView où outline reste rectangulaire). */
 .tv-root [data-tv] { outline: none; scroll-margin: 6rem 6rem 4rem; transition: transform .18s ease, box-shadow .18s ease; }
 .tv-root [data-tv]:focus { outline: none; box-shadow: 0 0 0 0.375rem #12100c, 0 0 0 0.75rem #f7f2ea; }
-.tv-pill { padding: 0.75rem 1.75rem; border-radius: 999px; color: #d8cfc2; font-size: 1.75rem; font-weight: 600; }
+.tv-pill { padding: 0.75rem 1.375rem; border-radius: 999px; color: #d8cfc2; font-size: 1.625rem; font-weight: 600; white-space: nowrap; }
 .tv-pill-on { background: #3a2f1e; color: #fcd34d; font-weight: 700; }
 .tv-root .tv-pill:focus { background: #f7f2ea; color: #14110d; }
 .tv-chip { padding: 0.625rem 1.375rem; border-radius: 999px; border: 2px solid #b45309; color: #fcd34d; font-size: 1.5rem; font-weight: 700; }
@@ -221,4 +228,6 @@ html:has(.tv-root) { scrollbar-width: none; }
 .tv-root .tv-btn:focus { transform: scale(1.05); }
 .tv-root .tv-btn:not(.tv-btn-primary):focus { background: #f7f2ea; color: #14110d; }
 .tv-card:focus { transform: scale(1.06); }
+/* Carte sombre (récit de vie, carte) : tuiles OpenStreetMap inversées. */
+.tv-dark-tiles { filter: invert(1) hue-rotate(180deg) brightness(.82) contrast(.92) saturate(.45); }
 </style>
