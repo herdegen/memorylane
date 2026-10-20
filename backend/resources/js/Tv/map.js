@@ -23,6 +23,8 @@ export function createTvMap(el) {
         fadeAnimation: false,
         markerZoomAnimation: false,
         inertia: false,
+        // Cadrage au quart de niveau près (vue d'ensemble bien serrée).
+        zoomSnap: 0.25,
     });
     const tiles = { maxZoom: 16, keepBuffer: 1, updateWhenIdle: true };
     const base = L.tileLayer(`${ESRI}/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}`, { ...tiles, attribution: '© Esri' }).addTo(map);
@@ -66,12 +68,14 @@ export function showPlace(map, latlng, zoom, { offsetY = 0 } = {}) {
 }
 
 /** Vue d'ensemble de plusieurs points (avec un fondu si la carte est déjà affichée). */
-export function showAll(map, points, { maxZoom = 9, bottom = 0, animate = true } = {}) {
+export function showAll(map, points, { maxZoom = 9, top = 0, bottom = 0, animate = true } = {}) {
     if (!points.length) return;
+    const h = map.getSize().y;
     const fit = () => map.fitBounds(L.latLngBounds(points).pad(0.15), {
         animate: false,
         maxZoom,
-        paddingBottomRight: [0, Math.round(map.getSize().y * bottom)],
+        paddingTopLeft: [0, Math.round(h * top)],
+        paddingBottomRight: [0, Math.round(h * bottom)],
     });
     if (animate) cut(map, fit);
     else fit();

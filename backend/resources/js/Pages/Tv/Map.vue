@@ -1,7 +1,7 @@
 <template>
-  <!-- Carte à la télécommande : pas de déplacement libre. ◀ ▶ passent d'un
-       lieu à l'autre (du plus photographié au moins), la carte y vole ;
-       OK ouvre les photos du lieu. -->
+  <!-- Carte à la télécommande : une vue fixe de tous les lieux. ◀ ▶ passent
+       d'un lieu à l'autre (du plus photographié au moins), son repère
+       s'allume ; OK ouvre les photos du lieu. -->
   <Head title="Carte — Télévision" />
   <TvLayout
     :tab="tab" :circle="circle" :circles="circles" :account="account"
@@ -51,7 +51,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import TvLayout from '@/Layouts/TvLayout.vue';
 import { onTvKey } from '@/Tv/remote';
-import { L, createTvMap, showAll, showPlace } from '@/Tv/map';
+import { L, createTvMap, showAll } from '@/Tv/map';
 
 const props = defineProps({ tab: String, circle: Object, circles: Array, account: Object, places: Array });
 
@@ -63,24 +63,29 @@ const previews = computed(() => (place.value ? place.value.previews : props.plac
 
 const mapEl = ref(null);
 let map = null;
-const markers = [];
+let pin = null;
 
-const radius = (p) => Math.max(7, Math.min(26, 5 + Math.sqrt(p.count) * 2));
-const styleMarkers = () => {
-  markers.forEach((m, i) => m.setStyle(i === index.value
-    ? { radius: radius(props.places[i]) + 8, color: '#fef3c7', weight: 5, fillColor: '#f59e0b', fillOpacity: 1 }
-    : { radius: radius(props.places[i]), color: '#12100c', weight: 2, fillColor: '#f59e0b', fillOpacity: 0.75 }));
-  markers[index.value]?.bringToFront();
-};
+// Vue fixe : toute la carte des lieux, sans zoom. Tous les points ont la
+// même taille ; le lieu choisi devient un repère plus gros qui pulse, avec
+// son nom.
+const DOT = { radius: 9, color: '#12100c', weight: 2, fillColor: '#f59e0b', fillOpacity: 0.9 };
 
-const points = () => props.places.map((p) => [p.lat, p.lng]);
+const escape = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-// Le lieu montré dans la moitié haute (le panneau occupe le bas de l'écran).
 const show = () => {
-  styleMarkers();
-  if (index.value < 0) return showAll(map, points(), { bottom: 0.35 });
+  pin?.remove();
+  pin = null;
   const p = place.value;
-  showPlace(map, [p.lat, p.lng], 11, { offsetY: 0.16 });
+  if (!p) return;
+  pin = L.marker([p.lat, p.lng], {
+    interactive: false,
+    keyboard: false,
+    icon: L.divIcon({
+      className: 'tv-pin',
+      iconSize: [0, 0],
+      html: `<span class="tv-pin-ring"></span><span class="tv-pin-dot"></span><span class="tv-pin-label">${escape(p.name)}</span>`,
+    }),
+  }).addTo(map);
   for (const src of props.places[index.value + 1]?.previews || []) new Image().src = src;
 };
 
@@ -108,10 +113,9 @@ onMounted(() => {
   map = createTvMap(mapEl.value);
   map.setView([46.6, 2.3], 5);
   props.places.forEach((p, i) => {
-    markers.push(L.circleMarker([p.lat, p.lng], {}).addTo(map).on('click', () => { index.value = i; show(); }));
+    L.circleMarker([p.lat, p.lng], DOT).addTo(map).on('click', () => { index.value = i; show(); });
   });
-  styleMarkers();
-  showAll(map, points(), { bottom: 0.35, animate: false });
+  showAll(map, props.places.map((p) => [p.lat, p.lng]), { top: 0.2, bottom: 0.38, animate: false, maxZoom: 8 });
 });
 onBeforeUnmount(() => map?.remove());
 </script>
@@ -119,6 +123,12 @@ onBeforeUnmount(() => map?.remove());
 <style scoped>
 .tv-place { background: rgba(33, 29, 23, .92); }
 .tv-root .tv-place:focus { background: rgba(44, 38, 30, .96); }
+/* Repère du lieu choisi : point plus gros, cerclé, qui pulse, et son nom. */
+:deep(.tv-pin) { position: relative; }
+:deep(.tv-pin-dot) { position: absolute; left: -0.95rem; top: -0.95rem; width: 1.9rem; height: 1.9rem; border-radius: 999px; background: #f59e0b; border: 0.3rem solid #fef3c7; box-shadow: 0 0 0 0.25rem #12100c; }
+:deep(.tv-pin-ring) { position: absolute; left: -2rem; top: -2rem; width: 4rem; height: 4rem; border-radius: 999px; border: 0.25rem solid #fcd34d; animation: tv-pin-pulse 1.8s ease-out infinite; }
+:deep(.tv-pin-label) { position: absolute; left: 50%; bottom: 1.6rem; transform: translateX(-50%); white-space: nowrap; padding: 0.35rem 1rem; border-radius: 999px; background: #f7f2ea; color: #14110d; font: 700 1.5rem/1.2 Figtree, system-ui, sans-serif; box-shadow: 0 0.5rem 1.5rem rgba(0,0,0,.6); }
+@keyframes tv-pin-pulse { from { transform: scale(.5); opacity: .9; } to { transform: scale(1.6); opacity: 0; } }
 :deep(.leaflet-control-attribution) { background: rgba(0,0,0,.5); color: #8a7f72; font-size: .9rem; }
 :deep(.leaflet-control-attribution a) { color: #a89c8b; }
 </style>
