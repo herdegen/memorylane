@@ -8,6 +8,9 @@
       <div class="font-display text-[2.5rem] font-bold">MemoryLane</div>
       <div class="flex gap-3 flex-1" data-tv-row>
         <Link v-for="t in TABS" :key="t.key" :href="t.href" data-tv class="tv-pill" :class="{ 'tv-pill-on': tab === t.key }">{{ t.label }}</Link>
+        <Link href="/tv/ecran/recherche" data-tv class="tv-pill flex items-center" :class="{ 'tv-pill-on': tab === 'search' }" aria-label="Recherche">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></svg>
+        </Link>
       </div>
       <div class="flex items-center gap-4" data-tv-row>
         <button v-if="circles.length > 1" type="button" data-tv class="tv-chip" @click="menu = 'circle'">{{ circle?.name || 'Cercle' }}</button>
@@ -27,6 +30,9 @@
         <span class="px-3 py-0.5 border-2 border-[#6b6155] rounded-lg font-extrabold">{{ k }}</span>{{ label }}
       </span>
     </footer>
+
+    <!-- Cadre photo (inactivité, ou lancé depuis le menu) -->
+    <TvFrame v-if="frame" @close="closeFrame" />
 
     <!-- Choix du cercle affiché sur cette TV -->
     <div v-if="menu === 'circle'" data-tv-scope class="fixed inset-0 z-[70] bg-black/80 flex items-center justify-center">
@@ -52,6 +58,7 @@
         <h2 class="font-display text-[3rem] font-bold">{{ account?.device || 'Cette télévision' }}</h2>
         <p class="text-[1.75rem] text-[#c9bfb1] mb-4">Reliée au compte de {{ account?.name }}.</p>
         <button type="button" data-tv data-tv-autofocus class="tv-option" @click="menu = null">Continuer</button>
+        <button type="button" data-tv class="tv-option" @click="openFrame">Lancer le cadre photo</button>
         <button v-if="account?.device" type="button" data-tv class="tv-option text-[#fca5a5]" @click="unlink">Délier cette télévision</button>
       </div>
     </div>
@@ -62,7 +69,9 @@
 import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import axios from 'axios';
-import { installRemote, focusInitial, onTvKey } from '@/Tv/remote';
+import { installRemote, focusInitial, onTvKey, tvActivity } from '@/Tv/remote';
+import TvFrame from '@/Components/Tv/TvFrame.vue';
+import '../../css/tv.css';
 
 const props = defineProps({
   tab: { type: String, default: null },
@@ -83,8 +92,13 @@ const props = defineProps({
 const TABS = [
   { key: 'home', label: 'Accueil', href: '/tv/ecran/accueil' },
   { key: 'albums', label: 'Albums', href: '/tv/ecran/albums' },
+  { key: 'photos', label: 'Photos', href: '/tv/ecran/photos' },
+  { key: 'people', label: 'Proches', href: '/tv/ecran/proches' },
   { key: 'game', label: 'Qui est-ce ?', href: '/tv/ecran/qui-est-ce' },
 ];
+
+/** Cadre photo après ce temps sans toucher à la télécommande. */
+const FRAME_AFTER_MS = 10 * 60 * 1000;
 
 const menu = ref(null);
 watch(menu, async () => {
@@ -106,17 +120,66 @@ const chooseCircle = (c) => {
 };
 const unlink = () => router.post('/tv/ecran/delier');
 
+// ---- Cadre photo -----------------------------------------------------------
+const frame = ref(false);
+const openFrame = () => {
+  menu.value = null;
+  frame.value = true;
+};
+const closeFrame = async () => {
+  frame.value = false;
+  await nextTick();
+  if (!document.activeElement || document.activeElement === document.body) focusInitial();
+};
+let idleTimer = null;
+
+let viewport = null;
+// Téléviseur Android : dimensions de l'écran, fixes (la fenêtre de la
+// WebView varie pendant le chargement et quand le clavier s'ouvre).
+// Ailleurs (aperçu dans un navigateur) : la fenêtre.
+const onAndroid = /Android/i.test(navigator.userAgent);
+let scaledWidth = 0;
+const applyScale = () => {
+  scaledWidth = window.innerWidth;
+  const [w, h] = onAndroid
+    ? [Math.max(screen.width, screen.height), Math.min(screen.width, screen.height)]
+    : [window.innerWidth, window.innerHeight];
+  html.style.fontSize = `${Math.min(w / 120, h / 67.5)}px`;
+};
+const onResize = () => { if (!onAndroid && window.innerWidth !== scaledWidth) applyScale(); };
+
 let uninstall = null;
 let interceptor = null;
 const html = document.documentElement;
 const previous = { fontSize: html.style.fontSize, background: document.body.style.background };
 
 onMounted(() => {
-  html.style.fontSize = 'min(calc(100vw / 120), calc(100vh / 67.5))';
+  // Taille de base : 1/120e de la largeur, sans dépasser la hauteur. Recalculée
+  // seulement si la LARGEUR change : le clavier de la télévision réduit la
+  // hauteur de la fenêtre et ne doit pas faire rapetisser l'interface.
+  applyScale();
+  window.addEventListener('resize', onResize);
+  // Pas de zoom automatique sur le champ de recherche (WebView des téléviseurs).
+  viewport = document.querySelector('meta[name=viewport]');
+  previous.viewport = viewport?.getAttribute('content');
+  viewport?.setAttribute('content', 'width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no');
   document.body.style.background = '#12100c';
+  // Rien ne doit élargir la page (la WebView dézoomerait pour tout montrer).
+  html.style.overflowX = 'hidden';
+  document.body.style.overflowX = 'hidden';
   uninstall = installRemote(() => {
-    if (props.back) router.visit(props.back);
+    if (!props.back) return false;
+    router.visit(props.back);
+    return true;
   });
+  tvActivity.last = Date.now();
+  if (!props.bare) {
+    idleTimer = setInterval(() => {
+      if (!frame.value && !menu.value && tvActivity.blockers === 0 && Date.now() - tvActivity.last > FRAME_AFTER_MS) frame.value = true;
+    }, 20000);
+  }
+  // Pour essayer sans attendre : window.mlTvFrame() dans la console.
+  window.mlTvFrame = openFrame;
   // TV déliée depuis le téléphone pendant qu'elle tourne : retour au code.
   interceptor = axios.interceptors.response.use(null, (error) => {
     if (error.response?.status === 401) window.location.href = '/tv/ecran';
@@ -126,9 +189,15 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  clearInterval(idleTimer);
+  window.removeEventListener('resize', onResize);
+  if (viewport && previous.viewport) viewport.setAttribute('content', previous.viewport);
+  delete window.mlTvFrame;
   uninstall?.();
   axios.interceptors.response.eject(interceptor);
   html.style.fontSize = previous.fontSize;
+  html.style.overflowX = '';
+  document.body.style.overflowX = '';
   document.body.style.background = previous.background;
 });
 </script>
@@ -137,17 +206,19 @@ onBeforeUnmount(() => {
 .tv-root { scrollbar-width: none; }
 .tv-root ::-webkit-scrollbar, html:has(.tv-root)::-webkit-scrollbar { display: none; }
 html:has(.tv-root) { scrollbar-width: none; }
-.tv-root [data-tv] { outline: none; scroll-margin: 6rem 6rem 4rem; transition: transform .18s ease, box-shadow .18s ease, outline-color .18s ease; }
-.tv-root [data-tv]:focus { outline: 0.375rem solid #f7f2ea; outline-offset: 0.375rem; }
+/* Anneau de focus en box-shadow (suit les coins arrondis, même dans les
+   vieilles WebView où outline reste rectangulaire). */
+.tv-root [data-tv] { outline: none; scroll-margin: 6rem 6rem 4rem; transition: transform .18s ease, box-shadow .18s ease; }
+.tv-root [data-tv]:focus { outline: none; box-shadow: 0 0 0 0.375rem #12100c, 0 0 0 0.75rem #f7f2ea; }
 .tv-pill { padding: 0.75rem 1.75rem; border-radius: 999px; color: #d8cfc2; font-size: 1.75rem; font-weight: 600; }
 .tv-pill-on { background: #3a2f1e; color: #fcd34d; font-weight: 700; }
-.tv-root .tv-pill:focus { background: #f7f2ea; color: #14110d; outline-offset: 0.25rem; }
+.tv-root .tv-pill:focus { background: #f7f2ea; color: #14110d; }
 .tv-chip { padding: 0.625rem 1.375rem; border-radius: 999px; border: 2px solid #b45309; color: #fcd34d; font-size: 1.5rem; font-weight: 700; }
 .tv-option { display: flex; white-space: nowrap; align-items: center; gap: 1rem; padding: 1.25rem 2rem; border-radius: 1.5rem; background: #2c261e; font-size: 2rem; font-weight: 700; text-align: left; }
 .tv-root .tv-option:focus { background: #f7f2ea; color: #14110d; }
 .tv-btn { display: inline-flex; white-space: nowrap; align-items: center; gap: 0.875rem; padding: 1.125rem 2.125rem; border-radius: 999px; font-size: 1.875rem; font-weight: 800; background: rgba(255, 255, 255, .14); color: #f7f2ea; }
 .tv-btn-primary { background: #f59e0b; color: #14110d; }
-.tv-root .tv-btn:focus { transform: scale(1.05); box-shadow: 0 1.125rem 2.5rem -0.625rem rgba(0, 0, 0, .7); }
+.tv-root .tv-btn:focus { transform: scale(1.05); }
 .tv-root .tv-btn:not(.tv-btn-primary):focus { background: #f7f2ea; color: #14110d; }
 .tv-card:focus { transform: scale(1.06); }
 </style>

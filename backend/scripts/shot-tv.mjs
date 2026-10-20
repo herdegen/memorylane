@@ -3,7 +3,7 @@
 // connecté par lien magique. Usage :
 //   node scripts/shot-tv.mjs <lien-magique> <dossier> /tv/ecran/accueil "/tv/ecran/albums|key:ArrowDown|key:ArrowRight|wait:1500"
 // Actions enchaînables après « | » : key:<touche> (télécommande simulée),
-// wait:<ms>, shot (capture intermédiaire). Lien magique : voir shot-dev.mjs.
+// wait:<ms>, shot (capture intermédiaire), type:<texte>, eval:<code JS>. Lien magique : voir shot-dev.mjs.
 import puppeteer from 'puppeteer';
 import { readFileSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -30,6 +30,8 @@ for (const spec of paths) {
     if (a.startsWith('key:')) { await p.keyboard.press(a.slice(4)); await sleep(500); }
     if (a.startsWith('wait:')) await sleep(Number(a.slice(5)));
     if (a === 'shot') await p.screenshot({ path: `${out}/t${i++}.png` });
+    if (a.startsWith('type:')) { await p.keyboard.type(a.slice(5), { delay: 60 }); await sleep(1500); }
+    if (a.startsWith('eval:')) { await p.evaluate(a.slice(5)); await sleep(1500); }
   }
   await sleep(600);
   await p.screenshot({ path: `${out}/t${i++}.png` });

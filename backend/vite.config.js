@@ -17,6 +17,12 @@ export default defineConfig({
             },
         }),
     ],
+    // Cible large : l'interface télévision tourne aussi dans de vieilles
+    // WebView Android (Chrome 90 sur Android TV 11 non mis à jour).
+    build: {
+        target: ['es2020', 'chrome87', 'safari14'],
+        cssTarget: ['chrome87', 'safari14'],
+    },
     resolve: {
         alias: {
             '@': '/resources/js',

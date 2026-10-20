@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Album;
 use App\Models\Household;
 use App\Models\Media;
+use App\Models\Person;
 use App\Models\TvDevice;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -181,5 +182,57 @@ class TvTest extends TestCase
         // Album d'un autre : refusé.
         $foreign = Album::factory()->create(['user_id' => User::factory()->create()->id]);
         $this->get("/tv/ecran/albums/{$foreign->id}")->assertForbidden();
+    }
+
+    public function test_photos_par_annee_et_collections(): void
+    {
+        $this->actingAs($this->me);
+        $year = (string) now()->subYears(5)->subDays(1)->year;
+        $video = Media::factory()->create(['user_id' => $this->me->id, 'type' => 'video', 'taken_at' => null]);
+
+        $this->get('/tv/ecran/photos')->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Tv/Photos', false)
+                ->where('rows', fn ($rows) => collect($rows)->flatMap(fn ($r) => collect($r['tiles'])->pluck('title'))
+                    ->intersect([$year, 'Vidéos', 'Sans date'])->count() === 3));
+        $this->get("/tv/ecran/photos/{$year}")->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Tv/Collection', false)->has('items', 3));
+        $this->get('/tv/ecran/photos/videos')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('items.0.id', $video->id)->where('items.0.type', 'video'));
+        $this->get('/tv/ecran/photos/nimporte')->assertNotFound();
+    }
+
+    public function test_proches_et_recherche(): void
+    {
+        $this->actingAs($this->me);
+        $mamie = Person::factory()->create(['user_id' => $this->me->id, 'first_name' => 'Suzanne', 'last_name' => 'Martin', 'name' => 'Suzanne Martin']);
+        $ancetre = Person::factory()->create(['user_id' => $this->me->id, 'first_name' => 'Suzon', 'last_name' => 'Ancien', 'name' => 'Suzon Ancien']);
+        $this->album->media()->first()->people()->attach($mamie->id);
+
+        // Proches : seulement les fiches qui ont des photos.
+        $this->get('/tv/ecran/proches')->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Tv/People', false)
+                ->where('rows', fn ($rows) => ($ids = collect($rows)->flatMap(fn ($r) => collect($r['people'])->pluck('id')))
+                    ->contains($mamie->id) && ! $ids->contains($ancetre->id)));
+        $this->get("/tv/ecran/proches/{$mamie->id}")->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Tv/Collection', false)->has('items', 1));
+
+        $this->getJson('/tv/ecran/recherche/resultats?q=Suz')->assertOk()
+            ->assertJsonPath('people.0.id', $mamie->id)
+            ->assertJsonCount(1, 'people');
+        $this->getJson('/tv/ecran/recherche/resultats?q=vacan')->assertOk()
+            ->assertJsonPath('albums.0.id', $this->album->id);
+        $this->getJson('/tv/ecran/recherche/resultats?q=x')->assertUnprocessable();
+
+        $this->getJson('/tv/ecran/cadre')->assertOk()->assertJsonCount(3, 'items');
+    }
+
+    public function test_application_android_telechargeable(): void
+    {
+        $this->get('/apk')->assertRedirect('/tv/application');
+        $this->get('/tv/application')->assertOk()
+            ->assertHeader('Content-Type', 'application/vnd.android.package-archive')
+            ->assertDownload('MemoryLane-TV.apk');
+        $this->actingAs($this->me)->get('/tv')
+            ->assertInertia(fn ($page) => $page->where('app.version', fn ($v) => is_string($v) && $v !== ''));
     }
 }

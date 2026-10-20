@@ -6,7 +6,7 @@
         <!-- Ce jour-là (ou l'album à l'honneur) -->
         <Link v-if="hero" :href="hero.href" data-tv data-tv-autofocus class="tv-hero relative rounded-[1.75rem] overflow-hidden bg-[#2c261e]">
           <img v-if="hero.image" :src="hero.image" alt="" class="absolute inset-0 w-full h-full object-cover" />
-          <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent"></div>
+          <div class="absolute inset-0" style="background: linear-gradient(to top, rgba(0,0,0,.85), rgba(0,0,0,.2) 50%, rgba(0,0,0,0))"></div>
           <div class="absolute left-12 right-12 bottom-11 flex flex-col gap-3.5">
             <span class="self-start px-4.5 py-2 rounded-full bg-white/20 text-[1.375rem] font-extrabold tracking-[.08em] uppercase">{{ hero.kicker }}</span>
             <h1 class="font-display text-[4rem] leading-[1.05] font-bold line-clamp-2">{{ hero.title }}</h1>
@@ -80,6 +80,5 @@ const gameLabel = computed(() => {
 </script>
 
 <style scoped>
-.tv-root .tv-hero:focus { outline-offset: 0.5rem; }
 .tv-hero:focus .tv-btn { background: #f7f2ea; transform: scale(1.05); }
 </style>

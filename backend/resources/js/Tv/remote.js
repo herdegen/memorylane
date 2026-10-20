@@ -41,6 +41,13 @@ export function actionOf(e) {
 
 const handlers = [];
 
+/**
+ * Activité de la télécommande (cadre photo après inactivité). `blockers` :
+ * écrans qui tournent déjà tout seuls (diaporama, cadre) et ne doivent pas
+ * être recouverts.
+ */
+export const tvActivity = { last: Date.now(), blockers: 0 };
+
 /** Intercepter les touches tant que le composant est monté (ou que `active()` est vrai). */
 export function onTvKey(fn) {
     onMounted(() => handlers.push(fn));
@@ -140,7 +147,21 @@ export function move(dir) {
  * Retour non intercepté par la page (revenir à la page précédente).
  */
 export function installRemote(onBack) {
+    // Retour : d'abord la page (fenêtre ouverte, visionneuse…), puis la page
+    // précédente. Rend false si rien ne l'a pris (l'appli peut alors se fermer).
+    const back = () => {
+        for (let i = handlers.length - 1; i >= 0; i--) {
+            if (handlers[i]('back', null) === true) return true;
+        }
+        return onBack?.() === true;
+    };
+    // Appli Android : la touche Retour ne parvient pas à la page, l'appli
+    // appelle ceci et se ferme sur « exit ».
+    window.mlTvBack = () => (back() ? 'handled' : 'exit');
+
+    const onActivity = () => { tvActivity.last = Date.now(); };
     const onKeydown = (e) => {
+        tvActivity.last = Date.now();
         const action = actionOf(e);
         if (!action) return;
         const typing = ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName);
@@ -161,8 +182,11 @@ export function installRemote(onBack) {
             onBack?.();
         } else if (action === 'ok') {
             const el = document.activeElement;
-            // Boutons et liens réagissent seuls à Entrée ; le reste (codes TV) : clic.
-            if (el?.matches?.(SELECTOR) && !(e.key === 'Enter' && ['BUTTON', 'A'].includes(el.tagName))) {
+            // Champ de saisie : OK ouvre le clavier de la télévision.
+            if (typing) return;
+            // Toujours un clic : la WebView d'Android TV n'active pas d'elle-même
+            // un lien sur OK (le comportement natif est annulé pour ne pas cliquer deux fois).
+            if (el?.matches?.(SELECTOR)) {
                 e.preventDefault();
                 el.click();
             } else if (!el || el === document.body) {
@@ -172,5 +196,10 @@ export function installRemote(onBack) {
         }
     };
     document.addEventListener('keydown', onKeydown);
-    return () => document.removeEventListener('keydown', onKeydown);
+    document.addEventListener('pointermove', onActivity, { passive: true });
+    return () => {
+        document.removeEventListener('keydown', onKeydown);
+        document.removeEventListener('pointermove', onActivity);
+        if (window.mlTvBack) delete window.mlTvBack;
+    };
 }

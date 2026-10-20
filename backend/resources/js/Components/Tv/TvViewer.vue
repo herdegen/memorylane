@@ -29,7 +29,7 @@
     <Transition name="tvchrome">
       <div v-show="chrome" class="absolute inset-0 pointer-events-none">
         <!-- Haut : où l'on est -->
-        <div class="absolute inset-x-0 top-0 px-24 pt-[3.375rem] pb-28 bg-gradient-to-b from-black/75 to-transparent flex items-start justify-between">
+        <div class="absolute inset-x-0 top-0 px-24 pt-[3.375rem] pb-28 flex items-start justify-between" style="background: linear-gradient(to bottom, rgba(0,0,0,.75), rgba(0,0,0,0))">
           <div class="flex flex-col gap-2">
             <span class="text-[1.625rem] text-[#e7e0d6]">{{ title }}</span>
             <span class="text-[1.375rem] text-[#c9bfb1]">{{ pos + 1 }} / {{ order.length }}{{ shuffle ? ' · ordre aléatoire' : '' }}</span>
@@ -42,7 +42,7 @@
         </div>
 
         <!-- Bas : légende, personnes, souvenir raconté, progression -->
-        <div v-if="item" class="absolute inset-x-0 bottom-0 px-24 pt-40 pb-[3.375rem] bg-gradient-to-t from-black/85 to-transparent flex flex-col gap-5">
+        <div v-if="item" class="absolute inset-x-0 bottom-0 px-24 pt-40 pb-[3.375rem] flex flex-col gap-5" style="background: linear-gradient(to top, rgba(0,0,0,.85), rgba(0,0,0,0))">
           <div v-if="item.title && item.title !== title" class="font-display text-[4rem] font-bold leading-[1.05]">{{ item.title }}</div>
           <div v-if="item.when" class="text-[1.875rem] text-[#e7e0d6] first-letter:uppercase">{{ item.when }}</div>
           <div v-if="item.people.length || note" class="flex gap-3.5 flex-wrap items-center">
@@ -69,7 +69,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
-import { onTvKey } from '@/Tv/remote';
+import { onTvKey, tvActivity } from '@/Tv/remote';
 
 const props = defineProps({
   items: { type: Array, required: true },
@@ -187,8 +187,10 @@ onTvKey((action) => {
   return true;
 });
 
-onMounted(() => { schedule(); poke(); });
+onMounted(() => { tvActivity.blockers++; schedule(); poke(); });
 onBeforeUnmount(() => {
+  tvActivity.blockers--;
+  tvActivity.last = Date.now();
   clearTimeout(timer);
   clearTimeout(chromeTimer);
   stopAudio();

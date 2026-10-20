@@ -6,8 +6,9 @@
     :hints="[['OK', 'Voir la photo'], ['◀ ▲ ▼ ▶', 'Se déplacer'], ['▶❚❚', 'Diaporama'], ['↩', 'Retour']]"
   >
     <div class="px-24 pt-10 pb-6 flex flex-col gap-8">
-      <header class="flex items-end justify-between gap-10">
-        <div class="flex flex-col gap-3 min-w-0">
+      <header class="flex items-end gap-8">
+        <img v-if="avatar" :src="avatar" alt="" class="w-[9rem] h-[9rem] shrink-0 rounded-full object-cover bg-[#3a2f1e] self-center" />
+        <div class="flex flex-col gap-3 min-w-0 flex-1">
           <h1 class="font-display text-[4rem] leading-[1.05] font-bold line-clamp-2">{{ title }}</h1>
           <p class="text-[1.875rem] text-[#c9bfb1]">{{ subtitle }}</p>
         </div>
@@ -72,9 +73,11 @@ const props = defineProps({
   subtitle: String,
   items: Array,
   gameAlbumId: { type: String, default: null },
+  avatar: { type: String, default: null },
+  back: { type: String, default: null },
 });
 
-const backHref = computed(() => (props.tab === 'albums' ? '/tv/ecran/albums' : '/tv/ecran/accueil'));
+const backHref = computed(() => props.back || (props.tab === 'albums' ? '/tv/ecran/albums' : '/tv/ecran/accueil'));
 
 const viewer = ref(null);
 let opened = 0;

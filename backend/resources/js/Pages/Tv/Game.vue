@@ -8,7 +8,7 @@
     :back="album ? `/tv/ecran/albums/${album.id}` : '/tv/ecran/accueil'" fill
     :hints="[['▲ ▼', 'Choisir'], ['OK', 'Valider'], ['↩', 'Quitter le jeu']]"
   >
-    <div class="flex-1 min-h-0 px-24 pt-8 flex flex-col gap-8">
+    <div class="flex-1 min-h-0 px-24 pt-6 flex flex-col gap-6">
       <header class="shrink-0 flex items-center justify-between">
         <div class="flex items-baseline gap-6">
           <span class="font-display text-[3rem] font-bold">Qui est-ce ?</span>
@@ -25,9 +25,9 @@
       <div v-if="card" class="flex-1 min-h-0 grid grid-cols-[52rem_minmax(0,1fr)] gap-20 items-center">
         <!-- La photo, le visage cerclé, et le visage en grand -->
         <div class="flex flex-col gap-5 min-h-0">
-          <div class="relative h-[40rem] rounded-[1.75rem] overflow-hidden bg-[#1c160e] flex items-center justify-center">
+          <div class="relative h-[36rem] rounded-[1.75rem] overflow-hidden bg-[#1c160e] flex items-center justify-center">
             <div class="relative max-w-full max-h-full">
-              <img :key="card.subject_id" :src="card.face.image_url" alt="" class="block max-w-[52rem] max-h-[40rem]" />
+              <img :key="card.subject_id" :src="card.face.image_url" alt="" class="block max-w-[52rem] max-h-[36rem]" />
               <div v-if="boxStyle" class="absolute rounded-full border-[0.375rem] border-[#fcd34d] shadow-[0_0_0_200rem_rgba(0,0,0,.45)]" :style="boxStyle"></div>
             </div>
             <img :src="card.face.crop_url" alt="" class="absolute left-6 bottom-6 w-[11rem] h-[11rem] rounded-full object-cover border-[0.375rem] border-[#fcd34d] shadow-[0_1.5rem_3rem_-1rem_rgba(0,0,0,.8)] bg-[#2c261e]" />
@@ -36,22 +36,22 @@
         </div>
 
         <!-- Les propositions -->
-        <div class="flex flex-col gap-5">
-          <span class="text-[1.875rem] text-[#c9bfb1]">{{ hint }}</span>
+        <div class="flex flex-col gap-4">
+          <span class="text-[1.75rem] text-[#c9bfb1]">{{ hint }}</span>
           <button
             v-for="(s, i) in suggestions"
             :key="s.person.id"
             type="button"
             data-tv
             :data-tv-autofocus="i === 0 ? '' : null"
-            class="tv-choice flex items-center gap-6 px-7.5 py-5 rounded-3xl bg-[#211d17] text-left"
+            class="tv-choice flex items-center gap-5 px-7 py-3.5 rounded-3xl bg-[#211d17] text-left"
             :disabled="busy"
             @click="confirmPerson(s.person)"
           >
-            <img v-if="s.person.avatar_url" :src="s.person.avatar_url" alt="" class="w-[4.75rem] h-[4.75rem] shrink-0 rounded-full object-cover bg-[#3a2f1e]" />
-            <span v-else class="w-[4.75rem] h-[4.75rem] shrink-0 rounded-full bg-[#fcd34d] text-[#14110d] text-[2rem] font-extrabold flex items-center justify-center">{{ s.person.name.slice(0, 1) }}</span>
+            <img v-if="s.person.avatar_url" :src="s.person.avatar_url" alt="" class="w-[4rem] h-[4rem] shrink-0 rounded-full object-cover bg-[#3a2f1e]" />
+            <span v-else class="w-[4rem] h-[4rem] shrink-0 rounded-full bg-[#fcd34d] text-[#14110d] text-[2rem] font-extrabold flex items-center justify-center">{{ s.person.name.slice(0, 1) }}</span>
             <span class="flex flex-col gap-1 min-w-0">
-              <span class="text-[2.375rem] font-extrabold truncate">{{ s.person.name }}</span>
+              <span class="text-[2.125rem] font-extrabold truncate leading-tight">{{ s.person.name }}</span>
               <span class="tv-choice-sub text-[1.5rem] text-[#b9ad9c]">{{ s.person.birth_year ? `né·e en ${s.person.birth_year}` : '' }}{{ s.person.birth_year ? ' · ' : '' }}ressemblance {{ Math.round(s.score * 100) }} %</span>
             </span>
           </button>
@@ -80,7 +80,7 @@
     </div>
 
     <Transition name="tvpop">
-      <div v-if="feedback" class="fixed top-12 left-1/2 -translate-x-1/2 z-[80] px-9 py-4 rounded-full bg-[#fcd34d] text-[#14110d] text-[2rem] font-extrabold shadow-[0_1rem_3rem_rgba(0,0,0,.5)]">{{ feedback }}</div>
+      <div v-if="feedback" style="transform: translateX(-50%)" class="fixed top-12 left-1/2 z-[80] px-9 py-4 rounded-full bg-[#fcd34d] text-[#14110d] text-[2rem] font-extrabold shadow-[0_1rem_3rem_rgba(0,0,0,.5)]">{{ feedback }}</div>
     </Transition>
   </TvLayout>
 </template>
@@ -213,7 +213,7 @@ onMounted(fill);
 </script>
 
 <style scoped>
-.tv-root .tv-choice:focus { background: #f7f2ea; color: #14110d; outline-color: #f59e0b; transform: scale(1.03); }
+.tv-root .tv-choice:focus { background: #f7f2ea; color: #14110d; box-shadow: 0 0 0 0.375rem #12100c, 0 0 0 0.75rem #f59e0b; transform: scale(1.02); }
 .tv-choice:focus .tv-choice-sub { color: #57534e; }
 .tvpop-enter-active, .tvpop-leave-active { transition: all .2s ease; }
 .tvpop-enter-from, .tvpop-leave-to { opacity: 0; transform: translate(-50%, -0.5rem) scale(.9); }

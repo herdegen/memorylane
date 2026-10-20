@@ -1,3 +1,5 @@
+// En premier : compléments pour les vieilles WebView (télévisions).
+import './polyfills';
 import './bootstrap';
 import '../css/app.css';
 

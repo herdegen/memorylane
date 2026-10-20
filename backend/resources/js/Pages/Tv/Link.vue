@@ -49,9 +49,27 @@
         </ul>
       </section>
 
-      <p class="mt-6 text-xs text-surface-500">
-        Sur la télévision, ouvrez l'application MemoryLane, ou le navigateur à l'adresse <span class="font-mono">{{ screenUrl }}</span> : le code s'affiche.
-      </p>
+      <!-- Installer l'application sur la télévision (APK hors Play Store) -->
+      <section class="mt-6 bg-white rounded-2xl border border-surface-200 p-5 space-y-3">
+        <h2 class="text-base font-semibold text-surface-900">Installer l'application sur la télévision</h2>
+        <p class="text-sm text-surface-600">Pour les téléviseurs et vidéoprojecteurs Android TV ou Google TV (Formovie, Sony, Philips, TCL…).</p>
+        <ol class="list-decimal pl-5 space-y-1.5 text-sm text-surface-700">
+          <li>Sur la télévision, installez l'application gratuite <strong>Downloader</strong> depuis le Play Store.</li>
+          <li>Dans Downloader, tapez l'adresse <strong class="font-mono">{{ apkUrl }}</strong> : l'application se télécharge.</li>
+          <li>Acceptez l'installation quand Android le demande (autoriser les « sources inconnues » pour Downloader).</li>
+          <li>Ouvrez <strong>MemoryLane</strong> : le code s'affiche, il reste à le saisir ci-dessus.</li>
+        </ol>
+        <p class="text-sm text-surface-600">
+          Sans Play Store : téléchargez le fichier sur un ordinateur, copiez-le sur une clé USB, puis ouvrez-le depuis le gestionnaire de fichiers de la télévision.
+        </p>
+        <div class="flex flex-wrap items-center gap-3 pt-1">
+          <a href="/tv/application" class="btn-secondary">Télécharger l'application</a>
+          <span v-if="app" class="text-xs text-surface-500">Version {{ app.version }} · {{ Math.max(1, Math.round(app.size / 1024)) }} Ko</span>
+        </div>
+        <p class="text-xs text-surface-500">
+          Sans application : le navigateur de la télévision, à l'adresse <span class="font-mono">{{ screenUrl }}</span>, fonctionne aussi.
+        </p>
+      </section>
     </div>
   </AppLayout>
 </template>
@@ -66,12 +84,14 @@ import { useConfirm } from '@/Composables/useConfirm';
 const props = defineProps({
   code: { type: String, default: '' },
   devices: { type: Array, default: () => [] },
+  app: { type: Object, default: null },
 });
 
 const { confirm } = useConfirm();
 const form = useForm({ code: props.code ? `${props.code.slice(0, 3)} ${props.code.slice(3)}` : '', name: '' });
 const digits = computed(() => form.code.replace(/\D/g, ''));
 const screenUrl = `${window.location.host}/tv/ecran`;
+const apkUrl = `${window.location.host}/apk`;
 
 const submit = () => {
   form.transform((data) => ({ ...data, code: digits.value })).post('/tv', {

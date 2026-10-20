@@ -9,14 +9,17 @@ use App\Models\TvDevice;
 use App\Models\User;
 use App\Models\VoiceNote;
 use App\Services\AlbumDiscovery;
+use App\Services\GenealogyService;
 use App\Services\MediaService;
 use App\Services\QuestService;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 /**
@@ -30,6 +33,9 @@ class TvController extends Controller
     /** Médias chargés au plus pour une visionneuse (album, proche, souvenirs). */
     private const ITEMS_LIMIT = 1500;
 
+    /** Relations chargées pour un média de visionneuse. */
+    private const ITEM_RELATIONS = ['conversions', 'people', 'albums', 'voiceNotes.person', 'voiceNotes.user'];
+
     /** Albums au plus dans une rangée. */
     private const ROW_LIMIT = 24;
 
@@ -37,6 +43,7 @@ class TvController extends Controller
         protected MediaService $mediaService,
         protected AlbumDiscovery $discovery,
         protected QuestService $quests,
+        protected GenealogyService $genealogy,
     ) {}
 
     public function home(Request $request)
@@ -90,7 +97,7 @@ class TvController extends Controller
         $user = $request->user();
 
         $media = $album->media()->whereIn('type', ['photo', 'video'])
-            ->with(['conversions', 'people', 'albums', 'voiceNotes.person', 'voiceNotes.user'])
+            ->with(self::ITEM_RELATIONS)
             ->limit(self::ITEMS_LIMIT)->get();
         $dates = $media->pluck('taken_at')->filter();
 
@@ -103,23 +110,35 @@ class TvController extends Controller
         ]);
     }
 
-    /** Photos d'un proche (carte « Personne du jour »). */
+    /** Photos d'un proche (onglet Proches, carte « Personne du jour », recherche). */
     public function person(Request $request, string $person)
     {
         $user = $request->user();
-        $person = Person::visibleTo($user)->findOrFail($person);
+        $person = Person::visibleTo($user)->with('avatar')->withMatchedFacesCount()->findOrFail($person);
 
         $media = $person->media()->inContext($user)->whereIn('type', ['photo', 'video'])
-            ->with(['conversions', 'people', 'albums', 'voiceNotes.person', 'voiceNotes.user'])
+            ->with(self::ITEM_RELATIONS)
             ->orderByRaw('taken_at IS NULL')->orderBy('taken_at')
             ->limit(self::ITEMS_LIMIT)->get();
 
+        $relation = null;
+        if ($user->person_id && $user->person_id !== $person->id
+            && $path = $this->genealogy->pathBetween($user->person_id, $person->id)) {
+            $relation = GenealogyService::relationLabel($path['edges'], $person->gender);
+        }
+
         return Inertia::render('Tv/Collection', [
-            ...$this->frame($request, 'home'),
+            ...$this->frame($request, 'people'),
             'title' => $person->name,
-            'subtitle' => $this->countLabel($media),
+            'subtitle' => implode(' · ', array_filter([
+                $relation ? ucfirst($relation) : null,
+                $this->lifeLabel($person),
+                $this->countLabel($media),
+            ])),
+            'avatar' => $this->avatarUrl($person),
             'items' => $media->map(fn (Media $m) => $this->item($m, $user))->values(),
             'gameAlbumId' => null,
+            'back' => route('tv.screen.people'),
         ]);
     }
 
@@ -129,7 +148,7 @@ class TvController extends Controller
         $user = $request->user();
         $today = today();
         $media = $this->onThisDayQuery($user, $today)
-            ->with(['conversions', 'people', 'albums', 'voiceNotes.person', 'voiceNotes.user'])
+            ->with(self::ITEM_RELATIONS)
             ->orderByDesc('taken_at')
             ->limit(self::ITEMS_LIMIT)->get();
 
@@ -188,6 +207,203 @@ class TvController extends Controller
         Cookie::queue(Cookie::forget(TvDevice::COOKIE));
 
         return redirect()->route('tv.screen');
+    }
+
+    /** Photos : une carte par année (rangées par décennie), plus vidéos et souvenirs racontés. */
+    public function photos(Request $request)
+    {
+        $user = $request->user();
+        $base = fn () => Media::inContext($user)->whereIn('type', ['photo', 'video']);
+
+        $years = $base()->whereNotNull('taken_at')->toBase()
+            ->selectRaw('extract(year from taken_at)::int as y, count(*) as n')
+            ->groupBy('y')->orderByDesc('y')->get();
+
+        // Une couverture par année, la même toute la journée (photos avec des proches d'abord).
+        $coverIds = $base()->where('type', 'photo')->whereNotNull('taken_at')->toBase()
+            ->selectRaw('distinct on (extract(year from taken_at)) media.id, extract(year from taken_at)::int as y')
+            ->orderByRaw('extract(year from taken_at), (exists (select 1 from detected_faces df where df.media_id = media.id and df.person_id is not null)) desc, md5(media.id::text || ?)', [today()->toDateString()])
+            ->pluck('id', 'y');
+        $covers = Media::with('conversions')->whereIn('id', $coverIds->values())->get()->keyBy('id');
+        $cover = fn ($id) => isset($covers[$id]) ? $this->mediaService->thumbnailUrl($covers[$id], ['medium', 'small', 'thumbnail']) : null;
+
+        $decades = $years->groupBy(fn ($r) => intdiv($r->y, 10) * 10)
+            ->map(fn ($rows, $decade) => [
+                'key' => 'decade-'.$decade,
+                'title' => 'Les années '.$decade,
+                'tiles' => $rows->map(fn ($r) => [
+                    'key' => 'y'.$r->y,
+                    'title' => (string) $r->y,
+                    'meta' => $this->countLabelOf((int) $r->n),
+                    'cover' => $cover($coverIds[$r->y] ?? null),
+                    'href' => route('tv.screen.photoSet', ['set' => $r->y]),
+                ])->values(),
+            ])->values();
+
+        $special = collect();
+        $videos = $base()->where('type', 'video')->count();
+        if ($videos) {
+            $first = $base()->where('type', 'video')->with('conversions')->latest('taken_at')->first();
+            $special->push(['key' => 'videos', 'title' => 'Vidéos', 'meta' => $videos.' '.($videos > 1 ? 'vidéos' : 'vidéo'),
+                'cover' => $first ? $this->mediaService->thumbnailUrl($first, ['medium', 'small', 'thumbnail']) : null,
+                'href' => route('tv.screen.photoSet', ['set' => 'videos'])]);
+        }
+        $voices = $base()->has('voiceNotes')->count();
+        if ($voices) {
+            $first = $base()->has('voiceNotes')->with('conversions')->latest('updated_at')->first();
+            $special->push(['key' => 'voices', 'title' => 'Souvenirs racontés', 'meta' => $voices.' '.($voices > 1 ? 'photos racontées' : 'photo racontée'),
+                'cover' => $first ? $this->mediaService->thumbnailUrl($first, ['medium', 'small', 'thumbnail']) : null,
+                'href' => route('tv.screen.photoSet', ['set' => 'souvenirs-racontes'])]);
+        }
+        $undated = $base()->whereNull('taken_at')->count();
+        if ($undated) {
+            $special->push(['key' => 'undated', 'title' => 'Sans date', 'meta' => $this->countLabelOf($undated), 'cover' => null,
+                'href' => route('tv.screen.photoSet', ['set' => 'sans-date'])]);
+        }
+
+        return Inertia::render('Tv/Photos', [
+            ...$this->frame($request, 'photos'),
+            'rows' => $special->isNotEmpty()
+                ? collect([['key' => 'special', 'title' => 'À regarder', 'tiles' => $special->values()]])->concat($decades)->values()
+                : $decades,
+        ]);
+    }
+
+    /** Une année, les vidéos, les souvenirs racontés ou les photos sans date. */
+    public function photoSet(Request $request, string $set)
+    {
+        $user = $request->user();
+        $query = Media::inContext($user)->whereIn('type', ['photo', 'video'])->with(self::ITEM_RELATIONS);
+
+        [$title, $query] = match (true) {
+            ctype_digit($set) && strlen($set) === 4 => [$set, $query->whereRaw('extract(year from taken_at) = ?', [(int) $set])->orderBy('taken_at')],
+            $set === 'videos' => ['Vidéos', $query->where('type', 'video')->orderByRaw('taken_at IS NULL')->orderByDesc('taken_at')],
+            $set === 'souvenirs-racontes' => ['Souvenirs racontés', $query->has('voiceNotes')->orderByRaw('taken_at IS NULL')->orderBy('taken_at')],
+            $set === 'sans-date' => ['Sans date', $query->whereNull('taken_at')->orderBy('created_at')],
+            default => abort(404),
+        };
+        $media = $query->limit(self::ITEMS_LIMIT)->get();
+
+        return Inertia::render('Tv/Collection', [
+            ...$this->frame($request, 'photos'),
+            'title' => $title,
+            'subtitle' => $this->countLabel($media),
+            'items' => $media->map(fn (Media $m) => $this->item($m, $user))->values(),
+            'gameAlbumId' => null,
+            'back' => route('tv.screen.photos'),
+        ]);
+    }
+
+    /** Proches : les fiches du cercle qui ont des photos, les plus proches d'abord. */
+    public function people(Request $request)
+    {
+        $user = $request->user();
+        $people = Person::inContext($user)
+            ->with('avatar')->withMatchedFacesCount()
+            ->withCount(['media as tv_photos' => fn ($q) => $q->inContext($user)->whereIn('type', ['photo', 'video'])])
+            ->get()
+            ->filter(fn (Person $p) => $p->tv_photos > 0);
+
+        $distance = $user->person_id ? $this->genealogy->proximity($user->person_id)['distance'] : [];
+        $paths = $user->person_id ? $this->genealogy->pathsFrom($user->person_id, 4) : [];
+
+        $card = function (Person $p) use ($paths, $user) {
+            $relation = isset($paths[$p->id]) && $p->id !== $user->person_id
+                ? GenealogyService::relationLabel($paths[$p->id], $p->gender) : null;
+
+            return [
+                'id' => $p->id,
+                'name' => $p->name,
+                'sub' => $p->id === $user->person_id ? 'Vous' : ($relation ? ucfirst($relation) : ($this->lifeLabel($p) ?? $this->countLabelOf($p->tv_photos))),
+                'avatar_url' => $this->avatarUrl($p),
+            ];
+        };
+        $sorted = $people->sortBy([
+            fn ($a, $b) => ($distance[$a->id] ?? PHP_INT_MAX) <=> ($distance[$b->id] ?? PHP_INT_MAX),
+            fn ($a, $b) => $b->tv_photos <=> $a->tv_photos,
+            fn ($a, $b) => strcmp($a->name, $b->name),
+        ]);
+
+        $rows = collect([
+            ['key' => 'close', 'title' => 'Les plus proches', 'people' => $sorted->filter(fn ($p) => ($distance[$p->id] ?? 99) <= 2)],
+            ['key' => 'family', 'title' => 'La famille', 'people' => $sorted->filter(fn ($p) => isset($distance[$p->id]) && $distance[$p->id] > 2)],
+            ['key' => 'others', 'title' => $distance ? 'Et aussi' : 'Proches', 'people' => $sorted->filter(fn ($p) => ! isset($distance[$p->id]))
+                ->sortByDesc('tv_photos')],
+        ])->filter(fn ($r) => $r['people']->isNotEmpty())
+            ->map(fn ($r) => ['key' => $r['key'], 'title' => $r['title'], 'people' => $r['people']->map($card)->values()])
+            ->values();
+
+        return Inertia::render('Tv/People', [
+            ...$this->frame($request, 'people'),
+            'rows' => $rows,
+        ]);
+    }
+
+    public function search(Request $request)
+    {
+        return Inertia::render('Tv/Search', [
+            ...$this->frame($request, 'search'),
+            'voice' => true,
+        ]);
+    }
+
+    /** Résultats de recherche (en tapant) : proches, albums, années. Fautes et accents tolérés. */
+    public function searchResults(Request $request): JsonResponse
+    {
+        $q = trim((string) $request->validate(['q' => 'required|string|min:2|max:100'])['q']);
+        $user = $request->user();
+        $norm = fn (string $s) => preg_replace('/\s+/', ' ', trim(Str::lower(Str::ascii($s))));
+        $nq = $norm($q);
+
+        // Proches : Meilisearch (fautes tolérées), cercle de la TV seulement,
+        // et seulement ceux qu'on voit sur des photos (rien à regarder sinon).
+        $people = $this->safe(fn () => Person::search($q)
+            ->query(fn ($b) => $b->inContext($user)
+                ->whereHas('media', fn ($m) => $m->inContext($user)->whereIn('type', ['photo', 'video']))
+                ->with('avatar')->withMatchedFacesCount())
+            ->take(100)->get());
+        $people = $people->sortBy(fn (Person $p) => str_starts_with($norm($p->name), $nq) || str_contains(' '.$norm($p->name), ' '.$nq) ? 0 : 1)
+            ->take(12)
+            ->map(fn (Person $p) => ['id' => $p->id, 'name' => $p->name, 'sub' => $this->lifeLabel($p), 'avatar_url' => $this->avatarUrl($p)])
+            ->values();
+
+        // Albums du cercle : nom qui contient les mots, ou trouvé par Meilisearch.
+        $albums = $this->albumsInContext($user);
+        $scout = $this->safe(fn () => Album::search($q)->take(40)->keys())->flip();
+        $tokens = array_filter(explode(' ', $nq));
+        $albums = $albums->filter(fn (Album $a) => isset($scout[$a->id])
+                || collect($tokens)->every(fn ($t) => str_contains($norm($a->name), $t)))
+            ->take(12)->map(fn ($a) => $this->albumCard($a))->values();
+
+        // Une année tapée (« 1998 ») : ses photos.
+        $years = [];
+        if (preg_match('/^(18|19|20)\d{2}$/', $q)) {
+            $n = Media::inContext($user)->whereIn('type', ['photo', 'video'])->whereRaw('extract(year from taken_at) = ?', [(int) $q])->count();
+            if ($n) {
+                $years[] = ['key' => 'y'.$q, 'title' => $q, 'meta' => $this->countLabelOf($n), 'cover' => null, 'href' => route('tv.screen.photoSet', ['set' => $q])];
+            }
+        }
+
+        return response()->json(['people' => $people, 'albums' => $albums, 'years' => $years]);
+    }
+
+    /** Cadre photo : un lot de photos du cercle tirées au sort (proches identifiés d'abord). */
+    public function frameMode(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $media = Media::inContext($user)->where('type', 'photo')
+            ->with(['conversions', 'albums', 'people'])
+            ->orderByRaw('(exists (select 1 from detected_faces df where df.media_id = media.id and df.person_id is not null)) desc')
+            ->inRandomOrder()
+            ->limit(400)->get()
+            ->shuffle()->take(150);
+
+        return response()->json(['items' => $media->map(fn (Media $m) => [
+            'id' => $m->id,
+            'src' => $this->mediaService->thumbnailUrl($m, ['large', 'medium']),
+            'title' => SimpleModeController::caption($m),
+            'when' => $m->taken_at ? self::dateLabel($m->taken_at) : null,
+        ])->values()]);
     }
 
     // ---- Données communes -------------------------------------------------
@@ -375,6 +591,34 @@ class TvController extends Controller
         return $from->month === $to->month
             ? $from->locale('fr')->translatedFormat('F Y')
             : (string) $from->year;
+    }
+
+    private function countLabelOf(int $n): string
+    {
+        return $n.' '.($n > 1 ? 'photos' : 'photo');
+    }
+
+    /** « 1932 – 2004 », « né en 1987 ». */
+    private function lifeLabel(Person $person): ?string
+    {
+        if (! $person->birth_date) {
+            return $person->death_date ? '† '.$person->death_date->year : null;
+        }
+
+        return $person->death_date
+            ? $person->birth_date->year.' – '.$person->death_date->year
+            : ($person->gender === 'F' ? 'Née en ' : 'Né en ').$person->birth_date->year;
+    }
+
+    private function safe(callable $search): Collection
+    {
+        try {
+            return collect($search());
+        } catch (\Throwable $e) {
+            report($e);
+
+            return collect();
+        }
     }
 
     private function countLabel(Collection $media): string

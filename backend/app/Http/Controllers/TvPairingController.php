@@ -107,6 +107,7 @@ class TvPairingController extends Controller
 
         return Inertia::render('Tv/Link', [
             'code' => strlen($code) === 6 ? $code : '',
+            'app' => self::apkInfo(),
             'devices' => $request->user()->tvDevices()->linked()->with('household:id,name')
                 ->orderByDesc('last_seen_at')->get()
                 ->map(fn (TvDevice $d) => [
@@ -153,6 +154,24 @@ class TvPairingController extends Controller
         }
 
         return back()->with('success', 'C\'est relié : la télévision s\'ouvre.');
+    }
+
+    /** L'application Android TV, à installer à la main (memory-lane.fr/apk). */
+    public function apk()
+    {
+        $path = resource_path('tv/memorylane-tv.apk');
+        abort_unless(is_file($path), 404);
+
+        return response()->download($path, 'MemoryLane-TV.apk', [
+            'Content-Type' => 'application/vnd.android.package-archive',
+        ]);
+    }
+
+    public static function apkInfo(): ?array
+    {
+        $file = resource_path('tv/version.json');
+
+        return is_file($file) ? json_decode((string) file_get_contents($file), true) : null;
     }
 
     public function destroy(Request $request, TvDevice $tvDevice)

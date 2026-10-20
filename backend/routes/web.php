@@ -68,6 +68,10 @@ Route::get('/tablette/{token}', [AuthController::class, 'loginWithTabletLink'])
     ->middleware('throttle:10,1')
     ->name('tablet.login');
 
+// Application Android TV (APK) : téléchargement libre, adresse courte à taper sur la télévision.
+Route::get('/tv/application', [\App\Http\Controllers\TvPairingController::class, 'apk'])->name('tv.apk');
+Route::redirect('/apk', '/tv/application');
+
 // Appli télévision : écran d'appairage (TV pas encore reliée) et ses appels.
 Route::get('/tv/ecran', [\App\Http\Controllers\TvPairingController::class, 'screen'])->name('tv.screen');
 Route::post('/tv/ecran/code', [\App\Http\Controllers\TvPairingController::class, 'start'])
@@ -82,7 +86,13 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::get('/accueil', 'home')->name('home');
         Route::get('/albums', 'albums')->name('albums');
         Route::get('/albums/{album}', 'album')->name('album');
+        Route::get('/photos', 'photos')->name('photos');
+        Route::get('/photos/{set}', 'photoSet')->name('photoSet');
+        Route::get('/proches', 'people')->name('people');
         Route::get('/proches/{person}', 'person')->name('person');
+        Route::get('/recherche', 'search')->name('search');
+        Route::get('/recherche/resultats', 'searchResults')->name('search.results');
+        Route::get('/cadre', 'frameMode')->name('frame');
         Route::get('/ce-jour-la', 'memories')->name('memories');
         Route::get('/qui-est-ce', 'game')->name('game');
         Route::post('/cercle', 'circle')->name('circle');

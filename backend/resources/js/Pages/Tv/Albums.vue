@@ -10,8 +10,8 @@
       <Transition name="tvbg">
         <img v-if="background" :key="background" :src="background" alt="" class="absolute inset-0 w-full h-full object-cover" />
       </Transition>
-      <div class="absolute inset-0 bg-gradient-to-r from-[#12100c]/95 via-[#12100c]/60 to-transparent"></div>
-      <div class="absolute inset-x-0 bottom-0 h-[12.5rem] bg-gradient-to-t from-[#12100c] to-transparent"></div>
+      <div class="absolute inset-0" style="background: linear-gradient(to right, rgba(18,16,12,.95), rgba(18,16,12,.6) 50%, rgba(18,16,12,0))"></div>
+      <div class="absolute inset-x-0 bottom-0 h-[12.5rem]" style="background: linear-gradient(to top, #12100c, rgba(18,16,12,0))"></div>
     </div>
 
     <div class="relative z-10 flex-1 min-h-0 flex flex-col">

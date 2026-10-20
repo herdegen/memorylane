@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Application télévision MemoryLane : une fenêtre plein écran sur
+     https://memory-lane.fr/tv/ecran, pensée pour la télécommande. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="fr.memorylane.tv"
+    android:versionCode="1"
+    android:versionName="1.0">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Télévision d'abord, mais installable partout (pas d'écran tactile exigé). -->
+    <uses-feature android:name="android.software.leanback" android:required="false" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
+    <!-- Dictée de la recherche (Android 11+ : déclarer l'intention utilisée). -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
+    </queries>
+
+    <application
+        android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher"
+        android:banner="@drawable/banner"
+        android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
+        android:hardwareAccelerated="true"
+        android:allowBackup="false"
+        android:usesCleartextTraffic="false">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:screenOrientation="landscape"
+            android:windowSoftInputMode="adjustPan"
+            android:configChanges="orientation|screenSize|screenLayout|keyboard|keyboardHidden|navigation|uiMode">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
