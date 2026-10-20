@@ -527,104 +527,60 @@ class TvController extends Controller
 
     // ---- Carte ---------------------------------------------------------------
 
-    /** Lieux de grille (~10 km) : arrondi des coordonnées à 0,1°. */
-    private const MAP_CELL = 1;
-
-    /** Lieux montrés au plus sur la carte. */
-    private const MAP_PLACES = 120;
-
-    /** Les endroits où la famille a pris des photos, du plus photographié au moins. */
+    /**
+     * Les albums du cercle sur la carte : un point par album, à l'endroit où
+     * il a le plus de photos (grille d'environ 10 km) — un voyage filmé ou
+     * un album étalé ne sème pas des dizaines de points. Du plus récent au
+     * plus ancien.
+     */
     public function map(Request $request)
     {
         $user = $request->user();
-        $ids = Media::inContext($user)->whereIn('type', ['photo', 'video'])->select('media.id');
-        $cell = 'round(mm.latitude::numeric, '.self::MAP_CELL.')';
-        $cellLng = 'round(mm.longitude::numeric, '.self::MAP_CELL.')';
+        $albums = $this->albumsInContext($user)->keyBy('id');
+        $ids = $albums->keys()->all();
 
-        $places = DB::table('media_metadata as mm')->join('media as m', 'm.id', '=', 'mm.media_id')
-            ->whereIn('mm.media_id', $ids)->whereNotNull('mm.latitude')->whereNotNull('mm.longitude')
-            ->selectRaw("{$cell} as clat, {$cellLng} as clng, avg(mm.latitude) as lat, avg(mm.longitude) as lng, count(*) as n,
-                min(m.taken_at) as first_at, max(m.taken_at) as last_at")
-            ->groupByRaw('1, 2')->orderByDesc('n')->limit(self::MAP_PLACES)->get();
-
-        // Aperçus : 6 photos par lieu (des proches identifiés d'abord).
-        $previews = collect(DB::select("select clat, clng, media_id from (
-                select {$cell} as clat, {$cellLng} as clng, mm.media_id, row_number() over (
-                    partition by {$cell}, {$cellLng}
-                    order by exists (select 1 from detected_faces df where df.media_id = mm.media_id and df.person_id is not null) desc,
-                             md5(mm.media_id::text || ?)
-                ) as rn
-                from media_metadata mm join media m on m.id = mm.media_id
-                where m.type = 'photo' and m.deleted_at is null and mm.latitude is not null and mm.longitude is not null
-                  and mm.media_id in (".$ids->toSql().")
-            ) t where rn <= 6", [today()->toDateString(), ...$ids->getBindings()]));
-        $media = Media::with('conversions')->whereIn('id', $previews->pluck('media_id')->unique())->get()->keyBy('id');
-        $previewsByCell = $previews->groupBy(fn ($r) => $r->clat.'_'.$r->clng);
-
-        // Noms : géocodage inverse (cache), sinon l'album le plus présent ; les manquants en arrière-plan.
-        $albumNames = DB::table('media_metadata as mm')->join('album_media as am', 'am.media_id', '=', 'mm.media_id')
-            ->join('albums as a', 'a.id', '=', 'am.album_id')
-            ->whereIn('mm.media_id', $ids)->whereNotNull('mm.latitude')->whereNull('a.deleted_at')
-            ->selectRaw("{$cell} as clat, {$cellLng} as clng, a.name, count(*) as n")
-            ->groupByRaw('1, 2, 3')->orderByDesc('n')->get()
-            ->groupBy(fn ($r) => $r->clat.'_'.$r->clng)->map(fn ($g) => $g->first()->name);
+        $main = $ids === [] ? collect() : collect(DB::select(
+            'select album_id, lat, lng from (
+                select am.album_id, avg(mm.latitude) as lat, avg(mm.longitude) as lng,
+                       row_number() over (partition by am.album_id order by count(*) desc) as rn
+                from album_media am
+                join media m on m.id = am.media_id and m.deleted_at is null
+                join media_metadata mm on mm.media_id = m.id
+                where am.album_id in ('.implode(',', array_fill(0, count($ids), '?')).')
+                  and mm.latitude is not null and mm.longitude is not null
+                group by am.album_id, round(mm.latitude::numeric, 1), round(mm.longitude::numeric, 1)
+            ) t where rn = 1',
+            $ids
+        ));
 
         $geocoder = app(\App\Services\GeocodeService::class);
         $missing = [];
-        $payload = $places->map(function ($p) use ($geocoder, &$missing, $previewsByCell, $media, $albumNames) {
-            $key = $p->clat.'_'.$p->clng;
-            $name = $geocoder->cachedPlaceName((float) $p->lat, (float) $p->lng);
-            if (! $name && ! $geocoder->isPlaceNameResolved((float) $p->lat, (float) $p->lng)) {
-                $missing[] = [round((float) $p->lat, 4), round((float) $p->lng, 4)];
+        $places = $main->map(function ($row) use ($albums, $geocoder, &$missing) {
+            $album = $albums[$row->album_id];
+            $lat = (float) $row->lat;
+            $lng = (float) $row->lng;
+            $name = $geocoder->cachedPlaceName($lat, $lng);
+            if (! $name && ! $geocoder->isPlaceNameResolved($lat, $lng)) {
+                $missing[] = [round($lat, 4), round($lng, 4)];
             }
-            $from = $p->first_at ? substr($p->first_at, 0, 4) : null;
-            $to = $p->last_at ? substr($p->last_at, 0, 4) : null;
+            $card = $this->albumCard($album);
 
             return [
-                'key' => $key,
-                'name' => $name ?? ($albumNames[$key] ?? 'Lieu sans nom'),
-                'album' => $name ? ($albumNames[$key] ?? null) : null,
-                'lat' => (float) $p->lat,
-                'lng' => (float) $p->lng,
-                'count' => (int) $p->n,
-                'years' => $from ? ($from === $to ? $from : "{$from} → {$to}") : null,
-                'previews' => ($previewsByCell[$key] ?? collect())->map(fn ($r) => isset($media[$r->media_id])
-                    ? $this->mediaService->thumbnailUrl($media[$r->media_id], ['medium', 'small', 'thumbnail']) : null)
-                    ->filter()->values(),
+                'id' => $album->id,
+                'name' => $album->name,
+                'place' => $name,
+                'meta' => $card['meta'],
+                'lat' => $lat,
+                'lng' => $lng,
+                'previews' => $card['previews'],
+                'sort' => $album->last_at ?? '0000',
             ];
-        })->values();
+        })->sortByDesc('sort')->map(fn ($p) => array_diff_key($p, ['sort' => true]))->values();
         \App\Jobs\ResolvePlaceNames::dispatchOnce($missing);
 
         return Inertia::render('Tv/Map', [
             ...$this->frame($request, 'map'),
-            'places' => $payload,
-        ]);
-    }
-
-    /** Les photos d'un lieu de la carte. */
-    public function place(Request $request, string $place)
-    {
-        abort_unless(preg_match('/^(-?\d{1,3}(?:\.\d)?)_(-?\d{1,3}(?:\.\d)?)$/', $place, $m), 404);
-        $user = $request->user();
-
-        $media = Media::inContext($user)->whereIn('type', ['photo', 'video'])
-            ->whereIn('media.id', DB::table('media_metadata as mm')->select('mm.media_id')
-                ->whereRaw('round(mm.latitude::numeric, '.self::MAP_CELL.') = ?', [(float) $m[1]])
-                ->whereRaw('round(mm.longitude::numeric, '.self::MAP_CELL.') = ?', [(float) $m[2]]))
-            ->with(self::ITEM_RELATIONS)
-            ->orderByRaw('taken_at IS NULL')->orderBy('taken_at')
-            ->limit(self::ITEMS_LIMIT)->get();
-        abort_if($media->isEmpty(), 404);
-
-        $name = $request->query('nom') ?: 'Ce lieu';
-
-        return Inertia::render('Tv/Collection', [
-            ...$this->frame($request, 'map'),
-            'title' => mb_substr($name, 0, 80),
-            'subtitle' => $this->countLabel($media),
-            'items' => $media->map(fn (Media $m) => $this->item($m, $user))->values(),
-            'gameAlbumId' => null,
-            'back' => route('tv.screen.map'),
+            'places' => $places,
         ]);
     }
 

@@ -279,28 +279,24 @@ class TvTest extends TestCase
         $this->getJson("/people/{$p->id}/timeline")->assertOk()->assertJsonPath('0.kind', 'birth');
     }
 
-    public function test_carte_par_lieux(): void
+    public function test_carte_un_point_par_album(): void
     {
         \Illuminate\Support\Facades\Queue::fake();
         $this->actingAs($this->me);
+        // L'album « Vacances » : deux photos à Saint-Malo, une à Paris (lieu principal : Saint-Malo).
         foreach ($this->album->media as $i => $m) {
-            $m->metadata()->create(['latitude' => 48.65 + $i * 0.001, 'longitude' => -2.01]);
+            $m->metadata()->create($i < 2 ? ['latitude' => 48.65, 'longitude' => -2.01] : ['latitude' => 48.85, 'longitude' => 2.35]);
         }
-        $paris = Media::factory()->photo()->create(['user_id' => $this->me->id]);
-        $paris->metadata()->create(['latitude' => 48.85, 'longitude' => 2.35]);
+        // Une photo géolocalisée hors album : pas sur la carte.
+        $seule = Media::factory()->photo()->create(['user_id' => $this->me->id]);
+        $seule->metadata()->create(['latitude' => 64.1, 'longitude' => -21.9]);
 
         $this->get('/tv/ecran/carte')->assertOk()
             ->assertInertia(fn ($page) => $page->component('Tv/Map', false)
-                ->has('places', 2)
-                ->where('places.0.count', 3)
-                ->where('places.0.key', '48.7_-2.0')
-                // Pas encore de nom de lieu : l'album le plus présent.
-                ->where('places.0.name', 'Vacances'));
+                ->has('places', 1)
+                ->where('places.0.id', $this->album->id)
+                ->where('places.0.name', 'Vacances')
+                ->where('places.0.lat', fn ($lat) => abs($lat - 48.65) < 0.01));
         \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\ResolvePlaceNames::class);
-
-        $this->get('/tv/ecran/carte/48.7_-2.0?nom=Saint-Malo')->assertOk()
-            ->assertInertia(fn ($page) => $page->component('Tv/Collection', false)->has('items', 3)->where('title', 'Saint-Malo'));
-        $this->get('/tv/ecran/carte/12.3_4.5')->assertNotFound();
-        $this->get('/tv/ecran/carte/nimporte')->assertNotFound();
     }
 }
