@@ -42,6 +42,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // sans token CSRF possible (la route reste protégée par auth)
         $middleware->validateCsrfTokens(except: [
             'share-target',
+            // Désabonnement « en un clic » envoyé par Gmail / Apple Mail
+            // (RFC 8058) : pas de session, l'URL signée fait foi.
+            'newsletter/unsubscribe/*',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

@@ -31,6 +31,7 @@ class Album extends Model
         'is_smart',
         'smart_rules',
         'share_token',
+        'share_with_tagged',
     ];
 
     /**
@@ -53,6 +54,7 @@ class Album extends Model
             'is_public' => 'boolean',
             'is_smart' => 'boolean',
             'smart_rules' => 'array',
+            'share_with_tagged' => 'boolean',
         ];
     }
 
@@ -182,9 +184,36 @@ class Album extends Model
             return true;
         }
 
-        // NB : être identifié sur une photo n'ouvre PAS l'album entier : on voit
+        // Être identifié sur une photo n'ouvre l'album entier QUE si le
+        // propriétaire l'a choisi (share_with_tagged) ; sinon on voit
         // seulement les photos où l'on apparaît (Media::scopeAccessibleBy).
-        return false;
+        return $this->share_with_tagged
+            && $user->person_id
+            && static::whereKey($this->id)->where(fn ($q) => static::whereTaggedPerson($q, $user->person_id))->exists();
+    }
+
+    /**
+     * Album partagé avec ses personnes identifiées, où $personId figure sur
+     * une photo PAR UN HUMAIN : nommée à la main (pas de visage d'elle sur la
+     * photo) ou visage validé — jamais sur la seule foi d'une association
+     * automatique (une erreur de reconnaissance n'ouvre pas un album).
+     */
+    public static function whereTaggedPerson($query, string $personId)
+    {
+        return $query->where('albums.share_with_tagged', true)
+            ->whereExists(fn ($q) => $q->selectRaw('1')
+                ->from('album_media as am')
+                ->join('media_person as mp', 'mp.media_id', '=', 'am.media_id')
+                ->join('media as m', 'm.id', '=', 'am.media_id')
+                ->whereColumn('am.album_id', 'albums.id')
+                ->where('mp.person_id', $personId)
+                ->whereNull('m.deleted_at')
+                ->where(fn ($w) => $w
+                    ->whereNotExists(fn ($d) => $d->selectRaw('1')->from('detected_faces as df')
+                        ->whereColumn('df.media_id', 'mp.media_id')->whereColumn('df.person_id', 'mp.person_id'))
+                    ->orWhereExists(fn ($d) => $d->selectRaw('1')->from('detected_faces as df')
+                        ->whereColumn('df.media_id', 'mp.media_id')->whereColumn('df.person_id', 'mp.person_id')
+                        ->whereNotNull('df.verified_at'))));
     }
 
     /**
@@ -234,6 +263,11 @@ class Album extends Model
                 ->orWhereHas('accesses', fn ($a) => $a->where('user_id', $user->id))
                 // Branche cercle : album partagé avec un cercle du viewer.
                 ->orWhereHas('households', fn ($h) => $h->whereIn('households.id', $user->householdIds()));
+
+            // Album partagé avec les personnes identifiées dedans.
+            if ($user->person_id) {
+                $q->orWhere(fn ($t) => static::whereTaggedPerson($t, $user->person_id));
+            }
         });
     }
 }

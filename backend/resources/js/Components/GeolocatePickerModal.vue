@@ -33,7 +33,7 @@
         </ul>
       </div>
 
-      <div ref="mapEl" class="h-80 rounded-lg overflow-hidden border border-surface-200 z-0"></div>
+      <div ref="mapEl" class="h-[min(20rem,40dvh)] min-h-48 rounded-lg overflow-hidden border border-surface-200 z-0"></div>
 
       <p class="mt-3 text-sm" :class="coords ? 'text-surface-700' : 'text-surface-400'">
         <template v-if="coords">Position choisie : {{ coords.lat.toFixed(5) }}, {{ coords.lng.toFixed(5) }}</template>

@@ -79,6 +79,9 @@
         <!-- Notifications push -->
         <PushSettingsCard :initial-subscriptions="pushSubscriptions" />
 
+        <!-- Lettre du dimanche -->
+        <NewsletterSettingsCard :initial="newsletter" />
+
         <!-- Mot de passe -->
         <div class="bg-white overflow-hidden shadow-xs sm:rounded-lg">
           <div class="p-6">
@@ -172,11 +175,13 @@ import FormField from '@/Components/Forms/FormField.vue';
 import FormButton from '@/Components/Forms/FormButton.vue';
 import ToggleSwitch from '@/Components/Forms/ToggleSwitch.vue';
 import PushSettingsCard from '@/Components/PushSettingsCard.vue';
+import NewsletterSettingsCard from '@/Components/NewsletterSettingsCard.vue';
 import { formatLongDate } from '@/utils/format';
 
 // Page unique du compte : consultation ET modification (fusion de l'ancien
 // couple Mon profil / Paramètres — une seule entrée dans le menu avatar).
 const props = defineProps({
+  newsletter: { type: Boolean, default: true },
   user: Object,
   pushSubscriptions: { type: Array, default: () => [] },
 });

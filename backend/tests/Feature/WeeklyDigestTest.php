@@ -62,7 +62,9 @@ class WeeklyDigestTest extends TestCase
             'name' => 'Vacances',
         ]);
         $album->media()->attach($media->id);
-        $circle = \App\Models\Household::factory()->create(['created_by' => $uploader->id]);
+        // Cercle d'amis : l'ancien résumé (la famille reçoit la lettre du dimanche,
+        // cf. FamilyNewsletterTest).
+        $circle = \App\Models\Household::factory()->create(['created_by' => $uploader->id, 'kind' => \App\Models\Household::KIND_FRIENDS]);
         $circle->members()->attach([$uploader->id, $grandma->id]);
         $album->households()->attach($circle->id, ['granted_by' => $uploader->id]);
 

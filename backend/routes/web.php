@@ -63,6 +63,13 @@ Route::post('/bienvenue/{token}', [InvitationController::class, 'accept'])
     ->middleware('throttle:10,1')
     ->name('invitations.accept');
 
+// Lettre du dimanche : désabonnement depuis le mail (URL signée, sans connexion)
+Route::prefix('newsletter')->name('newsletter.')->middleware('signed')->group(function () {
+    Route::get('/unsubscribe/{user}', [\App\Http\Controllers\NewsletterController::class, 'show'])->name('unsubscribe');
+    Route::post('/unsubscribe/{user}', [\App\Http\Controllers\NewsletterController::class, 'unsubscribe']);
+    Route::post('/resubscribe/{user}', [\App\Http\Controllers\NewsletterController::class, 'resubscribe'])->name('resubscribe');
+});
+
 // Mode grand-parent : lien tablette sans mot de passe (tablet:create)
 Route::get('/tablette/{token}', [AuthController::class, 'loginWithTabletLink'])
     ->middleware('throttle:10,1')
@@ -189,6 +196,8 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         return response()->noContent();
     })->name('celebrations.birthday-seen');
 
+    Route::put('/profile/newsletter', [\App\Http\Controllers\NewsletterController::class, 'update'])->name('profile.newsletter');
+
     // Notifications push (Web Push) : abonnement par appareil + préférences
     Route::prefix('push')->name('push.')->group(function () {
         Route::post('/subscriptions', [PushController::class, 'store'])->name('subscriptions.store');
@@ -288,6 +297,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::get('/{album}/access/candidates', [AlbumController::class, 'grantCandidates'])->name('access.candidates');
         Route::post('/{album}/access', [AlbumController::class, 'grantAccess'])->name('access.grant');
         Route::post('/{album}/access/tagged', [AlbumController::class, 'grantTaggedAccess'])->name('access.grantTagged');
+        Route::put('/{album}/share-with-tagged', [AlbumController::class, 'shareWithTagged'])->name('shareWithTagged');
         Route::delete('/{album}/access', [AlbumController::class, 'revokeAccess'])->name('access.revoke');
         // « Qui était du voyage ? »
         Route::get('/{album}/participants', [AlbumParticipantController::class, 'index'])->name('participants.index');

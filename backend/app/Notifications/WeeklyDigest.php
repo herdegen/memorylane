@@ -23,6 +23,9 @@ class WeeklyDigest extends Notification implements ShouldQueue
         public int $mediaCount,
         public array $uploaderNames = [],
         public array $samples = [],
+        // Membres de la famille : la lettre du dimanche remplace l'e-mail, ce
+        // résumé ne part plus qu'en push.
+        public bool $mail = true,
     ) {}
 
     /**
@@ -32,7 +35,7 @@ class WeeklyDigest extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        $channels = ['mail'];
+        $channels = $this->mail ? ['mail'] : [];
         if (method_exists($notifiable, 'wantsPush') && $notifiable->wantsPush('digest')) {
             $channels[] = WebPushChannel::class;
         }

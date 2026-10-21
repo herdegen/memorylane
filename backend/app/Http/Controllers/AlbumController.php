@@ -676,7 +676,11 @@ class AlbumController extends Controller
         $listedIds = array_column($entries, 'user_id');
         $circleMemberIds = $this->albumCircleMemberIds($album);
         foreach ($this->taggedUsers($album, auth()->user())->whereNotIn('id', $listedIds) as $u) {
-            $entries[] = $this->accessEntry($u, in_array($u->id, $circleMemberIds, true) ? 'circle' : 'tagged');
+            $entries[] = $this->accessEntry($u, match (true) {
+                in_array($u->id, $circleMemberIds, true) => 'circle',
+                (bool) $album->share_with_tagged => 'tagged_shared',
+                default => 'tagged',
+            });
         }
 
         return response()->json($entries);
@@ -717,6 +721,41 @@ class AlbumController extends Controller
         return response()->json([
             'granted' => $n,
             'message' => $n ? "Accès accordé à {$n} personne".($n > 1 ? 's' : '').'.' : 'Tout le monde a déjà accès.',
+        ]);
+    }
+
+    /**
+     * « Partager tout l'album avec les personnes identifiées dedans » (même
+     * celles identifiées plus tard). À l'activation, les comptes identifiés
+     * qui ne voyaient pas encore l'album en sont prévenus.
+     */
+    public function shareWithTagged(Request $request, Album $album, PushNotifier $push)
+    {
+        Gate::authorize('grantAccess', $album);
+        $enabled = $request->validate(['enabled' => 'required|boolean'])['enabled'];
+
+        $before = $enabled && ! $album->share_with_tagged
+            // Tous les identifiés (pas seulement ceux que je « connais ») :
+            // les prévenir ne me révèle rien sur eux.
+            ? $this->taggedUsers($album)
+                ->whereNotIn('id', $album->accesses()->pluck('user_id')->push($album->user_id)->merge($this->albumCircleMemberIds($album))->all())
+            : collect();
+
+        $album->forceFill(['share_with_tagged' => $enabled])->save();
+
+        foreach ($before as $user) {
+            $push->social(
+                $user,
+                new AlbumAccessGranted(PushNotification::firstName(auth()->user()->name), $album->name, $album->id),
+                auth()->user(),
+            );
+        }
+
+        return response()->json([
+            'share_with_tagged' => $album->share_with_tagged,
+            'message' => $enabled
+                ? 'Les personnes identifiées dans l\'album le voient en entier, y compris celles ajoutées plus tard.'
+                : 'Les personnes identifiées ne voient plus que leurs photos.',
         ]);
     }
 

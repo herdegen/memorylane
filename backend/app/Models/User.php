@@ -295,6 +295,12 @@ class User extends Authenticatable implements FilamentUser
      * Écrit une préférence (clé en notation pointée, ex. `push.social`) en
      * fusionnant avec l'existant, puis sauvegarde.
      */
+    /** Newsletter hebdomadaire par e-mail (abonné par défaut). */
+    public function wantsNewsletter(): bool
+    {
+        return ($this->preferences['newsletter'] ?? true) !== false;
+    }
+
     public function setPreference(string $key, mixed $value): void
     {
         $prefs = $this->preferences ?? [];

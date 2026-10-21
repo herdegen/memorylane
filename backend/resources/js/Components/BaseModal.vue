@@ -13,12 +13,12 @@
       <div class="flex min-h-full items-center justify-center p-4">
         <div
           ref="panel"
-          class="relative w-full transform overflow-hidden rounded-modal bg-white text-left shadow-warm-lg"
+          class="relative w-full transform overflow-hidden rounded-modal bg-white text-left shadow-warm-lg flex flex-col max-h-[calc(100dvh-2rem)]"
           :class="[maxWidthClass, panelClass]"
           @click.stop
         >
           <!-- En-tête standard (aria-labelledby câblé automatiquement) -->
-          <div v-if="title" class="bg-white px-6 py-4 border-b border-surface-200 flex items-center justify-between">
+          <div v-if="title" class="shrink-0 bg-white px-6 py-4 border-b border-surface-200 flex items-center justify-between">
             <h3 :id="titleId" class="text-lg font-semibold text-surface-900">
               {{ title }}
             </h3>
@@ -26,10 +26,15 @@
             <slot name="header-extra" />
           </div>
 
-          <slot />
+          <!-- Seul le contenu défile : en-tête et boutons restent toujours à
+               l'écran, même sur un petit téléphone (la fenêtre ne dépasse
+               jamais la hauteur de l'écran). -->
+          <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+            <slot />
+          </div>
 
           <!-- Pied standard (boutons d'action) -->
-          <div v-if="$slots.footer" class="bg-surface-50 px-6 py-4 flex justify-end gap-3">
+          <div v-if="$slots.footer" class="shrink-0 bg-surface-50 px-6 py-4 flex justify-end gap-3">
             <slot name="footer" />
           </div>
         </div>

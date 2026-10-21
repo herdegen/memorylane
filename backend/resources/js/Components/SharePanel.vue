@@ -158,9 +158,24 @@
         </div>
       </div>
 
+      <!-- Réglage permanent : l'album entier pour toute personne identifiée dedans -->
+      <label class="mb-3 flex items-start gap-3 rounded-xl border border-surface-200 px-3 py-2.5 cursor-pointer hover:bg-surface-50">
+        <input
+          type="checkbox"
+          class="mt-0.5 h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500"
+          :checked="shareWithTagged"
+          :disabled="savingShareWithTagged"
+          @change="toggleShareWithTagged($event.target.checked)"
+        />
+        <span class="text-sm">
+          <span class="font-medium text-surface-900">Partager tout l'album avec les personnes identifiées dedans</span>
+          <span class="block text-xs text-surface-500 mt-0.5">Y compris celles identifiées plus tard. Une association automatique non vérifiée ne suffit pas.</span>
+        </span>
+      </label>
+
       <!-- Identifiées sur des photos mais sans l'album : l'ouvrir d'un coup -->
       <div
-        v-if="taggedCount > 0"
+        v-if="taggedCount > 0 && !shareWithTagged"
         class="mb-3 rounded-xl border border-brand-200 bg-brand-50 dark:border-brand-500/30 dark:bg-brand-500/10 px-3 py-2.5 flex flex-wrap items-center gap-2"
       >
         <p class="flex-1 min-w-[12rem] text-sm text-surface-800">
@@ -205,7 +220,7 @@
             Donner accès
           </button>
           <span v-else class="text-xs text-surface-400">
-            {{ a.origin === 'owner' ? 'Propriétaire' : 'Cercle' }}
+            {{ a.origin === 'owner' ? 'Propriétaire' : (a.origin === 'tagged_shared' ? 'Identifié·e' : 'Cercle') }}
           </span>
         </li>
       </ul>
@@ -351,10 +366,27 @@ const grantTagged = async () => {
   }
 };
 
+const shareWithTagged = ref(!!props.album.share_with_tagged);
+const savingShareWithTagged = ref(false);
+const toggleShareWithTagged = async (enabled) => {
+  savingShareWithTagged.value = true;
+  errorMessage.value = null;
+  try {
+    const { data } = await axios.put(`/albums/${props.album.id}/share-with-tagged`, { enabled });
+    shareWithTagged.value = data.share_with_tagged;
+    await loadAccesses();
+  } catch (e) {
+    errorMessage.value = e.response?.data?.message || 'Impossible de modifier ce réglage.';
+  } finally {
+    savingShareWithTagged.value = false;
+  }
+};
+
 const originLabel = (a) => {
   if (a.origin === 'owner') return 'Propriétaire';
   if (a.origin === 'tagged') return 'Voit seulement les photos où il apparaît';
   if (a.origin === 'circle') return 'Voit l\'album via un cercle';
+  if (a.origin === 'tagged_shared') return 'Voit tout l\'album (identifié·e sur une photo)';
   return 'Ajouté' + (a.granted_by ? ` par ${a.granted_by}` : '');
 };
 
