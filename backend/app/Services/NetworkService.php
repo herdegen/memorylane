@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Album;
 use App\Models\Media;
 use App\Models\Person;
+use App\Models\PersonLink;
 use App\Models\User;
 use App\Services\Vision\AvatarFacePositionService;
 use Illuminate\Support\Facades\Cache;
@@ -56,7 +57,7 @@ class NetworkService
     {
         return md5(json_encode(array_map(
             fn ($table) => [DB::table($table)->count(), DB::table($table)->max('updated_at')],
-            ['media_person', 'household_person', 'household_media', 'album_household', 'album_media', 'album_access'],
+            ['media_person', 'household_person', 'household_media', 'album_household', 'album_media', 'album_access', 'person_links'],
         )));
     }
 
@@ -151,6 +152,19 @@ class NetworkService
                 $edges[] = $this->edge($e, 'album');
             }
         }
+
+        // « En quelle année vous êtes-vous connus ? » : la réponse fixe
+        // l'année du lien (et donc l'apparition sur la frise), à la place de
+        // la première photo ensemble.
+        $metYears = $this->metYears($user);
+        foreach ($edges as &$edge) {
+            $pair = strcmp($edge['source'], $edge['target']) < 0 ? $edge['source'].'|'.$edge['target'] : $edge['target'].'|'.$edge['source'];
+            if (isset($metYears[$pair])) {
+                $edge['first_year'] = $metYears[$pair];
+                $edge['met_year'] = $metYears[$pair];
+            }
+        }
+        unset($edge);
 
         $personIds = collect($edges)->flatMap(fn ($e) => [$e['source'], $e['target']]);
         if ($user->person_id) {
@@ -252,6 +266,29 @@ class NetworkService
             'context' => $circle ? ['id' => $circle->id, 'name' => $circle->name, 'kind' => $circle->kind] : null,
             'photo_count' => $photoCount,
         ];
+    }
+
+    /**
+     * Année de rencontre déclarée par paire (« a|b », ids triés) : la réponse
+     * du compte qui regarde d'abord, sinon la plus ancienne des réponses.
+     *
+     * @return array<string, int>
+     */
+    private function metYears(User $user): array
+    {
+        $years = [];
+        $mine = [];
+        foreach (PersonLink::whereNotNull('met_year')->get(['person1_id', 'person2_id', 'created_by', 'met_year']) as $link) {
+            $pair = strcmp($link->person1_id, $link->person2_id) < 0
+                ? $link->person1_id.'|'.$link->person2_id
+                : $link->person2_id.'|'.$link->person1_id;
+            if ($link->created_by === $user->id) {
+                $mine[$pair] = $link->met_year;
+            }
+            $years[$pair] = isset($years[$pair]) ? min($years[$pair], $link->met_year) : $link->met_year;
+        }
+
+        return $mine + $years;
     }
 
     private function edge(object $e, string $kind): array

@@ -228,8 +228,8 @@
               <div class="text-xs text-surface-600">{{ withSelfWeight !== null ? 'photos avec vous' : 'photos' }}</div>
             </div>
             <div class="rounded-xl bg-surface-100 p-3">
-              <div class="text-xl font-bold text-surface-900">{{ selected.first_year ?? '—' }}</div>
-              <div class="text-xs text-surface-600">première photo</div>
+              <div class="text-xl font-bold text-surface-900">{{ metWithSelf ?? selected.first_year ?? '—' }}</div>
+              <div class="text-xs text-surface-600">{{ metWithSelf ? 'année de rencontre' : 'première photo' }}</div>
             </div>
           </div>
 
@@ -579,6 +579,14 @@ const withSelfWeight = computed(() => {
   const e = rawEdges.value.find((x) => x.kind === 'photo'
     && ((x.source === selfId.value && x.target === selected.value.id) || (x.target === selfId.value && x.source === selected.value.id)));
   return e ? e.weight : null;
+});
+
+// Année de rencontre déclarée avec « moi » (réponse « comment vous êtes-vous connus »).
+const metWithSelf = computed(() => {
+  if (!selected.value || !selfId.value || selected.value.is_self) return null;
+  const e = rawEdges.value.find((x) => x.met_year
+    && ((x.source === selfId.value && x.target === selected.value.id) || (x.target === selfId.value && x.source === selected.value.id)));
+  return e ? e.met_year : null;
 });
 
 // Photos ensemble : avec « moi » si la fiche existe, sinon rien.

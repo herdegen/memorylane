@@ -165,8 +165,15 @@ class QuestService
             }
 
             $candidates = $this->filterExcluded($user, $candidates);
+            $self = $this->filterExcluded($user, $this->detectSelfGaps($user));
+            $selfKeys = array_map(fn ($c) => $c['type'].':'.$c['subject_id'], $self);
+            $candidates = array_values(array_filter(
+                $candidates,
+                fn ($c) => ! in_array($c['type'].':'.$c['subject_id'], $selfKeys, true),
+            ));
 
-            return $this->order($user, $candidates);
+            // Les questions sur soi d'abord : rapides, et utiles à tout le cercle.
+            return array_merge($self, $this->order($user, $candidates));
         });
     }
 
@@ -293,6 +300,28 @@ class QuestService
         }
 
         return $candidates;
+    }
+
+    /**
+     * Questions de base posées au membre SUR LUI-MÊME, quel que soit le
+     * cercle (famille ou amis) : sa date de naissance et sa ville.
+     */
+    private function detectSelfGaps(User $user): array
+    {
+        $me = $user->person_id ? Person::find($user->person_id, ['id', 'birth_date', 'address']) : null;
+        if (! $me) {
+            return [];
+        }
+
+        $gaps = [];
+        if ($me->birth_date === null) {
+            $gaps[] = ['type' => QuestType::BirthDate->value, 'subject_id' => $me->id, 'distance' => 0];
+        }
+        if ($me->address === null) {
+            $gaps[] = ['type' => QuestType::Address->value, 'subject_id' => $me->id, 'distance' => 0];
+        }
+
+        return $gaps;
     }
 
     /**
@@ -670,7 +699,10 @@ class QuestService
         ];
 
         if ($subject instanceof Person) {
-            $question['prompt'] = $this->personPrompt($type, $subject);
+            $question['self'] = $subject->id === $user->person_id;
+            $question['prompt'] = $question['self']
+                ? $this->selfPrompt($type) ?? $this->personPrompt($type, $subject)
+                : $this->personPrompt($type, $subject);
             $question['person'] = $this->personPayload($subject);
             if ($type === QuestType::HowMet) {
                 $question['how_met'] = $this->howMetPayload($user, $subject);
@@ -751,6 +783,17 @@ class QuestService
             'date' => $media->taken_at?->toDateString(),
             'owner' => $media->user_id !== $user->id ? $media->user?->name : null,
         ];
+    }
+
+    /** Question posée au membre sur sa propre fiche (null : formulation habituelle). */
+    private function selfPrompt(QuestType $type): ?string
+    {
+        return match ($type) {
+            QuestType::BirthDate => 'Quelle est ta date de naissance ?',
+            QuestType::Address => 'Dans quelle ville habites-tu ? (la ville suffit)',
+            QuestType::BirthPlace => 'Où es-tu né·e ?',
+            default => null,
+        };
     }
 
     private function personPrompt(QuestType $type, Person $person): string

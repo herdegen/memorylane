@@ -6,8 +6,10 @@
  * dans public/, jamais committées, régénérables à volonté).
  *
  * Procédure de (re)génération — à relancer après tout changement visuel :
- *   1. php artisan tinker --execute="echo URL::temporarySignedRoute('login.magic.verify', now()->addMinutes(15), ['user' => App\Models\User::where('role','admin')->first()->id]);"
+ *   1. php artisan tinker --execute="echo App\Notifications\MagicLoginLink::urlFor(App\Models\User::where('role','admin')->first());"
+ *      (lien à usage unique)
  *   2. cd backend && node scripts/guide-captures.mjs '<url-login-magique>' [terme-recherche]
+ *      ONLY=recherche,tags node scripts/… → ne régénère que ces vignettes.
  *
  * ⚠️ Utiliser un compte dont les photos peuvent figurer dans le guide (les
  * vignettes sont visibles de TOUS les comptes connectés).
@@ -51,11 +53,26 @@ const SHOTS = [
   { name: 'foyers', path: '/households' },
   { name: 'arbre', path: '/family-tree', settle: 3000 }, // rendu + animation de l'arbre
   { name: 'carte', path: '/map', settle: 3000 }, // tuiles Leaflet
-  { name: 'recherche', path: `/search?q=${encodeURIComponent(searchTerm)}` },
+  // Recherche : c'est le menu déroulant de la barre d'en-tête (/search est
+  // l'API JSON, pas une page) → on tape le terme et on attend les résultats.
+  {
+    name: 'recherche',
+    path: '/dashboard',
+    interact: async (page) => {
+      const input = 'input[placeholder="Rechercher…"]';
+      await page.waitForSelector(input, { visible: true });
+      const results = page.waitForResponse((r) => r.url().includes('/search'), { timeout: 15000 });
+      await page.click(input);
+      await page.type(input, searchTerm, { delay: 60 });
+      await results;
+    },
+    settle: 1800,
+  },
   { name: 'tags', path: '/tags' },
 ];
 
 const THEMES = ['light', 'dark'];
+const only = process.env.ONLY ? process.env.ONLY.split(',') : null;
 const origin = new URL(magicUrl).origin;
 const outDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'storage', 'app', 'guide');
 mkdirSync(outDir, { recursive: true });
@@ -76,7 +93,7 @@ try {
   await login.close();
 
   // 2. Vignettes : viewport fixe 1440×900 (affichées ~800px → ~1.8x).
-  for (const shot of SHOTS) {
+  for (const shot of SHOTS.filter((s) => !only || only.includes(s.name))) {
     for (const theme of THEMES) {
       const page = await browser.newPage();
       await page.setViewport({ width: 1440, height: 900 });
@@ -99,6 +116,9 @@ try {
         await page.evaluate(() => window.scrollBy(0, 400));
         await new Promise((r) => setTimeout(r, 400));
         await page.evaluate(() => window.scrollTo(0, 0));
+        if (shot.interact) {
+          await shot.interact(page);
+        }
         await new Promise((r) => setTimeout(r, shot.settle ?? 1300));
 
         const file = join(outDir, `${shot.name}${theme === 'dark' ? '-dark' : ''}.webp`);

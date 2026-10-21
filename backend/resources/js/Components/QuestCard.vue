@@ -524,7 +524,9 @@ const onKeydown = (e) => {
   if (e.key === 'Escape' && showLightbox.value) showLightbox.value = false;
 };
 
-const textPlaceholder = computed(() => ({
+const textPlaceholder = computed(() => (question.value?.self && question.value?.type === 'address'
+  ? 'Ta ville (ex. Montreuil)'
+  : {
   birth_place: 'Ville, pays…',
   death_place: 'Ville, pays…',
   maiden_name: 'Nom de naissance',
@@ -532,7 +534,7 @@ const textPlaceholder = computed(() => ({
   job: 'Métier (ex. institutrice, menuisier…)',
   education: 'École ou diplôme',
   residence: 'Ville',
-}[question.value?.type] || ''));
+}[question.value?.type]) || '');
 
 // Libellé du bouton « non » selon le type (marital et death_status l'ont déjà
 // dans leur propre UI).

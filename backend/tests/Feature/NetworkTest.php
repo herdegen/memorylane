@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Album;
 use App\Models\Media;
 use App\Models\Person;
+use App\Models\PersonLink;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -171,5 +172,49 @@ class NetworkTest extends TestCase
         $this->photoWith($user, [$a, $b]);
 
         $this->actingAs($user)->getJson('/network/data')->assertOk()->assertJsonCount(1, 'edges');
+    }
+
+    public function test_l_annee_de_rencontre_repondue_remplace_la_premiere_photo(): void
+    {
+        $user = User::factory()->create();
+        $other = User::factory()->create();
+        [$a, $b, $c] = Person::factory()->count(3)->create(['user_id' => $user->id]);
+
+        $this->photoWith($user, [$a, $b], '2019-08-01');
+        $this->photoWith($user, [$b, $c], '2020-01-01');
+
+        // Deux récits pour a–b : celui du compte qui regarde l'emporte.
+        [$p1, $p2] = PersonLink::pairKey($a->id, $b->id);
+        PersonLink::create(['person1_id' => $p1, 'person2_id' => $p2, 'created_by' => $other->id, 'context' => 'school', 'met_year' => 1998]);
+        PersonLink::create(['person1_id' => $p1, 'person2_id' => $p2, 'created_by' => $user->id, 'context' => 'school', 'met_year' => 2003]);
+
+        $graph = $this->actingAs($user)->getJson('/network/data')->assertOk()->json();
+        $this->assertSame(2003, $this->edge($graph, $a, $b)['first_year']);
+        $this->assertSame(2020, $this->edge($graph, $b, $c)['first_year'], 'sans réponse : première photo');
+
+        // Un autre compte, sans récit à lui : la plus ancienne réponse.
+        $graph = $this->actingAs($other)->getJson('/network/data')->json();
+        $this->assertSame([], $graph['edges'], 'photos privées de $user');
+    }
+
+    public function test_repondre_comment_vous_vous_etes_connus_met_a_jour_le_reseau(): void
+    {
+        $user = User::factory()->create();
+        $me = Person::factory()->create(['user_id' => $user->id]);
+        $user->forceFill(['person_id' => $me->id])->save();
+        $friend = Person::factory()->create(['user_id' => $user->id]);
+        $this->photoWith($user, [$me, $friend], '2021-05-01');
+
+        $this->assertSame(2021, $this->edge($this->actingAs($user)->getJson('/network/data')->json(), $me, $friend)['first_year']);
+
+        $this->actingAs($user)->postJson('/quests/answer', [
+            'question_type' => 'how_met',
+            'subject_id' => $friend->id,
+            'answer_kind' => 'answered',
+            'payload' => ['context' => array_key_first(PersonLink::CONTEXTS), 'year' => 2008],
+        ])->assertSuccessful();
+
+        // Pas de cache périmé : le réseau suit la réponse immédiatement.
+        $this->assertSame(2008, $this->edge($this->actingAs($user)->getJson('/network/data')->json(), $me, $friend)['first_year']);
     }
 }

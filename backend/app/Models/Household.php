@@ -114,6 +114,18 @@ class Household extends Model
     }
 
     /**
+     * Ajoute un compte au cercle ; dans un cercle d'amis, sa fiche suit.
+     */
+    public function addMember(User $member, User $by): void
+    {
+        $this->members()->syncWithoutDetaching([$member->id => ['invited_by' => $by->id]]);
+
+        if ($this->isFriends() && $member->person_id) {
+            $this->people()->syncWithoutDetaching([$member->person_id => ['added_by' => $by->id]]);
+        }
+    }
+
+    /**
      * Créateur du foyer (gère les membres, peut le supprimer).
      */
     public function creator()

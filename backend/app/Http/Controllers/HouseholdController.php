@@ -352,15 +352,7 @@ class HouseholdController extends Controller
      */
     private function addMember(Household $household, User $member, User $by): void
     {
-        $household->members()->syncWithoutDetaching([
-            $member->id => ['invited_by' => $by->id],
-        ]);
-
-        if ($household->isFriends() && $member->person_id) {
-            $household->people()->syncWithoutDetaching([
-                $member->person_id => ['added_by' => $by->id],
-            ]);
-        }
+        $household->addMember($member, $by);
     }
 
     /**

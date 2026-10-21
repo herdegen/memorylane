@@ -89,12 +89,17 @@ class FriendsModeTest extends TestCase
     {
         $this->lea->update(['birth_date' => null, 'birth_place' => null]);
 
-        $types = collect($this->keys($this->me))->map(fn ($k) => explode(':', $k)[0])->unique();
+        $keys = collect($this->keys($this->me));
+        // Questions sur sa propre fiche (date de naissance, ville) : posées
+        // dans tous les cercles ; on regarde ici celles sur les AUTRES.
+        $types = $keys->reject(fn ($k) => str_ends_with($k, ':'.$this->self->id))
+            ->map(fn ($k) => explode(':', $k)[0])->unique();
 
         $this->assertContains('birth_date', $types->all());
         foreach (['birth_place', 'parent_father', 'parent_mother', 'marital_status', 'job', 'address'] as $genealogical) {
             $this->assertNotContains($genealogical, $types->all());
         }
+        $this->assertContains('address:'.$this->self->id, $keys->all(), 'sa propre ville, oui');
     }
 
     public function test_question_presentee_avec_suggestion_par_un_ami_commun(): void

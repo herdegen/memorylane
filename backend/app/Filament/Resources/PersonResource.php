@@ -15,6 +15,9 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Section;
+use App\Models\Household;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
@@ -92,6 +95,22 @@ class PersonResource extends Resource
                 Textarea::make('notes')
                     ->maxLength(2000)
                     ->label('Notes'),
+                Section::make('Cercles')
+                    ->description('Où la fiche est visible. La famille est un répertoire unique (arbre + liste) ; un cercle d\'amis ne montre la fiche qu\'à ses membres.')
+                    ->columnSpanFull()
+                    ->columns(2)
+                    ->schema([
+                        Toggle::make('in_family_directory')
+                            ->label('Famille')
+                            ->helperText('Visible dans l\'arbre et la liste de la famille.')
+                            ->default(true),
+                        Select::make('circles')
+                            ->label('Cercles d\'amis')
+                            ->relationship('circles', 'name', fn (Builder $query) => $query->where('kind', Household::KIND_FRIENDS)->orderBy('name'))
+                            ->pivotData(fn () => ['added_by' => auth()->id()])
+                            ->multiple()
+                            ->preload(),
+                    ]),
             ]);
     }
 
@@ -130,6 +149,14 @@ class PersonResource extends Resource
                 TextColumn::make('mother.name')
                     ->label('Mère')
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('cercles')
+                    ->label('Cercles')
+                    ->badge()
+                    ->getStateUsing(fn (Person $record) => array_values(array_filter([
+                        $record->in_family_directory ? 'Famille' : null,
+                        ...$record->circles->pluck('name')->all(),
+                    ])))
+                    ->color(fn (string $state) => $state === 'Famille' ? 'warning' : 'info'),
                 TextColumn::make('media_count')
                     ->label('Médias')
                     ->counts('media')
@@ -145,6 +172,19 @@ class PersonResource extends Resource
                 SelectFilter::make('user')
                     ->relationship('user', 'name')
                     ->label('Propriétaire'),
+                SelectFilter::make('cercle')
+                    ->label('Cercle')
+                    ->options(fn () => ['family' => 'Famille'] + Household::where('kind', Household::KIND_FRIENDS)->orderBy('name')->pluck('name', 'id')->all())
+                    ->query(function (Builder $query, array $data) {
+                        $value = $data['value'] ?? null;
+                        if (! $value) {
+                            return $query;
+                        }
+
+                        return $value === 'family'
+                            ? $query->where('in_family_directory', true)
+                            : $query->whereHas('circles', fn ($c) => $c->whereKey($value));
+                    }),
                 SelectFilter::make('gender')
                     ->options([
                         'M' => 'Masculin',
@@ -184,6 +224,7 @@ class PersonResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
+            ->with('circles')
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
