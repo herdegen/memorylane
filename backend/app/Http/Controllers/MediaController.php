@@ -83,14 +83,9 @@ class MediaController extends Controller
 
         if ($q = trim($validated['q'] ?? '')) {
             // Sans accents ni casse des deux côtés : « asterix » trouve « Astérix ».
-            $from = 'àâäáãåéèêëíìîïóòôöõúùûüçñÿ';
-            $to = 'aaaaaaeeeeiiiiooooouuuucny';
-            $norm = fn (string $col) => "translate(lower({$col}), '{$from}', '{$to}') like ?";
-            $like = '%'.str_replace(['%', '_'], ['\\%', '\\_'], \Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii($q))).'%';
-            $query->where(fn ($w) => $w->whereRaw($norm('media.title'), [$like])
-                ->orWhereRaw($norm('media.original_name'), [$like])
-                ->orWhereHas('albums', fn ($a) => $a->whereRaw($norm('albums.name'), [$like]))
-                ->orWhereHas('people', fn ($p) => $p->whereRaw($norm('people.name'), [$like])));
+            $query->where(fn ($w) => $w->whereUnaccentLike(['media.title', 'media.original_name'], $q)
+                ->orWhereHas('albums', fn ($a) => $a->whereUnaccentLike('albums.name', $q))
+                ->orWhereHas('people', fn ($p) => $p->whereUnaccentLike('people.name', $q)));
         }
 
         $page = $query->with('conversions')->simplePaginate(60, ['media.*']);

@@ -38,8 +38,7 @@ class PersonPortraitService
             }
 
             $face = $person->detectedFaces()
-                ->whereNotNull('bounding_box')
-                ->where('status', 'matched')
+                ->usableForAvatar()
                 ->orderByDesc('confidence')
                 ->first();
 

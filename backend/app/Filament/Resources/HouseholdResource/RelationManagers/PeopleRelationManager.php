@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\HouseholdResource\RelationManagers;
 
+use App\Filament\Support\UnaccentSearch;
 use App\Models\Household;
 use Filament\Actions\AttachAction;
 use Filament\Actions\BulkActionGroup;
@@ -35,7 +36,7 @@ class PeopleRelationManager extends RelationManager
             ->recordTitleAttribute('name')
             ->defaultSort('name')
             ->columns([
-                TextColumn::make('name')->label('Nom')->searchable(['first_name', 'last_name', 'name'])->sortable(),
+                TextColumn::make('name')->label('Nom')->searchable(query: UnaccentSearch::columns(['first_name', 'last_name', 'name', 'maiden_name']))->sortable(),
                 TextColumn::make('in_family_directory')
                     ->label('Aussi dans la famille')
                     ->formatStateUsing(fn ($state) => $state ? 'Oui' : '—'),
@@ -45,7 +46,9 @@ class PeopleRelationManager extends RelationManager
                 AttachAction::make()
                     ->label('Ajouter une fiche')
                     ->preloadRecordSelect()
-                    ->recordSelectSearchColumns(['first_name', 'last_name', 'name'])
+                    ->recordSelect(fn (\Filament\Forms\Components\Select $select) => $select->getSearchResultsUsing(
+                        UnaccentSearch::options(fn () => \App\Models\Person::whereDoesntHave('circles', fn ($c) => $c->whereKey($this->getOwnerRecord()->getKey())), ['first_name', 'last_name', 'name', 'maiden_name'])
+                    ))
                     ->multiple()
                     ->mutateDataUsing(fn (array $data) => $data + ['added_by' => auth()->id()]),
             ])

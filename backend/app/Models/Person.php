@@ -163,9 +163,7 @@ class Person extends Model
     /** Compteur des visages validés et recadrables (avatar-visage). */
     public static function matchedFacesCountRelation(): array
     {
-        return ['detectedFaces as matched_faces_count' => function ($q) {
-            $q->where('status', 'matched')->whereNotNull('bounding_box');
-        }];
+        return ['detectedFaces as matched_faces_count' => fn ($q) => $q->usableForAvatar()];
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Support\UnaccentSearch;
 use App\Filament\Resources\PersonChangeResource\Pages\ListPersonChanges;
 use App\Models\PersonChange;
 use App\Services\PersonChangeReverter;
@@ -49,10 +50,10 @@ class PersonChangeResource extends Resource
                 TextColumn::make('user.name')
                     ->label('Par')
                     ->placeholder('—')
-                    ->searchable(),
+                    ->searchable(query: UnaccentSearch::relation('user', ['name'])),
                 TextColumn::make('person.name')
                     ->label('Fiche')
-                    ->searchable()
+                    ->searchable(query: UnaccentSearch::relation('person', ['first_name', 'last_name', 'name', 'maiden_name']))
                     ->url(fn (PersonChange $record) => '/people/'.$record->person_id)
                     ->openUrlInNewTab(),
                 TextColumn::make('action')

@@ -782,7 +782,6 @@ class AlbumController extends Controller
 
         $excluded = $album->accesses()->pluck('user_id')->push($album->user_id)->all();
         $viewer = $request->user();
-        $like = '%'.addcslashes($q, '%_\\').'%';
 
         // Pas d'annuaire de tous les comptes : seulement les personnes qui
         // partagent un cercle avec moi (l'admin voit tout le monde), et
@@ -790,8 +789,7 @@ class AlbumController extends Controller
         $users = User::realPeople()
             ->visibleTo($viewer)
             ->whereNotIn('id', $excluded)
-            ->where(fn ($w) => $w->where('name', 'ilike', $like)
-                ->when($viewer->isAdmin(), fn ($w) => $w->orWhere('email', 'ilike', $like)))
+            ->whereUnaccentLike($viewer->isAdmin() ? ['name', 'email'] : 'name', $q)
             ->orderBy('name')
             ->limit(8)
             ->get(['id', 'name', 'email'])

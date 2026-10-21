@@ -57,7 +57,7 @@ class MapController extends Controller
         }
 
         if (isset($filters['search'])) {
-            $query->where('original_name', 'like', '%' . $filters['search'] . '%');
+            $query->whereUnaccentLike(['original_name', 'title'], $filters['search']);
         }
 
         if (isset($filters['tags']) && !empty($filters['tags'])) {

@@ -30,6 +30,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Recherche sans accents ni casse (« gael » → « Gaël ») : cf. App\Support\Unaccent.
+        foreach ([\Illuminate\Database\Query\Builder::class, \Illuminate\Database\Eloquent\Builder::class] as $builder) {
+            $builder::macro('whereUnaccentLike', function (string|array $columns, string $term) {
+                return \App\Support\Unaccent::apply($this, $columns, $term);
+            });
+            $builder::macro('orWhereUnaccentLike', function (string|array $columns, string $term) {
+                return \App\Support\Unaccent::apply($this, $columns, $term, 'or');
+            });
+        }
+
         // En prod : migrate:fresh/refresh/reset/rollback et db:wipe interdits
         // (incident du 07/10 : rollback qui a supprimé une table).
         DB::prohibitDestructiveCommands($this->app->isProduction());

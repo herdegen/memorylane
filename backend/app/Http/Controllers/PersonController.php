@@ -1184,8 +1184,7 @@ class PersonController extends Controller
         // l'avatar explicite (jusqu'ici il renvoyait 403 hors créateur → avatars
         // cassés sur les fiches de proches vues depuis un autre compte).
         $face = $person->detectedFaces()
-            ->whereNotNull('bounding_box')
-            ->where('status', 'matched')
+            ->usableForAvatar()
             ->with('media.conversions')
             ->orderByDesc('confidence')
             ->first();

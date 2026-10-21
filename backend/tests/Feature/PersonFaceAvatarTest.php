@@ -76,4 +76,30 @@ class PersonFaceAvatarTest extends TestCase
         // Non authentifié → redirigé vers le login (pas servi).
         $this->get("/people/{$person->id}/face-avatar")->assertRedirect();
     }
+
+    public function test_une_photo_a_la_corbeille_ne_sert_plus_d_avatar(): void
+    {
+        Storage::fake(config('filesystems.default'));
+        Storage::disk(config('filesystems.default'))->put('media/face_medium.jpg', $this->jpeg());
+        $owner = User::factory()->create();
+        $person = $this->personWithMatchedFace($owner);
+
+        // Meilleur visage sur une photo partie à la corbeille : on passe au suivant.
+        $trashed = Media::factory()->photo()->create(['user_id' => $owner->id]);
+        $trashed->detectedFaces()->create([
+            'person_id' => $person->id,
+            'bounding_box' => ['x' => 10, 'y' => 10, 'width' => 20, 'height' => 20],
+            'status' => 'matched',
+            'confidence' => 0.99,
+            'provider' => 'faceapi',
+        ]);
+        $trashed->delete();
+
+        $this->actingAs($owner)->get("/people/{$person->id}/face-avatar")->assertOk();
+        $this->assertSame(1, Person::withMatchedFacesCount()->find($person->id)->matched_faces_count);
+
+        // Plus aucun visage sur une photo lisible : pas d'avatar-visage annoncé.
+        Media::whereKeyNot($trashed->id)->get()->each->delete();
+        $this->assertSame(0, Person::withMatchedFacesCount()->find($person->id)->matched_faces_count);
+    }
 }

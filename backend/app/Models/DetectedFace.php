@@ -85,6 +85,18 @@ class DetectedFace extends Model
      * inconnus ou faux cadres).
      */
     /**
+     * Visages qui peuvent servir d'avatar : associés, cadrés, et sur une photo
+     * hors corbeille (une photo à la corbeille n'est plus lisible → avatar
+     * cassé, cas de Camille Klein le 21/10/2026).
+     */
+    public function scopeUsableForAvatar($query)
+    {
+        return $query->where('status', 'matched')
+            ->whereNotNull('bounding_box')
+            ->whereHas('media');
+    }
+
+    /**
      * Visages à identifier. Avec un compte : sans ceux dits « inconnu » dans
      * son cercle courant (réponse propre au cercle, le visage reste
      * « unmatched » pour les autres).

@@ -99,6 +99,13 @@ class PersonFaceResource extends Resource
                     ->placeholder('Choisir une personne…')
                     ->options(fn () => self::personOptions())
                     ->searchable()
+                    // Recherche sans accents (« gael » → « Gaël ») côté serveur.
+                    ->modifyFormFieldUsing(fn (\Filament\Forms\Components\Select $field) => $field->getSearchResultsUsing(
+                        fn (string $search) => collect(self::personOptions())
+                            ->filter(fn (string $label) => str_contains(\Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii($label)), \Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii($search))))
+                            ->take(50)
+                            ->all()
+                    ))
                     ->query(function (Builder $query, array $data) {
                         if (! $data['value']) {
                             return $query->whereRaw('1 = 0');

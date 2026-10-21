@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\HouseholdResource\RelationManagers;
 
+use App\Filament\Support\UnaccentSearch;
 use App\Models\Household;
 use App\Models\User;
 use App\Services\DepartureService;
@@ -30,7 +31,7 @@ class MembersRelationManager extends RelationManager
             ->recordTitleAttribute('name')
             ->defaultSort('name')
             ->columns([
-                TextColumn::make('name')->label('Nom')->searchable()->sortable(),
+                TextColumn::make('name')->label('Nom')->searchable(query: UnaccentSearch::columns(['name', 'email']))->sortable(),
                 TextColumn::make('email')->label('Email')->searchable(),
                 TextColumn::make('role')
                     ->label('Rôle')
@@ -48,6 +49,7 @@ class MembersRelationManager extends RelationManager
                             ->options(fn () => User::whereNotIn('id', $this->getOwnerRecord()->members()->pluck('users.id'))
                                 ->orderBy('name')->pluck('name', 'id'))
                             ->searchable()
+                            ->getSearchResultsUsing(UnaccentSearch::options(fn () => User::whereNotIn('id', $this->getOwnerRecord()->members()->pluck('users.id')), ['name', 'email']))
                             ->required(),
                     ])
                     ->action(function (array $data) {

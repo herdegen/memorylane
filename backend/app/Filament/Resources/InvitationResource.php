@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Support\UnaccentSearch;
 use App\Filament\Resources\InvitationResource\Pages\CreateInvitation;
 use App\Filament\Resources\InvitationResource\Pages\ListInvitations;
 use App\Mail\InvitationMail;
@@ -58,7 +59,7 @@ class InvitationResource extends Resource
                     ->helperText('Seules les personnes vivantes, sans compte et sans invitation en cours sont proposées.')
                     ->searchable()
                     ->getSearchResultsUsing(fn (string $search) => static::eligiblePeople()
-                        ->where('name', 'ilike', '%'.$search.'%')
+                        ->whereUnaccentLike('name', $search)
                         ->limit(50)
                         ->get()
                         ->mapWithKeys(fn (Person $p) => [$p->id => static::personLabel($p)]))
@@ -96,7 +97,7 @@ class InvitationResource extends Resource
             ->columns([
                 TextColumn::make('person.name')
                     ->label('Fiche')
-                    ->searchable()
+                    ->searchable(query: UnaccentSearch::relation('person', ['first_name', 'last_name', 'name', 'maiden_name']))
                     ->url(fn (Invitation $record) => '/people/'.$record->person_id)
                     ->openUrlInNewTab(),
                 TextColumn::make('email')

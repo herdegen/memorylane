@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Support\UnaccentSearch;
 use App\Filament\Resources\PersonResource\Pages\CreatePerson;
 use App\Filament\Resources\PersonResource\Pages\EditPerson;
 use App\Filament\Resources\PersonResource\Pages\ListPeople;
@@ -47,7 +48,7 @@ class PersonResource extends Resource
                     ->relationship('user', 'name')
                     ->required()
                     ->searchable()
-                    ->preload()
+                    ->getSearchResultsUsing(UnaccentSearch::options(fn () => \App\Models\User::query(), ['name']))
                     ->label('Propriétaire'),
                 TextInput::make('first_name')
                     ->required()
@@ -85,12 +86,12 @@ class PersonResource extends Resource
                 Select::make('father_id')
                     ->relationship('father', 'name')
                     ->searchable()
-                    ->preload()
+                    ->getSearchResultsUsing(UnaccentSearch::options(fn () => Person::query(), ['first_name', 'last_name', 'name', 'maiden_name']))
                     ->label('Père'),
                 Select::make('mother_id')
                     ->relationship('mother', 'name')
                     ->searchable()
-                    ->preload()
+                    ->getSearchResultsUsing(UnaccentSearch::options(fn () => Person::query(), ['first_name', 'last_name', 'name', 'maiden_name']))
                     ->label('Mère'),
                 Textarea::make('notes')
                     ->maxLength(2000)
@@ -120,7 +121,7 @@ class PersonResource extends Resource
             ->columns([
                 TextColumn::make('name')
                     ->label('Nom')
-                    ->searchable()
+                    ->searchable(query: UnaccentSearch::columns(['first_name', 'last_name', 'name', 'maiden_name']))
                     ->sortable(),
                 TextColumn::make('gender')
                     ->label('Genre')
@@ -132,7 +133,7 @@ class PersonResource extends Resource
                     ->sortable(),
                 TextColumn::make('user.name')
                     ->label('Propriétaire')
-                    ->searchable()
+                    ->searchable(query: UnaccentSearch::relation('user', ['name']))
                     ->sortable(),
                 TextColumn::make('birth_date')
                     ->label('Naissance')

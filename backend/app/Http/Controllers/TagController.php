@@ -19,7 +19,7 @@ class TagController extends Controller
 
         // Search by name if provided
         if ($request->has('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+            $query->whereUnaccentLike('name', (string) $request->search);
         }
 
         $tags = $query->orderBy('name')->get();

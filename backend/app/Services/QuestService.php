@@ -863,9 +863,7 @@ class QuestService
     private function personPayload(Person $person): array
     {
         $person->loadMissing('avatar');
-        $person->loadCount(['detectedFaces as matched_faces_count' => function ($q) {
-            $q->where('status', 'matched')->whereNotNull('bounding_box');
-        }]);
+        $person->loadCount(Person::matchedFacesCountRelation());
 
         return [
             'id' => $person->id,

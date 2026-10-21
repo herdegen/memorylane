@@ -165,15 +165,13 @@ class HouseholdController extends Controller
 
         $excluded = $household->members()->pluck('users.id')->all();
         $viewer = $request->user();
-        $like = '%'.addcslashes($q, '%_\\').'%';
 
         // Seulement des personnes qui partagent déjà un cercle avec moi
         // (tous pour l'admin) ; e-mail visible de l'admin seul.
         $users = User::realPeople()
             ->visibleTo($viewer)
             ->whereNotIn('id', $excluded)
-            ->where(fn ($w) => $w->where('name', 'ilike', $like)
-                ->when($viewer->isAdmin(), fn ($w) => $w->orWhere('email', 'ilike', $like)))
+            ->whereUnaccentLike($viewer->isAdmin() ? ['name', 'email'] : 'name', $q)
             ->orderBy('name')
             ->limit(8)
             ->get(['id', 'name', 'email'])
@@ -371,7 +369,7 @@ class HouseholdController extends Controller
 
         $people = \App\Models\Person::visibleTo($request->user())
             ->whereNotIn('people.id', $household->people()->pluck('people.id'))
-            ->whereRaw('LOWER(name) LIKE ?', ['%'.mb_strtolower($q).'%'])
+            ->whereUnaccentLike('name', $q)
             ->orderBy('name')
             ->limit(8)
             ->get(['id', 'name']);

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Support\UnaccentSearch;
 use App\Filament\Resources\AlbumResource\Pages\CreateAlbum;
 use App\Filament\Resources\AlbumResource\Pages\EditAlbum;
 use App\Filament\Resources\AlbumResource\Pages\ListAlbums;
@@ -45,6 +46,7 @@ class AlbumResource extends Resource
                     ->relationship('user', 'name')
                     ->required()
                     ->searchable()
+                    ->getSearchResultsUsing(UnaccentSearch::options(fn () => \App\Models\User::query(), ['name']))
                     ->preload()
                     ->label('Propriétaire'),
                 TextInput::make('name')
@@ -67,11 +69,11 @@ class AlbumResource extends Resource
             ->columns([
                 TextColumn::make('name')
                     ->label('Nom')
-                    ->searchable()
+                    ->searchable(query: UnaccentSearch::columns(['name', 'description']))
                     ->sortable(),
                 TextColumn::make('user.name')
                     ->label('Propriétaire')
-                    ->searchable()
+                    ->searchable(query: UnaccentSearch::relation('user', ['name']))
                     ->sortable(),
                 TextColumn::make('media_count')
                     ->label('Médias')

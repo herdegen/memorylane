@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Support\UnaccentSearch;
 use App\Filament\Resources\TagResource\Pages\CreateTag;
 use App\Filament\Resources\TagResource\Pages\EditTag;
 use App\Filament\Resources\TagResource\Pages\ListTags;
@@ -54,7 +55,7 @@ class TagResource extends Resource
                     ->label('Couleur'),
                 TextColumn::make('name')
                     ->label('Nom')
-                    ->searchable()
+                    ->searchable(query: UnaccentSearch::columns(['name', 'slug']))
                     ->sortable(),
                 TextColumn::make('slug')
                     ->searchable()

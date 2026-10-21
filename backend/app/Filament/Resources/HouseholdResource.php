@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Support\UnaccentSearch;
 use App\Filament\Resources\HouseholdResource\Pages\CreateHousehold;
 use App\Filament\Resources\HouseholdResource\Pages\EditHousehold;
 use App\Filament\Resources\HouseholdResource\Pages\ListHouseholds;
@@ -70,7 +71,7 @@ class HouseholdResource extends Resource
                 ->relationship('creator', 'name')
                 ->required()
                 ->searchable()
-                ->preload()
+                ->getSearchResultsUsing(UnaccentSearch::options(fn () => \App\Models\User::query(), ['name']))
                 ->default(fn () => auth()->id()),
             Toggle::make('is_default')
                 ->label('Cercle d\'accueil')
@@ -86,7 +87,7 @@ class HouseholdResource extends Resource
             ->columns([
                 TextColumn::make('name')
                     ->label('Nom')
-                    ->searchable()
+                    ->searchable(query: UnaccentSearch::columns(['name']))
                     ->sortable(),
                 TextColumn::make('kind')
                     ->label('Type')

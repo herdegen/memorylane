@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Support\UnaccentSearch;
 use App\Filament\Resources\UserResource\Pages\CreateUser;
 use App\Filament\Resources\UserResource\Pages\EditUser;
 use App\Filament\Resources\UserResource\Pages\ListUsers;
@@ -71,7 +72,7 @@ class UserResource extends Resource
                     ->label('Personne liée')
                     ->relationship('person', 'name')
                     ->searchable()
-                    ->preload()
+                    ->getSearchResultsUsing(UnaccentSearch::options(fn () => \App\Models\Person::query(), ['first_name', 'last_name', 'name', 'maiden_name']))
                     ->nullable()
                     ->helperText('Lier ce compte à une personne de l\'arbre généalogique'),
             ]);
@@ -83,7 +84,7 @@ class UserResource extends Resource
             ->columns([
                 TextColumn::make('name')
                     ->label('Nom')
-                    ->searchable()
+                    ->searchable(query: UnaccentSearch::columns(['name', 'email']))
                     ->sortable(),
                 TextColumn::make('email')
                     ->label('Email')
@@ -105,7 +106,7 @@ class UserResource extends Resource
                 TextColumn::make('person.name')
                     ->label('Personne liée')
                     ->placeholder('—')
-                    ->searchable(),
+                    ->searchable(query: UnaccentSearch::relation('person', ['first_name', 'last_name', 'name', 'maiden_name'])),
                 // Ouverte au moins une fois depuis l'icône de l'écran d'accueil.
                 TextColumn::make('app_installed')
                     ->label('App installée')
