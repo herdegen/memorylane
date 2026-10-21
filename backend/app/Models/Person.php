@@ -65,6 +65,8 @@ class Person extends Model
      * fiche, pour le propriétaire/admin ou le foyer avec opt-in.
      */
     protected $hidden = [
+        'portrait_path',
+        'portrait_source',
         'address',
         'address_city',
         'address_latitude',
@@ -82,6 +84,13 @@ class Person extends Model
     protected static function boot()
     {
         parent::boot();
+
+        // Nouvelle photo de profil → portrait stocké à refaire.
+        static::saved(function ($person) {
+            if ($person->wasChanged('avatar_media_id') || ($person->wasRecentlyCreated && $person->avatar_media_id)) {
+                \App\Jobs\RefreshPersonPortrait::for($person->id);
+            }
+        });
 
         // name reste le nom d'affichage : composé depuis prénom + nom
         // quand ils sont renseignés (saving passe avant creating/updating)
@@ -223,6 +232,27 @@ class Person extends Model
     public function getParentsAttribute()
     {
         return collect([$this->father, $this->mother])->filter()->values();
+    }
+
+    /**
+     * URL de l'avatar affiché partout : le portrait stocké (léger, cadré,
+     * versionné → cache navigateur illimité) ; en attendant qu'il soit fait,
+     * l'ancien comportement (photo de profil, sinon recadrage du visage —
+     * nécessite matched_faces_count chargé).
+     */
+    public function avatarUrl(): ?string
+    {
+        if ($this->portrait_path) {
+            return route('people.portrait', ['person' => $this->id, 'v' => substr((string) $this->portrait_source, 0, 12)]);
+        }
+        if ($this->avatar) {
+            return route('people.avatarImage', $this);
+        }
+        if (($this->matched_faces_count ?? 0) > 0) {
+            return url("/people/{$this->id}/face-avatar");
+        }
+
+        return null;
     }
 
     /**

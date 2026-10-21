@@ -33,7 +33,8 @@ class AvatarFacePositionService
         // Seules les personnes à avatar explicite sont concernées : le
         // fallback face-avatar est déjà un recadrage centré sur le visage.
         $avatarByPerson = $people
-            ->filter(fn ($p) => $p && $p->avatar_media_id)
+            // Un portrait stocké est déjà cadré sur le visage : pas de position.
+            ->filter(fn ($p) => $p && $p->avatar_media_id && ! $p->portrait_path)
             ->mapWithKeys(fn ($p) => [$p->id => $p->avatar_media_id]);
 
         if ($avatarByPerson->isEmpty()) {

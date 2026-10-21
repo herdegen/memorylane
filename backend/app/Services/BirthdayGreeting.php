@@ -79,13 +79,6 @@ class BirthdayGreeting
 
     private function avatarUrl(Person $person): ?string
     {
-        if ($person->avatar) {
-            return route('people.avatarImage', $person);
-        }
-        if (($person->matched_faces_count ?? 0) > 0) {
-            return url("/people/{$person->id}/face-avatar");
-        }
-
-        return null;
+        return $person->avatarUrl();
     }
 }

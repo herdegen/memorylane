@@ -24,6 +24,15 @@ class Media extends Model
         static::forceDeleting(function (Media $media) {
             app(\App\Services\MediaService::class)->purgeStorageFiles($media);
         });
+        // Une photo qui part à la corbeille (ou en revient) ne doit plus
+        // (ou peut de nouveau) servir de portrait.
+        $portraits = function (Media $media) {
+            \App\Jobs\RefreshPersonPortrait::for(...Person::where('avatar_media_id', $media->id)->pluck('id')
+                ->merge($media->detectedFaces()->whereNotNull('person_id')->pluck('person_id'))
+                ->all());
+        };
+        static::deleted($portraits);
+        static::restored($portraits);
     }
 
     /**

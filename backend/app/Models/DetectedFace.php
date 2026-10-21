@@ -57,6 +57,14 @@ class DetectedFace extends Model
             if ($face->person_id) {
                 \App\Services\Vision\FaceMatcher::bumpReferences();
             }
+            \App\Jobs\RefreshPersonPortrait::for($face->person_id);
+        });
+        // Portrait stocké : le meilleur visage d'une personne a pu changer.
+        static::saved(function (DetectedFace $face) {
+            if (($face->wasRecentlyCreated && $face->person_id)
+                || $face->wasChanged(['person_id', 'status', 'bounding_box', 'confidence'])) {
+                \App\Jobs\RefreshPersonPortrait::for($face->person_id, $face->getPrevious()['person_id'] ?? null);
+            }
         });
     }
 

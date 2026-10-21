@@ -18,7 +18,7 @@ use Symfony\Component\HttpFoundation\Response;
 class RestrictTv
 {
     private const ALLOWED_ROUTES = [
-        'media.file', 'people.faceAvatar', 'people.avatarImage', 'voice-notes.file',
+        'media.file', 'people.faceAvatar', 'people.avatarImage', 'people.portrait', 'voice-notes.file',
         'vision.image', 'vision.faceCrop',
         'quests.faces.next', 'quests.answer',
         // Frise de vie d'une fiche (lecture seule).

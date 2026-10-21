@@ -67,7 +67,12 @@ const SHAPES = {
   none: '',
 };
 
-const url = computed(() => props.src ?? props.person?.avatar_url ?? null);
+// Petites pastilles (préréglages de taille) : vignette carrée légère du
+// portrait stocké plutôt que le portrait 480×640 des cartes.
+const url = computed(() => {
+  const base = props.src ?? props.person?.avatar_url ?? null;
+  return base && props.size && base.includes('/portrait?') ? `${base}&s=sm` : base;
+});
 const facePosition = computed(() => props.position ?? props.person?.avatar_position ?? null);
 const initial = computed(() =>
   (props.name ?? props.person?.name ?? '?').charAt(0).toUpperCase() || '?'

@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Response;
 class RestrictSimpleMode
 {
     private const ALLOWED_ROUTES = [
-        'media.file', 'people.faceAvatar', 'people.avatarImage',
+        'media.file', 'people.faceAvatar', 'people.avatarImage', 'people.portrait',
         'voice-notes.store', 'voice-notes.file', 'voice-notes.destroy',
         'logout',
         'impersonate.leave',

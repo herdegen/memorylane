@@ -69,7 +69,14 @@ class InsightFaceTest extends TestCase
     {
         Http::fake([
             '*/analyze' => Http::response(['width' => 1000, 'height' => 1000, 'faces' => $faces]),
-            '*/embed-many*' => Http::response(['width' => 1000, 'height' => 1000, 'faces' => [$embed]]),
+            // Comme le vrai service : une réponse par zone demandée (paramètre boxes).
+            '*/embed-many*' => function ($request) use ($embed) {
+                parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+
+                return Http::response(['width' => 1000, 'height' => 1000, 'faces' => array_fill(
+                    0, max(1, count(json_decode($query['boxes'] ?? '[]', true) ?: [])), $embed,
+                )]);
+            },
             '*/embed?*' => Http::response(['width' => 1000, 'height' => 1000, 'face' => $embed]),
         ]);
     }

@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Response;
 class RestrictGuest
 {
     private const ALLOWED_ROUTES = [
-        'people.index', 'people.show', 'people.faceAvatar', 'people.avatarImage',
+        'people.index', 'people.show', 'people.faceAvatar', 'people.avatarImage', 'people.portrait',
         'people.timeline', 'people.kinship',
         'family-tree.index', 'family-tree.data', 'family-tree.subtree',
         'media.file',

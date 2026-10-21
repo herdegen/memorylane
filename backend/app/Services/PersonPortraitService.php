@@ -13,11 +13,22 @@ use Illuminate\Support\Facades\Storage;
  */
 class PersonPortraitService
 {
-    public function __construct(private FaceCropService $faceCrops) {}
+    public function __construct(private FaceCropService $faceCrops, private StoredPortraitService $stored) {}
 
     public function jpeg(Person $person, int $size = 240): ?string
     {
         try {
+            // Portrait stocké (déjà cadré sur le visage) : simple carré.
+            if ($blob = $this->stored->contents($person)) {
+                $img = new \Imagick();
+                $img->readImageBlob($blob);
+                $img->cropThumbnailImage($size, $size);
+                $jpeg = $img->getImageBlob();
+                $img->clear();
+
+                return $jpeg;
+            }
+
             $person->loadMissing('avatar.conversions');
             if ($media = $person->avatar) {
                 $conversion = $media->conversions->firstWhere('conversion_name', 'medium')

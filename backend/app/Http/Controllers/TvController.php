@@ -819,10 +819,6 @@ class TvController extends Controller
 
     private function avatarUrl(Person $person): ?string
     {
-        if ($person->avatar) {
-            return route('people.avatarImage', $person);
-        }
-
-        return ($person->matched_faces_count ?? 0) > 0 ? url("/people/{$person->id}/face-avatar") : null;
+        return $person->avatarUrl();
     }
 }

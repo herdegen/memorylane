@@ -359,6 +359,8 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         // Photo de profil explicite : servie à tout compte connecté (fiches
         // et arbre « publics entre comptes »), jamais en présigné long.
         Route::get('/{person}/avatar-image', [PersonController::class, 'avatarImage'])->name('avatarImage');
+        // Portrait stocké (versionné par ?v=) : cache navigateur illimité.
+        Route::get('/{person}/portrait', [PersonController::class, 'portrait'])->name('portrait');
         Route::put('/{person}', [PersonController::class, 'update'])->name('update');
         Route::delete('/{person}', [PersonController::class, 'destroy'])->name('destroy');
         Route::post('/attach', [PersonController::class, 'attachToMedia'])->name('attach');

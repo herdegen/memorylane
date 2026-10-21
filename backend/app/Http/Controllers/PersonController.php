@@ -1131,17 +1131,7 @@ class PersonController extends Controller
      */
     private function resolveAvatarUrl(Person $person): ?string
     {
-        if ($person->avatar) {
-            // Endpoint authentifié (servi à tout compte connecté) : plus de
-            // présignée longue dans les pages.
-            return route('people.avatarImage', $person);
-        }
-
-        if (($person->matched_faces_count ?? 0) > 0) {
-            return url("/people/{$person->id}/face-avatar");
-        }
-
-        return null;
+        return $person->avatarUrl();
     }
 
     /**
@@ -1149,6 +1139,19 @@ class PersonController extends Controller
      * S3 courte). Servi à tout compte connecté, comme faceAvatar : les fiches
      * et l'arbre sont publics entre comptes (phase 1 visibilité).
      */
+    public function portrait(Request $request, Person $person, \App\Services\StoredPortraitService $portraits)
+    {
+        // ?s=sm : vignette carrée des petites pastilles rondes.
+        $jpeg = $portraits->contents($person, $request->query('s') === 'sm');
+        abort_unless($jpeg, 404);
+
+        // L'URL change avec le portrait (?v=) : le navigateur le garde indéfiniment.
+        return response($jpeg, 200, [
+            'Content-Type' => 'image/jpeg',
+            'Cache-Control' => 'private, max-age=31536000, immutable',
+        ]);
+    }
+
     public function avatarImage(Person $person)
     {
         $person->loadMissing('avatar.conversions');

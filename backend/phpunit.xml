@@ -35,6 +35,8 @@
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_STORE" value="array" force="true"/>
         <env name="DB_DATABASE" value="memorylane_test" force="true"/>
+        <!-- Jamais le vrai bucket Scaleway depuis un test (même sans Storage::fake) -->
+        <env name="FILESYSTEM_DISK" value="local" force="true"/>
         <env name="MAIL_MAILER" value="array" force="true"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="QUEUE_CONNECTION" value="sync" force="true"/>

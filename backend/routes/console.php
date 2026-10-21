@@ -41,3 +41,7 @@ Schedule::command('memorylane:health-check')->hourlyAt(17)->withoutOverlapping()
 
 // Les échecs de tâches de plus d'un mois n'apprennent plus rien.
 Schedule::command('queue:prune-failed --hours=720')->weeklyOn(1, '04:30');
+
+// Portraits stockés (avatars) : filet de sécurité nocturne, sans effet pour
+// les fiches dont la photo/visage source n'a pas changé.
+Schedule::command('people:refresh-portraits')->dailyAt('04:30')->timezone('Europe/Paris')->withoutOverlapping();
