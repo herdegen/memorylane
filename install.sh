@@ -20,7 +20,7 @@
 # e-mails, sauvegardes, compte administrateur), étape par étape, avec les
 # explications. Rien n'est envoyé ailleurs que là où vous le choisissez.
 # =============================================================================
-set -euo pipefail
+set -Eeuo pipefail
 cd "$(dirname "$0")"
 
 PORT=8080
@@ -53,6 +53,8 @@ APP_ENV_FILE=backend/.env
 INSTALL_DIR=backend/storage/app/install
 GARAGE_CONF=docker/selfhost/generated/garage.toml
 
+trap 'printf "\n%s✗ Erreur inattendue (ligne %s). Relancez ./install.sh : l installation reprend où elle s est arrêtée.%s\n" "$R" "$LINENO" "$N" >&2' ERR
+
 dc() { docker compose "$@"; }
 artisan() { dc exec -T app php artisan "$@"; }
 
@@ -70,8 +72,11 @@ env_set() {
     cat "$tmp" > "$file"; rm -f "$tmp"
 }
 # Secret aléatoire (lettres et chiffres).
-secret() { LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c "${1:-40}"; }
-hexsecret() { LC_ALL=C tr -dc 'a-f0-9' < /dev/urandom | head -c "${1:-64}"; }
+# « || true » : tr est interrompu par head (SIGPIPE), ce que pipefail
+# prendrait pour une erreur.
+randchars() { (LC_ALL=C tr -dc "$1" < /dev/urandom 2>/dev/null | head -c "$2") || true; }
+secret() { randchars 'A-Za-z0-9' "${1:-40}"; }
+hexsecret() { randchars 'a-f0-9' "${1:-64}"; }
 
 # ---- Vérifications ------------------------------------------------------------------
 check_requirements() {
@@ -156,6 +161,7 @@ EOF
         docker/selfhost/garage.toml.template > "$GARAGE_CONF"
     chmod 644 "$GARAGE_CONF"
     ok "Stockage intégré (Garage) configuré"
+    create_token
 }
 
 wait_healthy() {
@@ -217,14 +223,14 @@ build_and_start() {
     ok "Serveur web démarré"
 }
 
+# Code d'accès de l'assistant : créé au début (une installation interrompue
+# reprend avec le même code), effacé à la fin.
 create_token() {
     mkdir -p "$INSTALL_DIR"
-    local token; token=$(LC_ALL=C tr -dc 'A-HJ-NP-Z2-9' < /dev/urandom | head -c 8)
-    printf '%s' "$token" > "$INSTALL_DIR/token"
+    [ -s "$INSTALL_DIR/token" ] || randchars 'A-HJ-NP-Z2-9' 8 > "$INSTALL_DIR/token"
     chmod 600 "$INSTALL_DIR/token"
-    [ "$(id -u)" -eq 0 ] && chown -R 1000:1000 "$INSTALL_DIR"
+    if [ "$(id -u)" -eq 0 ]; then chown -R 1000:1000 "$INSTALL_DIR"; fi
     rm -f "$INSTALL_DIR/finished.env"
-    echo "$token"
 }
 
 wait_for_wizard() {
@@ -330,5 +336,5 @@ else
 fi
 
 build_and_start
-TOKEN=$(create_token)
-wait_for_wizard "$TOKEN"
+create_token
+wait_for_wizard "$(cat "$INSTALL_DIR/token")"
