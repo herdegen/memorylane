@@ -1,0 +1,114 @@
+# Installation « chez soi » (./install.sh) : docker-compose.yml + ce fichier,
+# chargés ensemble par COMPOSE_FILE dans le .env racine.
+#
+# - Aucun service interne exposé (base, Redis, Meilisearch, PHP) : seul nginx
+#   publie un port (APP_BIND:APP_PORT), ou Caddy (80/443) avec un domaine.
+# - Noms de conteneurs laissés à Docker (préfixe = nom du projet) : plusieurs
+#   installations peuvent cohabiter sur une même machine.
+# - Services optionnels activés par COMPOSE_PROFILES (écrit par install.sh à
+#   la fin de l'assistant) :
+#     local-storage  photos et vidéos stockées sur ce serveur (Garage, S3)
+#     faces          reconnaissance des visages (InsightFace, ~3 Go de RAM)
+#     backup         sauvegarde chiffrée nocturne vers un stockage distant
+#     https          HTTPS automatique (Caddy + Let's Encrypt) sur un domaine
+
+services:
+  postgres:
+    container_name: !reset null
+    ports: !override []
+    restart: unless-stopped
+
+  redis:
+    container_name: !reset null
+    ports: !override []
+    restart: unless-stopped
+
+  meilisearch:
+    container_name: !reset null
+    ports: !override []
+    restart: unless-stopped
+    environment:
+      MEILI_ENV: production
+
+  mailpit:
+    container_name: !reset null
+    ports: !override []
+
+  app:
+    container_name: !reset null
+    ports: !override []
+    restart: unless-stopped
+
+  nginx:
+    container_name: !reset null
+    ports: !override
+      - "${APP_BIND:-0.0.0.0}:${APP_PORT:-8080}:80"
+    volumes:
+      # Passerelle vers le stockage intégré (adresses présignées /memorylane-files/…).
+      - ./docker/selfhost/nginx-storage.conf:/etc/nginx/snippets/extra/storage.conf:ro
+    restart: unless-stopped
+
+  horizon:
+    container_name: !reset null
+
+  scheduler:
+    container_name: !reset null
+    restart: unless-stopped
+
+  faces:
+    container_name: !reset null
+    profiles: ["faces"]
+
+  backup:
+    container_name: !reset null
+    profiles: ["backup"]
+
+  # Stockage S3 intégré (Garage, de l'association Deuxfleurs) : les photos
+  # restent sur ce serveur. Données dans un volume Docker, ou dans un dossier
+  # de l'hôte (GARAGE_DATA_DIR=/chemin/vers/un/grand/disque).
+  garage:
+    image: docker.io/dxflrs/garage:v2.4.1
+    profiles: ["local-storage"]
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+    mem_limit: 512m
+    volumes:
+      - ./docker/selfhost/generated/garage.toml:/etc/garage.toml:ro
+      - garage_meta:/var/lib/garage/meta
+      - ${GARAGE_DATA_DIR:-garage_data}:/var/lib/garage/data
+    networks:
+      - memorylane
+    restart: unless-stopped
+
+  # HTTPS automatique : Caddy obtient et renouvelle seul le certificat
+  # Let's Encrypt du domaine (qui doit pointer vers ce serveur, ports 80 et
+  # 443 ouverts), puis relaie vers nginx.
+  caddy:
+    image: docker.io/library/caddy:2.10-alpine
+    profiles: ["https"]
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+    mem_limit: 256m
+    environment:
+      MEMORYLANE_DOMAIN: ${MEMORYLANE_DOMAIN:-}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./docker/selfhost/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - memorylane
+    depends_on:
+      - nginx
+    restart: unless-stopped
+
+volumes:
+  garage_meta:
+  garage_data:
+  caddy_data:
+  caddy_config:

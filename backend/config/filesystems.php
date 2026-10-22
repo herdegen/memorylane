@@ -68,6 +68,11 @@ return [
             'bucket' => env('SCALEWAY_BUCKET'),
             'url' => env('SCALEWAY_URL'),
             'endpoint' => env('SCALEWAY_ENDPOINT', 'https://s3.fr-par.scw.cloud'),
+            // Stockage interne au serveur (Garage, installation chez soi) : les
+            // adresses présignées sont signées pour l'hôte interne puis
+            // données au navigateur sur l'adresse publique du site, que nginx
+            // relaie (docker/selfhost/nginx-storage.conf). Vide = Scaleway.
+            'temporary_url' => env('SCALEWAY_PUBLIC_URL'),
             'use_path_style_endpoint' => true,
             'throw' => false,
             'report' => false,

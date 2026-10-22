@@ -1,0 +1,6 @@
+# HTTPS automatique pour MemoryLane (profil « https » de docker-compose.selfhost.yml).
+# Le domaine vient de MEMORYLANE_DOMAIN (.env racine, écrit par install.sh).
+{$MEMORYLANE_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy nginx:80
+}

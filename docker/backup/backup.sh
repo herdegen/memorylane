@@ -1,6 +1,7 @@
 #!/bin/sh
-# Sauvegarde des fichiers MemoryLane : bucket Scaleway → OVH Object Storage
-# (Gravelines), chiffrée côté serveur par rclone crypt (noms et contenus).
+# Sauvegarde des fichiers MemoryLane : bucket des médias → stockage distant
+# (en production : Scaleway → OVH Object Storage
+# à Gravelines), chiffrée côté serveur par rclone crypt (noms et contenus).
 #
 # Copie SANS suppression : un média effacé dans l'appli reste dans la
 # sauvegarde. Le bucket OVH verrouille chaque version 30 jours (Object Lock,
@@ -26,7 +27,11 @@ get() {
     grep -E "^$1=" "$ENV_FILE" | tail -n1 | cut -d= -f2- | sed -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'$/\1/"
 }
 
-export RCLONE_CONFIG_SRC_TYPE=s3 RCLONE_CONFIG_SRC_PROVIDER=Scaleway
+export RCLONE_CONFIG_SRC_TYPE=s3
+# Source : Scaleway par défaut ; « Other » pour le stockage intégré (Garage) ou
+# tout autre S3 (BACKUP_SRC_PROVIDER, écrit par l'assistant d'installation).
+RCLONE_CONFIG_SRC_PROVIDER=$(get BACKUP_SRC_PROVIDER)
+export RCLONE_CONFIG_SRC_PROVIDER="${RCLONE_CONFIG_SRC_PROVIDER:-Scaleway}"
 RCLONE_CONFIG_SRC_ACCESS_KEY_ID=$(get SCALEWAY_ACCESS_KEY)
 RCLONE_CONFIG_SRC_SECRET_ACCESS_KEY=$(get SCALEWAY_SECRET_KEY)
 RCLONE_CONFIG_SRC_REGION=$(get SCALEWAY_REGION)

@@ -172,7 +172,7 @@ class S3Service
             // Fichiers immuables (clé unique par fichier) : cache navigateur.
             'ResponseCacheControl' => 'private, max-age='.($validityMinutes * 60).', immutable',
         ]);
-        $url = (string) $client->createPresignedRequest($command, $expires, ['start_time' => $start])->getUri();
+        $url = $this->publicUrl((string) $client->createPresignedRequest($command, $expires, ['start_time' => $start])->getUri());
 
         return [$url, $expires - time()];
     }
@@ -273,7 +273,26 @@ class S3Service
 
         $request = $client->createPresignedRequest($command, "+{$expiresMinutes} minutes");
 
-        return (string) $request->getUri();
+        return $this->publicUrl((string) $request->getUri());
+    }
+
+    /**
+     * Adresse présignée telle que le navigateur doit l'utiliser. Stockage
+     * intégré (installation chez soi) : signée pour l'hôte interne
+     * (http://garage:3900), elle passe par l'adresse publique du site, que
+     * nginx relaie en présentant l'hôte d'origine (signature intacte). Même
+     * règle que temporaryUrl() de Laravel avec l'option `temporary_url`.
+     */
+    public function publicUrl(string $url): string
+    {
+        $base = config("filesystems.disks.{$this->disk}.temporary_url");
+        if (! $base) {
+            return $url;
+        }
+
+        $parts = parse_url($url);
+
+        return rtrim($base, '/').($parts['path'] ?? '').(isset($parts['query']) ? '?'.$parts['query'] : '');
     }
 
     /**

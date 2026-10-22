@@ -31,6 +31,24 @@ use App\Http\Controllers\VisionController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+// Assistant d'installation (installation « chez soi », lancée par install.sh) :
+// n'existe que pendant l'installation, protégé par le code du terminal.
+Route::prefix('install')->name('install.')->controller(\App\Http\Controllers\InstallController::class)
+    ->middleware(\App\Http\Middleware\InstallerGate::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/acces', 'unlock')->middleware('throttle:10,1')->name('unlock');
+        Route::middleware(\App\Http\Middleware\InstallerGate::class.':unlocked')->group(function () {
+            Route::get('/verifications', 'checks')->name('checks');
+            Route::post('/site', 'site')->name('site');
+            Route::post('/stockage', 'storage')->name('storage');
+            Route::post('/emails', 'mail')->name('mail');
+            Route::post('/sauvegardes', 'backup')->name('backup');
+            Route::post('/options', 'options')->name('options');
+            Route::post('/compte', 'account')->name('account');
+            Route::post('/terminer', 'finish')->name('finish');
+        });
+    });
+
 // Dashboard
 Route::get('/', function () {
     return auth()->check() ? redirect()->route('dashboard') : redirect()->route('login');

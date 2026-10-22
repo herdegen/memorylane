@@ -20,6 +20,11 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO
         );
 
+        $middleware->web(prepend: [
+            // Installation en cours (install.sh) : tout mène à l'assistant.
+            \App\Http\Middleware\RedirectToInstaller::class,
+        ]);
+
         $middleware->web(append: [
             // Télévision reliée : reconnexion par son jeton d'appareil.
             \App\Http\Middleware\TvDeviceLogin::class,
