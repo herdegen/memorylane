@@ -88,6 +88,14 @@ class HandleInertiaRequests extends Middleware
                 // Tout membre peut créer son cercle d'amis.
                 'can_create' => ! $request->user()->isGuest() && ! $request->user()->simple_mode,
             ] : null,
+            // Langue de l'interface : courante, choix du membre (null = défaut
+            // du site) et défaut du site (sélecteur du profil).
+            'i18n' => fn () => [
+                'locale' => app()->getLocale(),
+                'preference' => $request->user()?->localePreference(),
+                'default' => \App\Support\SiteSettings::locale(),
+                'available' => \App\Support\Locales::SUPPORTED,
+            ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),

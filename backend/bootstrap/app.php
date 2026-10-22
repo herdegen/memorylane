@@ -23,6 +23,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             // Télévision reliée : reconnexion par son jeton d'appareil.
             \App\Http\Middleware\TvDeviceLogin::class,
+            // Langue de l'interface (profil, session, réglage du site).
+            \App\Http\Middleware\SetLocale::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
         ]);
 

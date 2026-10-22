@@ -5,13 +5,16 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
+use App\Support\Locales;
+use App\Support\SiteSettings;
+use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use NotificationChannels\WebPush\HasPushSubscriptions;
 
-class User extends Authenticatable implements FilamentUser
+class User extends Authenticatable implements FilamentUser, HasLocalePreference
 {
     use HasFactory, Notifiable, HasUuids, HasPushSubscriptions;
 
@@ -307,5 +310,26 @@ class User extends Authenticatable implements FilamentUser
         data_set($prefs, $key, $value);
         $this->preferences = $prefs;
         $this->save();
+    }
+
+    /**
+     * Langue de l'interface choisie dans le profil (null = langue par défaut
+     * du site).
+     */
+    public function localePreference(): ?string
+    {
+        $locale = $this->preferences['locale'] ?? null;
+
+        return Locales::supports($locale) ? $locale : null;
+    }
+
+    /**
+     * Langue effective du membre : interface, mails et notifications
+     * (Laravel l'applique d'office aux notifications et mails qui lui sont
+     * adressés).
+     */
+    public function preferredLocale(): string
+    {
+        return $this->localePreference() ?? SiteSettings::locale();
     }
 }

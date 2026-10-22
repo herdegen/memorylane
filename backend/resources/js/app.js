@@ -6,6 +6,7 @@ import '../css/app.css';
 import { createApp, h } from 'vue';
 import { createInertiaApp, router } from '@inertiajs/vue3';
 import { rememberNavigation } from './utils/navigation';
+import i18n, { locale } from './i18n';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 
 const appName = import.meta.env.VITE_APP_NAME || 'MemoryLane';
@@ -15,6 +16,13 @@ const appName = import.meta.env.VITE_APP_NAME || 'MemoryLane';
 // album, foyer…) plutôt que vers une page fixe. Par onglet (sessionStorage),
 // survit au rechargement. Voir resources/js/utils/navigation.js.
 router.on('navigate', (event) => rememberNavigation(event.detail.page.url));
+
+// Langue changée ailleurs (autre onglet, réglage du site) : le dictionnaire
+// chargé au démarrage n'est plus le bon, on recharge la page.
+router.on('navigate', (event) => {
+    const wanted = event.detail.page.props.i18n?.locale;
+    if (wanted && wanted !== locale()) window.location.reload();
+});
 
 // Après un déploiement, une page restée ouverte réclame des morceaux de code
 // qui n'existent plus (noms à empreinte, dossier vidé au build) : une fenêtre
@@ -35,6 +43,7 @@ createInertiaApp({
     setup({ el, App, props, plugin }) {
         return createApp({ render: () => h(App, props) })
             .use(plugin)
+            .use(i18n)
             .mount(el);
     },
     progress: {

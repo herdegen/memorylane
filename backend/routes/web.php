@@ -55,6 +55,16 @@ Route::get('/invite/{user}/{person}', [AuthController::class, 'loginAsGuest'])
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
+// Langue de l'interface (membre connecté ou visiteur de la page de connexion)
+Route::post('/locale', [\App\Http\Controllers\LocaleController::class, 'update'])
+    ->middleware('throttle:30,1')
+    ->name('locale.update');
+// Dictionnaire pour le navigateur (sans extension .js : nginx sert ces
+// fichiers-là en statique, sans passer par Laravel).
+Route::get('/i18n/{locale}', [\App\Http\Controllers\LocaleController::class, 'script'])
+    ->where('locale', '[a-z]{2}')
+    ->name('i18n.script');
+
 // Invitation reçue par mail : page « Créer mon accès » (jeton à usage unique)
 Route::get('/bienvenue/{token}', [InvitationController::class, 'show'])
     ->middleware('throttle:30,1')
