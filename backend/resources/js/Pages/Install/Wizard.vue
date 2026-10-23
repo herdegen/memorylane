@@ -10,8 +10,8 @@
             <div class="font-display text-2xl font-bold leading-none">MemoryLane</div>
             <div class="text-sm text-stone-500 mt-1">{{ $t('Installation') }}</div>
           </div>
-          <LocaleSwitch />
         </div>
+        <LocaleSwitch class="mb-5 -ml-2" />
         <ol class="hidden lg:flex flex-col gap-1">
           <li v-for="(s, i) in STEPS" :key="s.key">
             <button
