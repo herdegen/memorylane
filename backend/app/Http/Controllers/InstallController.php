@@ -50,7 +50,7 @@ class InstallController extends Controller
     {
         $request->validate(['token' => 'required|string|max:20']);
         if (! Installer::checkToken($request->input('token'))) {
-            return response()->json(['errors' => ['token' => ['Ce code ne correspond pas à celui du terminal.']]], 422);
+            return response()->json(['errors' => ['token' => [__('Ce code ne correspond pas à celui du terminal.')]]], 422);
         }
         $request->session()->put('install_unlocked', true);
 
@@ -68,42 +68,42 @@ class InstallController extends Controller
 
         $add('PHP', version_compare(PHP_VERSION, '8.3.0', '>=') ? 'ok' : 'error', PHP_VERSION);
         $missing = array_filter(['pdo_pgsql', 'redis', 'imagick', 'gd', 'exif', 'intl', 'zip', 'bcmath', 'pcntl'], fn ($e) => ! extension_loaded($e));
-        $add('Extensions PHP', $missing ? 'error' : 'ok', $missing ? 'Manquantes : '.implode(', ', $missing) : 'Toutes présentes');
+        $add(__('Extensions PHP'), $missing ? 'error' : 'ok', $missing ? __('Manquantes : :list', ['list' => implode(', ', $missing)]) : __('Toutes présentes'));
 
         try {
             $version = DB::selectOne('select version() as v')->v;
-            $add('Base de données', 'ok', Str::before($version, ' on '));
+            $add(__('Base de données'), 'ok', Str::before($version, ' on '));
         } catch (\Throwable $e) {
-            $add('Base de données', 'error', 'Injoignable', 'Voir : docker compose logs postgres');
+            $add(__('Base de données'), 'error', __('Injoignable'), __('Voir : :cmd', ['cmd' => 'docker compose logs postgres']));
         }
         try {
             Redis::connection()->ping();
-            $add('Cache et files d\'attente (Redis)', 'ok', 'Connecté');
+            $add(__('Cache et files d\'attente (Redis)'), 'ok', __('Connecté'));
         } catch (\Throwable $e) {
-            $add('Cache et files d\'attente (Redis)', 'error', 'Injoignable', 'Voir : docker compose logs redis');
+            $add(__('Cache et files d\'attente (Redis)'), 'error', __('Injoignable'), __('Voir : :cmd', ['cmd' => 'docker compose logs redis']));
         }
         try {
             $ok = Http::timeout(3)->get(rtrim(config('scout.meilisearch.host'), '/').'/health')->successful();
-            $add('Moteur de recherche (Meilisearch)', $ok ? 'ok' : 'error', $ok ? 'Prêt' : 'Ne répond pas');
+            $add(__('Moteur de recherche (Meilisearch)'), $ok ? 'ok' : 'error', $ok ? __('Prêt') : __('Ne répond pas'));
         } catch (\Throwable $e) {
-            $add('Moteur de recherche (Meilisearch)', 'error', 'Injoignable', 'Voir : docker compose logs meilisearch');
+            $add(__('Moteur de recherche (Meilisearch)'), 'error', __('Injoignable'), __('Voir : :cmd', ['cmd' => 'docker compose logs meilisearch']));
         }
 
         $heic = class_exists(\Imagick::class) && \Imagick::queryFormats('HEIC') !== [];
-        $add('Photos d\'iPhone (HEIC)', $heic ? 'ok' : 'warn', $heic ? 'Lues et converties' : 'Non prises en charge par ImageMagick');
+        $add(__('Photos d\'iPhone (HEIC)'), $heic ? 'ok' : 'warn', $heic ? __('Lues et converties') : __('Non prises en charge par ImageMagick'));
         $ffmpeg = trim((string) @shell_exec('command -v ffmpeg'));
-        $add('Vidéos (ffmpeg)', $ffmpeg ? 'ok' : 'error', $ffmpeg ? 'Installé' : 'Absent');
+        $add(__('Vidéos (ffmpeg)'), $ffmpeg ? 'ok' : 'error', $ffmpeg ? __('Installé') : __('Absent'));
 
         $writable = is_writable(base_path('.env')) && is_writable(storage_path()) && is_writable(base_path('bootstrap/cache'));
-        $add('Droits d\'écriture', $writable ? 'ok' : 'error', $writable ? 'Configuration et dossiers de travail' : 'backend/.env ou storage/ non modifiable', 'Les fichiers doivent appartenir à l\'utilisateur qui a lancé install.sh.');
+        $add(__('Droits d\'écriture'), $writable ? 'ok' : 'error', $writable ? __('Configuration et dossiers de travail') : __('backend/.env ou storage/ non modifiable'), __('Les fichiers doivent appartenir à l\'utilisateur qui a lancé install.sh.'));
 
         $memKb = (int) (preg_match('/MemTotal:\s+(\d+)/', (string) @file_get_contents('/proc/meminfo'), $m) ? $m[1] : 0);
         $memGb = round($memKb / 1024 / 1024, 1);
-        $add('Mémoire du serveur', $memGb >= 6 ? 'ok' : 'warn', "{$memGb} Go", $memGb >= 6 ? '' : 'La reconnaissance des visages demande environ 3 Go de plus : à éviter sous 6 Go.');
+        $add(__('Mémoire du serveur'), $memGb >= 6 ? 'ok' : 'warn', __(':n Go', ['n' => $memGb]), $memGb >= 6 ? '' : __('La reconnaissance des visages demande environ 3 Go de plus : à éviter sous 6 Go.'));
         $cpus = (int) trim((string) @shell_exec('nproc'));
-        $add('Processeurs', $cpus >= 2 ? 'ok' : 'warn', $cpus ? "{$cpus} cœur".($cpus > 1 ? 's' : '') : 'Inconnu');
+        $add(__('Processeurs'), $cpus >= 2 ? 'ok' : 'warn', $cpus ? trans_choice(':count cœur|:count cœurs', $cpus) : __('Inconnu'));
         $freeGb = (int) round(@disk_free_space(base_path()) / 1024 ** 3);
-        $add('Espace disque libre', $freeGb >= 20 ? 'ok' : 'warn', "{$freeGb} Go", 'Avec le stockage intégré, vos photos et vidéos sont sur ce disque.');
+        $add(__('Espace disque libre'), $freeGb >= 20 ? 'ok' : 'warn', __(':n Go', ['n' => $freeGb]), __('Avec le stockage intégré, vos photos et vidéos sont sur ce disque.'));
 
         return response()->json(['checks' => $checks, 'blocking' => collect($checks)->contains('status', 'error')]);
     }
@@ -120,7 +120,7 @@ class InstallController extends Controller
             'timezone' => 'required|timezone',
             'mode' => 'required|in:family,friends',
         ], [
-            'domain.regex' => 'Ce nom de domaine n\'a pas l\'air valide (exemple : photos.mafamille.fr).',
+            'domain.regex' => __('Ce nom de domaine n\'a pas l\'air valide (exemple : photos.mafamille.fr).'),
         ]);
 
         $url = match ($data['access']) {
@@ -178,7 +178,7 @@ class InstallController extends Controller
                 'secret' => $data['secret'] ?: ($this->env->get('SCALEWAY_ENDPOINT') === rtrim($data['endpoint'], '/') ? $this->env->get('SCALEWAY_SECRET_KEY') : null),
             ];
             if (! $config['secret']) {
-                return $this->fail('secret', 'La clé secrète est nécessaire.');
+                return $this->fail('secret', __('La clé secrète est nécessaire.'));
             }
         }
 
@@ -197,9 +197,9 @@ class InstallController extends Controller
                     'ExposeHeaders' => ['ETag'],
                     'MaxAgeSeconds' => 3600,
                 ]]]]);
-                $report['steps'][] = 'Envois directs depuis le navigateur autorisés pour '.$appUrl;
+                $report['steps'][] = __('Envois directs depuis le navigateur autorisés pour :url', ['url' => $appUrl]);
             } catch (\Throwable $e) {
-                $report['warning'] = 'Impossible de régler le CORS du bucket ('.Str::limit($e->getMessage(), 120).'). Les envois depuis le navigateur seront refusés tant qu\'il n\'autorise pas '.$appUrl.' (méthodes GET, PUT, POST, en-tête ETag exposé).';
+                $report['warning'] = __('Impossible de régler le CORS du bucket (:error). Les envois depuis le navigateur seront refusés tant qu\'il n\'autorise pas :url (méthodes GET, PUT, POST, en-tête ETag exposé).', ['error' => Str::limit($e->getMessage(), 120), 'url' => $appUrl]);
             }
         }
         if ($request->boolean('test_only')) {
@@ -255,13 +255,13 @@ class InstallController extends Controller
                     'password' => $password ?: null,
                     'timeout' => 15,
                 ])->raw(
-                    "Bonjour,\n\nLes e-mails de MemoryLane fonctionnent : invitations, liens de connexion et nouvelles de la famille arriveront bien.\n\nÀ bientôt !",
+                    __("Bonjour,\n\nLes e-mails de MemoryLane fonctionnent : invitations, liens de connexion et nouvelles de la famille arriveront bien.\n\nÀ bientôt !"),
                     fn ($m) => $m->to($data['test_to'])
                         ->from($data['from_address'], $data['from_name'] ?: 'MemoryLane')
-                        ->subject('MemoryLane : e-mail de test')
+                        ->subject(__('MemoryLane : e-mail de test'))
                 );
             } catch (\Throwable $e) {
-                return $this->fail('test', 'L\'envoi a échoué : '.Str::limit($e->getMessage(), 300));
+                return $this->fail('test', __('L\'envoi a échoué : :error', ['error' => Str::limit($e->getMessage(), 300)]));
             }
             if ($request->boolean('test_only')) {
                 return response()->json(['sent' => true]);
@@ -307,7 +307,7 @@ class InstallController extends Controller
             'key' => $data['key'], 'secret' => $data['secret'] ?: $this->env->get('BACKUP_S3_SECRET_KEY'),
         ];
         if (! $config['secret']) {
-            return $this->fail('secret', 'La clé secrète est nécessaire.');
+            return $this->fail('secret', __('La clé secrète est nécessaire.'));
         }
         $report = $this->testS3($config, null, presign: false);
         if ($report['error']) {
@@ -393,8 +393,8 @@ class InstallController extends Controller
             'password' => 'required|string|min:10|max:200|confirmed',
             'circle' => 'required|string|max:120',
         ], [
-            'password.min' => 'Le mot de passe doit faire au moins 10 caractères.',
-            'password.confirmed' => 'Les deux mots de passe ne sont pas identiques.',
+            'password.min' => __('Le mot de passe doit faire au moins 10 caractères.'),
+            'password.confirmed' => __('Les deux mots de passe ne sont pas identiques.'),
         ]);
 
         // Rien n'est encore en base : le compte est créé à l'installation.
@@ -419,14 +419,14 @@ class InstallController extends Controller
         $state = Installer::state();
         $missing = array_values(array_diff(self::STEPS, array_keys($state['done'] ?? [])));
         if ($missing) {
-            return response()->json(['message' => 'Étapes à compléter d\'abord : '.implode(', ', $missing)], 422);
+            return response()->json(['message' => __('Étapes à compléter d\'abord : :steps', ['steps' => implode(', ', $missing)])], 422);
         }
         @set_time_limit(600);
 
         $log = [];
         try {
             Artisan::call('migrate', ['--force' => true]);
-            $log[] = 'Base de données créée';
+            $log[] = __('Base de données créée');
 
             $account = $state['account'];
             $admin = DB::transaction(function () use ($account, $state) {
@@ -464,14 +464,17 @@ class InstallController extends Controller
 
                 return $user;
             });
-            $log[] = 'Compte administrateur : '.$admin->email;
+            $log[] = __('Compte administrateur : :email', ['email' => $admin->email]);
+
+            // Langue de l'assistant = langue par défaut du site.
+            \App\Support\SiteSettings::set('locale', app()->getLocale());
 
             // Index de recherche : réglés par install.sh (commandes Scout
             // disponibles en ligne de commande seulement).
         } catch (\Throwable $e) {
             report($e);
 
-            return response()->json(['message' => 'L\'installation a échoué : '.Str::limit($e->getMessage(), 400), 'log' => $log], 500);
+            return response()->json(['message' => __('L\'installation a échoué : :error', ['error' => Str::limit($e->getMessage(), 400)]), 'log' => $log], 500);
         }
 
         $profiles = array_filter([
@@ -581,12 +584,12 @@ class InstallController extends Controller
         try {
             $client = $this->s3($c);
             $client->putObject(['Bucket' => $c['bucket'], 'Key' => $key, 'Body' => $body, 'ContentType' => 'text/plain']);
-            $report['steps'][] = 'Écriture d\'un fichier de test';
+            $report['steps'][] = __('Écriture d\'un fichier de test');
             $read = (string) $client->getObject(['Bucket' => $c['bucket'], 'Key' => $key])['Body'];
             if ($read !== $body) {
-                throw new \RuntimeException('Le fichier relu ne correspond pas.');
+                throw new \RuntimeException(__('Le fichier relu ne correspond pas.'));
             }
-            $report['steps'][] = 'Relecture';
+            $report['steps'][] = __('Relecture');
             if ($presign) {
                 $url = (string) $client->createPresignedRequest($client->getCommand('GetObject', ['Bucket' => $c['bucket'], 'Key' => $key]), '+5 minutes')->getUri();
                 if ($publicBase) {
@@ -595,21 +598,21 @@ class InstallController extends Controller
                 }
                 $response = Http::timeout(10)->get($url);
                 if (! $response->successful() || $response->body() !== $body) {
-                    throw new \RuntimeException('Lien de lecture signé refusé (HTTP '.$response->status().').');
+                    throw new \RuntimeException(__('Lien de lecture signé refusé (HTTP :status).', ['status' => $response->status()]));
                 }
-                $report['steps'][] = $publicBase ? 'Lecture par le site (comme le navigateur)' : 'Lecture par lien signé (comme le navigateur)';
+                $report['steps'][] = $publicBase ? __('Lecture par le site (comme le navigateur)') : __('Lecture par lien signé (comme le navigateur)');
             }
             $client->deleteObject(['Bucket' => $c['bucket'], 'Key' => $key]);
-            $report['steps'][] = 'Suppression';
+            $report['steps'][] = __('Suppression');
         } catch (\Aws\Exception\AwsException $e) {
             $report['error'] = match ($e->getAwsErrorCode()) {
-                'NoSuchBucket' => 'Le bucket « '.$c['bucket'].' » n\'existe pas : créez-le d\'abord chez votre fournisseur.',
-                'InvalidAccessKeyId', 'SignatureDoesNotMatch' => 'Clés refusées : vérifiez la clé d\'accès et la clé secrète.',
-                'AccessDenied' => 'Accès refusé : cette clé n\'a pas les droits de lecture et d\'écriture sur le bucket.',
-                default => 'Erreur du stockage : '.Str::limit($e->getAwsErrorMessage() ?: $e->getMessage(), 200),
+                'NoSuchBucket' => __('Le bucket « :bucket » n\'existe pas : créez-le d\'abord chez votre fournisseur.', ['bucket' => $c['bucket']]),
+                'InvalidAccessKeyId', 'SignatureDoesNotMatch' => __('Clés refusées : vérifiez la clé d\'accès et la clé secrète.'),
+                'AccessDenied' => __('Accès refusé : cette clé n\'a pas les droits de lecture et d\'écriture sur le bucket.'),
+                default => __('Erreur du stockage : :error', ['error' => Str::limit($e->getAwsErrorMessage() ?: $e->getMessage(), 200)]),
             };
         } catch (\Throwable $e) {
-            $report['error'] = 'Connexion impossible : '.Str::limit($e->getMessage(), 200);
+            $report['error'] = __('Connexion impossible : :error', ['error' => Str::limit($e->getMessage(), 200)]);
         }
 
         return $report;

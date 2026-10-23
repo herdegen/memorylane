@@ -18,7 +18,7 @@ class InstallerGate
         abort_unless(Installer::pending(), 404);
 
         if ($level === 'unlocked' && ! $request->session()->get('install_unlocked')) {
-            return response()->json(['message' => 'Saisissez d\'abord le code affiché dans le terminal.'], 403);
+            return response()->json(['message' => __('Saisissez d\'abord le code affiché dans le terminal.')], 403);
         }
 
         return $next($request);

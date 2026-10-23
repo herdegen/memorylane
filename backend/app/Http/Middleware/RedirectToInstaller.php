@@ -15,12 +15,13 @@ class RedirectToInstaller
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (! Installer::pending() || $request->is('install', 'install/*', 'up')) {
+        // Langue de l'assistant (bascule et dictionnaire) : permises aussi.
+        if (! Installer::pending() || $request->is('install', 'install/*', 'up', 'locale', 'i18n/*')) {
             return $next($request);
         }
 
         return $request->expectsJson()
-            ? response()->json(['message' => 'Installation en cours.'], 503)
+            ? response()->json(['message' => __('Installation en cours.')], 503)
             : redirect('/install');
     }
 }

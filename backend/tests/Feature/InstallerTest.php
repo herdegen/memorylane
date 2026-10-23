@@ -215,4 +215,26 @@ class InstallerTest extends TestCase
         config(['filesystems.disks.scaleway.temporary_url' => null]);
         $this->assertStringStartsWith('http://garage:3900/memorylane-files/', (new S3Service)->setDisk('scaleway')->presignUploadPart('k', 'u', 1));
     }
+
+    public function test_assistant_en_anglais_et_langue_du_site(): void
+    {
+        $this->unlock();
+        // Bascule de langue permise pendant l'installation.
+        $this->postJson('/locale', ['locale' => 'en'])->assertNoContent();
+        $this->getJson('/install/verifications')->assertOk()->assertJsonPath('checks.1.label', 'PHP extensions');
+
+        $this->postJson('/install/site', ['name' => 'Memories', 'access' => 'lan', 'timezone' => 'Europe/London', 'mode' => 'family'])->assertOk();
+        $this->postJson('/install/emails', ['mode' => 'log'])->assertOk();
+        $this->postJson('/install/sauvegardes', ['mode' => 'none'])->assertOk();
+        $this->postJson('/install/options', [])->assertOk();
+        Installer::markStep('storage', ['storage' => 'local']);
+        $this->postJson('/install/compte', [
+            'first_name' => 'Sam', 'last_name' => 'Smith', 'email' => 'sam@example.org',
+            'password' => 'a-strong-password', 'password_confirmation' => 'a-strong-password', 'circle' => 'The Smith family',
+        ])->assertOk();
+        $this->postJson('/install/terminer')->assertOk();
+
+        // Installé en anglais : le site est en anglais par défaut.
+        $this->assertSame('en', \App\Support\SiteSettings::locale());
+    }
 }

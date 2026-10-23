@@ -30,10 +30,16 @@ class SiteSettings
     /** @return array<string,mixed> */
     public static function all(): array
     {
-        return Cache::rememberForever(self::CACHE_KEY, fn () => DB::table('site_settings')
-            ->pluck('value', 'key')
-            ->map(fn ($v) => json_decode((string) $v, true))
-            ->all());
+        try {
+            return Cache::rememberForever(self::CACHE_KEY, fn () => DB::table('site_settings')
+                ->pluck('value', 'key')
+                ->map(fn ($v) => json_decode((string) $v, true))
+                ->all());
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Base pas encore créée (assistant d'installation) : réglages par
+            // défaut, sans rien mettre en cache.
+            return [];
+        }
     }
 
     /** Langue de l'interface par défaut (visiteurs, membres sans préférence). */
