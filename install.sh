@@ -313,6 +313,7 @@ update() {
     dc exec -T app sh -c 'npm ci --no-audit --no-fund >/dev/null 2>&1 && npm run build >/dev/null 2>&1'
     artisan migrate --force
     artisan optimize >/dev/null
+    artisan scout:sync-index-settings >/dev/null 2>&1 || true
     dc restart app horizon scheduler >/dev/null 2>&1
     wait_healthy nginx
     artisan up >/dev/null
