@@ -48,7 +48,7 @@
                 id="circle-name"
                 v-model="newName"
                 type="text"
-                :placeholder="newKind === 'friends' ? $t('Ex. Les copains de Lyon') : $t('Ex. Famille Herdegen')"
+                :placeholder="newKind === 'friends' ? $t('Ex. Les copains de Lyon') : $t('Ex. Famille Martin')"
                 maxlength="120"
                 class="form-input"
               />
