@@ -492,7 +492,10 @@ const hydrate = (s) => {
   Object.assign(mail, { ...s.mail, password: '', test_to: mail.test_to });
   if (s.backup.endpoint || s.done.includes('backup')) Object.assign(backup, { ...s.backup, secret: '' });
   Object.assign(options, { ...s.options, google_client_secret: '' });
-  if (s.account) Object.assign(account, s.account);
+  if (s.account) {
+    Object.assign(account, s.account);
+    circleEdited.value = true; // reprise : garder le nom déjà choisi
+  }
 };
 
 const call = async (method, url, data) => {
