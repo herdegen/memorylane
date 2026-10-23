@@ -96,6 +96,8 @@ class HandleInertiaRequests extends Middleware
                 'default' => \App\Support\SiteSettings::locale(),
                 'available' => \App\Support\Locales::SUPPORTED,
             ],
+            // Site de démonstration (bandeaux, bouton d'entrée, visite proposée).
+            'demo' => (bool) config('demo.enabled'),
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),

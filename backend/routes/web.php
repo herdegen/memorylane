@@ -53,6 +53,11 @@ Route::get('/invite/{user}/{person}', [AuthController::class, 'loginAsGuest'])
     ->middleware('signed')
     ->name('invite.guest');
 
+// Site de démonstration : entrée en un clic dans le compte partagé.
+Route::post('/demo/enter', [\App\Http\Controllers\DemoController::class, 'enter'])
+    ->middleware(['guest', 'throttle:30,1'])
+    ->name('demo.enter');
+
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
 // Langue de l'interface (membre connecté ou visiteur de la page de connexion)

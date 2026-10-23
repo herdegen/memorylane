@@ -68,6 +68,8 @@ return [
             'bucket' => env('SCALEWAY_BUCKET'),
             'url' => env('SCALEWAY_URL'),
             'endpoint' => env('SCALEWAY_ENDPOINT', 'https://s3.fr-par.scw.cloud'),
+            // Préfixe de toutes les clés (site de démo : « demo ») ; vide en prod.
+            'root' => env('SCALEWAY_ROOT', ''),
             'use_path_style_endpoint' => true,
             'throw' => false,
             'report' => false,

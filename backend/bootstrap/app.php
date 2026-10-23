@@ -21,6 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
         );
 
         $middleware->web(append: [
+            // Site de démonstration : ajouts, imports, e-mails et suppressions lourdes refusés.
+            \App\Http\Middleware\DemoGuard::class,
             // Télévision reliée : reconnexion par son jeton d'appareil.
             \App\Http\Middleware\TvDeviceLogin::class,
             // Langue de l'interface (profil, session, réglage du site).
