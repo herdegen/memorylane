@@ -19,8 +19,8 @@
       </div>
 
       <div class="flex gap-2">
-        <Link href="/media/google-photos" class="flex-1 h-11 rounded-xl bg-white border border-surface-300 text-sm font-semibold text-surface-900 flex items-center justify-center" @click="$emit('close')">Google Photos</Link>
-        <Link href="/media/google-drive" class="flex-1 h-11 rounded-xl bg-white border border-surface-300 text-sm font-semibold text-surface-900 flex items-center justify-center" @click="$emit('close')">Google Drive</Link>
+        <Link href="/google-photos" class="flex-1 h-11 rounded-xl bg-white border border-surface-300 text-sm font-semibold text-surface-900 flex items-center justify-center" @click="$emit('close')">Google Photos</Link>
+        <Link href="/google-drive" class="flex-1 h-11 rounded-xl bg-white border border-surface-300 text-sm font-semibold text-surface-900 flex items-center justify-center" @click="$emit('close')">Google Drive</Link>
         <Link href="/media/upload" class="flex-1 h-11 rounded-xl bg-white border border-surface-300 text-sm font-semibold text-surface-900 flex items-center justify-center" @click="$emit('close')">{{ $t('Un document') }}</Link>
       </div>
       <p class="text-xs text-surface-500 text-center">

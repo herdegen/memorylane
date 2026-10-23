@@ -249,6 +249,7 @@ import { useCircle } from '@/Composables/useCircle';
 import { useConfirm } from '@/Composables/useConfirm';
 import { apiError } from '@/utils/apiError';
 import { takePendingFiles } from '@/utils/pendingUpload';
+import { takeSharedFiles } from '@/utils/sharedFiles';
 import { t, tc } from '@/i18n';
 
 // `album-attached` : { albumId, albumName, count, isNew } ; `organize` : ids
@@ -292,6 +293,20 @@ onMounted(async () => {
   // on les prend en charge directement, sans second sélecteur.
   const pending = takePendingFiles();
   if (pending.length) addFiles(pending);
+
+  // Arrivée par « Partager → MemoryLane » depuis Google Photos / la Galerie :
+  // fichiers repris du service worker ; plusieurs photos → « Nouvel album »
+  // proposé d'office (on peut toujours changer ou ne rien ranger).
+  if (!props.targetAlbumId && new URLSearchParams(window.location.search).has('partage')) {
+    const shared = await takeSharedFiles();
+    if (shared.length) {
+      addFiles(shared);
+      if (shared.length > 1) {
+        showAlbumOptions.value = true;
+        albumMode.value = 'new';
+      }
+    }
+  }
 
   if (props.targetAlbumId) return;
   loadingAlbums.value = true;

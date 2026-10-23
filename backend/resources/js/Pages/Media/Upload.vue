@@ -118,7 +118,9 @@ const device = detectDevice();
 const showTutorial = ref(false);
 // Pas pendant la visite guidée : sa bulle tomberait au milieu du tuto.
 onMounted(() => {
-  if (!page.props.auth?.user?.onboarding?.upload_tutorial && !tourInProgress()) showTutorial.value = true;
+  // Pas de tutoriel par-dessus des photos arrivées par « Partager → MemoryLane ».
+  const fromShare = new URLSearchParams(window.location.search).has('partage');
+  if (!page.props.auth?.user?.onboarding?.upload_tutorial && !tourInProgress() && !fromShare) showTutorial.value = true;
 });
 const closeTutorial = () => {
   showTutorial.value = false;
