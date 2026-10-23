@@ -189,6 +189,12 @@
   @media (min-width: 640px) {
     .app-viewport { height: calc(100dvh - 4rem); }
   }
+  /* Téléphone : le bouton central « + » de la barre d'onglets dépasse de
+     1,5rem au-dessus d'elle et masquait le bas des cartes plein écran
+     (crédit OpenStreetMap obligatoire, contrôles du bas). */
+  @media (max-width: 639px) {
+    .app-viewport .leaflet-bottom { margin-bottom: 1.75rem; }
+  }
   .page-container {
     @apply py-4 sm:py-10;
   }

@@ -329,7 +329,7 @@
         >
           <div
             v-if="mobileCardVisible"
-            class="md:hidden absolute inset-x-3 bottom-3 z-20 bg-white/95 dark:bg-surface-100/95 backdrop-blur border border-surface-200 rounded-2xl shadow-warm-lg p-3"
+            class="md:hidden absolute inset-x-3 bottom-8 z-20 bg-white/95 dark:bg-surface-100/95 backdrop-blur border border-surface-200 rounded-2xl shadow-warm-lg p-3"
           >
             <div class="flex items-center gap-3">
               <PersonAvatar

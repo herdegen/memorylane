@@ -53,7 +53,10 @@
 
       <!-- Actions flottantes (téléphone : partage et ⋯ seulement, le
            diaporama vit dans la barre sous le héro) -->
-      <div class="absolute top-3 right-4 sm:top-5 sm:right-8 z-20 flex items-center gap-2.5">
+      <!-- z-30 : au-dessus du bloc titre (z-20, posé après dans la page et large
+           comme l'en-tête) — sinon le menu ⋯ qui se déroule passe dessous et
+           ses derniers choix (Géolocaliser, Modifier…) ne reçoivent plus le clic. -->
+      <div class="absolute top-3 right-4 sm:top-5 sm:right-8 z-30 flex items-center gap-2.5">
         <button
           v-if="hasPlayableMedia"
           @click="startSlideshow"

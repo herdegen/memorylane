@@ -155,7 +155,7 @@
         </div>
 
         <!-- Frise des années -->
-        <div v-if="yearSteps.length > 1" class="absolute left-4 right-4 bottom-4 flex items-center gap-3 bg-white/90 backdrop-blur border border-surface-200 rounded-2xl px-4 py-2 shadow-warm-sm">
+        <div v-if="yearSteps.length > 1" class="absolute left-4 right-4 bottom-8 sm:bottom-4 flex items-center gap-3 bg-white/90 backdrop-blur border border-surface-200 rounded-2xl px-4 py-2 shadow-warm-sm">
           <span class="text-xs font-semibold text-surface-600 whitespace-nowrap max-sm:hidden">{{ $t('Le réseau en') }}</span>
           <div class="flex-1 flex gap-1.5 overflow-x-auto">
             <button
@@ -173,7 +173,7 @@
         </div>
 
         <!-- États -->
-        <div v-if="loading" class="absolute inset-0 flex items-center justify-center text-surface-500">{{ $t('Chargement du réseau…') }}</div>
+        <div v-if="loading" class="absolute inset-0 flex items-center justify-center text-surface-500 pointer-events-none">{{ $t('Chargement du réseau…') }}</div>
         <div v-else-if="!rawEdges.length" class="absolute inset-0 flex items-center justify-center p-8">
           <div class="max-w-md text-center bg-white border border-surface-200 rounded-2xl p-8 shadow-warm-sm">
             <h2 class="text-display text-xl text-surface-900 mb-2">{{ $t('Pas encore de liens') }}</h2>
