@@ -170,8 +170,17 @@ class TvPairingController extends Controller
     public static function apkInfo(): ?array
     {
         $file = resource_path('tv/version.json');
+        $info = is_file($file) ? json_decode((string) file_get_contents($file), true) : null;
+        if (! $info) {
+            return null;
+        }
 
-        return is_file($file) ? json_decode((string) file_get_contents($file), true) : null;
+        // L'application ouvre une adresse fixée à sa construction : chez une
+        // autre installation, celle fournie mènerait au mauvais serveur.
+        $target = parse_url($info['url'] ?? 'https://memory-lane.fr/tv/ecran', PHP_URL_HOST);
+        $info['forThisSite'] = $target === parse_url((string) config('app.url'), PHP_URL_HOST);
+
+        return $info;
     }
 
     public function destroy(Request $request, TvDevice $tvDevice)

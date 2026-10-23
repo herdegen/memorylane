@@ -18,6 +18,7 @@ KEYS=${TV_KEYS:-$HOME/.memorylane-tv}
 BT=34.0.0
 API=34
 OUT=../backend/resources/tv/memorylane-tv.apk
+# Autre serveur (installation chez soi) : TV_URL=https://photos.mafamille.fr/tv/ecran ./build.sh
 # Variante de test : TV_URL=https://dev.memory-lane.fr/tv/ecran TV_AUTH_FILE=~/.memorylane-dev-password ./build.sh
 # (APK laissé dans build/, jamais publié ; identifiants lus du fichier, pas du dépôt).
 TV_URL=${TV_URL:-https://memory-lane.fr/tv/ecran}
@@ -66,7 +67,8 @@ docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp \
   \$T/apksigner verify build/memorylane-tv.apk
   \$T/aapt dump badging build/memorylane-tv.apk | grep -E '^(package|sdkVersion|targetSdkVersion|application-label|leanback-launchable)'
 "
-if [ "$TV_URL" != "https://memory-lane.fr/tv/ecran" ] || [ -n "$AUTH_USER" ]; then
+# Avec des identifiants (site de test protégé) : jamais publiée.
+if [ -n "$AUTH_USER" ]; then
   echo "✅ Variante de test : tv-app/build/memorylane-tv.apk ($TV_URL), non publiée"
   exit 0
 fi
@@ -75,5 +77,5 @@ cp build/memorylane-tv.apk "$OUT"
 # Version affichée sur la page « Relier une télévision ».
 VNAME=$(grep -o 'android:versionName="[^"]*"' AndroidManifest.xml | cut -d'"' -f2)
 VCODE=$(grep -o 'android:versionCode="[^"]*"' AndroidManifest.xml | cut -d'"' -f2)
-printf '{"version":"%s","code":%s,"size":%s}\n' "$VNAME" "$VCODE" "$(stat -c %s "$OUT")" > "$(dirname "$OUT")/version.json"
+printf '{"version":"%s","code":%s,"size":%s,"url":"%s"}\n' "$VNAME" "$VCODE" "$(stat -c %s "$OUT")" "$TV_URL" > "$(dirname "$OUT")/version.json"
 echo "✅ $(du -h "$OUT" | cut -f1) → $OUT"

@@ -72,7 +72,8 @@ class Installer
         $lines = [
             'PROFILES='.implode(',', array_filter($profiles, fn ($p) => preg_match('/^[a-z-]+$/', $p))),
             'DOMAIN='.(preg_match('/^[A-Za-z0-9.-]*$/', $domain) ? $domain : ''),
-            'BIND='.($bind === '127.0.0.1' ? '127.0.0.1' : '0.0.0.0'),
+            // Vide : install.sh garde l'adresse d'écoute choisie au lancement.
+            'BIND='.($bind === '127.0.0.1' ? '127.0.0.1' : ''),
         ];
         file_put_contents(self::dir().'/finished.env', implode("\n", $lines)."\n", LOCK_EX);
     }

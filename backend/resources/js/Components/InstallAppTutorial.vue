@@ -39,7 +39,7 @@
             <!-- Menu ⋮ de Chrome -->
             <div v-else-if="step.art === 'dots'" class="w-[86%]">
               <div class="flex items-center gap-2 rounded-lg bg-surface-100 px-2 py-2">
-                <span class="flex-1 h-4 rounded-full bg-white text-[8px] text-surface-400 px-2 leading-4 truncate">memory-lane.fr</span>
+                <span class="flex-1 h-4 rounded-full bg-white text-[8px] text-surface-400 px-2 leading-4 truncate">{{ siteHost }}</span>
                 <span class="w-6 h-6 rounded-full ring-2 ring-brand-500 bg-brand-50 flex items-center justify-center text-surface-700 font-bold leading-none">⋮</span>
               </div>
             </div>
@@ -80,6 +80,9 @@ import BaseModal from '@/Components/BaseModal.vue';
 import Trans from '@/Components/Trans.vue';
 import { t } from '@/i18n';
 import { iosBrowser } from '@/Composables/useInstallApp';
+
+// Adresse du site affichée dans l'illustration (chaque installation a la sienne).
+const siteHost = window.location.host;
 
 const props = defineProps({
   // 'ios' | 'android' | 'desktop' : onglet ouvert par défaut.

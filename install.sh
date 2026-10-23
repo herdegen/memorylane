@@ -177,7 +177,7 @@ wait_healthy() {
 
 setup_garage() {
     step "Stockage intégré des photos"
-    local g="dc exec -T garage /garage" node out key secret_key
+    local g="dc exec -T -e RUST_LOG=warn garage /garage" node out key secret_key
     for _ in $(seq 1 30); do $g status >/dev/null 2>&1 && break; sleep 2; done
     node=$($g status 2>/dev/null | awk '/HEALTHY NODES/ {f=1; next} f && $1 ~ /^[0-9a-f]+$/ {print $1; exit}')
     [ -n "$node" ] || fail "Garage ne répond pas. Voir : docker compose logs garage"
@@ -237,8 +237,9 @@ wait_for_wizard() {
     local token=$1 ip; ip=$(host_ip)
     printf '\n%s══════════════════════════════════════════════════════════════════%s\n' "$G" "$N"
     printf '  %sMemoryLane est prêt à être configuré.%s\n\n' "$B" "$N"
+    # Écoute locale seulement : l'adresse du réseau ne répondrait pas.
+    if [ "$BIND" = 127.0.0.1 ]; then ip=localhost; fi
     printf '  Ouvrez dans votre navigateur :  %shttp://%s:%s/install%s\n' "$B" "${ip:-localhost}" "$PORT" "$N"
-    [ "$BIND" = 127.0.0.1 ] && info "(depuis cette machine : http://localhost:${PORT}/install)"
     printf '  Code d\x27accès à saisir       :  %s%s%s\n' "$B" "$token" "$N"
     printf '%s══════════════════════════════════════════════════════════════════%s\n' "$G" "$N"
     info "Laissez ce terminal ouvert : il terminera l'installation quand vous aurez"
@@ -262,11 +263,13 @@ finish() {
     env_set "$ROOT_ENV" COMPOSE_PROFILES "$profiles"
     env_set "$ROOT_ENV" MEMORYLANE_DOMAIN "$domain"
     # HTTPS automatique : nginx n'écoute plus que pour Caddy (cette machine).
-    case "$bind" in 0.0.0.0|127.0.0.1) env_set "$ROOT_ENV" APP_BIND "$bind" ;; esac
+    # L'assistant peut seulement restreindre l'écoute, jamais l'élargir.
+    if [ "$bind" = 127.0.0.1 ]; then env_set "$ROOT_ENV" APP_BIND 127.0.0.1; fi
     ok "Services : ${profiles//,/, }"
 
     case ",$profiles," in *,faces,*) info "Construction de la reconnaissance des visages (5 à 15 minutes la première fois)…" ;; esac
-    dc up -d --build --remove-orphans >/dev/null 2>&1 || fail "Démarrage des services impossible. Voir : docker compose ps"
+    # Images manquantes (visages, la première fois) construites au passage.
+    dc up -d --remove-orphans >/dev/null 2>&1 || fail "Démarrage des services impossible. Voir : docker compose ps"
     case ",$profiles," in *,local-storage,*) ;; *) dc rm -sf garage >/dev/null 2>&1 || true ;; esac
     artisan optimize >/dev/null
     dc restart app horizon scheduler >/dev/null 2>&1

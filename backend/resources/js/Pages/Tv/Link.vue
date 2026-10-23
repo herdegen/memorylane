@@ -55,7 +55,12 @@
       <section class="mt-6 bg-white rounded-2xl border border-surface-200 p-5 space-y-3">
         <h2 class="text-base font-semibold text-surface-900">{{ $t('Installer l\'application sur la télévision') }}</h2>
         <p class="text-sm text-surface-600">{{ $t('Pour les téléviseurs et vidéoprojecteurs Android TV ou Google TV (Formovie, Sony, Philips, TCL…).') }}</p>
-        <ol class="list-decimal pl-5 space-y-1.5 text-sm text-surface-700">
+        <p v-if="app && !app.forThisSite" class="text-sm text-surface-600">
+          {{ $t('L\'application fournie est réglée pour un autre serveur. Pour la vôtre, construisez-la sur ce serveur :') }}
+          <code class="block mt-1.5 px-2 py-1.5 rounded bg-surface-100 text-xs break-all">cd tv-app &amp;&amp; TV_URL={{ screenOrigin }}/tv/ecran ./build.sh</code>
+          {{ $t('(voir docs/installation.md). En attendant, le navigateur de la télévision suffit.') }}
+        </p>
+        <ol v-if="!app || app.forThisSite" class="list-decimal pl-5 space-y-1.5 text-sm text-surface-700">
           <li>
             <Trans text="Sur la télévision, installez l'application gratuite :app depuis le Play Store.">
               <template #app><strong>Downloader</strong></template>
@@ -73,10 +78,10 @@
             </Trans>
           </li>
         </ol>
-        <p class="text-sm text-surface-600">
+        <p v-if="!app || app.forThisSite" class="text-sm text-surface-600">
           {{ $t('Sans Play Store : téléchargez le fichier sur un ordinateur, copiez-le sur une clé USB, puis ouvrez-le depuis le gestionnaire de fichiers de la télévision.') }}
         </p>
-        <div class="flex flex-wrap items-center gap-3 pt-1">
+        <div v-if="!app || app.forThisSite" class="flex flex-wrap items-center gap-3 pt-1">
           <a href="/tv/application" class="btn-secondary">{{ $t('Télécharger l\'application') }}</a>
           <span v-if="app" class="text-xs text-surface-500">{{ $t('Version :version · :size Ko', { version: app.version, size: Math.max(1, Math.round(app.size / 1024)) }) }}</span>
         </div>
@@ -109,6 +114,7 @@ const { confirm } = useConfirm();
 const form = useForm({ code: props.code ? `${props.code.slice(0, 3)} ${props.code.slice(3)}` : '', name: '' });
 const digits = computed(() => form.code.replace(/\D/g, ''));
 const screenUrl = `${window.location.host}/tv/ecran`;
+const screenOrigin = window.location.origin;
 const apkUrl = `${window.location.host}/apk`;
 
 const submit = () => {
