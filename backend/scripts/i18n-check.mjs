@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Contrôle des traductions de l'interface (texte français = clé).
 //
-//   node scripts/i18n-check.mjs                    clés utilisées absentes de lang/en.json
+//   node scripts/i18n-check.mjs                    clés utilisées absentes de chaque lang/*.json (hors fr)
 //   node scripts/i18n-check.mjs fichier.vue …      idem, pour ces fichiers seulement
 //   node scripts/i18n-check.mjs --dict a.json …    avec un ou plusieurs dictionnaires
 //   node scripts/i18n-check.mjs --leftovers …      texte français resté en dur (indices)
@@ -25,7 +25,11 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === '--keys') mode = 'keys';
   else files.push(resolve(args[i]));
 }
-if (!dicts.length) dicts.push(join(root, 'lang/en.json'));
+// Sans --dict : chaque langue (hors français, la source) contrôlée à part.
+const perLocale = !dicts.length;
+if (perLocale) {
+  for (const f of readdirSync(join(root, 'lang')).filter((f) => f.endsWith('.json') && f !== 'fr.json').sort()) dicts.push(join(root, 'lang', f));
+}
 
 const walk = (dir, out = []) => {
   for (const name of readdirSync(dir)) {
@@ -127,27 +131,31 @@ if (mode === 'keys') {
   process.exit(0);
 }
 
-const dict = Object.assign({}, ...dicts.map((d) => JSON.parse(readFileSync(d, 'utf8'))));
 const placeholders = (s) => [...new Set([...s.matchAll(/:([A-Za-z_][A-Za-z0-9_]*)/g)].map((m) => m[1].toLowerCase()))].sort();
+const keys = [...new Map(all.map((k) => [k.key, k])).values()];
+// Avec --dict : un seul ensemble ; sinon chaque langue à part.
+const groups = perLocale ? dicts.map((d) => [d]) : [dicts];
 let problems = 0;
-const seen = new Set();
-for (const { key, file, line } of all) {
-  if (seen.has(key)) continue;
-  seen.add(key);
-  if (!(key in dict)) {
-    console.log(`manquante  ${relative(process.cwd(), file)}:${line}  ${JSON.stringify(key)}`);
-    problems++;
-    continue;
-  }
-  // Mêmes paramètres des deux côtés ; « :decades » vaut « :decade » suivi
-  // de « s » (remplacement du plus long paramètre connu, comme Laravel).
-  const a = placeholders(key).filter((p) => !(key.includes('|') && p === 'count'));
-  const b = placeholders(dict[key]).map((p) => a.filter((k) => p.startsWith(k)).sort((x, y) => y.length - x.length)[0] ?? p)
-    .filter((p) => !(key.includes('|') && p === 'count'));
-  if (a.join() !== [...new Set(b)].sort().join()) {
-    console.log(`paramètres ${relative(process.cwd(), file)}:${line}  ${JSON.stringify(key)} → ${JSON.stringify(dict[key])}`);
-    problems++;
+for (const group of groups) {
+  const label = perLocale ? `[${relative(root, group[0])}] ` : '';
+  const dict = Object.assign({}, ...group.map((d) => JSON.parse(readFileSync(d, 'utf8'))));
+  for (const { key, file, line } of keys) {
+    const where = `${relative(process.cwd(), file)}:${line}`;
+    if (!(key in dict)) {
+      console.log(`${label}manquante  ${where}  ${JSON.stringify(key)}`);
+      problems++;
+      continue;
+    }
+    // Mêmes paramètres des deux côtés ; « :decades » vaut « :decade » suivi
+    // de « s » (remplacement du plus long paramètre connu, comme Laravel).
+    const a = placeholders(key).filter((p) => !(key.includes('|') && p === 'count'));
+    const b = placeholders(dict[key]).map((p) => a.filter((k) => p.startsWith(k)).sort((x, y) => y.length - x.length)[0] ?? p)
+      .filter((p) => !(key.includes('|') && p === 'count'));
+    if (a.join() !== [...new Set(b)].sort().join()) {
+      console.log(`${label}paramètres ${where}  ${JSON.stringify(key)} → ${JSON.stringify(dict[key])}`);
+      problems++;
+    }
   }
 }
-console.error(`${seen.size} clé(s) utilisée(s), ${problems} problème(s).`);
+console.error(`${keys.length} clé(s) utilisée(s), ${groups.length} langue(s), ${problems} problème(s).`);
 process.exit(problems ? 1 : 0);

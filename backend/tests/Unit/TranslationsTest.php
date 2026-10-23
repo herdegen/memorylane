@@ -6,12 +6,12 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Toute phrase de l'interface passée par t()/$t()/tc()/<Trans> (Vue) ou
- * __()/trans_choice() (PHP) doit avoir sa traduction anglaise dans
- * lang/en.json — le texte français sert de clé. Un oubli afficherait du
- * français à un membre anglophone.
+ * __()/trans_choice() (PHP) doit avoir sa traduction dans CHAQUE langue
+ * (lang/en.json, lang/es.json…) — le texte français sert de clé. Un oubli
+ * afficherait du français à un membre d'une autre langue.
  *
  * Ajouter une phrase : l'écrire en français dans le code via ces fonctions,
- * puis ajouter "phrase française": "English sentence" dans lang/en.json
+ * puis ajouter "phrase française": "traduction" dans chaque lang/<langue>.json
  * (`node scripts/i18n-check.mjs` liste les manquantes).
  */
 class TranslationsTest extends TestCase
@@ -88,26 +88,41 @@ class TranslationsTest extends TestCase
         }, $s);
     }
 
-    /** @return array<string,string> */
-    private function dictionary(): array
+    /**
+     * Dictionnaires des langues autres que le français (source).
+     *
+     * @return array<string,array<string,string>> langue → dictionnaire
+     */
+    private function dictionaries(): array
     {
-        $json = json_decode(file_get_contents($this->base().'/lang/en.json'), true);
-        $this->assertIsArray($json, 'lang/en.json invalide');
+        $all = [];
+        foreach (glob($this->base().'/lang/*.json') as $path) {
+            $locale = basename($path, '.json');
+            if ($locale === 'fr') {
+                continue; // lignes des gabarits Laravel seulement
+            }
+            $json = json_decode(file_get_contents($path), true);
+            $this->assertIsArray($json, "lang/{$locale}.json invalide");
+            $all[$locale] = $json;
+        }
+        $this->assertArrayHasKey('en', $all);
 
-        return $json;
+        return $all;
     }
 
-    public function test_chaque_phrase_de_l_interface_a_sa_traduction_anglaise(): void
+    public function test_chaque_phrase_de_l_interface_est_traduite_dans_chaque_langue(): void
     {
-        $dict = $this->dictionary();
+        $used = $this->usedKeys();
         $missing = [];
-        foreach ($this->usedKeys() as $key => $where) {
-            if (! array_key_exists($key, $dict)) {
-                $missing[] = "{$where}  ".json_encode($key, JSON_UNESCAPED_UNICODE);
+        foreach ($this->dictionaries() as $locale => $dict) {
+            foreach ($used as $key => $where) {
+                if (! array_key_exists($key, $dict)) {
+                    $missing[] = "{$locale}  {$where}  ".json_encode($key, JSON_UNESCAPED_UNICODE);
+                }
             }
         }
 
-        $this->assertSame([], $missing, count($missing)." phrase(s) sans traduction dans lang/en.json :\n".implode("\n", array_slice($missing, 0, 40)));
+        $this->assertSame([], $missing, count($missing)." phrase(s) sans traduction :\n".implode("\n", array_slice($missing, 0, 40)));
     }
 
     public function test_les_traductions_gardent_les_memes_parametres(): void
@@ -132,17 +147,18 @@ class TranslationsTest extends TestCase
         };
 
         $wrong = [];
-        foreach ($this->dictionary() as $key => $value) {
-            $plural = str_contains($key, '|');
-            $expected = $params($key, $plural);
-            if ($expected !== $params((string) $value, $plural, $params($key, false))) {
-                $wrong[] = json_encode($key, JSON_UNESCAPED_UNICODE).' → '.json_encode($value, JSON_UNESCAPED_UNICODE);
-            }
-            // Une traduction au pluriel pour une clé qui ne l'est pas
-            // s'afficherait telle quelle (« a|b »). L'inverse est permis
-            // (« :count selected » convient à tous les nombres).
-            if (! $plural && str_contains((string) $value, '|')) {
-                $wrong[] = 'pluriel : '.json_encode($key, JSON_UNESCAPED_UNICODE);
+        foreach ($this->dictionaries() as $locale => $dict) {
+            foreach ($dict as $key => $value) {
+                $plural = str_contains($key, '|');
+                if ($params($key, $plural) !== $params((string) $value, $plural, $params($key, false))) {
+                    $wrong[] = "{$locale} ".json_encode($key, JSON_UNESCAPED_UNICODE).' → '.json_encode($value, JSON_UNESCAPED_UNICODE);
+                }
+                // Une traduction au pluriel pour une clé qui ne l'est pas
+                // s'afficherait telle quelle (« a|b »). L'inverse est permis
+                // (« :count selected » convient à tous les nombres).
+                if (! $plural && str_contains((string) $value, '|')) {
+                    $wrong[] = "{$locale} pluriel : ".json_encode($key, JSON_UNESCAPED_UNICODE);
+                }
             }
         }
 

@@ -14,6 +14,7 @@ class Locales
     public const SUPPORTED = [
         'fr' => 'Français',
         'en' => 'English',
+        'es' => 'Español',
     ];
 
     public static function supports(mixed $locale): bool
@@ -33,6 +34,10 @@ class Locales
     /** Code de langue pour les formats de dates/nombres (Intl, navigateur). */
     public static function intl(string $locale): string
     {
-        return $locale === 'en' ? 'en-GB' : 'fr-FR';
+        return match ($locale) {
+            'en' => 'en-GB',
+            'es' => 'es-ES',
+            default => 'fr-FR',
+        };
     }
 }

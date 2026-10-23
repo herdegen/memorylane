@@ -167,12 +167,16 @@ class GenealogyService
      * Nom français du lien pour les motifs courants (genré sur la cible),
      * « par alliance » quand un unique pas conjoint encadre un motif connu.
      * Null pour les chemins exotiques (le front affichera « lien en N pas »).
-     * En anglais : mêmes motifs, libellés construits par englishRelationLabel.
+     * En anglais : mêmes motifs, libellés construits par englishRelationLabel ;
+     * en espagnol, par spanishRelationLabel.
      */
     public static function relationLabel(array $edges, ?string $gender): ?string
     {
         if (app()->getLocale() === 'en') {
             return self::englishRelationLabel($edges, $gender);
+        }
+        if (app()->getLocale() === 'es') {
+            return self::spanishRelationLabel($edges, $gender);
         }
 
         $f = $gender === 'F';
@@ -273,6 +277,82 @@ class GenealogyService
                 }
 
                 return 'your '.$direct[implode('.', $rest)].' by marriage';
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Libellé espagnol du lien (tutoiement « tu ») : mêmes motifs que
+     * relationLabel (et null pour les mêmes chemins), genré sur la cible ;
+     * genre inconnu → masculin générique, comme en français. Par alliance :
+     * suegro / yerno pour les parents du conjoint et le conjoint d'un enfant,
+     * padrastro / hijastro pour le conjoint d'un parent et les enfants du
+     * conjoint ; au-delà d'une génération et pour les autres motifs,
+     * « … político / política » (tío político, abuela política, cuñada política…).
+     */
+    private static function spanishRelationLabel(array $edges, ?string $gender): ?string
+    {
+        $f = $gender === 'F';
+        // Ascendant ou descendant à $n générations : madre, abuela, bisabuela…
+        $line = fn (string $dir, int $n) => match (true) {
+            $dir === 'parent' && $n === 1 => $f ? 'madre' : 'padre',
+            $dir === 'parent' && $n === 2 => $f ? 'abuela' : 'abuelo',
+            $dir === 'parent' => $f ? 'bisabuela' : 'bisabuelo',
+            $n === 1 => $f ? 'hija' : 'hijo',
+            $n === 2 => $f ? 'nieta' : 'nieto',
+            default => $f ? 'bisnieta' : 'bisnieto',
+        };
+        $politico = $f ? ' política' : ' político';
+
+        $direct = [
+            'parent' => $line('parent', 1),
+            'parent.parent' => $line('parent', 2),
+            'parent.parent.parent' => $line('parent', 3),
+            'child' => $line('child', 1),
+            'child.child' => $line('child', 2),
+            'child.child.child' => $line('child', 3),
+            'parent.child' => $f ? 'hermana' : 'hermano',
+            'parent.child.child' => $f ? 'sobrina' : 'sobrino',
+            'parent.parent.child' => $f ? 'tía' : 'tío',
+            'parent.parent.child.child' => $f ? 'prima hermana' : 'primo hermano',
+            'spouse' => $f ? 'esposa' : 'esposo',
+            'spouse.parent' => $f ? 'suegra' : 'suegro',
+            'parent.child.spouse' => $f ? 'cuñada' : 'cuñado',
+            'spouse.parent.child' => $f ? 'cuñada' : 'cuñado',
+            'child.spouse' => $f ? 'nuera' : 'yerno',
+        ];
+
+        $key = implode('.', $edges);
+        if (isset($direct[$key])) {
+            return 'tu '.$direct[$key];
+        }
+
+        // Même règle qu'en français : un unique pas « conjoint » en tête ou en queue.
+        if (count($edges) > 1 && ! in_array('spouse', array_slice($edges, 1, -1), true)) {
+            foreach ([['start', array_slice($edges, 1)], ['end', array_slice($edges, 0, -1)]] as [$where, $rest]) {
+                $edge = $where === 'start' ? $edges[0] : end($edges);
+                $restKey = implode('.', $rest);
+                if ($edge !== 'spouse' || ! isset($direct[$restKey])) {
+                    continue;
+                }
+                // Lignée droite (que des montées ou que des descentes) sur une génération.
+                if (count($rest) === 1 && $rest[0] !== 'spouse') {
+                    $inLaw = ($where === 'start') === ($rest[0] === 'parent');
+
+                    return 'tu '.match (true) {
+                        $inLaw && $rest[0] === 'parent' => $f ? 'suegra' : 'suegro',
+                        $inLaw => $f ? 'nuera' : 'yerno',
+                        $rest[0] === 'parent' => $f ? 'madrastra' : 'padrastro',
+                        default => $f ? 'hijastra' : 'hijastro',
+                    };
+                }
+
+                // « primo hermano político » sonne mal : « primo político ».
+                $base = $restKey === 'parent.parent.child.child' ? ($f ? 'prima' : 'primo') : $direct[$restKey];
+
+                return 'tu '.$base.$politico;
             }
         }
 

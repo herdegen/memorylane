@@ -256,7 +256,7 @@ const openPicker = async () => {
       .setAppId(props.picker.appId)
       .setOAuthToken(data.access_token)
       .setOrigin(window.location.origin)
-      .setLocale(locale() === 'en' ? 'en-GB' : 'fr')
+      .setLocale({ en: 'en-GB', es: 'es' }[locale()] ?? 'fr')
       .setTitle(t('Choisissez vos photos'))
       .addView(myDrive)
       .addView(sharedWithMe)

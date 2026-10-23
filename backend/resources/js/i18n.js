@@ -11,20 +11,25 @@
 // classique placé avant l'application (/i18n/<langue>, mis en cache), donc
 // disponible dès l'évaluation des modules ; changer de langue recharge la page.
 
+// Langues de l'interface (le français est la langue source) et leur code
+// Intl pour les dates, nombres et tris.
+const INTL = { fr: 'fr-FR', en: 'en-GB', es: 'es-ES' };
+const known = (code) => (Object.prototype.hasOwnProperty.call(INTL, code) ? code : 'fr');
+
 const boot = typeof window !== 'undefined' ? window.__ML_I18N__ : null;
-let current = boot?.locale === 'en' ? 'en' : 'fr';
+let current = known(boot?.locale);
 let messages = boot?.messages ?? {};
 
 // Tests / outils : remplacer la langue et le dictionnaire.
 export function setMessages(code, dict) {
-  current = code === 'en' ? 'en' : 'fr';
+  current = known(code);
   messages = dict ?? {};
 }
 
 export const locale = () => current;
 
 // Code pour Intl / toLocaleDateString (dates, nombres, tri alphabétique).
-export const intlLocale = () => (current === 'en' ? 'en-GB' : 'fr-FR');
+export const intlLocale = () => INTL[current];
 
 // Comme Laravel : « :name » → valeur, « :Name » → avec majuscule,
 // « :NAME » → en capitales ; la clé la plus longue l'emporte.
@@ -50,7 +55,7 @@ export function t(key, params) {
 
 // Pluriel au format Laravel (trans_choice) : formes séparées par « | »,
 // conditions explicites facultatives {n}, [a,b], [a,*] ; sinon règle de la
-// langue (français : 0 et 1 au singulier ; anglais : 1 seul au singulier).
+// langue (français : 0 et 1 au singulier ; anglais, espagnol : 1 seul).
 function choose(line, count) {
   const parts = line.split('|');
   for (const part of parts) {

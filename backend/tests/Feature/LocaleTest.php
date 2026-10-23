@@ -133,4 +133,22 @@ class LocaleTest extends TestCase
         $this->assertSame('2 items', trans_choice($key, 2));
         $this->assertSame('1 item', trans_choice($key, 1));
     }
+
+    public function test_espagnol(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user)->postJson('/locale', ['locale' => 'es'])->assertNoContent();
+        $this->assertSame('es', $user->fresh()->preferredLocale());
+
+        $this->actingAs($user->fresh())->get('/dashboard')
+            ->assertSee('<html lang="es"', false)
+            ->assertInertia(fn ($page) => $page->where('i18n.locale', 'es')->has('i18n.available.es')->etc());
+        $this->get('/i18n/es')->assertOk()->assertSee('window.__ML_I18N__={"locale":"es"', false);
+
+        app()->setLocale('es');
+        $this->assertSame('2 médias', trans_choice(':count média|:count médias', 2, [], 'fr'));
+        $this->assertStringNotContainsString('médias', trans_choice(':count média|:count médias', 2));
+        // Messages de validation en espagnol (lang/es/validation.php), pas en français.
+        $this->assertNotSame(__('validation.required', ['attribute' => 'x'], 'fr'), __('validation.required', ['attribute' => 'x']));
+    }
 }

@@ -24,7 +24,7 @@ class MediaExportReady extends Notification
             ->line(trans_choice('Vos :total photos et vidéos (originaux) sont prêtes, en :count archive ZIP. Chaque archive contient un fichier index.csv (date, titre, albums, personnes).|Vos :total photos et vidéos (originaux) sont prêtes, en :count archives ZIP. Chaque archive contient un fichier index.csv (date, titre, albums, personnes).', count($this->parts), ['total' => $this->count]));
 
         // Séparateur des milliers selon la langue (« 1 024 Mo » / « 1,024 MB »).
-        $thousands = app()->getLocale() === 'fr' ? ' ' : ',';
+        $thousands = ['fr' => ' ', 'es' => '.'][app()->getLocale()] ?? ',';
         foreach ($this->parts as $part) {
             $size = __(':size Mo', ['size' => number_format($part['size'] / 1048576, 0, ',', $thousands)]);
             $mail->line("[{$part['name']}]({$part['url']}) — {$size}");
