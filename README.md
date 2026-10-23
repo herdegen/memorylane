@@ -2,6 +2,14 @@
 
 MemoryLane est une plateforme de gestion de médias familiaux permettant de stocker, organiser et partager photos, vidéos et documents pour votre famille.
 
+## Installer MemoryLane chez soi
+
+```bash
+git clone https://github.com/herdegen/memorylane.git && cd memorylane && ./install.sh
+```
+
+Le script prépare les conteneurs, puis un assistant dans le navigateur explique et règle chaque étape (adresse du site et HTTPS, stockage des photos, e-mails, sauvegardes, compte administrateur). Guide complet : [docs/installation.md](docs/installation.md).
+
 ## Technologies
 
 ### Backend

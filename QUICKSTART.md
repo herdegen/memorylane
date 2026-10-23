@@ -1,44 +1,13 @@
-# 🚀 MemoryLane - Démarrage Rapide
-
-## ✅ Installation terminée !
-
-Tous les services Podman sont actifs et configurés.
-
-## 🎯 Prochaine étape : Créer un admin
+# MemoryLane — démarrage rapide
 
 ```bash
-./podman.sh tinker
+git clone https://github.com/herdegen/memorylane.git
+cd memorylane
+./install.sh
 ```
 
-Puis dans Tinker :
+Puis ouvrez l'adresse affichée par le script et suivez l'assistant : il explique chaque étape (adresse du site, stockage des photos, e-mails, sauvegardes, compte administrateur).
 
-```php
-User::create(['name' => 'Admin', 'email' => 'admin@memorylane.com', 'password' => Hash::make('password')]);
-```
-
-## 🌐 URLs importantes
-
-- **Application** : http://localhost:8000
-- **Admin Panel** : http://localhost:8000/admin
-- **Credentials** : admin@memorylane.com / password
-
-## 🛠️ Commandes essentielles
-
-```bash
-./podman.sh status   # État des services
-./podman.sh logs     # Voir les logs
-./podman.sh dev      # Mode développement
-./podman.sh test     # Lancer les tests
-./podman.sh stop     # Arrêter tout
-./podman.sh start    # Démarrer tout
-```
-
-## 📚 Documentation complète
-
-- [INSTALLATION_SUCCESS.md](INSTALLATION_SUCCESS.md) - Guide complet
-- [PODMAN_SETUP.md](PODMAN_SETUP.md) - Installation Podman
-- [README.md](README.md) - Documentation projet
-
----
-
-**Tout est prêt ! Créez votre admin et connectez-vous 🎉**
+- Mettre à jour : `./install.sh update`
+- État des services : `./install.sh status`
+- Guide complet, dépannage, restauration : [docs/installation.md](docs/installation.md)
