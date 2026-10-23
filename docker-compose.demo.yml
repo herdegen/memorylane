@@ -1,0 +1,75 @@
+# Site de DÉMONSTRATION : famille fictive, ouvert au public (pas de mot de passe).
+#
+#   ~/memorylane-demo (worktree git, branche `demo`), projet compose
+#   « memorylane-demo » ; .env racine : COMPOSE_FILE=docker-compose.yml:docker-compose.demo.yml
+#
+# Conteneurs, volumes et réseau distincts de la prod et du dev ; aucun port
+# publié : joignable seulement via Traefik sur demo.memory-lane.fr.
+# backend/.env : DEMO_MODE=true (envois de photos, imports, e-mails et
+# suppressions lourdes bloqués), base memorylane_demo, photos sous le préfixe
+# « demo/ » du bucket (SCALEWAY_ROOT=demo), mails neutralisés (MAIL_FORCE_LOG).
+# Construction : `docker compose exec app php artisan demo:build` ; remise à
+# zéro automatique chaque nuit (demo:reset, via le scheduler).
+
+services:
+  postgres:
+    container_name: memorylane_demo_postgres
+    ports: !override []
+    restart: unless-stopped
+
+  redis:
+    container_name: memorylane_demo_redis
+    ports: !override []
+    restart: unless-stopped
+
+  meilisearch:
+    container_name: memorylane_demo_meilisearch
+    ports: !override []
+    restart: unless-stopped
+
+  mailpit:
+    container_name: memorylane_demo_mailpit
+    ports: !override []
+
+  app:
+    container_name: memorylane_demo_app
+    ports: !override []
+    restart: unless-stopped
+
+  nginx:
+    container_name: memorylane_demo_nginx
+    ports: !override []
+    restart: unless-stopped
+    networks:
+      - memorylane
+      - traefik-proxy
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "traefik-proxy"
+      traefik.http.routers.memorylane-demo.entrypoints: "websecure"
+      traefik.http.routers.memorylane-demo.rule: "Host(`demo.memory-lane.fr`)"
+      traefik.http.routers.memorylane-demo.tls.certresolver: "le"
+      traefik.http.routers.memorylane-demo.service: "memorylane-demo"
+      traefik.http.services.memorylane-demo.loadbalancer.server.port: "80"
+
+  horizon:
+    container_name: memorylane_demo_horizon
+    restart: unless-stopped
+
+  # Actif en démo : remise à zéro de la nuit (les tâches de la prod — lettre,
+  # notifications, sauvegardes, supervision — sont sautées en mode démo).
+  scheduler:
+    container_name: memorylane_demo_scheduler
+    restart: unless-stopped
+
+  faces:
+    container_name: memorylane_demo_faces
+
+  # Pas de sauvegarde : l'instantané de demo:build fait foi.
+  backup:
+    container_name: memorylane_demo_backup
+    profiles: ["prod-only"]
+
+networks:
+  traefik-proxy:
+    external: true

@@ -1,6 +1,7 @@
 <template>
   <div class="min-h-screen bg-page">
     <ImpersonationBanner />
+    <DemoBanner />
     <!-- Fête d'anniversaire : première visite du jour d'un anniversaire -->
     <BirthdayGreeting />
     <nav class="bg-white border-b border-surface-200 sticky top-0 z-40">
@@ -169,6 +170,7 @@
     <BringInDialog />
     <ConfirmDialog />
     <GuidedTour v-if="user" />
+    <DemoWelcome v-if="user && $page.props.demo" />
     <InstallAppTutorial v-if="showInstallTutorial" :device="installDevice" @close="showInstallTutorial = false" />
   </div>
 </template>
@@ -197,6 +199,8 @@ import { useAuth } from '@/Composables/useAuth';
 import { useTheme } from '@/Composables/useTheme';
 import { startBackgroundFaceScan } from '@/Composables/useBackgroundFaceScan';
 import ImpersonationBanner from '@/Components/ImpersonationBanner.vue';
+import DemoBanner from '@/Components/DemoBanner.vue';
+import DemoWelcome from '@/Components/DemoWelcome.vue';
 import BirthdayGreeting from '@/Components/BirthdayGreeting.vue';
 import { usePush } from '@/Composables/usePush';
 import { useCircle } from '@/Composables/useCircle';

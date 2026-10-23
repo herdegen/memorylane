@@ -283,7 +283,8 @@ export function attachTour(page) {
     goTo(current);
     return;
   }
-  if (page.component === 'Dashboard' && !user.onboarding?.tour) {
+  // Démo : compte partagé, la visite est proposée par DemoWelcome (par navigateur).
+  if (page.component === 'Dashboard' && !user.onboarding?.tour && !page.props.demo) {
     goTo(0);
   }
 }

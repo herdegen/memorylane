@@ -17,6 +17,17 @@
         <p class="mt-1 text-sm text-surface-500">{{ $t('Connectez-vous à votre galerie de souvenirs') }}</p>
       </div>
 
+      <!-- Site de démonstration : entrée en un clic dans la famille fictive -->
+      <div v-if="$page.props.demo" class="mb-8 rounded-2xl bg-brand-50 border border-brand-200 p-5 text-center space-y-3">
+        <p class="text-sm text-surface-700">
+          {{ $t('Découvrez MemoryLane avec la famille Lambert, une famille imaginaire : arbre, photos, récits de vie, carte des souvenirs.') }}
+        </p>
+        <button type="button" class="btn-primary w-full justify-center" :disabled="entering" @click="enterDemo">
+          {{ entering ? $t('Ouverture…') : $t('Entrer dans la démo') }}
+        </button>
+        <p class="text-xs text-surface-500">{{ $t('Aucune inscription. Tout revient à l’état de départ chaque nuit.') }}</p>
+      </div>
+
       <!-- Success message -->
       <FormError
         v-if="status || flashSuccess"
@@ -111,8 +122,8 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import FormField from '@/Components/Forms/FormField.vue';
 import FormError from '@/Components/Forms/FormError.vue';
 import FormButton from '@/Components/Forms/FormButton.vue';
@@ -135,6 +146,13 @@ const form = useForm({
 const magicForm = useForm({
   email: '',
 });
+
+// Démo : connexion au compte partagé (POST, jeton CSRF géré par Inertia).
+const entering = ref(false);
+const enterDemo = () => {
+  entering.value = true;
+  router.post('/demo/enter', {}, { onFinish: () => { entering.value = false; } });
+};
 
 const sendMagicLink = () => {
   magicForm.email = form.email;

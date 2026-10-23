@@ -2462,5 +2462,20 @@
     "ZIP jusqu'à 2 Go chacun — plusieurs fichiers possibles": "ZIP up to 2 GB each — several files allowed",
     "Zoom": "Zoom",
     "Zoomer": "Zoom in",
-    "Zoomez sur une région pour retrouver les photos qui y ont été prises.": "Zoom into a region to find the photos taken there."
+    "Zoomez sur une région pour retrouver les photos qui y ont été prises.": "Zoom into a region to find the photos taken there.",
+    "Bienvenue dans MemoryLane": "Welcome to MemoryLane",
+    "Vous visitez la famille Lambert, une famille imaginaire, avec son arbre, ses photos et ses souvenirs.": "You are visiting the Lambert family, an imaginary family, with its tree, photos and memories.",
+    "C’est votre première visite ?": "Is this your first visit?",
+    "Oui, faites-moi visiter": "Yes, show me around",
+    "Non, je regarde seul": "No, I'll look around myself",
+    "La visite reste disponible à tout moment, en haut de la page.": "The tour remains available at any time, at the top of the page.",
+    "Démonstration : une famille imaginaire pour découvrir MemoryLane. Tout revient à l’état de départ chaque nuit.": "Demo: an imaginary family to discover MemoryLane. Everything is reset every night.",
+    "Refaire la visite": "Take the tour again",
+    "Découvrez MemoryLane avec la famille Lambert, une famille imaginaire : arbre, photos, récits de vie, carte des souvenirs.": "Discover MemoryLane with the Lambert family, an imaginary family: family tree, photos, life stories, map of memories.",
+    "Entrer dans la démo": "Enter the demo",
+    "Aucune inscription. Tout revient à l’état de départ chaque nuit.": "No sign-up. Everything is reset every night.",
+    "L’envoi de photos n’est pas disponible dans la démo": "Uploading photos is not available in the demo",
+    "Dans votre propre espace, c’est ici que la famille dépose ses photos et vidéos : depuis l’ordinateur par glisser-déposer, depuis le téléphone en quelques gestes, ou directement depuis Google Photos et Google Drive.": "In your own space, this is where the family adds its photos and videos: from a computer by drag and drop, from a phone in a few taps, or straight from Google Photos and Google Drive.",
+    "Les visages sont ensuite reconnus, les photos datées et placées sur la carte, et chacun peut les raconter.": "Faces are then recognised, photos dated and placed on the map, and everyone can tell their story.",
+    "Voir les photos de la famille Lambert": "See the Lambert family's photos"
 }

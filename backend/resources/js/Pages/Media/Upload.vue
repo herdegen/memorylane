@@ -20,7 +20,21 @@
           </button>
         </div>
 
-        <div class="card p-5 sm:p-8">
+        <!-- Démo : la page reste visible, mais on explique au lieu d'envoyer. -->
+        <div v-if="$page.props.demo" class="card p-6 sm:p-8 space-y-4">
+          <div class="flex items-start gap-4">
+            <span class="w-12 h-12 shrink-0 rounded-2xl bg-brand-100 text-brand-800 flex items-center justify-center" aria-hidden="true">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0l-4 4m4-4l4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" /></svg>
+            </span>
+            <div class="space-y-2">
+              <h2 class="text-lg font-semibold text-surface-900">{{ $t('L’envoi de photos n’est pas disponible dans la démo') }}</h2>
+              <p class="text-surface-600">{{ $t('Dans votre propre espace, c’est ici que la famille dépose ses photos et vidéos : depuis l’ordinateur par glisser-déposer, depuis le téléphone en quelques gestes, ou directement depuis Google Photos et Google Drive.') }}</p>
+              <p class="text-surface-600">{{ $t('Les visages sont ensuite reconnus, les photos datées et placées sur la carte, et chacun peut les raconter.') }}</p>
+            </div>
+          </div>
+          <Link href="/media" class="btn-secondary inline-flex">{{ $t('Voir les photos de la famille Lambert') }}</Link>
+        </div>
+        <div v-else class="card p-5 sm:p-8">
           <MediaUploader @organize="openAlbumModal" />
         </div>
 
@@ -118,7 +132,7 @@ const device = detectDevice();
 const showTutorial = ref(false);
 // Pas pendant la visite guidée : sa bulle tomberait au milieu du tuto.
 onMounted(() => {
-  if (!page.props.auth?.user?.onboarding?.upload_tutorial && !tourInProgress()) showTutorial.value = true;
+  if (!page.props.demo && !page.props.auth?.user?.onboarding?.upload_tutorial && !tourInProgress()) showTutorial.value = true;
 });
 const closeTutorial = () => {
   showTutorial.value = false;

@@ -160,7 +160,7 @@ class S3Service
         $client = $this->getClient();
         $command = $client->getCommand('GetObject', [
             'Bucket' => $this->getBucket(),
-            'Key' => $path,
+            'Key' => $this->objectKey($path),
             // Fichiers immuables (clé unique par fichier) : cache navigateur.
             'ResponseCacheControl' => 'private, max-age='.($validityMinutes * 60).', immutable',
         ]);
@@ -221,6 +221,19 @@ class S3Service
     /**
      * Nom du bucket configuré pour le disque courant.
      */
+    /**
+     * Clé S3 réelle d'un chemin applicatif : préfixée par la racine du disque
+     * (`root`, ex. « demo » pour le site de démonstration), comme le fait
+     * Flysystem pour Storage::…. Indispensable pour les appels faits
+     * directement au client S3 (présignées, envoi en plusieurs morceaux).
+     */
+    public function objectKey(string $path): string
+    {
+        $root = trim((string) config("filesystems.disks.{$this->disk}.root"), '/');
+
+        return $root === '' ? $path : $root.'/'.ltrim($path, '/');
+    }
+
     public function getBucket(): ?string
     {
         return config("filesystems.disks.{$this->disk}.bucket");
@@ -241,7 +254,7 @@ class S3Service
     {
         $result = $this->getClient()->createMultipartUpload([
             'Bucket'      => $this->getBucket(),
-            'Key'         => $key,
+            'Key'         => $this->objectKey($key),
             'ContentType' => $contentType,
             'ACL'         => 'private',
         ]);
@@ -258,7 +271,7 @@ class S3Service
 
         $command = $client->getCommand('UploadPart', [
             'Bucket'     => $this->getBucket(),
-            'Key'        => $key,
+            'Key'        => $this->objectKey($key),
             'UploadId'   => $uploadId,
             'PartNumber' => $partNumber,
         ]);
@@ -277,7 +290,7 @@ class S3Service
     {
         $this->getClient()->completeMultipartUpload([
             'Bucket'          => $this->getBucket(),
-            'Key'             => $key,
+            'Key'             => $this->objectKey($key),
             'UploadId'        => $uploadId,
             'MultipartUpload' => ['Parts' => $parts],
         ]);
@@ -298,7 +311,7 @@ class S3Service
         do {
             $result = $this->getClient()->listParts([
                 'Bucket'           => $this->getBucket(),
-                'Key'              => $key,
+                'Key'              => $this->objectKey($key),
                 'UploadId'         => $uploadId,
                 'PartNumberMarker' => $marker,
             ]);
@@ -323,7 +336,7 @@ class S3Service
     {
         $this->getClient()->abortMultipartUpload([
             'Bucket'   => $this->getBucket(),
-            'Key'      => $key,
+            'Key'      => $this->objectKey($key),
             'UploadId' => $uploadId,
         ]);
     }
