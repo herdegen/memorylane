@@ -466,14 +466,8 @@ class InstallController extends Controller
             });
             $log[] = 'Compte administrateur : '.$admin->email;
 
-            foreach (['scout:sync-index-settings' => [], 'storage:link' => []] as $command => $args) {
-                try {
-                    Artisan::call($command, $args);
-                } catch (\Throwable $e) {
-                    report($e);
-                }
-            }
-            $log[] = 'Recherche configurée';
+            // Index de recherche : réglés par install.sh (commandes Scout
+            // disponibles en ligne de commande seulement).
         } catch (\Throwable $e) {
             report($e);
 

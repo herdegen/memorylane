@@ -272,6 +272,10 @@ finish() {
     dc up -d --remove-orphans >/dev/null 2>&1 || fail "Démarrage des services impossible. Voir : docker compose ps"
     case ",$profiles," in *,local-storage,*) ;; *) dc rm -sf garage >/dev/null 2>&1 || true ;; esac
     artisan optimize >/dev/null
+    # Moteur de recherche : réglages des index (accents, fautes), puis la fiche
+    # de l'administrateur créée par l'assistant.
+    artisan scout:sync-index-settings >/dev/null 2>&1 || warn "Réglages de la recherche à refaire : docker compose exec app php artisan scout:sync-index-settings"
+    artisan scout:import 'App\Models\Person' >/dev/null 2>&1 || true
     dc restart app horizon scheduler >/dev/null 2>&1
     wait_healthy nginx
     rm -f "$INSTALL_DIR/token"
