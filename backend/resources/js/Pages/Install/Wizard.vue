@@ -339,7 +339,7 @@
               <div class="sm:col-span-2"><label class="label" for="em">Adresse e-mail</label><p class="hint">C'est votre identifiant de connexion.</p><input id="em" v-model="account.email" class="input" type="email" autocomplete="email" /><p v-if="errors.email" class="error">{{ errors.email }}</p></div>
               <div><label class="label" for="pw">Mot de passe</label><input id="pw" v-model="account.password" class="input" type="password" autocomplete="new-password" /><p class="hint">10 caractères au moins.</p><p v-if="errors.password" class="error">{{ errors.password }}</p></div>
               <div><label class="label" for="pw2">Confirmation</label><input id="pw2" v-model="account.password_confirmation" class="input" type="password" autocomplete="new-password" /></div>
-              <div class="sm:col-span-2"><label class="label" for="ci">Nom de votre {{ site.mode === 'friends' ? 'cercle d\'amis' : 'famille' }}</label><p class="hint">Le premier « cercle » : les personnes qui partageront leurs photos. D'autres pourront suivre (belle-famille, amis…).</p><input id="ci" v-model="account.circle" class="input" /><p v-if="errors.circle" class="error">{{ errors.circle }}</p></div>
+              <div class="sm:col-span-2"><label class="label" for="ci">Nom de votre {{ site.mode === 'friends' ? 'cercle d\'amis' : 'famille' }}</label><p class="hint">Le premier « cercle » : les personnes qui partageront leurs photos. D'autres pourront suivre (belle-famille, amis…).</p><input id="ci" v-model="account.circle" class="input" @input="circleEdited = true" /><p v-if="errors.circle" class="error">{{ errors.circle }}</p></div>
             </div>
             <div class="actions">
               <button type="button" class="btn-secondary" @click="go('options')">Retour</button>
@@ -593,10 +593,12 @@ const saveOptions = async () => {
   } catch (e) { /* */ }
 };
 
+// Nom du premier cercle proposé d'après le nom de famille, tant que la
+// personne ne l'a pas écrit elle-même.
+const circleEdited = ref(false);
 const suggestCircle = () => {
-  if (!account.circle || account.circle.startsWith('Famille ') || account.circle.startsWith('Les amis')) {
-    account.circle = site.mode === 'friends' ? 'Les amis' : `Famille ${account.last_name}`.trim();
-  }
+  if (circleEdited.value) return;
+  account.circle = site.mode === 'friends' ? 'Les amis' : `Famille ${account.last_name}`.trim();
 };
 
 const saveAccount = async () => {
