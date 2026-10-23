@@ -1,39 +1,36 @@
 <template>
-  <Head title="Détection des visages" />
+  <Head :title="$t('Détection des visages')" />
   <AppLayout>
     <div class="py-12">
       <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
         <div class="bg-white rounded-lg shadow-xs p-6">
-          <h1 class="text-xl font-semibold text-surface-900 mb-2">Détection des visages en lot</h1>
+          <h1 class="text-xl font-semibold text-surface-900 mb-2">{{ $t('Détection des visages en lot') }}</h1>
           <p class="text-sm text-surface-500 mb-6">
             <template v-if="serverMode">
-              Les photos sont analysées sur le serveur, en arrière-plan : vous pouvez
-              fermer cet onglet. Les visages déjà identifiés sont conservés.
+              {{ $t('Les photos sont analysées sur le serveur, en arrière-plan : vous pouvez fermer cet onglet. Les visages déjà identifiés sont conservés.') }}
             </template>
             <template v-else-if="selectionMode">
-              Analyse les photos sélectionnées dans l'admin, directement dans votre
-              navigateur. Laissez cet onglet ouvert pendant le traitement.
+              {{ $t('Analyse les photos sélectionnées dans l\'admin, directement dans votre navigateur. Laissez cet onglet ouvert pendant le traitement.') }}
             </template>
             <template v-else>
-              Analyse toutes les photos pas encore traitées, directement dans votre
-              navigateur. Laissez cet onglet ouvert pendant le traitement.
+              {{ $t('Analyse toutes les photos pas encore traitées, directement dans votre navigateur. Laissez cet onglet ouvert pendant le traitement.') }}
             </template>
           </p>
 
           <!-- Chargement de la liste -->
-          <div v-if="loadingList" class="text-sm text-surface-500">Chargement des photos…</div>
+          <div v-if="loadingList" class="text-sm text-surface-500">{{ $t('Chargement des photos…') }}</div>
 
           <!-- Rien à faire -->
           <div v-else-if="pendingIds.length === 0 && !done" class="text-sm text-surface-600">
-            Toutes les photos ont déjà été analysées. 🎉
+            {{ $t('Toutes les photos ont déjà été analysées. 🎉') }}
           </div>
 
           <template v-else>
             <!-- Progression -->
             <div class="mb-4">
               <div class="flex justify-between text-sm text-surface-600 mb-1">
-                <span>{{ processed }} / {{ total }} photos</span>
-                <span v-if="errors > 0" class="text-red-600 dark:text-red-400">{{ errors }} erreur{{ errors > 1 ? 's' : '' }}</span>
+                <span>{{ $t(':processed / :total photos', { processed, total }) }}</span>
+                <span v-if="errors > 0" class="text-red-600 dark:text-red-400">{{ $tc(':count erreur|:count erreurs', errors) }}</span>
               </div>
               <div class="w-full h-2 bg-surface-100 rounded-full overflow-hidden">
                 <div
@@ -51,20 +48,22 @@
                 @click="startBatch"
                 class="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700"
               >
-                Lancer la détection ({{ total }})
+                {{ $t('Lancer la détection (:total)', { total }) }}
               </button>
               <button
                 v-if="running"
                 @click="cancel"
                 class="px-4 py-2 bg-surface-100 text-surface-700 rounded-lg text-sm font-medium hover:bg-surface-200"
               >
-                Arrêter
+                {{ $t('Arrêter') }}
               </button>
               <div v-if="done && serverMode" class="text-sm text-green-700 dark:text-green-300 font-medium py-2">
-                {{ queued }} photo(s) envoyée(s) à l'analyse — quelques secondes chacune, en arrière-plan.
+                {{ $tc(':count photo envoyée à l\'analyse — quelques secondes chacune, en arrière-plan.|:count photos envoyées à l\'analyse — quelques secondes chacune, en arrière-plan.', queued) }}
               </div>
               <div v-else-if="done" class="text-sm text-green-700 dark:text-green-300 font-medium py-2">
-                Terminé : {{ processed - errors }} photo(s) analysée(s){{ errors ? `, ${errors} en échec` : '' }}.
+                {{ errors
+                  ? $tc('Terminé : :count photo analysée, :failed en échec.|Terminé : :count photos analysées, :failed en échec.', processed - errors, { failed: errors })
+                  : $tc('Terminé : :count photo analysée.|Terminé : :count photos analysées.', processed - errors) }}
               </div>
             </div>
           </template>
@@ -80,6 +79,7 @@ import { Head, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { useFaceDetection } from '@/Composables/useFaceDetection';
 import axios from 'axios';
+import { t } from '@/i18n';
 
 const { detectFaces, ensureModelsLoaded } = useFaceDetection();
 
@@ -125,7 +125,7 @@ const startBatch = async () => {
 
   // Serveur : mise en file par paquets, rien à garder ouvert.
   if (serverMode.value) {
-    statusMessage.value = 'Envoi au serveur…';
+    statusMessage.value = t('Envoi au serveur…');
     queued.value = 0;
     try {
       for (let i = 0; i < pendingIds.value.length; i += 500) {
@@ -142,11 +142,11 @@ const startBatch = async () => {
     return;
   }
 
-  statusMessage.value = 'Chargement des modèles…';
+  statusMessage.value = t('Chargement des modèles…');
   try {
     await ensureModelsLoaded();
   } catch (e) {
-    statusMessage.value = 'Échec du chargement des modèles.';
+    statusMessage.value = t('Échec du chargement des modèles.');
     running.value = false;
     return;
   }
@@ -155,7 +155,7 @@ const startBatch = async () => {
   for (const id of pendingIds.value) {
     if (cancelled) break;
 
-    statusMessage.value = `Analyse ${processed.value + 1} / ${total.value}…`;
+    statusMessage.value = t('Analyse :current / :total…', { current: processed.value + 1, total: total.value });
     try {
       const faces = await detectFaces(`/vision/media/${id}/image?conversion=medium`);
       await axios.post(`/vision/media/${id}/faces`, { faces });
@@ -174,7 +174,7 @@ const startBatch = async () => {
 
 const cancel = () => {
   cancelled = true;
-  statusMessage.value = 'Arrêt en cours…';
+  statusMessage.value = t('Arrêt en cours…');
 };
 
 onMounted(loadPending);

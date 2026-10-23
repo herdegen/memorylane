@@ -1,5 +1,5 @@
 <template>
-  <Head title="Proches — Télévision" />
+  <Head :title="$t('Proches — Télévision')" />
   <TvLayout :tab="tab" :circle="circle" :circles="circles" :account="account" back="/tv/ecran/accueil">
     <div class="px-24 pt-10 pb-4 flex flex-col gap-9">
       <section v-for="(row, r) in rows" :key="row.key" class="flex flex-col gap-3">
@@ -8,7 +8,7 @@
           <TvPersonCard v-for="(p, i) in row.people" :key="p.id" :person="p" :data-tv-autofocus="r === 0 && i === 0 ? '' : null" />
         </div>
       </section>
-      <p v-if="!rows.length" class="text-[2rem] text-[#c9bfb1]">Personne n'est encore identifié sur les photos de ce cercle.</p>
+      <p v-if="!rows.length" class="text-[2rem] text-[#c9bfb1]">{{ $t('Personne n\'est encore identifié sur les photos de ce cercle.') }}</p>
     </div>
   </TvLayout>
 </template>

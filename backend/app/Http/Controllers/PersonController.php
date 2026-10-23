@@ -116,8 +116,8 @@ class PersonController extends Controller
                 'avatar_url' => $this->resolveAvatarUrl($person),
                 'elsewhere' => true,
                 'elsewhere_label' => $person->in_family_directory
-                    ? 'Famille'
-                    : ($person->circles->map(fn ($c) => $friendCircles->get($c->id)?->name)->filter()->first() ?? 'Autre cercle'),
+                    ? __('Famille')
+                    : ($person->circles->map(fn ($c) => $friendCircles->get($c->id)?->name)->filter()->first() ?? __('Autre cercle')),
             ]);
     }
 
@@ -137,7 +137,7 @@ class PersonController extends Controller
             return response()->json(['person_id' => $user->person_id]);
         }
 
-        return redirect()->back()->with('success', $user->person_id ? 'Vous êtes défini sur cette personne' : 'Référence retirée');
+        return redirect()->back()->with('success', $user->person_id ? __('Vous êtes défini sur cette personne') : __('Référence retirée'));
     }
 
     /**
@@ -208,13 +208,13 @@ class PersonController extends Controller
 
         if ($request->wantsJson()) {
             return response()->json([
-                'message' => 'Personne creee',
+                'message' => __('Personne creee'),
                 'person' => $person,
             ], 201);
         }
 
         return redirect()->route('people.show', $person)
-            ->with('success', 'Personne creee');
+            ->with('success', __('Personne creee'));
     }
 
     public function show(Request $request, Person $person)
@@ -467,8 +467,8 @@ class PersonController extends Controller
     public function kinship(Request $request, Person $person)
     {
         $selfId = $request->user()->person_id;
-        abort_unless($selfId, 422, "Reliez d'abord votre compte à votre fiche (bouton « C'est moi »).");
-        abort_if($selfId === $person->id, 422, "C'est votre propre fiche.");
+        abort_unless($selfId, 422, __('Reliez d\'abord votre compte à votre fiche (bouton « C\'est moi »).'));
+        abort_if($selfId === $person->id, 422, __('C\'est votre propre fiche.'));
 
         $path = app(\App\Services\GenealogyService::class)->pathBetween($selfId, $person->id);
 
@@ -498,9 +498,9 @@ class PersonController extends Controller
         $stepLabels = collect($path['edges'])->map(function ($type, $i) use ($orderedPath) {
             $gender = $orderedPath[$i + 1]['gender'];
             return match ($type) {
-                'parent' => $gender === 'F' ? 'sa mère' : ($gender === 'M' ? 'son père' : 'son parent'),
-                'child' => $gender === 'F' ? 'sa fille' : ($gender === 'M' ? 'son fils' : 'son enfant'),
-                default => $gender === 'F' ? 'sa conjointe' : ($gender === 'M' ? 'son conjoint' : 'son conjoint'),
+                'parent' => $gender === 'F' ? __('sa mère') : ($gender === 'M' ? __('son père') : __('son parent')),
+                'child' => $gender === 'F' ? __('sa fille') : ($gender === 'M' ? __('son fils') : __('son enfant')),
+                default => $gender === 'F' ? __('sa conjointe') : ($gender === 'M' ? __('son conjoint') : __('son conjoint')),
             };
         })->values();
 
@@ -540,10 +540,10 @@ class PersonController extends Controller
         $viewer = auth()->user();
 
         if ($person->birth_date) {
-            $items[] = $this->autoEvent('birth', $person->birth_date, 'Naissance', $person->birth_place);
+            $items[] = $this->autoEvent('birth', $person->birth_date, __('Naissance'), $person->birth_place);
         }
         if ($person->death_date) {
-            $items[] = $this->autoEvent('death', $person->death_date, 'Décès', $person->death_place);
+            $items[] = $this->autoEvent('death', $person->death_date, __('Décès'), $person->death_place);
         }
 
         // Albums accessibles au visiteur : calculés une fois pour toute la
@@ -559,9 +559,11 @@ class PersonController extends Controller
             }
             $start = $spouse->pivot->start_date ?? null;
             if ($start) {
-                $label = ($spouse->pivot->type ?? 'spouse') === 'partner' ? 'Union avec ' : 'Mariage avec ';
+                $label = ($spouse->pivot->type ?? 'spouse') === 'partner'
+                    ? __('Union avec :name', ['name' => $spouse->name])
+                    : __('Mariage avec :name', ['name' => $spouse->name]);
                 $items[] = array_merge(
-                    $this->autoEvent('marriage', $start, $label . $spouse->name, $spouse->pivot->start_place ?? null),
+                    $this->autoEvent('marriage', $start, $label, $spouse->pivot->start_place ?? null),
                     ['related' => $this->relatedPayload($spouse)]
                 );
             }
@@ -576,7 +578,7 @@ class PersonController extends Controller
             ->get();
         foreach ($children as $child) {
             $items[] = array_merge(
-                $this->autoEvent('child', $child->birth_date, 'Naissance de ' . $child->name, $child->birth_place),
+                $this->autoEvent('child', $child->birth_date, __('Naissance de :name', ['name' => $child->name]), $child->birth_place),
                 ['related' => $this->relatedPayload($child)]
             );
         }
@@ -796,12 +798,12 @@ class PersonController extends Controller
 
         if ($request->wantsJson()) {
             return response()->json([
-                'message' => 'Personne mise a jour',
+                'message' => __('Personne mise a jour'),
                 'person' => $person,
             ]);
         }
 
-        return redirect()->back()->with('success', 'Personne mise a jour');
+        return redirect()->back()->with('success', __('Personne mise a jour'));
     }
 
     public function destroy(Request $request, Person $person)
@@ -813,12 +815,12 @@ class PersonController extends Controller
 
         if ($request->wantsJson()) {
             return response()->json([
-                'message' => 'Personne supprimee',
+                'message' => __('Personne supprimee'),
             ]);
         }
 
         return redirect()->route('people.index')
-            ->with('success', 'Personne supprimee');
+            ->with('success', __('Personne supprimee'));
     }
 
     public function attachToMedia(Request $request)
@@ -840,7 +842,7 @@ class PersonController extends Controller
         }
 
         return response()->json([
-            'message' => 'Personne ajoutee au media',
+            'message' => __('Personne ajoutee au media'),
         ]);
     }
 
@@ -860,7 +862,7 @@ class PersonController extends Controller
         $media->people()->detach($person->id);
 
         return response()->json([
-            'message' => 'Personne retiree du media',
+            'message' => __('Personne retiree du media'),
         ]);
     }
 
@@ -877,7 +879,7 @@ class PersonController extends Controller
             }
             if ($parentId === $childId || Person::descendsFrom($parentId, $childId)) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
-                    $field => 'Lien impossible : cette personne descend déjà de la fiche (boucle dans l\'arbre).',
+                    $field => __('Lien impossible : cette personne descend déjà de la fiche (boucle dans l\'arbre).'),
                 ]);
             }
         }
@@ -896,7 +898,7 @@ class PersonController extends Controller
         $this->authorizeManage($parent);
 
         if ($validated['parent_id'] === $person->id) {
-            return response()->json(['message' => 'Une personne ne peut pas etre son propre parent'], 422);
+            return response()->json(['message' => __('Une personne ne peut pas etre son propre parent')], 422);
         }
         $this->ensureNoCycle($person->id, [$validated['parent_type'].'_id' => $parent->id]);
 
@@ -905,7 +907,7 @@ class PersonController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Parent defini',
+            'message' => __('Parent defini'),
             'person' => $person->fresh(),
         ]);
     }
@@ -922,7 +924,7 @@ class PersonController extends Controller
             $validated['parent_type'].'_id' => null,
         ]);
 
-        return response()->json(['message' => 'Parent retire']);
+        return response()->json(['message' => __('Parent retire')]);
     }
 
     public function addSpouse(Request $request, Person $person)
@@ -940,7 +942,7 @@ class PersonController extends Controller
         $this->authorizeManage($spouse);
 
         if ($validated['spouse_id'] === $person->id) {
-            return response()->json(['message' => 'Une personne ne peut pas etre son propre conjoint'], 422);
+            return response()->json(['message' => __('Une personne ne peut pas etre son propre conjoint')], 422);
         }
 
         $ids = [$person->id, $validated['spouse_id']];
@@ -954,7 +956,7 @@ class PersonController extends Controller
             ]
         );
 
-        return response()->json(['message' => 'Relation ajoutee']);
+        return response()->json(['message' => __('Relation ajoutee')]);
     }
 
     public function removeSpouse(Request $request, Person $person)
@@ -974,7 +976,7 @@ class PersonController extends Controller
             ->get()
             ->each->delete();
 
-        return response()->json(['message' => 'Relation supprimee']);
+        return response()->json(['message' => __('Relation supprimee')]);
     }
 
     /**
@@ -996,7 +998,7 @@ class PersonController extends Controller
         $this->authorizeManage($child);
 
         if ($child->id === $person->id) {
-            return response()->json(['message' => 'Une personne ne peut pas être son propre enfant'], 422);
+            return response()->json(['message' => __('Une personne ne peut pas être son propre enfant')], 422);
         }
 
         // Slot du parent courant : déduit du sexe, surchargé par parent_type.
@@ -1007,7 +1009,7 @@ class PersonController extends Controller
 
         if (! empty($validated['other_parent_id'])) {
             if ($validated['other_parent_id'] === $child->id) {
-                return response()->json(['message' => 'L\'autre parent ne peut pas être l\'enfant'], 422);
+                return response()->json(['message' => __('L\'autre parent ne peut pas être l\'enfant')], 422);
             }
             $update[$otherSlot . '_id'] = $validated['other_parent_id'];
         }
@@ -1016,7 +1018,7 @@ class PersonController extends Controller
         $child->update($update);
 
         return response()->json([
-            'message' => 'Enfant ajouté',
+            'message' => __('Enfant ajouté'),
             'child' => $child->fresh(),
         ]);
     }

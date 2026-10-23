@@ -1,11 +1,11 @@
 <template>
-  <BaseModal max-width="md" :title="`Modifier la date de ${count} média${count > 1 ? 's' : ''}`" @close="$emit('close')">
+  <BaseModal max-width="md" :title="$tc('Modifier la date de :count média|Modifier la date de :count médias', count)" @close="$emit('close')">
     <div class="p-6">
       <p class="text-sm text-surface-500 mb-4">
-        La date de prise de vue sélectionnée remplacera celle de tous les médias choisis.
+        {{ $t('La date de prise de vue sélectionnée remplacera celle de tous les médias choisis.') }}
       </p>
 
-      <label class="form-label" for="bulk-taken-at">Date de prise de vue</label>
+      <label class="form-label" for="bulk-taken-at">{{ $t('Date de prise de vue') }}</label>
       <input
         id="bulk-taken-at"
         v-model="takenAt"
@@ -19,14 +19,14 @@
 
     <!-- Pied de page -->
     <template #footer>
-      <button @click="$emit('close')" type="button" class="btn-secondary">Annuler</button>
+      <button @click="$emit('close')" type="button" class="btn-secondary">{{ $t('Annuler') }}</button>
       <button
         @click="$emit('apply', takenAt)"
         type="button"
         :disabled="!takenAt || saving"
         class="btn-primary"
       >
-        {{ saving ? 'Application…' : 'Appliquer la date' }}
+        {{ saving ? $t('Application…') : $t('Appliquer la date') }}
       </button>
     </template>
   </BaseModal>

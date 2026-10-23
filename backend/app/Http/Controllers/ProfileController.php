@@ -39,8 +39,8 @@ class ProfileController extends Controller
             // demande le mot de passe actuel.
             'current_password' => [Rule::requiredIf(fn () => strcasecmp((string) $request->input('email'), $user->email) !== 0), 'nullable', 'current_password'],
         ], [
-            'current_password.required' => 'Saisissez votre mot de passe actuel pour changer d\'adresse e-mail.',
-            'current_password.current_password' => 'Mot de passe actuel incorrect.',
+            'current_password.required' => __('Saisissez votre mot de passe actuel pour changer d\'adresse e-mail.'),
+            'current_password.current_password' => __('Mot de passe actuel incorrect.'),
         ]);
         unset($validated['current_password']);
 
@@ -53,7 +53,7 @@ class ProfileController extends Controller
 
         $user->update($validated);
 
-        return back()->with('success', 'Profil mis à jour avec succès.');
+        return back()->with('success', __('Profil mis à jour avec succès.'));
     }
 
     /**
@@ -70,6 +70,6 @@ class ProfileController extends Controller
             'password' => Hash::make($validated['password']),
         ]);
 
-        return back()->with('success', 'Mot de passe mis à jour avec succès.');
+        return back()->with('success', __('Mot de passe mis à jour avec succès.'));
     }
 }

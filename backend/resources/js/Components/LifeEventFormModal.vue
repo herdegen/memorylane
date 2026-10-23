@@ -1,10 +1,10 @@
 <template>
-  <BaseModal :title="event ? 'Modifier le moment' : 'Ajouter un moment'" @close="$emit('close')">
+  <BaseModal :title="event ? $t('Modifier le moment') : $t('Ajouter un moment')" @close="$emit('close')">
     <!-- Corps (le padding vit ici : l'en-tête standard reste bord à bord) -->
     <div class="p-6">
       <form @submit.prevent="save" class="space-y-3">
         <div>
-          <label class="block text-sm font-medium text-surface-700 mb-1">Type</label>
+          <label class="block text-sm font-medium text-surface-700 mb-1">{{ $t('Type') }}</label>
           <select v-model="form.type" class="form-input">
             <optgroup v-for="group in typeGroups" :key="group.label" :label="group.label">
               <option v-for="t in group.types" :key="t.value" :value="t.value">{{ t.label }}</option>
@@ -13,17 +13,17 @@
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-surface-700 mb-1">Titre *</label>
-          <input v-model="form.title" type="text" class="form-input" placeholder="ex. Baptême de Camille" />
+          <label class="block text-sm font-medium text-surface-700 mb-1">{{ $t('Titre *') }}</label>
+          <input v-model="form.title" type="text" class="form-input" :placeholder="$t('ex. Baptême de Camille')" />
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-sm font-medium text-surface-700 mb-1">Date *</label>
+            <label class="block text-sm font-medium text-surface-700 mb-1">{{ $t('Date *') }}</label>
             <input v-model="form.event_date" type="date" class="form-input" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-surface-700 mb-1">Fin (optionnel)</label>
+            <label class="block text-sm font-medium text-surface-700 mb-1">{{ $t('Fin (optionnel)') }}</label>
             <input v-model="form.end_date" type="date" class="form-input" />
           </div>
         </div>
@@ -31,22 +31,22 @@
         <!-- Souvenir connu seulement à l'année / au mois : on choisit une date
              dans la période, la précision dit ce qui sera affiché. -->
         <div>
-          <label class="block text-sm font-medium text-surface-700 mb-1">Précision de la date</label>
+          <label class="block text-sm font-medium text-surface-700 mb-1">{{ $t('Précision de la date') }}</label>
           <select v-model="form.date_precision" class="form-input">
-            <option value="day">Jour exact</option>
-            <option value="month">Mois seulement</option>
-            <option value="year">Année seulement</option>
+            <option value="day">{{ $t('Jour exact') }}</option>
+            <option value="month">{{ $t('Mois seulement') }}</option>
+            <option value="year">{{ $t('Année seulement') }}</option>
           </select>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-surface-700 mb-1">Lieu</label>
+          <label class="block text-sm font-medium text-surface-700 mb-1">{{ $t('Lieu') }}</label>
           <div class="flex gap-2">
-            <input v-model="form.place" type="text" class="form-input" placeholder="Ville, pays..." />
+            <input v-model="form.place" type="text" class="form-input" :placeholder="$t('Ville, pays...')" />
             <button
               type="button"
               class="btn-secondary shrink-0"
-              :title="hasCoordinates ? 'Modifier la position sur la carte' : 'Situer sur la carte'"
+              :title="hasCoordinates ? $t('Modifier la position sur la carte') : $t('Situer sur la carte')"
               @click="showMapPicker = true"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -57,23 +57,23 @@
           </div>
           <!-- Position géolocalisée : servira à l'animation carte du diaporama -->
           <p v-if="hasCoordinates" class="mt-1 flex items-center gap-2 text-xs text-teal-700 dark:text-teal-300">
-            <span>📍 Position enregistrée ({{ form.latitude.toFixed(4) }}, {{ form.longitude.toFixed(4) }})</span>
+            <span>📍 {{ $t('Position enregistrée (:lat, :lng)', { lat: form.latitude.toFixed(4), lng: form.longitude.toFixed(4) }) }}</span>
             <button type="button" class="underline text-surface-500 hover:text-surface-700" @click="clearCoordinates">
-              retirer
+              {{ $t('retirer') }}
             </button>
           </p>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-surface-700 mb-1">Description</label>
+          <label class="block text-sm font-medium text-surface-700 mb-1">{{ $t('Description') }}</label>
           <textarea v-model="form.description" rows="3" class="form-input"></textarea>
         </div>
 
         <!-- Album lié (galerie du moment : baptême, mariage…) -->
         <div v-if="albums.length > 0">
-          <label class="block text-sm font-medium text-surface-700 mb-1">Album lié (optionnel)</label>
+          <label class="block text-sm font-medium text-surface-700 mb-1">{{ $t('Album lié (optionnel)') }}</label>
           <select v-model="form.album_id" class="form-input">
-            <option :value="null">— Aucun —</option>
+            <option :value="null">— {{ $t('Aucun') }} —</option>
             <option v-for="album in albums" :key="album.id" :value="album.id">{{ album.name }}</option>
           </select>
         </div>
@@ -85,11 +85,11 @@
         <div>
           <div class="flex items-center justify-between mb-1">
             <label class="block text-sm font-medium text-surface-700">
-              Photos (optionnel)
+              {{ $t('Photos (optionnel)') }}
               <span v-if="selectedPhotos.length" class="font-normal text-surface-500">— {{ selectedPhotos.length }}</span>
             </label>
             <button type="button" class="text-sm font-semibold text-brand-700 dark:text-brand-400 hover:underline" @click="pickerOpen = true">
-              {{ selectedPhotos.length ? 'Modifier' : 'Choisir des photos' }}
+              {{ selectedPhotos.length ? $t('Modifier') : $t('Choisir des photos') }}
             </button>
           </div>
           <div v-if="selectedPhotos.length" class="flex gap-2 overflow-x-auto pb-1">
@@ -100,13 +100,13 @@
                 type="button"
                 class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full flex items-center justify-center text-[12px]"
                 :class="illustrationId === p.id ? 'bg-amber-400 text-snow' : 'bg-black/45 text-snow/80'"
-                :title="illustrationId === p.id ? 'Photo d\'illustration' : 'En faire la photo d\'illustration'"
+                :title="illustrationId === p.id ? $t('Photo d\'illustration') : $t('En faire la photo d\'illustration')"
                 @click="form.media_id = p.id; photosTouched = true"
               >★</button>
               <button
                 type="button"
                 class="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/55 text-snow text-xs flex items-center justify-center"
-                title="Retirer"
+                :title="$t('Retirer')"
                 @click="removePhoto(p.id)"
               >×</button>
             </div>
@@ -117,7 +117,7 @@
             class="w-full h-16 rounded-lg border-2 border-dashed border-surface-300 text-sm text-surface-500 hover:border-brand-300 hover:text-brand-700"
             @click="pickerOpen = true"
           >
-            + Ajouter des photos (récentes, de la date, d'un album…)
+            + {{ $t("Ajouter des photos (récentes, de la date, d'un album…)") }}
           </button>
         </div>
 
@@ -127,9 +127,9 @@
              submit natif du formulaire (déplacé en slot footer, il ne le
              déclencherait plus). -->
         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" @click="$emit('close')" class="btn-secondary">Annuler</button>
+          <button type="button" @click="$emit('close')" class="btn-secondary">{{ $t('Annuler') }}</button>
           <button type="submit" :disabled="saving || !form.title.trim() || !form.event_date" class="btn-primary disabled:opacity-50">
-            {{ saving ? 'Enregistrement…' : 'Enregistrer' }}
+            {{ saving ? $t('Enregistrement…') : $t('Enregistrer') }}
           </button>
         </div>
       </form>
@@ -139,9 +139,9 @@
          Échap et le verrou de scroll) -->
     <GeolocatePickerModal
       v-if="showMapPicker"
-      title="Situer le moment"
-      description="Cliquez sur la carte ou cherchez une adresse : la position permettra d'animer la carte dans le diaporama."
-      apply-label="Utiliser cette position"
+      :title="$t('Situer le moment')"
+      :description="$t('Cliquez sur la carte ou cherchez une adresse : la position permettra d\'animer la carte dans le diaporama.')"
+      :apply-label="$t('Utiliser cette position')"
       @close="showMapPicker = false"
       @apply="applyCoordinates"
     />
@@ -163,6 +163,7 @@ import { computed, onMounted, ref, reactive, defineAsyncComponent } from 'vue';
 import axios from 'axios';
 import BaseModal from '@/Components/BaseModal.vue';
 import PhotoPicker from '@/Components/PhotoPicker.vue';
+import { t } from '@/i18n';
 
 // Chargé à l'ouverture seulement : la carte embarque Leaflet (~45 ko gzip).
 const GeolocatePickerModal = defineAsyncComponent(() => import('@/Components/GeolocatePickerModal.vue'));
@@ -182,44 +183,44 @@ const emit = defineEmits(['close', 'saved']);
 // LifeEventController::TYPES (le diaporama s'appuiera sur ces types).
 const typeGroups = [
   {
-    label: 'Moments de vie',
+    label: t('Moments de vie'),
     types: [
-      { value: 'moment', label: 'Moment' },
-      { value: 'job', label: 'Emploi' },
-      { value: 'education', label: 'Études' },
-      { value: 'residence', label: 'Résidence' },
-      { value: 'voyage', label: 'Voyage' },
+      { value: 'moment', label: t('Moment') },
+      { value: 'job', label: t('Emploi') },
+      { value: 'education', label: t('Études') },
+      { value: 'residence', label: t('Résidence') },
+      { value: 'voyage', label: t('Voyage') },
     ],
   },
   {
-    label: 'Parcours & distinctions',
+    label: t('Parcours & distinctions'),
     types: [
-      { value: 'military', label: 'Parcours militaire' },
-      { value: 'distinction', label: 'Décoration / distinction' },
+      { value: 'military', label: t('Parcours militaire') },
+      { value: 'distinction', label: t('Décoration / distinction') },
     ],
   },
   {
-    label: 'Fêtes religieuses',
+    label: t('Fêtes religieuses'),
     types: [
-      { value: 'bapteme', label: 'Baptême' },
-      { value: 'communion', label: 'Communion' },
-      { value: 'confirmation', label: 'Confirmation' },
-      { value: 'mariage_religieux', label: 'Mariage religieux' },
+      { value: 'bapteme', label: t('Baptême') },
+      { value: 'communion', label: t('Communion') },
+      { value: 'confirmation', label: t('Confirmation') },
+      { value: 'mariage_religieux', label: t('Mariage religieux') },
     ],
   },
   {
-    label: 'Fêtes & célébrations',
+    label: t('Fêtes & célébrations'),
     types: [
-      { value: 'mariage', label: 'Mariage' },
-      { value: 'fiancailles', label: 'Fiançailles' },
-      { value: 'anniversaire', label: 'Anniversaire' },
-      { value: 'diplome', label: 'Remise de diplôme' },
-      { value: 'fete', label: 'Fête' },
+      { value: 'mariage', label: t('Mariage') },
+      { value: 'fiancailles', label: t('Fiançailles') },
+      { value: 'anniversaire', label: t('Anniversaire') },
+      { value: 'diplome', label: t('Remise de diplôme') },
+      { value: 'fete', label: t('Fête') },
     ],
   },
   {
-    label: 'Autre',
-    types: [{ value: 'custom', label: 'Autre' }],
+    label: t('Autre'),
+    types: [{ value: 'custom', label: t('Autre') }],
   },
 ];
 
@@ -324,7 +325,7 @@ const save = async () => {
     }
     emit('saved');
   } catch (e) {
-    error.value = e.response?.data?.message || 'Erreur lors de l\'enregistrement.';
+    error.value = e.response?.data?.message || t('Erreur lors de l\'enregistrement.');
   } finally {
     saving.value = false;
   }

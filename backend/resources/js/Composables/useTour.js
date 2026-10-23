@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { escapeHtml } from '@/utils/html';
+import { t } from '@/i18n';
 
 /**
  * Visite guidée « premiers pas », page par page. Chaque étape vit sur une
@@ -43,78 +44,82 @@ function buildSteps(page) {
   // Fixé au début de la visite (mémorisé avec l'étape) : tourner le téléphone
   // en cours de route ne doit pas changer la liste des étapes.
   const mobile = tourMobile();
-  const menuHint = mobile ? 'depuis votre compte (votre initiale, en haut à droite)' : 'depuis le menu';
+  const welcomeText = mobile
+    ? t('Une petite visite de 2 minutes pour découvrir MemoryLane ? Vous pourrez la relancer à tout moment depuis votre compte (votre initiale, en haut à droite).')
+    : t('Une petite visite de 2 minutes pour découvrir MemoryLane ? Vous pourrez la relancer à tout moment depuis le menu.');
 
   const steps = [
     {
       component: 'Dashboard', path: '/dashboard',
       // driver.js insère le titre en innerHTML : le prénom (saisi) est échappé.
-      title: `Bienvenue, ${escapeHtml(firstName(user.name))} !`,
-      text: `Une petite visite de 2 minutes pour découvrir MemoryLane ? Vous pourrez la relancer à tout moment ${menuHint}.`,
+      title: t('Bienvenue, :name !', { name: escapeHtml(firstName(user.name)) }),
+      text: welcomeText,
     },
     {
       component: 'Dashboard', path: '/dashboard', element: '[data-tour="today"]',
-      title: 'Chaque jour, un souvenir',
-      text: 'L\'accueil vous montre les photos du même jour les années passées, la personne du jour, les anniversaires et les fêtes.',
+      title: t('Chaque jour, un souvenir'),
+      text: t('L\'accueil vous montre les photos du même jour les années passées, la personne du jour, les anniversaires et les fêtes.'),
     },
     {
       component: 'Dashboard', path: '/dashboard', element: '[data-tour="quests"]',
-      title: 'Les petites questions',
-      text: '« Qui est sur cette photo ? », « En quelle année est-elle née ? »… Répondez quand vous savez : c\'est ainsi que vos souvenirs se complètent.',
+      title: t('Les petites questions'),
+      text: t('« Qui est sur cette photo ? », « En quelle année est-elle née ? »… Répondez quand vous savez : c\'est ainsi que vos souvenirs se complètent.'),
     },
     ...(mobile ? [
       {
         component: 'Dashboard', path: '/dashboard', element: '[data-tour="tabbar"]',
-        title: 'Tout est en bas',
-        text: `Accueil, Photos, Albums et ${isFriends ? 'Amis' : 'Proches'} : les onglets restent sous votre pouce, sur toutes les pages.`,
+        title: t('Tout est en bas'),
+        text: isFriends
+          ? t('Accueil, Photos, Albums et Amis : les onglets restent sous votre pouce, sur toutes les pages.')
+          : t('Accueil, Photos, Albums et Proches : les onglets restent sous votre pouce, sur toutes les pages.'),
       },
       {
         component: 'Dashboard', path: '/dashboard', element: '[data-tour="add"]',
-        title: 'Ajouter vos photos',
-        text: 'Le bouton + : choisissez dans la galerie du téléphone, ou prenez une photo. Elles sont partagées avec votre cercle par défaut.',
+        title: t('Ajouter vos photos'),
+        text: t('Le bouton + : choisissez dans la galerie du téléphone, ou prenez une photo. Elles sont partagées avec votre cercle par défaut.'),
       },
     ] : [
       {
         component: 'Media/Upload', path: '/media/upload', element: '[data-tour="upload-pick"]',
-        title: 'Ajouter vos photos',
-        text: 'C\'est ici, depuis votre téléphone ou votre ordinateur. Elles sont partagées avec votre cercle par défaut.',
+        title: t('Ajouter vos photos'),
+        text: t('C\'est ici, depuis votre téléphone ou votre ordinateur. Elles sont partagées avec votre cercle par défaut.'),
       },
     ]),
     {
       component: 'Media/Index', path: '/media', element: '[data-tour="gallery"]',
-      title: 'Mes photos',
-      text: 'Tout ce que vous avez envoyé, rangé par date. Ouvrez une photo pour mettre des noms sur les visages ou corriger la date.',
+      title: t('Mes photos'),
+      text: t('Tout ce que vous avez envoyé, rangé par date. Ouvrez une photo pour mettre des noms sur les visages ou corriger la date.'),
     },
   ];
 
   if (!isFriends && seesFamily) {
     steps.push({
       component: 'FamilyTree/Index', path: '/family-tree', element: '[data-tour="tree"]',
-      title: 'L\'arbre de la famille',
-      text: 'Touchez une carte pour voir la personne, puis ouvrez sa fiche complète.',
+      title: t('L\'arbre de la famille'),
+      text: t('Touchez une carte pour voir la personne, puis ouvrez sa fiche complète.'),
     });
   }
 
   if (user.person_id && !isFriends) {
     steps.push({
       component: 'People/Show', path: `/people/${user.person_id}`, element: '[data-tour="family-panel"]',
-      title: 'Votre fiche',
-      text: 'Complétez la famille ici : ajoutez un enfant, un conjoint ou un parent oublié. Sur la fiche d\'un proche, le bouton « Inviter sur MemoryLane » lui envoie une invitation.',
+      title: t('Votre fiche'),
+      text: t('Complétez la famille ici : ajoutez un enfant, un conjoint ou un parent oublié. Sur la fiche d\'un proche, le bouton « Inviter sur MemoryLane » lui envoie une invitation.'),
     });
   }
 
   steps.push(
     {
       component: 'Albums/Index', path: '/albums', element: '[data-tour="albums"]',
-      title: 'Les albums',
-      text: 'Les souvenirs rangés par histoire : un mariage, des vacances, une cousinade. Les vôtres et ceux que vos proches partagent.',
+      title: t('Les albums'),
+      text: t('Les souvenirs rangés par histoire : un mariage, des vacances, une cousinade. Les vôtres et ceux que vos proches partagent.'),
     },
     {
       component: 'Albums/Index', path: '/albums', element: mobile ? '[data-tour="account"]' : undefined,
-      title: 'C\'est parti !',
+      title: t('C\'est parti !'),
       text: mobile
-        ? 'Vous savez l\'essentiel. Le guide complet, cette visite et vos cercles sont dans votre compte : touchez votre initiale, en haut à droite. Bonne balade dans les souvenirs !'
-        : 'Vous savez l\'essentiel. Le guide complet et cette visite restent dans le menu (votre nom, en haut à droite). Bonne balade dans les souvenirs !',
+        ? t('Vous savez l\'essentiel. Le guide complet, cette visite et vos cercles sont dans votre compte : touchez votre initiale, en haut à droite. Bonne balade dans les souvenirs !')
+        : t('Vous savez l\'essentiel. Le guide complet et cette visite restent dans le menu (votre nom, en haut à droite). Bonne balade dans les souvenirs !'),
     },
   );
 
@@ -216,7 +221,7 @@ async function render(i, steps) {
   const isLast = i === steps.length - 1;
   // Une instance driver.js par étape : elle se croit toujours à sa dernière
   // étape, d'où le même libellé pour « suivant » et « terminé ».
-  const nextLabel = isFirst ? 'C\'est parti →' : (isLast ? 'Terminer' : 'Suivant →');
+  const nextLabel = isFirst ? t('C\'est parti →') : (isLast ? t('Terminer') : t('Suivant →'));
 
   active = driver({
     popoverClass: 'ml-tour',
@@ -232,7 +237,7 @@ async function render(i, steps) {
     showButtons: ['next', 'previous', 'close'],
     nextBtnText: nextLabel,
     doneBtnText: nextLabel,
-    prevBtnText: isFirst ? 'Plus tard' : '←',
+    prevBtnText: isFirst ? t('Plus tard') : '←',
     onNextClick: () => goTo(i + 1),
     onPrevClick: () => (isFirst ? finishTour() : goTo(i - 1)),
     onCloseClick: () => finishTour(),

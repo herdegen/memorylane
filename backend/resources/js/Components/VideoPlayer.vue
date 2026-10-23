@@ -13,7 +13,7 @@
       :poster="poster || undefined"
       class="w-full"
     >
-      Votre navigateur ne supporte pas la lecture de vidéos.
+      {{ $t('Votre navigateur ne supporte pas la lecture de vidéos.') }}
     </video>
   </div>
 </template>

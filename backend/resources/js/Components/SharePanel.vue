@@ -1,6 +1,6 @@
 <template>
   <div class="bg-white rounded-xl border border-surface-200 shadow-xs p-6 mb-6">
-    <h3 class="text-lg font-semibold text-surface-900 mb-4">Partage</h3>
+    <h3 class="text-lg font-semibold text-surface-900 mb-4">{{ $t('Partage') }}</h3>
 
     <!-- Erreur d'action de partage -->
     <div v-if="errorMessage" class="mb-3 px-3 py-2 text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-500/10 rounded-lg flex items-start justify-between gap-2">
@@ -10,9 +10,9 @@
 
     <!-- Share Link Section (lien anonyme — propriétaire uniquement) -->
     <div v-if="isOwner" class="py-4">
-      <p class="text-sm font-medium text-surface-700 mb-2">Lien de partage</p>
+      <p class="text-sm font-medium text-surface-700 mb-2">{{ $t('Lien de partage') }}</p>
       <p class="text-xs text-surface-500 mb-3">
-        Partagez ce lien pour permettre à n'importe qui de voir l'album
+        {{ $t('Partagez ce lien pour permettre à n\'importe qui de voir l\'album') }}
       </p>
 
       <div v-if="shareUrl" class="space-y-3">
@@ -29,7 +29,7 @@
             class="px-4 py-2 text-sm font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100 focus:outline-hidden focus:ring-2 focus:ring-brand-500"
             @click="copyLink"
           >
-            {{ copied ? 'Copié !' : 'Copier' }}
+            {{ copied ? $t('Copié !') : $t('Copier') }}
           </button>
         </div>
 
@@ -39,7 +39,7 @@
           class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
           @click="revokeLink"
         >
-          Révoquer le lien
+          {{ $t('Révoquer le lien') }}
         </button>
       </div>
 
@@ -84,16 +84,16 @@
               d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
             />
           </svg>
-          Générer un lien
+          {{ $t('Générer un lien') }}
         </button>
       </div>
     </div>
 
     <!-- Partage avec un cercle entier (membres actuels et futurs) -->
     <div v-if="circlesShared.length || circlesAvailable.length" class="py-4 border-t border-surface-200">
-      <p class="text-sm font-medium text-surface-700 mb-2">Cercles</p>
+      <p class="text-sm font-medium text-surface-700 mb-2">{{ $t('Cercles') }}</p>
       <p class="text-xs text-surface-500 mb-3">
-        Tous les membres du cercle voient l'album, y compris ceux qui le rejoindront plus tard.
+        {{ $t('Tous les membres du cercle voient l\'album, y compris ceux qui le rejoindront plus tard.') }}
       </p>
       <div class="flex flex-wrap gap-2">
         <span
@@ -108,7 +108,7 @@
             v-if="c.can_revoke"
             type="button"
             class="w-6 h-6 rounded-full hover:bg-black/10"
-            :aria-label="`Ne plus partager avec ${c.name}`"
+            :aria-label="$t('Ne plus partager avec :name', { name: c.name })"
             @click="unshareCircle(c)"
           >×</button>
         </span>
@@ -127,9 +127,9 @@
 
     <!-- Accès par compte (partage restreint + délégation) -->
     <div class="py-4 border-t border-surface-200">
-      <p class="text-sm font-medium text-surface-700 mb-2">Personnes ayant accès</p>
+      <p class="text-sm font-medium text-surface-700 mb-2">{{ $t('Personnes ayant accès') }}</p>
       <p class="text-xs text-surface-500 mb-3">
-        Donnez accès à des membres précis (ils pourront le repartager, mais pas le rendre public).
+        {{ $t('Donnez accès à des membres précis (ils pourront le repartager, mais pas le rendre public).') }}
       </p>
 
       <!-- Recherche / ajout -->
@@ -137,7 +137,7 @@
         <input
           v-model="search"
           type="text"
-          placeholder="Ajouter un membre (nom ou email)…"
+          :placeholder="$t('Ajouter un membre (nom ou email)…')"
           class="w-full px-3 py-2 text-sm border border-surface-300 rounded-lg focus:ring-brand-500 focus:border-brand-500"
           @input="searchCandidates"
         />
@@ -168,8 +168,8 @@
           @change="toggleShareWithTagged($event.target.checked)"
         />
         <span class="text-sm">
-          <span class="font-medium text-surface-900">Partager tout l'album avec les personnes identifiées dedans</span>
-          <span class="block text-xs text-surface-500 mt-0.5">Y compris celles identifiées plus tard. Une association automatique non vérifiée ne suffit pas.</span>
+          <span class="font-medium text-surface-900">{{ $t('Partager tout l\'album avec les personnes identifiées dedans') }}</span>
+          <span class="block text-xs text-surface-500 mt-0.5">{{ $t('Y compris celles identifiées plus tard. Une association automatique non vérifiée ne suffit pas.') }}</span>
         </span>
       </label>
 
@@ -179,8 +179,7 @@
         class="mb-3 rounded-xl border border-brand-200 bg-brand-50 dark:border-brand-500/30 dark:bg-brand-500/10 px-3 py-2.5 flex flex-wrap items-center gap-2"
       >
         <p class="flex-1 min-w-[12rem] text-sm text-surface-800">
-          {{ taggedCount }} personne{{ taggedCount > 1 ? 's' : '' }} identifiée{{ taggedCount > 1 ? 's' : '' }} sur les photos
-          {{ taggedCount > 1 ? 'ne voient' : 'ne voit' }} que {{ taggedCount > 1 ? 'leurs' : 'ses' }} photos.
+          {{ $tc(':count personne identifiée sur les photos ne voit que ses photos.|:count personnes identifiées sur les photos ne voient que leurs photos.', taggedCount) }}
         </p>
         <button
           type="button"
@@ -188,7 +187,7 @@
           :disabled="grantingTagged"
           @click="grantTagged"
         >
-          {{ grantingTagged ? 'Partage…' : (taggedCount > 1 ? `Donner accès aux ${taggedCount}` : 'Lui donner accès') }}
+          {{ grantingTagged ? $t('Partage…') : $tc('Lui donner accès|Donner accès aux :count', taggedCount) }}
         </button>
       </div>
 
@@ -209,7 +208,7 @@
             class="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
             @click="revoke(a)"
           >
-            Retirer
+            {{ $t('Retirer') }}
           </button>
           <button
             v-else-if="a.origin === 'tagged'"
@@ -217,10 +216,10 @@
             class="text-xs font-semibold text-brand-700 dark:text-brand-400 hover:underline"
             @click="grant({ id: a.user_id })"
           >
-            Donner accès
+            {{ $t('Donner accès') }}
           </button>
           <span v-else class="text-xs text-surface-400">
-            {{ a.origin === 'owner' ? 'Propriétaire' : (a.origin === 'tagged_shared' ? 'Identifié·e' : 'Cercle') }}
+            {{ a.origin === 'owner' ? $t('Propriétaire') : (a.origin === 'tagged_shared' ? $t('Identifié·e') : $t('Cercle')) }}
           </span>
         </li>
       </ul>
@@ -234,6 +233,7 @@ import { useToast } from '@/Composables/useToast';
 import CircleKindIcon from '@/Components/CircleKindIcon.vue';
 import axios from 'axios';
 import { useConfirm } from '@/Composables/useConfirm';
+import { t } from '@/i18n';
 
 const props = defineProps({
   album: {
@@ -287,7 +287,7 @@ const shareCircle = async (c) => {
     applyCircles(data);
     emit('updated');
   } catch (e) {
-    errorMessage.value = e.response?.data?.message || 'Impossible de partager avec ce cercle.';
+    errorMessage.value = e.response?.data?.message || t('Impossible de partager avec ce cercle.');
   }
 };
 
@@ -297,7 +297,7 @@ const unshareCircle = async (c) => {
     applyCircles(data);
     emit('updated');
   } catch (e) {
-    errorMessage.value = e.response?.data?.message || 'Impossible de retirer ce cercle.';
+    errorMessage.value = e.response?.data?.message || t('Impossible de retirer ce cercle.');
   }
 };
 
@@ -335,7 +335,7 @@ const grant = async (candidate) => {
     await loadAccesses();
     emit('updated');
   } catch (e) {
-    errorMessage.value = e.response?.data?.message || "Impossible d'ajouter cet accès.";
+    errorMessage.value = e.response?.data?.message || t("Impossible d'ajouter cet accès.");
   }
 };
 
@@ -345,7 +345,7 @@ const revoke = async (access) => {
     await loadAccesses();
     emit('updated');
   } catch (e) {
-    errorMessage.value = e.response?.data?.message || 'Impossible de retirer cet accès.';
+    errorMessage.value = e.response?.data?.message || t('Impossible de retirer cet accès.');
   }
 };
 
@@ -360,7 +360,7 @@ const grantTagged = async () => {
     await loadAccesses();
     emit('updated');
   } catch (e) {
-    errorMessage.value = e.response?.data?.message || 'Impossible de partager avec les personnes identifiées.';
+    errorMessage.value = e.response?.data?.message || t('Impossible de partager avec les personnes identifiées.');
   } finally {
     grantingTagged.value = false;
   }
@@ -376,18 +376,18 @@ const toggleShareWithTagged = async (enabled) => {
     shareWithTagged.value = data.share_with_tagged;
     await loadAccesses();
   } catch (e) {
-    errorMessage.value = e.response?.data?.message || 'Impossible de modifier ce réglage.';
+    errorMessage.value = e.response?.data?.message || t('Impossible de modifier ce réglage.');
   } finally {
     savingShareWithTagged.value = false;
   }
 };
 
 const originLabel = (a) => {
-  if (a.origin === 'owner') return 'Propriétaire';
-  if (a.origin === 'tagged') return 'Voit seulement les photos où il apparaît';
-  if (a.origin === 'circle') return 'Voit l\'album via un cercle';
-  if (a.origin === 'tagged_shared') return 'Voit tout l\'album (identifié·e sur une photo)';
-  return 'Ajouté' + (a.granted_by ? ` par ${a.granted_by}` : '');
+  if (a.origin === 'owner') return t('Propriétaire');
+  if (a.origin === 'tagged') return t('Voit seulement les photos où il apparaît');
+  if (a.origin === 'circle') return t('Voit l\'album via un cercle');
+  if (a.origin === 'tagged_shared') return t('Voit tout l\'album (identifié·e sur une photo)');
+  return a.granted_by ? t('Ajouté par :name', { name: a.granted_by }) : t('Ajouté');
 };
 
 onMounted(() => {
@@ -403,7 +403,7 @@ const generateLink = async () => {
     shareUrl.value = response.data.share_url;
     emit('updated');
   } catch (error) {
-    errorMessage.value = error.response?.data?.message || 'Impossible de générer le lien de partage.';
+    errorMessage.value = error.response?.data?.message || t('Impossible de générer le lien de partage.');
   } finally {
     generating.value = false;
   }
@@ -411,9 +411,9 @@ const generateLink = async () => {
 
 const revokeLink = async () => {
   const ok = await confirm({
-    title: 'Révoquer le lien de partage',
-    message: "Les personnes ayant le lien ne pourront plus accéder à l'album.",
-    confirmLabel: 'Révoquer',
+    title: t('Révoquer le lien de partage'),
+    message: t("Les personnes ayant le lien ne pourront plus accéder à l'album."),
+    confirmLabel: t('Révoquer'),
     danger: true,
   });
   if (!ok) return;
@@ -422,7 +422,7 @@ const revokeLink = async () => {
     shareUrl.value = null;
     emit('updated');
   } catch (error) {
-    errorMessage.value = error.response?.data?.message || 'Impossible de révoquer le lien de partage.';
+    errorMessage.value = error.response?.data?.message || t('Impossible de révoquer le lien de partage.');
   }
 };
 

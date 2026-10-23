@@ -73,11 +73,11 @@ class TvController extends Controller
 
         $rows = collect($sections['rows'])->map(fn ($r) => ['key' => $r['key'], 'title' => $r['title'], 'albums' => $cards($r['ids'])]);
         foreach (array_reverse($sections['decades']) as $d) {
-            $rows->push(['key' => 'decade-'.$d['decade'], 'title' => 'Les années '.$d['decade'], 'albums' => $cards($d['ids'])]);
+            $rows->push(['key' => 'decade-'.$d['decade'], 'title' => __('Les années :decade', ['decade' => $d['decade']]), 'albums' => $cards($d['ids'])]);
         }
         $rows->push([
             'key' => 'all',
-            'title' => 'Tous les albums',
+            'title' => __('Tous les albums'),
             'albums' => $albums->sortBy(fn ($a) => mb_strtolower($a->name))->map(fn ($a) => $this->albumCard($a))->values(),
         ]);
 
@@ -135,7 +135,7 @@ class TvController extends Controller
             'person' => [
                 'id' => $person->id,
                 'name' => $person->name,
-                'relation' => $relation ? ucfirst($relation) : ($person->id === $user->person_id ? 'Vous' : null),
+                'relation' => $relation ? ucfirst($relation) : ($person->id === $user->person_id ? __('Vous') : null),
                 'life' => $this->lifeLabel($person),
                 'count' => $this->countLabel($media),
                 'avatar' => $this->avatarUrl($person),
@@ -161,8 +161,8 @@ class TvController extends Controller
 
         return Inertia::render('Tv/Collection', [
             ...$this->frame($request, 'home'),
-            'title' => 'Ce jour-là, un '.$today->locale('fr')->translatedFormat('j F'),
-            'subtitle' => $this->countLabel($media).' des années passées',
+            'title' => __('Ce jour-là, un :date', ['date' => $today->locale(app()->getLocale())->translatedFormat('j F')]),
+            'subtitle' => __(':photos des années passées', ['photos' => $this->countLabel($media)]),
             'items' => $media->map(fn (Media $m) => $this->item($m, $user))->values(),
             'gameAlbumId' => null,
         ]);
@@ -237,7 +237,7 @@ class TvController extends Controller
         $decades = $years->groupBy(fn ($r) => intdiv($r->y, 10) * 10)
             ->map(fn ($rows, $decade) => [
                 'key' => 'decade-'.$decade,
-                'title' => 'Les années '.$decade,
+                'title' => __('Les années :decade', ['decade' => $decade]),
                 'tiles' => $rows->map(fn ($r) => [
                     'key' => 'y'.$r->y,
                     'title' => (string) $r->y,
@@ -251,27 +251,27 @@ class TvController extends Controller
         $videos = $base()->where('type', 'video')->count();
         if ($videos) {
             $first = $base()->where('type', 'video')->with('conversions')->latest('taken_at')->first();
-            $special->push(['key' => 'videos', 'title' => 'Vidéos', 'meta' => $videos.' '.($videos > 1 ? 'vidéos' : 'vidéo'),
+            $special->push(['key' => 'videos', 'title' => __('Vidéos'), 'meta' => trans_choice(':count vidéo|:count vidéos', $videos),
                 'cover' => $first ? $this->mediaService->thumbnailUrl($first, ['medium', 'small', 'thumbnail']) : null,
                 'href' => route('tv.screen.photoSet', ['set' => 'videos'])]);
         }
         $voices = $base()->has('voiceNotes')->count();
         if ($voices) {
             $first = $base()->has('voiceNotes')->with('conversions')->latest('updated_at')->first();
-            $special->push(['key' => 'voices', 'title' => 'Souvenirs racontés', 'meta' => $voices.' '.($voices > 1 ? 'photos racontées' : 'photo racontée'),
+            $special->push(['key' => 'voices', 'title' => __('Souvenirs racontés'), 'meta' => trans_choice(':count photo racontée|:count photos racontées', $voices),
                 'cover' => $first ? $this->mediaService->thumbnailUrl($first, ['medium', 'small', 'thumbnail']) : null,
                 'href' => route('tv.screen.photoSet', ['set' => 'souvenirs-racontes'])]);
         }
         $undated = $base()->whereNull('taken_at')->count();
         if ($undated) {
-            $special->push(['key' => 'undated', 'title' => 'Sans date', 'meta' => $this->countLabelOf($undated), 'cover' => null,
+            $special->push(['key' => 'undated', 'title' => __('Sans date'), 'meta' => $this->countLabelOf($undated), 'cover' => null,
                 'href' => route('tv.screen.photoSet', ['set' => 'sans-date'])]);
         }
 
         return Inertia::render('Tv/Photos', [
             ...$this->frame($request, 'photos'),
             'rows' => $special->isNotEmpty()
-                ? collect([['key' => 'special', 'title' => 'À regarder', 'tiles' => $special->values()]])->concat($decades)->values()
+                ? collect([['key' => 'special', 'title' => __('À regarder'), 'tiles' => $special->values()]])->concat($decades)->values()
                 : $decades,
         ]);
     }
@@ -284,9 +284,9 @@ class TvController extends Controller
 
         [$title, $query] = match (true) {
             ctype_digit($set) && strlen($set) === 4 => [$set, $query->whereRaw('extract(year from taken_at) = ?', [(int) $set])->orderBy('taken_at')],
-            $set === 'videos' => ['Vidéos', $query->where('type', 'video')->orderByRaw('taken_at IS NULL')->orderByDesc('taken_at')],
-            $set === 'souvenirs-racontes' => ['Souvenirs racontés', $query->has('voiceNotes')->orderByRaw('taken_at IS NULL')->orderBy('taken_at')],
-            $set === 'sans-date' => ['Sans date', $query->whereNull('taken_at')->orderBy('created_at')],
+            $set === 'videos' => [__('Vidéos'), $query->where('type', 'video')->orderByRaw('taken_at IS NULL')->orderByDesc('taken_at')],
+            $set === 'souvenirs-racontes' => [__('Souvenirs racontés'), $query->has('voiceNotes')->orderByRaw('taken_at IS NULL')->orderBy('taken_at')],
+            $set === 'sans-date' => [__('Sans date'), $query->whereNull('taken_at')->orderBy('created_at')],
             default => abort(404),
         };
         $media = $query->limit(self::ITEMS_LIMIT)->get();
@@ -321,7 +321,7 @@ class TvController extends Controller
             return [
                 'id' => $p->id,
                 'name' => $p->name,
-                'sub' => $p->id === $user->person_id ? 'Vous' : ($relation ? ucfirst($relation) : ($this->lifeLabel($p) ?? $this->countLabelOf($p->tv_photos))),
+                'sub' => $p->id === $user->person_id ? __('Vous') : ($relation ? ucfirst($relation) : ($this->lifeLabel($p) ?? $this->countLabelOf($p->tv_photos))),
                 'avatar_url' => $this->avatarUrl($p),
             ];
         };
@@ -332,9 +332,9 @@ class TvController extends Controller
         ]);
 
         $rows = collect([
-            ['key' => 'close', 'title' => 'Les plus proches', 'people' => $sorted->filter(fn ($p) => ($distance[$p->id] ?? 99) <= 2)],
-            ['key' => 'family', 'title' => 'La famille', 'people' => $sorted->filter(fn ($p) => isset($distance[$p->id]) && $distance[$p->id] > 2)],
-            ['key' => 'others', 'title' => $distance ? 'Et aussi' : 'Proches', 'people' => $sorted->filter(fn ($p) => ! isset($distance[$p->id]))
+            ['key' => 'close', 'title' => __('Les plus proches'), 'people' => $sorted->filter(fn ($p) => ($distance[$p->id] ?? 99) <= 2)],
+            ['key' => 'family', 'title' => __('La famille'), 'people' => $sorted->filter(fn ($p) => isset($distance[$p->id]) && $distance[$p->id] > 2)],
+            ['key' => 'others', 'title' => $distance ? __('Et aussi') : __('Proches'), 'people' => $sorted->filter(fn ($p) => ! isset($distance[$p->id]))
                 ->sortByDesc('tv_photos')],
         ])->filter(fn ($r) => $r['people']->isNotEmpty())
             ->map(fn ($r) => ['key' => $r['key'], 'title' => $r['title'], 'people' => $r['people']->map($card)->values()])
@@ -479,7 +479,7 @@ class TvController extends Controller
             ->concat(Person::whereIn('mother_id', $ids)->pluck('mother_id'))->flip();
 
         $node = function (Person $p) use ($paths, $user, $withChildren) {
-            $relation = $p->id === $user->person_id ? 'Vous'
+            $relation = $p->id === $user->person_id ? __('Vous')
                 : (isset($paths[$p->id]) ? GenealogyService::relationLabel($paths[$p->id], $p->gender) : null);
 
             return [
@@ -511,13 +511,17 @@ class TvController extends Controller
     {
         $married = $union->type !== 'partner';
         if ($union->end_date) {
-            return ($married ? 'Divorcés' : 'Séparés').' en '.substr($union->end_date, 0, 4);
+            $year = substr($union->end_date, 0, 4);
+
+            return $married ? __('Divorcés en :year', ['year' => $year]) : __('Séparés en :year', ['year' => $year]);
         }
         if ($union->start_date) {
-            return ($married ? 'Mariés' : 'En couple depuis').' '.($married ? 'en ' : '').substr($union->start_date, 0, 4);
+            $year = substr($union->start_date, 0, 4);
+
+            return $married ? __('Mariés en :year', ['year' => $year]) : __('En couple depuis :year', ['year' => $year]);
         }
 
-        return $married ? 'Mariés' : 'En couple';
+        return $married ? __('Mariés') : __('En couple');
     }
 
     private function familyMode(User $user): bool
@@ -638,7 +642,7 @@ class TvController extends Controller
             'id' => $album->id,
             'name' => $album->name,
             'meta' => trim(($album->first_at ? $this->periodLabel(Carbon::parse($album->first_at), Carbon::parse($album->last_at)).' · ' : '')
-                .$album->media_count.' '.($album->media_count > 1 ? 'photos' : 'photo')),
+                .trans_choice(':count photo|:count photos', $album->media_count)),
             'cover' => $cover ?? ($previews[0] ?? null),
             'previews' => $previews,
             'backgrounds' => collect($album->previews)->pluck('large')->all(),
@@ -675,12 +679,12 @@ class TvController extends Controller
         $album = $ofYear->flatMap(fn ($m) => $m->albums)->countBy('name')->sortDesc()->keys()->first();
 
         return [
-            'kicker' => 'Ce jour-là · '.($years === 1 ? 'il y a un an' : "il y a {$years} ans"),
-            'title' => $album ?: $today->copy()->year($year)->locale('fr')->translatedFormat('j F Y'),
-            'sub' => $today->copy()->year($year)->locale('fr')->translatedFormat('j F Y').' · '.$this->countLabel($media).' de ce jour',
+            'kicker' => $years === 1 ? __('Ce jour-là · il y a un an') : __('Ce jour-là · il y a :years ans', ['years' => $years]),
+            'title' => $album ?: $today->copy()->year($year)->locale(app()->getLocale())->translatedFormat('j F Y'),
+            'sub' => $today->copy()->year($year)->locale(app()->getLocale())->translatedFormat('j F Y').' · '.__(':photos de ce jour', ['photos' => $this->countLabel($media)]),
             'image' => $this->mediaService->thumbnailUrl($cover, ['large', 'medium']),
             'href' => route('tv.screen.memories', ['play' => 1]),
-            'action' => 'Lancer le diaporama',
+            'action' => __('Lancer le diaporama'),
         ];
     }
 
@@ -699,7 +703,7 @@ class TvController extends Controller
             'sub' => $card['meta'],
             'image' => $album->coverMedia ? $this->mediaService->thumbnailUrl($album->coverMedia, ['large', 'medium']) : ($card['previews'][0] ?? null),
             'href' => route('tv.screen.album', $album),
-            'action' => 'Voir l\'album',
+            'action' => __('Voir l\'album'),
         ];
     }
 
@@ -724,7 +728,7 @@ class TvController extends Controller
         return [
             'id' => $person->id,
             'name' => $person->name,
-            'sub' => trim(($years ? $years.' · ' : '').$count.' '.($count > 1 ? 'photos' : 'photo')),
+            'sub' => trim(($years ? $years.' · ' : '').trans_choice(':count photo|:count photos', $count)),
             'avatar_url' => $this->avatarUrl($person),
         ];
     }
@@ -742,7 +746,7 @@ class TvController extends Controller
             'title' => SimpleModeController::caption($media),
             'when' => $media->taken_at ? self::dateLabel($media->taken_at) : null,
             'people' => $media->people
-                ->map(fn (Person $p) => $p->id === $user->person_id ? 'Vous' : SimpleModeController::shortName($p))
+                ->map(fn (Person $p) => $p->id === $user->person_id ? __('Vous') : SimpleModeController::shortName($p))
                 ->values()->all(),
             'voice_notes' => $media->voiceNotes->map(fn (VoiceNote $n) => [
                 'url' => route('voice-notes.file', $n),
@@ -759,7 +763,7 @@ class TvController extends Controller
             return (string) $date->year;
         }
 
-        return $date->locale('fr')->translatedFormat('l j F Y');
+        return $date->locale(app()->getLocale())->translatedFormat('l j F Y');
     }
 
     private function periodLabel(Carbon $from, Carbon $to): string
@@ -769,13 +773,13 @@ class TvController extends Controller
         }
 
         return $from->month === $to->month
-            ? $from->locale('fr')->translatedFormat('F Y')
+            ? $from->locale(app()->getLocale())->translatedFormat('F Y')
             : (string) $from->year;
     }
 
     private function countLabelOf(int $n): string
     {
-        return $n.' '.($n > 1 ? 'photos' : 'photo');
+        return trans_choice(':count photo|:count photos', $n);
     }
 
     /** « 1932 – 2004 », « né en 1987 ». */
@@ -787,7 +791,9 @@ class TvController extends Controller
 
         return $person->death_date
             ? $person->birth_date->year.' – '.$person->death_date->year
-            : ($person->gender === 'F' ? 'Née en ' : 'Né en ').$person->birth_date->year;
+            : ($person->gender === 'F'
+                ? __('Née en :year', ['year' => $person->birth_date->year])
+                : __('Né en :year', ['year' => $person->birth_date->year]));
     }
 
     private function safe(callable $search): Collection
@@ -808,13 +814,17 @@ class TvController extends Controller
         $photos = $n - $videos;
         $parts = [];
         if ($photos) {
-            $parts[] = $photos.' '.($photos > 1 ? 'photos' : 'photo');
+            $parts[] = trans_choice(':count photo|:count photos', $photos);
         }
         if ($videos) {
-            $parts[] = $videos.' '.($videos > 1 ? 'vidéos' : 'vidéo');
+            $parts[] = trans_choice(':count vidéo|:count vidéos', $videos);
         }
 
-        return $parts ? implode(' et ', $parts) : 'aucune photo';
+        return match (count($parts)) {
+            2 => __(':photos et :videos', ['photos' => $parts[0], 'videos' => $parts[1]]),
+            1 => $parts[0],
+            default => __('aucune photo'),
+        };
     }
 
     private function avatarUrl(Person $person): ?string

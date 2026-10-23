@@ -15,7 +15,7 @@
         <span v-if="current.when" class="text-[1.625rem] text-[#c9bfb1] first-letter:uppercase">{{ current.when }}</span>
       </div>
     </div>
-    <p v-if="!current && !loading" class="absolute inset-0 flex items-center justify-center text-[2rem] text-[#c9bfb1]">Pas de photo à afficher.</p>
+    <p v-if="!current && !loading" class="absolute inset-0 flex items-center justify-center text-[2rem] text-[#c9bfb1]">{{ $t('Pas de photo à afficher.') }}</p>
   </div>
 </template>
 
@@ -23,6 +23,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import axios from 'axios';
 import { onTvKey, tvActivity } from '@/Tv/remote';
+import { intlLocale } from '@/i18n';
 
 const emit = defineEmits(['close']);
 
@@ -35,8 +36,8 @@ const loading = ref(true);
 const now = ref(new Date());
 const current = computed(() => items.value[index.value] || null);
 
-const clock = computed(() => now.value.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }));
-const today = computed(() => now.value.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }));
+const clock = computed(() => now.value.toLocaleTimeString(intlLocale(), { hour: '2-digit', minute: '2-digit' }));
+const today = computed(() => now.value.toLocaleDateString(intlLocale(), { weekday: 'long', day: 'numeric', month: 'long' }));
 
 const load = async () => {
   loading.value = true;

@@ -16,19 +16,19 @@
         <!-- Son propre anniversaire -->
         <template v-if="greeting.self">
           <h2 id="birthday-title" class="mt-4 font-display text-3xl font-bold text-surface-900">
-            Joyeux anniversaire {{ greeting.self.first_name }}&nbsp;!
+            {{ $t('Joyeux anniversaire :name\u00a0!', { name: greeting.self.first_name }) }}
           </h2>
           <p class="mt-2 text-surface-600">
-            <template v-if="greeting.self.age">{{ greeting.self.age }} ans aujourd’hui. </template>
-            Toute la famille pense à toi.
+            <template v-if="greeting.self.age">{{ $tc(':count an aujourd’hui.|:count ans aujourd’hui.', greeting.self.age) }} </template>
+            {{ $t('Toute la famille pense à toi.') }}
           </p>
           <p v-if="greeting.people.length" class="mt-5 text-sm font-medium text-surface-700">
-            Tu partages ce jour avec :
+            {{ $t('Tu partages ce jour avec :') }}
           </p>
         </template>
 
         <h2 v-else id="birthday-title" class="mt-4 font-display text-3xl font-bold text-surface-900">
-          {{ greeting.people.length === 1 ? `C’est l’anniversaire de ${greeting.people[0].first_name}\u00a0!` : 'Des anniversaires aujourd’hui\u00a0!' }}
+          {{ greeting.people.length === 1 ? $t('C’est l’anniversaire de :name\u00a0!', { name: greeting.people[0].first_name }) : $t('Des anniversaires aujourd’hui\u00a0!') }}
         </h2>
 
         <ul v-if="greeting.people.length" class="mt-4 space-y-2 text-left">
@@ -44,7 +44,7 @@
               </span>
               <span class="min-w-0">
                 <span class="block truncate font-medium text-surface-900">{{ p.name }}</span>
-                <span v-if="p.age" class="block text-sm text-surface-500">{{ p.age }} ans aujourd’hui</span>
+                <span v-if="p.age" class="block text-sm text-surface-500">{{ $tc(':count an aujourd’hui|:count ans aujourd’hui', p.age) }}</span>
               </span>
             </Link>
           </li>
@@ -57,7 +57,7 @@
             class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition"
             @click="close"
           >
-            Voir sa fiche
+            {{ $t('Voir sa fiche') }}
           </Link>
           <button
             ref="closeButton"
@@ -66,7 +66,7 @@
             :class="!greeting.self && greeting.people.length === 1 ? 'text-surface-700 hover:bg-surface-100' : 'bg-brand-600 text-white hover:bg-brand-700'"
             @click="close"
           >
-            {{ greeting.self ? 'Merci\u00a0!' : 'Fermer' }}
+            {{ greeting.self ? $t('Merci\u00a0!') : $t('Fermer') }}
           </button>
         </div>
 
@@ -77,7 +77,7 @@
           class="mt-4 inline-block text-xs text-surface-500 underline underline-offset-2 hover:text-brand-700"
           @click="close"
         >
-          🔔 Être prévenu des anniversaires chaque matin
+          🔔 {{ $t('Être prévenu des anniversaires chaque matin') }}
         </Link>
       </div>
     </div>

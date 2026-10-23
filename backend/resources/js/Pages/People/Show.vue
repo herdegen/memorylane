@@ -7,7 +7,7 @@
       <Link
         href="/people"
         class="sm:hidden absolute top-3 left-4 z-20 inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/90 backdrop-blur text-surface-900 shadow-warm-md"
-        :aria-label="`Retour aux ${peopleLabel.toLowerCase()}`"
+        :aria-label="isFriends ? $t('Retour aux amis') : $t('Retour aux personnes')"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 19l-7-7 7-7" /></svg>
       </Link>
@@ -20,21 +20,21 @@
           v-if="isFriends"
           :href="`/network?focus=${person.id}`"
           class="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur text-sm font-semibold text-surface-900 shadow-warm-md hover:bg-white transition"
-          title="Voir ses liens dans le réseau du cercle"
+          :title="$t('Voir ses liens dans le réseau du cercle')"
         >
           <CircleKindIcon kind="friends" class="w-4 h-4" />
-          Voir dans le réseau
+          {{ $t('Voir dans le réseau') }}
         </Link>
         <Link
           v-else-if="viewerPersonId && viewerPersonId !== person.id"
           :href="`/family-tree?kinship=${person.id}`"
           class="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur text-sm font-semibold text-surface-900 shadow-warm-md hover:bg-white transition"
-          title="Voir notre lien de parenté dans l'arbre"
+          :title="$t('Voir notre lien de parenté dans l\'arbre')"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
           </svg>
-          Lien de parenté
+          {{ $t('Lien de parenté') }}
         </Link>
         <button
           v-if="!isFriends"
@@ -42,14 +42,14 @@
           class="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur text-sm font-semibold text-surface-900 shadow-warm-md hover:bg-white transition"
         >
           <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-          Diaporama de sa vie
+          {{ $t('Diaporama de sa vie') }}
         </button>
         <div class="relative" ref="actionsMenuRef">
           <button
             @click="showActionsMenu = !showActionsMenu"
             class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/90 backdrop-blur text-surface-900 shadow-warm-md hover:bg-white transition"
-            title="Plus d'actions"
-            aria-label="Plus d'actions"
+            :title="$t('Plus d\'actions')"
+            :aria-label="$t('Plus d\'actions')"
           >
             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <circle cx="12" cy="5" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="12" cy="19" r="1.6" />
@@ -58,25 +58,25 @@
           <div v-show="showActionsMenu" class="dropdown top-full w-56">
             <button v-if="canSetSelf || isSelf" @click="menuAction(toggleSelf)" class="dropdown-item w-full text-left flex items-center gap-2.5">
               <svg class="w-4 h-4" :class="isSelf ? 'text-brand-600' : 'text-surface-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-              {{ isSelf ? "C'est moi ✓ (retirer)" : "C'est moi" }}
+              {{ isSelf ? $t("C'est moi ✓ (retirer)") : $t("C'est moi") }}
             </button>
             <button v-if="canManage" @click="menuAction(() => showEditModal = true)" class="dropdown-item w-full text-left flex items-center gap-2.5">
               <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-              Modifier la fiche
+              {{ $t('Modifier la fiche') }}
             </button>
             <button v-if="canManage && media.length > 0" @click="menuAction(() => showAvatarPicker = true)" class="dropdown-item w-full text-left flex items-center gap-2.5">
               <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-              Choisir un avatar
+              {{ $t('Choisir un avatar') }}
             </button>
             <button v-if="hasCircles" @click="menuAction(() => showCircles = true)" class="dropdown-item w-full text-left flex items-center gap-2.5">
               <CircleKindIcon kind="friends" class="w-4 h-4 text-surface-400" />
-              Cercles…
+              {{ $t('Cercles…') }}
             </button>
             <template v-if="canDelete">
               <hr class="dropdown-divider" />
               <button @click="menuAction(deletePerson)" class="dropdown-item w-full text-left flex items-center gap-2.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                Supprimer
+                {{ $t('Supprimer') }}
               </button>
             </template>
           </div>
@@ -87,8 +87,8 @@
         <Link
           href="/people"
           class="hidden sm:inline-flex items-center justify-center w-11 h-11 rounded-full bg-white border border-surface-200 text-surface-600 shadow-warm-sm hover:bg-surface-50 transition shrink-0"
-          :title="`Retour aux ${peopleLabel.toLowerCase()}`"
-          :aria-label="`Retour aux ${peopleLabel.toLowerCase()}`"
+          :title="isFriends ? $t('Retour aux amis') : $t('Retour aux personnes')"
+          :aria-label="isFriends ? $t('Retour aux amis') : $t('Retour aux personnes')"
         >
           <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -108,7 +108,7 @@
             v-if="canManage && media.length > 0"
             @click="showAvatarPicker = true"
             class="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/40 flex items-center justify-center transition-all"
-            title="Changer l'avatar"
+            :title="$t('Changer l\'avatar')"
           >
             <svg class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -121,8 +121,8 @@
           <div class="hidden sm:block text-xs font-semibold uppercase tracking-widest text-brand-700">{{ peopleLabel }}</div>
           <h1 class="font-display text-[26px] sm:text-[42px] font-bold text-surface-900 leading-tight">
             {{ personLabel(person) }}
-            <span v-if="person.gender === 'M'" class="text-surface-400 text-2xl align-middle" title="Masculin">&#9794;</span>
-            <span v-else-if="person.gender === 'F'" class="text-surface-400 text-2xl align-middle" title="Féminin">&#9792;</span>
+            <span v-if="person.gender === 'M'" class="text-surface-400 text-2xl align-middle" :title="$t('Masculin')">&#9794;</span>
+            <span v-else-if="person.gender === 'F'" class="text-surface-400 text-2xl align-middle" :title="$t('Féminin')">&#9792;</span>
           </h1>
           <div class="mt-1.5 flex flex-wrap items-center justify-center sm:justify-start gap-x-3 gap-y-1 text-sm text-surface-500">
             <span v-if="relationLabel" class="font-semibold text-brand-700 dark:text-brand-300">{{ capitalize(relationLabel) }}</span>
@@ -131,13 +131,13 @@
               {{ formatLongDate(person.birth_date) }}{{ person.death_date ? ' – ' + formatLongDate(person.death_date) : '' }}
             </span>
             <span v-if="person.birth_date">·</span>
-            <span>{{ person.media_count || 0 }} {{ (person.media_count || 0) === 1 ? 'média' : 'médias' }}</span>
+            <span>{{ $tc(':count média|:count médias', person.media_count || 0) }}</span>
             <span
               v-if="isSelf"
               class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-brand-100 dark:bg-brand-500/15 text-brand-700 dark:text-brand-300 text-xs font-medium"
             >
               <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
-              C'est moi
+              {{ $t("C'est moi") }}
             </span>
           </div>
           <!-- Adresse : présente dans les props uniquement si le serveur
@@ -151,15 +151,15 @@
           </p>
           <!-- Compte MemoryLane : présent, invitation en cours, ou bouton d'invitation -->
           <div v-if="account.memorial" class="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-surface-500">
-            🕯️ En mémoire
+            🕯️ {{ $t('En mémoire') }}
           </div>
           <div v-else-if="account.hasAccount" class="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
             <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-            Sur MemoryLane
+            {{ $t('Sur MemoryLane') }}
           </div>
           <div v-else-if="account.pendingInvitation" class="mt-3 inline-flex items-center gap-1.5 text-xs text-surface-500">
             <svg class="w-4 h-4 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-            Invitation à MemoryLane envoyée{{ account.pendingInvitation.inviter ? ' par ' + account.pendingInvitation.inviter : '' }}{{ account.pendingInvitation.sent_at ? ' le ' + formatLongDate(account.pendingInvitation.sent_at) : '' }}
+            {{ invitationSentLabel }}
           </div>
           <button
             v-else-if="account.canInvite"
@@ -168,7 +168,7 @@
             class="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold shadow-warm-sm transition"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-            Inviter sur MemoryLane
+            {{ $t('Inviter sur MemoryLane') }}
           </button>
         </div>
       </div>
@@ -198,7 +198,7 @@
     <section v-if="isFriends && viewerPersonId && !isSelf" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
       <div class="bg-white border border-surface-200 rounded-2xl p-5 sm:p-6 grid gap-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
         <HowWeMetPanel :person-id="person.id" />
-        <Link href="/network" class="btn-secondary self-start">Voir dans le réseau</Link>
+        <Link href="/network" class="btn-secondary self-start">{{ $t('Voir dans le réseau') }}</Link>
       </div>
     </section>
 
@@ -223,8 +223,8 @@
     <!-- ================= Galeries, séparées par album puis par année ================= -->
     <div v-if="media.length > 0" id="photos" class="pt-7 sm:pt-9 pb-12 scroll-mt-16">
       <div class="flex items-center justify-between px-4 sm:px-8 mb-2">
-        <h2 class="font-display text-xl sm:text-2xl font-semibold text-surface-900">Ses photos</h2>
-        <span class="text-sm text-surface-400">{{ media.length }} médias visibles</span>
+        <h2 class="font-display text-xl sm:text-2xl font-semibold text-surface-900">{{ $t('Ses photos') }}</h2>
+        <span class="text-sm text-surface-400">{{ $tc(':count média visible|:count médias visibles', media.length) }}</span>
       </div>
 
       <!-- Une section par album -->
@@ -240,7 +240,7 @@
           <span class="text-base font-semibold text-surface-900">{{ album.name }}</span>
           <span class="text-sm text-surface-400">{{ album.media_ids.length }}</span>
           <Link :href="`/albums/${album.id}`" class="ml-auto text-sm font-medium text-brand-700 dark:text-brand-400 hover:underline shrink-0">
-            Voir l'album →
+            {{ $t("Voir l'album →") }}
           </Link>
         </div>
         <div class="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-8 gap-1 px-1">
@@ -263,7 +263,7 @@
         class="pt-5"
       >
         <div class="flex items-baseline gap-2.5 px-4 sm:px-8 mb-3">
-          <span class="text-sm font-semibold uppercase tracking-wider text-surface-500">{{ group.year ?? 'Sans date' }}</span>
+          <span class="text-sm font-semibold uppercase tracking-wider text-surface-500">{{ group.year ?? $t('Sans date') }}</span>
           <span class="text-sm text-surface-400">{{ group.media_ids.length }}</span>
         </div>
         <div class="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-8 gap-1 px-1">
@@ -286,12 +286,12 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
         <h3 class="mt-4 text-lg font-medium text-surface-900">
-          {{ canDelete ? 'Aucun média' : 'Aucune photo partagée avec vous' }}
+          {{ canDelete ? $t('Aucun média') : $t('Aucune photo partagée avec vous') }}
         </h3>
         <p class="mt-2 text-surface-500">
           {{ canDelete
-            ? "Cette personne n'apparaît sur aucun média pour le moment."
-            : "Les photos de cette personne ne vous sont pas accessibles. Elles apparaîtront ici lorsqu'elles seront partagées avec vous." }}
+            ? $t("Cette personne n'apparaît sur aucun média pour le moment.")
+            : $t("Les photos de cette personne ne vous sont pas accessibles. Elles apparaîtront ici lorsqu'elles seront partagées avec vous.") }}
         </p>
       </div>
     </div>
@@ -304,7 +304,7 @@
     />
 
     <!-- Edit Modal -->
-    <BaseModal v-if="showCircles" :title="`Cercles de ${personLabel(person)}`" max-width="md" @close="showCircles = false">
+    <BaseModal v-if="showCircles" :title="$t('Cercles de :name', { name: personLabel(person) })" max-width="md" @close="showCircles = false">
       <div class="px-6 py-5">
         <PersonCircles :person-id="person.id" :person-name="personLabel(person)" @changed="router.reload({ preserveScroll: true })" />
       </div>
@@ -320,7 +320,7 @@
     <!-- Avatar Picker Modal -->
     <BaseModal
       v-if="showAvatarPicker"
-      title="Choisir un avatar"
+      :title="$t('Choisir un avatar')"
       max-width="2xl"
       @close="showAvatarPicker = false"
     >
@@ -347,10 +347,10 @@
           @click="removeAvatar"
           class="mr-auto px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-white border border-red-300 dark:border-red-500/40 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10"
         >
-          Supprimer l'avatar
+          {{ $t("Supprimer l'avatar") }}
         </button>
         <button @click="showAvatarPicker = false" class="btn-secondary">
-          Fermer
+          {{ $t('Fermer') }}
         </button>
       </template>
     </BaseModal>
@@ -381,6 +381,7 @@ import { useToast } from '@/Composables/useToast';
 import { useConfirm } from '@/Composables/useConfirm';
 import { apiError } from '@/utils/apiError';
 import { conversionUrl } from '@/utils/media';
+import { t } from '@/i18n';
 
 const toast = useToast();
 const { confirm } = useConfirm();
@@ -452,9 +453,20 @@ const capitalize = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 const showInviteModal = ref(false);
 const onInvited = () => {
   showInviteModal.value = false;
-  toast.success('Invitation envoyée !');
+  toast.success(t('Invitation envoyée !'));
   router.reload({ only: ['account'] });
 };
+
+// Invitation en cours : par qui et quand, selon ce que le serveur fournit.
+const invitationSentLabel = computed(() => {
+  const inv = props.account.pendingInvitation;
+  if (!inv) return '';
+  const date = inv.sent_at ? formatLongDate(inv.sent_at) : null;
+  if (inv.inviter && date) return t('Invitation à MemoryLane envoyée par :name le :date', { name: inv.inviter, date });
+  if (inv.inviter) return t('Invitation à MemoryLane envoyée par :name', { name: inv.inviter });
+  if (date) return t('Invitation à MemoryLane envoyée le :date', { date });
+  return t('Invitation à MemoryLane envoyée');
+});
 
 // Fiche « moi » du visiteur : conditionne le bouton « Lien de parenté ».
 const viewerPersonId = computed(() => usePage().props.auth?.user?.person_id ?? null);
@@ -478,10 +490,10 @@ const playLifeSlideshow = () => timelineRef.value?.play();
 const scrollToPhotos = () => document.getElementById('photos')?.scrollIntoView({ behavior: 'smooth' });
 const mobileActions = computed(() => {
   const list = [];
-  if (!isFriends.value) list.push({ label: 'Sa vie', icon: 'play', primary: true, onClick: playLifeSlideshow });
-  if (isFriends.value) list.push({ label: 'Réseau', icon: 'network', href: `/network?focus=${props.person.id}` });
-  else if (viewerPersonId.value && viewerPersonId.value !== props.person.id) list.push({ label: 'Parenté', icon: 'tree', href: `/family-tree?kinship=${props.person.id}` });
-  if (props.media.length > 0) list.push({ label: 'Photos', icon: 'photos', primary: isFriends.value, onClick: scrollToPhotos });
+  if (!isFriends.value) list.push({ label: t('Sa vie'), icon: 'play', primary: true, onClick: playLifeSlideshow });
+  if (isFriends.value) list.push({ label: t('Réseau'), icon: 'network', href: `/network?focus=${props.person.id}` });
+  else if (viewerPersonId.value && viewerPersonId.value !== props.person.id) list.push({ label: t('Parenté'), icon: 'tree', href: `/family-tree?kinship=${props.person.id}` });
+  if (props.media.length > 0) list.push({ label: t('Photos'), icon: 'photos', primary: isFriends.value, onClick: scrollToPhotos });
   return list;
 });
 
@@ -520,7 +532,7 @@ const setAvatar = async (mediaId) => {
     showAvatarPicker.value = false;
     router.reload();
   } catch (error) {
-    toast.error(error.response?.data?.message || "Erreur lors du changement d'avatar.");
+    toast.error(error.response?.data?.message || t("Erreur lors du changement d'avatar."));
   }
 };
 
@@ -533,7 +545,7 @@ const removeAvatar = async () => {
     showAvatarPicker.value = false;
     router.reload();
   } catch (error) {
-    toast.error(error.response?.data?.message || "Erreur lors de la suppression de l'avatar.");
+    toast.error(error.response?.data?.message || t("Erreur lors de la suppression de l'avatar."));
   }
 };
 
@@ -556,9 +568,9 @@ const handlePersonUpdated = () => {
 
 const deletePerson = async () => {
   const ok = await confirm({
-    title: 'Supprimer cette fiche',
-    message: `Êtes-vous sûr de vouloir supprimer ${props.person.name} ? Cette action ne supprimera pas les médias.`,
-    confirmLabel: 'Supprimer',
+    title: t('Supprimer cette fiche'),
+    message: t('Êtes-vous sûr de vouloir supprimer :name ? Cette action ne supprimera pas les médias.', { name: props.person.name }),
+    confirmLabel: t('Supprimer'),
     danger: true,
   });
   if (!ok) return;
@@ -567,7 +579,7 @@ const deletePerson = async () => {
     await axios.delete(`/people/${props.person.id}`);
     router.visit('/people');
   } catch (error) {
-    toast.error(apiError(error, 'Erreur lors de la suppression de la personne.'));
+    toast.error(apiError(error, t('Erreur lors de la suppression de la personne.')));
   }
 };
 </script>

@@ -97,11 +97,11 @@
             <div v-if="currentItem?.when" class="text-xs text-snow/85 truncate">{{ currentItem.when }}</div>
           </div>
           <div class="flex shrink-0 pointer-events-auto">
-            <button type="button" class="w-11 h-11 flex items-center justify-center text-snow" :aria-label="isPaused ? 'Reprendre' : 'Pause'" @click.stop="togglePause">
+            <button type="button" class="w-11 h-11 flex items-center justify-center text-snow" :aria-label="isPaused ? $t('Reprendre') : $t('Pause')" @click.stop="togglePause">
               <svg v-if="isPaused" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
               <svg v-else class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" /><rect x="14" y="5" width="4" height="14" /></svg>
             </button>
-            <button type="button" class="w-11 h-11 flex items-center justify-center text-snow" aria-label="Fermer" @click.stop="close">
+            <button type="button" class="w-11 h-11 flex items-center justify-center text-snow" :aria-label="$t('Fermer')" @click.stop="close">
               <svg class="w-[22px] h-[22px]" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
@@ -121,7 +121,7 @@
           </div>
           <div class="flex items-center justify-between text-xs text-snow/75">
             <span>{{ pointer + 1 }} / {{ order.length }}</span>
-            <span v-if="storyHintVisible">Touchez pour avancer · maintenez pour faire pause</span>
+            <span v-if="storyHintVisible">{{ $t('Touchez pour avancer · maintenez pour faire pause') }}</span>
           </div>
         </div>
       </template>
@@ -133,7 +133,7 @@
           <button
             @click.stop="close"
             class="absolute top-4 right-4 pointer-events-auto w-11 h-11 rounded-full bg-black/50 text-snow flex items-center justify-center hover:bg-black/70 transition-colors"
-            title="Quitter le diaporama"
+            :title="$t('Quitter le diaporama')"
           >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -146,7 +146,7 @@
               <button
                 @click.stop="previous"
                 class="w-11 h-11 rounded-full bg-snow/10 text-snow flex items-center justify-center hover:bg-snow/20 transition-colors"
-                title="Précédent"
+                :title="$t('Précédent')"
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
@@ -156,7 +156,7 @@
               <button
                 @click.stop="togglePause"
                 class="w-14 h-14 rounded-full bg-snow/15 text-snow flex items-center justify-center hover:bg-snow/25 transition-colors"
-                :title="isPaused ? 'Reprendre' : 'Pause'"
+                :title="isPaused ? $t('Reprendre') : $t('Pause')"
               >
                 <svg v-if="isPaused" class="w-7 h-7 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M8 5v14l11-7z" />
@@ -169,7 +169,7 @@
               <button
                 @click.stop="next"
                 class="w-11 h-11 rounded-full bg-snow/10 text-snow flex items-center justify-center hover:bg-snow/20 transition-colors"
-                title="Suivant"
+                :title="$t('Suivant')"
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
@@ -197,6 +197,7 @@
 // moment de vie…) au milieu des photos.
 import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue';
 import TravelInterlude from '@/Components/TravelInterlude.vue';
+import { t } from '@/i18n';
 
 const props = defineProps({
   slides: { type: Array, required: true },
@@ -305,7 +306,7 @@ const travelTo = async (index) => {
   clearPhotoTimer();
   videoEl.value?.pause?.();
   traveling.value = true;
-  const done = await interlude.value?.fly(lastPlace, place, `Étape ${place.index} · ${place.label}`);
+  const done = await interlude.value?.fly(lastPlace, place, t('Étape :index · :label', { index: place.index, label: place.label }));
   if (run !== travelRun || done === false) return false;
   traveling.value = false;
   interlude.value?.hide();

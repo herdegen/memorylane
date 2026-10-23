@@ -21,8 +21,8 @@ class InvitationAccepted extends PushNotification
     public function toWebPush(object $notifiable, Notification $notification): WebPushMessage
     {
         return $this->message(
-            'Invitation acceptée',
-            "{$this->newcomerFirstName} a rejoint MemoryLane grâce à vous.",
+            __('Invitation acceptée'),
+            __(':name a rejoint MemoryLane grâce à vous.', ['name' => $this->newcomerFirstName]),
             "/people/{$this->personId}",
             "invitation-accepted-{$this->personId}",
         );

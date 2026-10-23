@@ -1,7 +1,7 @@
 <template>
   <div class="bg-white rounded-xl border border-surface-200 shadow-xs p-6">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold text-surface-900">Identifier le visage</h2>
+      <h2 class="text-lg font-semibold text-surface-900">{{ $t('Identifier le visage') }}</h2>
       <button @click="$emit('close')" class="text-surface-400 hover:text-surface-600">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -17,15 +17,15 @@
       ></canvas>
       <div class="text-sm text-surface-500">
         <span v-if="face.person" class="block font-medium text-surface-900">
-          Actuellement : {{ face.person.name }}
+          {{ $t('Actuellement : :name', { name: face.person.name }) }}
         </span>
-        Confiance : {{ Math.round((face.confidence || 0) * 100) }}%
+        {{ $t('Confiance : :percent%', { percent: Math.round((face.confidence || 0) * 100) }) }}
       </div>
     </div>
 
     <!-- Identifié·e dans un autre cercle : nom visible, correction fermée -->
     <p v-if="face.person_restricted" class="text-sm text-surface-600 bg-surface-100 rounded-lg px-3 py-2.5">
-      Cette personne a été identifiée dans un autre cercle : seule une personne de ce cercle peut corriger l'identification.
+      {{ $t('Cette personne a été identifiée dans un autre cercle : seule une personne de ce cercle peut corriger l\'identification.') }}
     </p>
 
     <template v-else>
@@ -35,9 +35,10 @@
       class="mb-4 p-3 bg-brand-50 border border-brand-100 rounded-lg"
     >
       <p class="text-sm text-surface-700 mb-2">
-        Suggestion :
-        <span class="font-semibold text-surface-900">{{ topSuggestion.person.name }}</span>
-        <span class="text-surface-500">({{ Math.round(topSuggestion.score * 100) }}%)</span>
+        <Trans text="Suggestion : :name :score">
+          <template #name><span class="font-semibold text-surface-900">{{ topSuggestion.person.name }}</span></template>
+          <template #score><span class="text-surface-500">({{ Math.round(topSuggestion.score * 100) }}%)</span></template>
+        </Trans>
       </p>
       <!-- Garde-fous : raisons de douter (bébé, parenté lointaine) -->
       <p v-for="d in topSuggestion.doubts || []" :key="d.code" class="mb-2 inline-flex items-center gap-1 mr-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
@@ -48,20 +49,20 @@
         :disabled="matching"
         class="w-full px-3 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50"
       >
-        Confirmer {{ topSuggestion.person.name }}
+        {{ $t('Confirmer :name', { name: topSuggestion.person.name }) }}
       </button>
     </div>
 
     <!-- Search existing people -->
     <div class="mb-4">
       <label class="block text-sm font-medium text-surface-700 mb-1">
-        {{ face.person ? 'Changer de personne' : 'Sélectionner une personne' }}
+        {{ face.person ? $t('Changer de personne') : $t('Sélectionner une personne') }}
       </label>
       <div class="relative">
         <input
           v-model="searchQuery"
           type="text"
-          placeholder="Rechercher..."
+          :placeholder="$t('Rechercher...')"
           class="w-full px-3 py-2 border border-surface-300 rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500"
         />
       </div>
@@ -78,7 +79,7 @@
           <!-- Initiale seule (pas de photo) : rendu historique de cette liste. -->
           <PersonAvatar :name="person.name" :size="8" fallback-class="bg-surface-200 text-surface-600 font-medium" />
           <span>{{ person.name }}</span>
-          <span v-if="person.onAlbum" class="text-xs text-surface-400">· sur l'album</span>
+          <span v-if="person.onAlbum" class="text-xs text-surface-400">· {{ $t('sur l\'album') }}</span>
           <span v-else-if="person.elsewhere" class="text-xs text-surface-400">· {{ person.elsewhere_label }}</span>
           <span
             v-for="d in person.doubts || []"
@@ -94,7 +95,7 @@
       </div>
 
       <p v-else-if="searchQuery && !loadingPeople" class="mt-2 text-sm text-surface-500">
-        Aucune personne trouvée
+        {{ $t('Aucune personne trouvée') }}
       </p>
     </div>
 
@@ -104,7 +105,7 @@
         @click="showCreatePerson = true"
         class="flex-1 px-3 py-2 text-sm font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100"
       >
-        Nouvelle personne
+        {{ $t('Nouvelle personne') }}
       </button>
       <!-- Retirer l'association si le visage est déjà matché, sinon Ignorer -->
       <button
@@ -113,7 +114,7 @@
         :disabled="matching"
         class="flex-1 px-3 py-2 text-sm font-medium text-surface-600 bg-surface-100 rounded-lg hover:bg-surface-200"
       >
-        Retirer
+        {{ $t('Retirer') }}
       </button>
       <button
         v-else
@@ -121,18 +122,18 @@
         :disabled="matching"
         class="flex-1 px-3 py-2 text-sm font-medium text-surface-600 bg-surface-100 rounded-lg hover:bg-surface-200"
       >
-        Ignorer
+        {{ $t('Ignorer') }}
       </button>
     </div>
     </template>
 
     <!-- Create person inline form -->
     <div v-if="showCreatePerson" class="mt-4 p-4 bg-surface-50 rounded-lg">
-      <h3 class="text-sm font-medium text-surface-900 mb-3">Nouvelle personne</h3>
+      <h3 class="text-sm font-medium text-surface-900 mb-3">{{ $t('Nouvelle personne') }}</h3>
       <input
         v-model="newPersonName"
         type="text"
-        placeholder="Nom"
+        :placeholder="$t('Nom')"
         class="w-full px-3 py-2 border border-surface-300 rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 mb-3"
         @keyup.enter="createAndMatch"
       />
@@ -142,13 +143,13 @@
           :disabled="!newPersonName.trim() || matching"
           class="flex-1 px-3 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50"
         >
-          Créer et associer
+          {{ $t('Créer et associer') }}
         </button>
         <button
           @click="showCreatePerson = false"
           class="px-3 py-2 text-sm font-medium text-surface-600 bg-white border border-surface-300 rounded-lg hover:bg-surface-50"
         >
-          Annuler
+          {{ $t('Annuler') }}
         </button>
       </div>
     </div>
@@ -165,6 +166,8 @@ import { useConfirm } from '@/Composables/useConfirm';
 import { apiError } from '@/utils/apiError';
 import { usePeopleDirectory } from '@/Composables/usePeopleDirectory';
 import { useBringIn } from '@/Composables/useBringIn';
+import Trans from '@/Components/Trans.vue';
+import { t } from '@/i18n';
 
 const toast = useToast();
 const { confirm } = useConfirm();
@@ -205,7 +208,7 @@ const loadPeople = async () => {
     people.value = await peopleDirectory.load();
   } catch (error) {
     console.error('Failed to load people:', error);
-    toast.error(apiError(error, 'Impossible de charger la liste des personnes.'));
+    toast.error(apiError(error, t('Impossible de charger la liste des personnes.')));
   } finally {
     loadingPeople.value = false;
   }
@@ -297,16 +300,16 @@ const matchToPerson = async (person, allowDuplicate = false) => {
     if (duplicate && !allowDuplicate) {
       matching.value = false;
       const ok = await confirm({
-        title: 'Déjà sur cette photo',
-        message: `${duplicate} Est-ce une photo avec un miroir ou un montage ? Sinon, choisissez une autre personne.`,
-        confirmLabel: 'Oui, identifier quand même',
-        cancelLabel: 'Non',
+        title: t('Déjà sur cette photo'),
+        message: t(':duplicate Est-ce une photo avec un miroir ou un montage ? Sinon, choisissez une autre personne.', { duplicate }),
+        confirmLabel: t('Oui, identifier quand même'),
+        cancelLabel: t('Non'),
       });
       if (ok) await matchToPerson(person, true);
       return;
     }
     console.error('Failed to match face:', error);
-    toast.error(apiError(error, "L'identification du visage n'a pas pu être enregistrée. Réessayez."));
+    toast.error(apiError(error, t("L'identification du visage n'a pas pu être enregistrée. Réessayez.")));
   } finally {
     matching.value = false;
   }
@@ -319,7 +322,7 @@ const dismissFace = async () => {
     emit('dismissed', props.face);
   } catch (error) {
     console.error('Failed to dismiss face:', error);
-    toast.error(apiError(error, "Impossible d'ignorer ce visage pour le moment. Réessayez."));
+    toast.error(apiError(error, t("Impossible d'ignorer ce visage pour le moment. Réessayez.")));
   } finally {
     matching.value = false;
   }
@@ -332,7 +335,7 @@ const resetFace = async () => {
     emit('reset', props.face);
   } catch (error) {
     console.error('Failed to reset face:', error);
-    toast.error(apiError(error, "Impossible de retirer l'identification pour le moment. Réessayez."));
+    toast.error(apiError(error, t("Impossible de retirer l'identification pour le moment. Réessayez.")));
   } finally {
     matching.value = false;
   }
@@ -361,7 +364,7 @@ const createAndMatch = async () => {
     }
   } catch (error) {
     console.error('Failed to create person:', error);
-    toast.error(apiError(error, 'Impossible de créer la fiche. Réessayez.'));
+    toast.error(apiError(error, t('Impossible de créer la fiche. Réessayez.')));
     matching.value = false;
     return;
   }
@@ -377,7 +380,7 @@ const createAndMatch = async () => {
     console.error('Failed to match new person:', error);
     toast.error(apiError(
       error,
-      `La fiche « ${name} » a été créée, mais l'association au visage a échoué. Réessayez : la même fiche sera utilisée.`,
+      t("La fiche « :name » a été créée, mais l'association au visage a échoué. Réessayez : la même fiche sera utilisée.", { name }),
     ));
   } finally {
     matching.value = false;
@@ -397,7 +400,7 @@ const loadSuggestion = async () => {
     topSuggestion.value = props.face.person ? null : (suggestions.value[0] || null);
   } catch (error) {
     console.error('Failed to load suggestion:', error);
-    toast.error(apiError(error, 'Les suggestions de reconnaissance sont indisponibles pour le moment.'));
+    toast.error(apiError(error, t('Les suggestions de reconnaissance sont indisponibles pour le moment.')));
   }
 };
 

@@ -1,9 +1,8 @@
 <template>
   <div v-if="people.length" class="bg-white rounded-lg shadow-xs p-6">
-    <h2 class="text-lg font-semibold text-surface-900">Sur les fiches</h2>
+    <h2 class="text-lg font-semibold text-surface-900">{{ $t('Sur les fiches') }}</h2>
     <p class="mt-1 text-sm text-surface-500">
-      Sur la fiche d’une personne, ce média est visible par tous ceux qui voient sa fiche.
-      Si elle a un compte, elle valide d’abord.
+      {{ $t('Sur la fiche d’une personne, ce média est visible par tous ceux qui voient sa fiche. Si elle a un compte, elle valide d’abord.') }}
     </p>
     <ul class="mt-4 space-y-2">
       <li v-for="p in people" :key="p.id" class="flex flex-wrap items-center justify-between gap-2">
@@ -18,7 +17,7 @@
           class="text-sm font-medium text-surface-600 hover:text-red-600 disabled:opacity-50"
           @click="withdraw(p)"
         >
-          Retirer de sa fiche
+          {{ $t('Retirer de sa fiche') }}
         </button>
         <button
           v-else
@@ -27,7 +26,7 @@
           class="text-sm font-medium text-brand-600 hover:text-brand-800 disabled:opacity-50"
           @click="publish(p)"
         >
-          Mettre sur sa fiche
+          {{ $t('Mettre sur sa fiche') }}
         </button>
       </li>
     </ul>
@@ -39,6 +38,7 @@ import { ref, computed } from 'vue';
 import axios from 'axios';
 import { useToast } from '@/Composables/useToast';
 import { apiError } from '@/utils/apiError';
+import { t } from '@/i18n';
 
 const props = defineProps({
   mediaId: { type: String, required: true },
@@ -55,9 +55,9 @@ const people = computed(() => props.initialPeople.filter((p) => !p.restricted));
 const status = (p) => statuses.value[p.id] ?? p.pivot?.fiche_status ?? null;
 const first = (p) => p.first_name || (p.name || '').split(' ')[0];
 const statusLabel = (p) => ({
-  published: '· sur sa fiche, visible par tous',
-  pending: `· en attente de la validation de ${first(p)}`,
-  private: '· privé',
+  published: t('· sur sa fiche, visible par tous'),
+  pending: t('· en attente de la validation de :name', { name: first(p) }),
+  private: t('· privé'),
 })[status(p)] ?? '';
 const statusClass = (s) => (s === 'published' ? 'text-green-700 dark:text-green-400' : 'text-surface-500');
 
@@ -68,7 +68,7 @@ const publish = async (p) => {
     statuses.value = { ...statuses.value, [p.id]: data.status };
     toast.success(data.message);
   } catch (error) {
-    toast.error(apiError(error, 'Impossible de le mettre sur sa fiche.'));
+    toast.error(apiError(error, t('Impossible de le mettre sur sa fiche.')));
   } finally {
     busy.value = null;
   }
@@ -81,7 +81,7 @@ const withdraw = async (p) => {
     statuses.value = { ...statuses.value, [p.id]: 'private' };
     toast.success(data.message);
   } catch (error) {
-    toast.error(apiError(error, 'Impossible de le retirer.'));
+    toast.error(apiError(error, t('Impossible de le retirer.')));
   } finally {
     busy.value = null;
   }

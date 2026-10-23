@@ -1,12 +1,12 @@
 <template>
   <div class="bg-white rounded-xl border border-surface-200 shadow-xs p-6">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold text-surface-900">Personnes</h2>
+      <h2 class="text-lg font-semibold text-surface-900">{{ $t('Personnes') }}</h2>
       <button
         @click="showCreateModal = true"
         class="text-sm text-brand-600 hover:text-brand-800"
       >
-        + Nouvelle personne
+        {{ $t('+ Nouvelle personne') }}
       </button>
     </div>
 
@@ -18,13 +18,13 @@
         class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-brand-100 text-brand-700"
       >
         <PersonAvatar :person="person" :size="5" fallback-class="bg-brand-200 text-brand-800 font-bold" />
-        <span :title="person.restricted ? 'Fiche d\'un autre cercle' : undefined">{{ personLabel(person) }}</span>
+        <span :title="person.restricted ? $t('Fiche d\'un autre cercle') : undefined">{{ personLabel(person) }}</span>
         <button
           v-if="!person.restricted"
           @click="removePerson(person)"
           class="ml-1 hover:text-red-600 dark:hover:text-red-400 transition"
           type="button"
-          title="Retirer cette personne"
+          :title="$t('Retirer cette personne')"
         >
           <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -34,7 +34,7 @@
     </div>
 
     <div v-else class="text-sm text-surface-500 mb-3">
-      Aucune personne identifiée
+      {{ $t('Aucune personne identifiée') }}
     </div>
 
     <!-- Add person input -->
@@ -47,7 +47,7 @@
         @keydown.enter.prevent="selectFirstSuggestion"
         @keydown.escape="showSuggestions = false"
         type="text"
-        placeholder="Ajouter une personne..."
+        :placeholder="$t('Ajouter une personne...')"
         class="w-full px-4 py-2 pr-10 border border-surface-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm"
       />
       <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -70,9 +70,9 @@
         >
           <PersonAvatar :person="person" :size="6" />
           <span class="text-sm text-surface-900">{{ personLabel(person) }}</span>
-          <span v-if="person.onAlbum" class="text-xs text-surface-400">· sur l'album</span>
+          <span v-if="person.onAlbum" class="text-xs text-surface-400">· {{ $t("sur l'album") }}</span>
           <span v-else-if="person.elsewhere" class="text-xs text-surface-400">· {{ person.elsewhere_label }}</span>
-          <span v-if="person.media_count != null" class="text-xs text-surface-500 ml-auto">{{ person.media_count }} médias</span>
+          <span v-if="person.media_count != null" class="text-xs text-surface-500 ml-auto">{{ $tc(':count média|:count médias', person.media_count) }}</span>
         </button>
       </div>
 
@@ -81,12 +81,12 @@
         v-if="showSuggestions && searchQuery && filteredPeople.length === 0 && availablePeople.length > 0"
         class="absolute z-10 w-full mt-1 bg-white border border-surface-200 rounded-lg shadow-lg p-4 text-center text-sm text-surface-500"
       >
-        <p>Aucune personne trouvée pour "{{ searchQuery }}"</p>
+        <p>{{ $t('Aucune personne trouvée pour ":query"', { query: searchQuery }) }}</p>
         <button
           @mousedown.prevent="showCreateModal = true"
           class="mt-2 text-brand-600 hover:text-brand-800"
         >
-          Créer "{{ searchQuery }}"
+          {{ $t('Créer ":name"', { name: searchQuery }) }}
         </button>
       </div>
     </div>
@@ -111,6 +111,7 @@ import { searchPeople } from '@/utils/personSearch';
 import { useToast } from '@/Composables/useToast';
 import { usePeopleDirectory } from '@/Composables/usePeopleDirectory';
 import { useBringIn } from '@/Composables/useBringIn';
+import { t } from '@/i18n';
 
 const toast = useToast();
 const peopleDirectory = usePeopleDirectory();
@@ -190,7 +191,7 @@ const addPerson = async (person) => {
     showSuggestions.value = false;
     emit('people-updated', mediaPeople.value);
   } catch (error) {
-    toast.error(error.response?.data?.message || 'Impossible d\'ajouter cette personne.');
+    toast.error(error.response?.data?.message || t('Impossible d\'ajouter cette personne.'));
   } finally {
     loading.value = false;
   }
@@ -209,7 +210,7 @@ const removePerson = async (person) => {
     mediaPeople.value = mediaPeople.value.filter(p => p.id !== person.id);
     emit('people-updated', mediaPeople.value);
   } catch (error) {
-    toast.error(error.response?.data?.message || 'Impossible de retirer cette personne.');
+    toast.error(error.response?.data?.message || t('Impossible de retirer cette personne.'));
   } finally {
     loading.value = false;
   }

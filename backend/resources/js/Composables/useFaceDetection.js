@@ -1,4 +1,5 @@
 import { ref } from 'vue';
+import { t } from '@/i18n';
 
 /**
  * Détection de visages 100 % côté navigateur avec face-api.js
@@ -55,7 +56,7 @@ function loadImage(url) {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error("Impossible de charger l'image pour la détection"));
+    img.onerror = () => reject(new Error(t("Impossible de charger l'image pour la détection")));
     img.src = url;
   });
 }
@@ -75,13 +76,13 @@ export function useFaceDetection() {
     let img = null;
 
     try {
-      progress.value = 'Chargement des modèles…';
+      progress.value = t('Chargement des modèles…');
       const api = await ensureModelsLoaded();
 
-      progress.value = "Chargement de l'image…";
+      progress.value = t("Chargement de l'image…");
       img = await loadImage(imageUrl);
 
-      progress.value = 'Détection des visages…';
+      progress.value = t('Détection des visages…');
       const results = await api
         .detectAllFaces(img, new api.SsdMobilenetv1Options({ minConfidence: MIN_CONFIDENCE }))
         .withFaceLandmarks()
@@ -126,7 +127,7 @@ export function useFaceDetection() {
     loading.value = true;
     error.value = null;
     try {
-      progress.value = 'Chargement des modèles…';
+      progress.value = t('Chargement des modèles…');
       const api = await ensureModelsLoaded();
 
       const img = await loadImage(imageUrl);
@@ -144,7 +145,7 @@ export function useFaceDetection() {
       canvas.height = Math.round(sh);
       canvas.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
-      progress.value = 'Calcul de l’empreinte…';
+      progress.value = t('Calcul de l’empreinte…');
       const descriptor = await api.computeFaceDescriptor(canvas);
       const arr = Array.isArray(descriptor) ? descriptor[0] : descriptor;
       return arr ? Array.from(arr) : null;

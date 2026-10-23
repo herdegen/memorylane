@@ -3,18 +3,18 @@
        cartes, un visage par carte, les suggestions avec leur ressemblance,
        trois gestes — ← inconnu · ↓ passer · → c'est la première suggestion.
        Les réponses passent par /quests/answer (même journal que le Dashboard). -->
-  <Head title="Qui est-ce ?" />
+  <Head :title="$t('Qui est-ce ?')" />
   <!-- Couleurs fixes (snow, pas white) : le mode sombre redéfinit « white » en sombre. -->
   <div class="fixed inset-0 z-[60] bg-[#1c1917] text-snow flex flex-col select-none" :style="{ paddingTop: 'env(safe-area-inset-top)' }">
     <!-- Haut : quitter, progression, série -->
     <div class="flex items-center gap-2 px-2 pt-2">
       <button type="button" class="h-10 pl-2.5 pr-3.5 rounded-full bg-snow/12 border border-snow/20 flex items-center gap-1.5 text-[13px] font-bold shrink-0 active:bg-snow/20" @click="quit">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18L18 6M6 6l12 12" /></svg>
-        Quitter
+        {{ $t('Quitter') }}
       </button>
       <div class="flex-1 min-w-0 flex flex-col gap-1.5">
         <div class="flex justify-between text-xs font-bold text-stone-300">
-          <span class="truncate">{{ album ? album.name : 'Qui est-ce ?' }}</span>
+          <span class="truncate">{{ album ? album.name : $t('Qui est-ce ?') }}</span>
           <span class="shrink-0 ml-2">{{ done }} / {{ totalLabel }}</span>
         </div>
         <div class="h-1.5 rounded-full bg-snow/15 overflow-hidden">
@@ -24,7 +24,7 @@
       <div
         class="inline-flex items-center gap-1 h-8 px-2.5 rounded-full text-[13px] font-extrabold text-[#1c1917] shrink-0 ml-1 transition-colors"
         :class="streak >= 5 ? 'bg-amber-300' : 'bg-stone-300'"
-        title="Série de bonnes réponses"
+        :title="$t('Série de bonnes réponses')"
       >
         <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1 4 5 5 5 10a5 5 0 01-10 0c0-2 1-3 1-3s0 2 2 2c0-4-1-6 2-9z" /></svg>{{ streak }}
       </div>
@@ -60,14 +60,14 @@
             <button
               type="button"
               class="absolute right-3 bottom-3 w-16 h-12 rounded-[10px] overflow-hidden border-2 border-snow shadow-[0_6px_16px_rgba(0,0,0,.4)] bg-stone-300"
-              aria-label="Voir la photo entière"
+              :aria-label="$t('Voir la photo entière')"
               @click.stop="showContext = true"
             >
               <img :src="card.face.image_url" alt="" class="w-full h-full object-cover" draggable="false" />
             </button>
             <!-- Indices du geste en cours -->
-            <span class="absolute left-4 top-14 px-3 py-1 rounded-lg border-[3px] border-red-400 text-red-400 font-black text-lg -rotate-12 transition-opacity" :style="{ opacity: dragHint === 'reject' ? 1 : 0 }">INCONNU</span>
-            <span v-if="top" class="absolute right-4 top-14 px-3 py-1 rounded-lg border-[3px] border-emerald-400 text-emerald-400 font-black text-lg rotate-12 transition-opacity" :style="{ opacity: dragHint === 'confirm' ? 1 : 0 }">C'EST {{ firstName(top.name).toUpperCase() }}</span>
+            <span class="absolute left-4 top-14 px-3 py-1 rounded-lg border-[3px] border-red-400 text-red-400 font-black text-lg -rotate-12 transition-opacity" :style="{ opacity: dragHint === 'reject' ? 1 : 0 }">{{ $t('INCONNU') }}</span>
+            <span v-if="top" class="absolute right-4 top-14 px-3 py-1 rounded-lg border-[3px] border-emerald-400 text-emerald-400 font-black text-lg rotate-12 transition-opacity" :style="{ opacity: dragHint === 'confirm' ? 1 : 0 }">{{ $t("C'est :name", { name: firstName(top.name) }).toUpperCase() }}</span>
           </div>
 
           <div class="p-4 pb-3.5 flex flex-col gap-3">
@@ -89,7 +89,7 @@
               <span class="text-[13px] font-bold text-stone-600 shrink-0">{{ Math.round(s.score * 100) }} %</span>
             </button>
             <button type="button" class="h-10 rounded-xl border border-dashed border-stone-300 text-sm font-semibold text-stone-600" @click.stop="openPicker">
-              Quelqu'un d'autre…
+              {{ $t("Quelqu'un d'autre…") }}
             </button>
           </div>
         </div>
@@ -97,15 +97,15 @@
       </div>
 
       <!-- Chargement / fin de partie -->
-      <div v-else-if="loading" class="text-stone-400 text-sm">Chargement des visages…</div>
+      <div v-else-if="loading" class="text-stone-400 text-sm">{{ $t('Chargement des visages…') }}</div>
       <div v-else class="w-full max-w-[350px] rounded-[28px] bg-snow text-[#1c1917] p-7 text-center flex flex-col items-center gap-3">
         <span class="text-5xl">🎉</span>
-        <h2 class="font-display text-2xl">{{ done ? 'Bravo !' : 'Rien à identifier' }}</h2>
+        <h2 class="font-display text-2xl">{{ done ? $t('Bravo !') : $t('Rien à identifier') }}</h2>
         <p class="text-sm text-stone-600">
-          <template v-if="done">{{ done }} visage{{ done > 1 ? 's' : '' }} passé{{ done > 1 ? 's' : '' }} en revue, {{ named }} nommé{{ named > 1 ? 's' : '' }}{{ bestStreak >= 3 ? ` — meilleure série : ${bestStreak}` : '' }}.</template>
-          <template v-else>Tous les visages {{ album ? 'de cet album' : 'visibles' }} sont déjà identifiés ou mis de côté.</template>
+          <template v-if="done">{{ summary }}</template>
+          <template v-else>{{ album ? $t('Tous les visages de cet album sont déjà identifiés ou mis de côté.') : $t('Tous les visages visibles sont déjà identifiés ou mis de côté.') }}</template>
         </p>
-        <button type="button" class="mt-2 h-12 w-full rounded-2xl bg-amber-500 text-[#1c1917] font-bold" @click="quit">Terminer</button>
+        <button type="button" class="mt-2 h-12 w-full rounded-2xl bg-amber-500 text-[#1c1917] font-bold" @click="quit">{{ $t('Terminer') }}</button>
       </div>
     </div>
 
@@ -114,17 +114,17 @@
       <button type="button" class="flex flex-col items-center gap-1.5 text-stone-300 text-[11px] font-bold" :disabled="busy" @click="reject">
         <span class="w-[58px] h-[58px] rounded-full bg-stone-800 border-2 border-stone-600 flex items-center justify-center text-red-400">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18L18 6M6 6l12 12" /></svg>
-        </span>Inconnu
+        </span>{{ $t('Inconnu') }}
       </button>
       <button type="button" class="flex flex-col items-center gap-1.5 text-stone-300 text-[11px] font-bold" :disabled="busy" @click="skip">
         <span class="w-12 h-12 rounded-full bg-stone-800 border-2 border-stone-600 flex items-center justify-center text-stone-300">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14m-6-6l6 6 6-6" /></svg>
-        </span>Passer
+        </span>{{ $t('Passer') }}
       </button>
       <button type="button" class="flex flex-col items-center gap-1.5 text-stone-300 text-[11px] font-bold" :class="{ 'opacity-40': !top }" :disabled="busy || !top" @click="top && confirmPerson(top)">
         <span class="w-[58px] h-[58px] rounded-full bg-amber-500 flex items-center justify-center text-[#1c1917] shadow-[0_10px_24px_-8px_rgba(245,158,11,.8)]">
           <svg class="w-[26px] h-[26px]" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7" /></svg>
-        </span>{{ top ? `C'est ${firstName(top.name)}` : 'Aucune idée' }}
+        </span>{{ top ? $t("C'est :name", { name: firstName(top.name) }) : $t('Aucune idée') }}
       </button>
     </div>
 
@@ -134,7 +134,7 @@
         <img :src="card.face.image_url" alt="" class="max-w-[100vw] max-h-[100dvh] object-contain" />
         <div v-if="boxStyle" class="absolute border-2 border-amber-400 rounded-sm shadow-[0_0_0_9999px_rgba(0,0,0,.35)]" :style="boxStyle"></div>
       </div>
-      <button type="button" class="absolute top-3 right-3 w-11 h-11 rounded-full bg-snow/15 text-snow flex items-center justify-center" aria-label="Fermer" :style="{ marginTop: 'env(safe-area-inset-top)' }">
+      <button type="button" class="absolute top-3 right-3 w-11 h-11 rounded-full bg-snow/15 text-snow flex items-center justify-center" :aria-label="$t('Fermer')" :style="{ marginTop: 'env(safe-area-inset-top)' }">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18L18 6M6 6l12 12" /></svg>
       </button>
     </div>
@@ -143,16 +143,16 @@
     <ToastContainer />
 
     <!-- Quelqu'un d'autre : recherche dans les fiches du cercle -->
-    <BottomSheet :open="pickerOpen" title="Qui est-ce ?" @close="pickerOpen = false">
+    <BottomSheet :open="pickerOpen" :title="$t('Qui est-ce ?')" @close="pickerOpen = false">
       <input
         ref="pickerInput"
         v-model="pickerQuery"
         type="search"
-        placeholder="Prénom, nom…"
+        :placeholder="$t('Prénom, nom…')"
         class="form-input w-full h-12 text-base"
         autocomplete="off"
       />
-      <p v-if="peopleLoading" class="mt-3 text-sm text-surface-500">Chargement des fiches…</p>
+      <p v-if="peopleLoading" class="mt-3 text-sm text-surface-500">{{ $t('Chargement des fiches…') }}</p>
       <div v-else class="mt-2 -mx-4 divide-y divide-surface-100 max-h-[50vh] overflow-y-auto">
         <button
           v-for="p in pickerResults"
@@ -168,10 +168,10 @@
             <span v-if="p.birth_date" class="block text-xs text-surface-500">{{ String(p.birth_date).slice(0, 4) }}</span>
           </span>
         </button>
-        <p v-if="pickerQuery && !pickerResults.length" class="px-4 py-4 text-sm text-surface-500">Aucune fiche ne correspond.</p>
+        <p v-if="pickerQuery && !pickerResults.length" class="px-4 py-4 text-sm text-surface-500">{{ $t('Aucune fiche ne correspond.') }}</p>
       </div>
       <button type="button" class="mt-3 w-full h-11 rounded-xl border border-surface-300 text-sm font-semibold text-surface-700" @click="notAFace">
-        Ce n'est pas un visage
+        {{ $t("Ce n'est pas un visage") }}
       </button>
     </BottomSheet>
   </div>
@@ -186,6 +186,7 @@ import BottomSheet from '@/Components/BottomSheet.vue';
 import ToastContainer from '@/Components/ToastContainer.vue';
 import { searchPeople } from '@/utils/personSearch';
 import { useToast } from '@/Composables/useToast';
+import { t, tc } from '@/i18n';
 
 const props = defineProps({
   album: { type: Object, default: null },
@@ -224,10 +225,18 @@ const hint = computed(() => {
   const f = card.value?.face;
   if (!f) return '';
   const w = f.with || [];
-  if (w.length === 1) return `Sur une photo avec ${firstName(w[0])}`;
-  if (w.length > 1) return `Sur une photo avec ${w.slice(0, -1).map(firstName).join(', ')} et ${firstName(w[w.length - 1])}`;
-  if (f.origin?.owner) return `Photo envoyée par ${firstName(f.origin.owner)}`;
-  return 'Qui est cette personne ?';
+  if (w.length === 1) return t('Sur une photo avec :name', { name: firstName(w[0]) });
+  if (w.length > 1) return t('Sur une photo avec :names et :last', { names: w.slice(0, -1).map(firstName).join(', '), last: firstName(w[w.length - 1]) });
+  if (f.origin?.owner) return t('Photo envoyée par :name', { name: firstName(f.origin.owner) });
+  return t('Qui est cette personne ?');
+});
+
+// Bilan de fin de partie : visages passés en revue, nommés, meilleure série.
+const summary = computed(() => {
+  const namedLabel = tc(':count nommé|:count nommés', named.value);
+  return bestStreak.value >= 3
+    ? tc(':count visage passé en revue, :named — meilleure série : :streak.|:count visages passés en revue, :named — meilleure série : :streak.', done.value, { named: namedLabel, streak: bestStreak.value })
+    : tc(':count visage passé en revue, :named.|:count visages passés en revue, :named.', done.value, { named: namedLabel });
 });
 
 const params = (extra = {}) => ({ album: props.album?.id || undefined, ...extra });
@@ -246,7 +255,7 @@ const fill = () => {
       for (const q of data.questions) if (!skip.has(q.subject_id)) queue.value.push(q);
       if (!total.value && !done.value) total.value = data.total;
     } catch (e) {
-      toast.error('Impossible de charger les visages.');
+      toast.error(t('Impossible de charger les visages.'));
     } finally {
       loading.value = false;
       filling = null;
@@ -285,9 +294,9 @@ const send = async (kind, payload, text, good) => {
   } catch (e) {
     if (e.response?.status === 409) {
       // Quelqu'un d'autre a répondu entre-temps : on passe à la suivante.
-      advance('Déjà identifié par quelqu’un', false);
+      advance(t('Déjà identifié par quelqu’un'), false);
     } else {
-      toast.error(e.response?.data?.message || 'Réponse non enregistrée.');
+      toast.error(e.response?.data?.message || t('Réponse non enregistrée.'));
       resetDrag();
     }
   } finally {
@@ -297,11 +306,11 @@ const send = async (kind, payload, text, good) => {
 
 const confirmPerson = (p) => {
   pickerOpen.value = false;
-  send('answered', { person_id: p.id }, `C'est ${firstName(p.name)} ! +1`, true);
+  send('answered', { person_id: p.id }, t("C'est :name ! +1", { name: firstName(p.name) }), true);
 };
-const reject = () => send('no', { reason: 'stranger' }, 'Marqué inconnu', true);
-const notAFace = () => { pickerOpen.value = false; send('no', { reason: 'not_face' }, 'Pas un visage', true); };
-const skip = () => send('skipped', null, 'On y reviendra', false);
+const reject = () => send('no', { reason: 'stranger' }, t('Marqué inconnu'), true);
+const notAFace = () => { pickerOpen.value = false; send('no', { reason: 'not_face' }, t('Pas un visage'), true); };
+const skip = () => send('skipped', null, t('On y reviendra'), false);
 
 // ---- Gestes sur la carte --------------------------------------------------
 const cardEl = ref(null);

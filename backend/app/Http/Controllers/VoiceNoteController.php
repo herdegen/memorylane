@@ -84,13 +84,13 @@ class VoiceNoteController extends Controller
 
         $voiceNote->delete();
 
-        return response()->json(['message' => 'Souvenir supprimé.']);
+        return response()->json(['message' => __('Souvenir supprimé.')]);
     }
 
     /** Données exposées au navigateur (fiche média). */
     public static function payload(VoiceNote $note, User $viewer): array
     {
-        $narrator = $note->person?->first_name ?: ($note->person?->name ?? $note->user?->name ?? 'Quelqu\'un');
+        $narrator = $note->person?->first_name ?: ($note->person?->name ?? $note->user?->name ?? __('Quelqu\'un'));
 
         return [
             'id' => $note->id,

@@ -4,31 +4,31 @@
       class="fixed inset-0 z-[60] flex flex-col bg-black/95 text-white select-none"
       role="dialog"
       aria-modal="true"
-      :aria-label="`Original : ${title}`"
+      :aria-label="$t('Original : :title', { title })"
     >
       <!-- Barre d'outils -->
       <div class="flex flex-wrap items-center gap-2 px-3 py-2 text-sm bg-black/70">
         <p class="flex-1 min-w-0 truncate">
           {{ title }}
           <span class="text-white/60">· {{ naturalW }} × {{ naturalH }}</span>
-          <span v-if="!loaded" class="text-white/60">· chargement de l’original…</span>
+          <span v-if="!loaded" class="text-white/60">· {{ $t('chargement de l’original…') }}</span>
         </p>
-        <button type="button" class="tool" aria-label="Dézoomer" @click="zoomBy(1 / 1.5)">−</button>
-        <span class="w-14 text-center tabular-nums">{{ Math.round(scale * 100) }} %</span>
-        <button type="button" class="tool" aria-label="Zoomer" @click="zoomBy(1.5)">+</button>
-        <button type="button" class="tool" @click="fit">Ajuster</button>
+        <button type="button" class="tool" :aria-label="$t('Dézoomer')" @click="zoomBy(1 / 1.5)">−</button>
+        <span class="w-14 text-center tabular-nums">{{ $t(':value %', { value: Math.round(scale * 100) }) }}</span>
+        <button type="button" class="tool" :aria-label="$t('Zoomer')" @click="zoomBy(1.5)">+</button>
+        <button type="button" class="tool" @click="fit">{{ $t('Ajuster') }}</button>
         <button
           v-if="faces.length"
           type="button"
           class="tool"
           :class="showFaces ? 'bg-white/25' : 'line-through opacity-70'"
           :aria-pressed="showFaces"
-          title="Afficher ou masquer les cadres des visages"
+          :title="$t('Afficher ou masquer les cadres des visages')"
           @click="showFaces = !showFaces"
         >
-          Cadres
+          {{ $t('Cadres') }}
         </button>
-        <button type="button" class="tool" aria-label="Fermer" @click="emit('close')">✕</button>
+        <button type="button" class="tool" :aria-label="$t('Fermer')" @click="emit('close')">✕</button>
       </div>
 
       <!-- Image : déplacement au glisser, zoom molette / pincement -->
@@ -67,7 +67,7 @@
                 :class="face.person ? 'bg-green-600' : (face.status === 'rejected' ? 'bg-surface-500' : 'bg-amber-500')"
                 :style="{ transform: `scale(${1 / scale})` }"
               >
-                {{ face.person ? face.person.name : (face.status === 'rejected' ? 'inconnu' : '?') }}
+                {{ face.person ? face.person.name : (face.status === 'rejected' ? $t('inconnu') : '?') }}
               </span>
             </div>
           </template>
@@ -75,9 +75,9 @@
       </div>
 
       <p class="px-3 py-1.5 text-center text-xs text-white/60 bg-black/70">
-        <span class="hidden sm:inline">Molette ou pincement pour zoomer · glisser pour se déplacer · double-clic : taille réelle</span>
-        <span class="sm:hidden">Pincer pour zoomer · glisser pour se déplacer</span>
-        <template v-if="canEdit && faces.length"> · cliquez sur un visage pour l’identifier</template>
+        <span class="hidden sm:inline">{{ $t('Molette ou pincement pour zoomer · glisser pour se déplacer · double-clic : taille réelle') }}</span>
+        <span class="sm:hidden">{{ $t('Pincer pour zoomer · glisser pour se déplacer') }}</span>
+        <template v-if="canEdit && faces.length"> · {{ $t('cliquez sur un visage pour l’identifier') }}</template>
       </p>
     </div>
   </Teleport>

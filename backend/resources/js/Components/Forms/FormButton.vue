@@ -43,6 +43,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import { t } from '@/i18n';
 
 const props = defineProps({
   type: {
@@ -55,7 +56,7 @@ const props = defineProps({
   },
   loadingText: {
     type: String,
-    default: 'Chargement...',
+    default: () => t('Chargement...'),
   },
   loading: {
     type: Boolean,

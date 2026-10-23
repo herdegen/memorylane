@@ -1,30 +1,32 @@
 <template>
   <!-- Feuille « Ajouter » du bouton ⊕ : la galerie du téléphone (ou l'appareil
        photo) d'abord, les autres sources ensuite. -->
-  <BottomSheet :open="open" title="Ajouter des souvenirs" @close="$emit('close')">
+  <BottomSheet :open="open" :title="$t('Ajouter des souvenirs')" @close="$emit('close')">
     <div class="flex flex-col gap-3">
       <div class="grid grid-cols-2 gap-2.5">
         <label class="h-[120px] rounded-2xl bg-brand-600 text-white flex flex-col items-start justify-end gap-1 p-3.5 cursor-pointer shadow-[0_14px_30px_-14px_rgba(217,119,6,.8)] dark:shadow-none">
           <input type="file" class="sr-only" multiple accept="image/*,video/*" @change="onFiles">
           <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3" /><path d="M3 16l5-5 4 4 3-3 6 6" /></svg>
-          <span class="text-base font-bold leading-tight">Mes photos</span>
-          <span class="text-xs opacity-90">Choisir dans la galerie</span>
+          <span class="text-base font-bold leading-tight">{{ $t('Mes photos') }}</span>
+          <span class="text-xs opacity-90">{{ $t('Choisir dans la galerie') }}</span>
         </label>
         <label class="h-[120px] rounded-2xl bg-white border border-surface-300 text-surface-900 flex flex-col items-start justify-end gap-1 p-3.5 cursor-pointer">
           <input type="file" class="sr-only" accept="image/*" capture="environment" @change="onFiles">
           <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3l2-3h6l2 3h3a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V8a1 1 0 011-1z" /><circle cx="12" cy="13" r="3.5" /></svg>
-          <span class="text-base font-bold leading-tight">Prendre une photo</span>
-          <span class="text-xs text-surface-500">Ou scanner une photo papier</span>
+          <span class="text-base font-bold leading-tight">{{ $t('Prendre une photo') }}</span>
+          <span class="text-xs text-surface-500">{{ $t('Ou scanner une photo papier') }}</span>
         </label>
       </div>
 
       <div class="flex gap-2">
         <Link href="/media/google-photos" class="flex-1 h-11 rounded-xl bg-white border border-surface-300 text-sm font-semibold text-surface-900 flex items-center justify-center" @click="$emit('close')">Google Photos</Link>
         <Link href="/media/google-drive" class="flex-1 h-11 rounded-xl bg-white border border-surface-300 text-sm font-semibold text-surface-900 flex items-center justify-center" @click="$emit('close')">Google Drive</Link>
-        <Link href="/media/upload" class="flex-1 h-11 rounded-xl bg-white border border-surface-300 text-sm font-semibold text-surface-900 flex items-center justify-center" @click="$emit('close')">Un document</Link>
+        <Link href="/media/upload" class="flex-1 h-11 rounded-xl bg-white border border-surface-300 text-sm font-semibold text-surface-900 flex items-center justify-center" @click="$emit('close')">{{ $t('Un document') }}</Link>
       </div>
       <p class="text-xs text-surface-500 text-center">
-        Les photos sont partagées avec {{ current ? `« ${current.name} »` : 'votre cercle' }} par défaut : vous pourrez changer ça avant l'envoi.
+        {{ current
+          ? $t("Les photos sont partagées avec « :name » par défaut : vous pourrez changer ça avant l'envoi.", { name: current.name })
+          : $t("Les photos sont partagées avec votre cercle par défaut : vous pourrez changer ça avant l'envoi.") }}
       </p>
     </div>
   </BottomSheet>

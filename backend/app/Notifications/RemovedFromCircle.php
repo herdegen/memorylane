@@ -25,13 +25,13 @@ class RemovedFromCircle extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject("Vous ne faites plus partie de « {$this->circleName} »")
-            ->greeting('Bonjour '.explode(' ', trim($notifiable->name))[0].',')
-            ->line("{$this->byName} vous a retiré·e du cercle « {$this->circleName} » sur MemoryLane.")
+            ->subject(__('Vous ne faites plus partie de « :circle »', ['circle' => $this->circleName]))
+            ->greeting(__('Bonjour :name,', ['name' => explode(' ', trim($notifiable->name))[0]]))
+            ->line(__(':name vous a retiré·e du cercle « :circle » sur MemoryLane.', ['name' => $this->byName, 'circle' => $this->circleName]))
             ->line($this->photosWithdrawn
-                ? 'Les photos et albums que vous y aviez partagés en ont été retirés : ils restent à vous, en privé.'
-                : 'Les photos et albums que vous y aviez partagés y restent visibles ; ils sont toujours à vous.')
-            ->line('Votre compte et vos autres cercles ne changent pas. Une question ? Répondez simplement à ce mail.')
-            ->action('Ouvrir MemoryLane', url('/dashboard'));
+                ? __('Les photos et albums que vous y aviez partagés en ont été retirés : ils restent à vous, en privé.')
+                : __('Les photos et albums que vous y aviez partagés y restent visibles ; ils sont toujours à vous.'))
+            ->line(__('Votre compte et vos autres cercles ne changent pas. Une question ? Répondez simplement à ce mail.'))
+            ->action(__('Ouvrir MemoryLane'), url('/dashboard'));
     }
 }

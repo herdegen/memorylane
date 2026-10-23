@@ -23,7 +23,7 @@
         <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
         </svg>
-        {{ isTouch ? 'Choisir dans mes photos' : 'Choisir des photos' }}
+        {{ isTouch ? $t('Choisir dans mes photos') : $t('Choisir des photos') }}
       </label>
       <input
         id="file-upload"
@@ -35,10 +35,10 @@
         @change="handleFileSelect"
       />
 
-      <p v-if="!isTouch" class="mt-3 text-surface-500">ou glissez-les directement ici</p>
+      <p v-if="!isTouch" class="mt-3 text-surface-500">{{ $t('ou glissez-les directement ici') }}</p>
       <p class="mt-4 text-sm text-surface-500">
-        Photos et vidéos, autant que vous voulez.
-        <label for="doc-upload" class="text-brand-700 dark:text-brand-300 underline underline-offset-2 cursor-pointer">Un document (PDF, Word) ?</label>
+        {{ $t('Photos et vidéos, autant que vous voulez.') }}
+        <label for="doc-upload" class="text-brand-700 dark:text-brand-300 underline underline-offset-2 cursor-pointer">{{ $t('Un document (PDF, Word) ?') }}</label>
       </p>
       <input
         id="doc-upload"
@@ -54,11 +54,11 @@
     <div v-else-if="phase !== 'done'">
       <div class="flex flex-wrap items-baseline justify-between gap-2 mb-3">
         <h2 class="text-lg font-semibold text-surface-900">
-          <template v-if="phase === 'uploading'">Envoi en cours… {{ doneCount }} / {{ items.length }}</template>
-          <template v-else>{{ items.length }} {{ plural(items.length, mediaNoun) }} {{ agree('choisi', items.length) }}</template>
+          <template v-if="phase === 'uploading'">{{ $t('Envoi en cours… :done / :total', { done: doneCount, total: items.length }) }}</template>
+          <template v-else>{{ chosenText(items.length) }}</template>
         </h2>
         <label v-if="phase === 'select'" for="file-upload-more" class="text-sm font-medium text-brand-700 dark:text-brand-300 cursor-pointer">
-          + En ajouter
+          {{ $t('+ En ajouter') }}
         </label>
         <input id="file-upload-more" type="file" class="sr-only" multiple accept="image/*,video/*" @change="handleFileSelect" />
       </div>
@@ -70,7 +70,7 @@
         </div>
         <p class="mt-2 text-sm text-surface-600 flex items-center gap-1.5">
           <svg class="w-4 h-4 text-brand-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" /></svg>
-          Gardez cette page ouverte jusqu'à la fin de l'envoi.
+          {{ $t("Gardez cette page ouverte jusqu'à la fin de l'envoi.") }}
         </p>
       </div>
 
@@ -102,7 +102,7 @@
             v-if="phase === 'select'"
             type="button"
             class="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/55 text-white flex items-center justify-center"
-            :aria-label="`Retirer ${item.name}`"
+            :aria-label="$t('Retirer :name', { name: item.name })"
             @click="removeItem(item.id)"
           >
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -132,8 +132,8 @@
         >
           <input v-model="shareWithCircle" type="checkbox" class="mt-0.5 h-5 w-5 rounded border-surface-300 text-brand-600 focus:ring-brand-500" />
           <span>
-            <span class="block font-medium text-surface-900">Partager avec « {{ shareCircle.name }} »</span>
-            <span class="block text-sm text-surface-500">Les membres pourront les voir. Décochez pour les garder pour vous.</span>
+            <span class="block font-medium text-surface-900">{{ $t('Partager avec « :name »', { name: shareCircle.name }) }}</span>
+            <span class="block text-sm text-surface-500">{{ $t('Les membres pourront les voir. Décochez pour les garder pour vous.') }}</span>
           </span>
         </label>
 
@@ -145,10 +145,10 @@
             class="text-sm font-medium text-brand-700 dark:text-brand-300"
             @click="showAlbumOptions = true"
           >
-            + Ranger dans un album (facultatif)
+            {{ $t('+ Ranger dans un album (facultatif)') }}
           </button>
           <div v-else class="rounded-xl border border-surface-200 px-4 py-3">
-            <p class="text-sm font-medium text-surface-700 mb-2">Ranger dans un album</p>
+            <p class="text-sm font-medium text-surface-700 mb-2">{{ $t('Ranger dans un album') }}</p>
             <div class="flex rounded-lg bg-surface-100 p-1 text-sm font-medium">
               <button
                 v-for="opt in albumModeOptions"
@@ -166,26 +166,26 @@
               v-model="selectedAlbumId"
               class="form-input mt-2 w-full"
             >
-              <option :value="null" disabled>Choisir un album…</option>
+              <option :value="null" disabled>{{ $t('Choisir un album…') }}</option>
               <option v-for="album in ownedAlbums" :key="album.id" :value="album.id">
                 {{ album.name }} ({{ album.media_count }})
               </option>
             </select>
             <p v-if="albumMode === 'existing' && !loadingAlbums && ownedAlbums.length === 0" class="mt-2 text-xs text-surface-500">
-              Aucun album pour l'instant : choisissez « Nouvel album ».
+              {{ $t("Aucun album pour l'instant : choisissez « Nouvel album ».") }}
             </p>
             <input
               v-else-if="albumMode === 'new'"
               v-model="newAlbumName"
               type="text"
-              placeholder="Nom du nouvel album (ex. Noël 2025)"
+              :placeholder="$t('Nom du nouvel album (ex. Noël 2025)')"
               class="form-input mt-2 w-full"
             />
           </div>
         </div>
 
         <div class="flex flex-col-reverse sm:flex-row gap-3 pt-1">
-          <button type="button" class="btn-secondary sm:w-auto" @click="clearAll">Annuler</button>
+          <button type="button" class="btn-secondary sm:w-auto" @click="clearAll">{{ $t('Annuler') }}</button>
           <button
             type="button"
             class="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-base font-semibold shadow-warm-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
@@ -193,7 +193,7 @@
             @click="startUpload"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
-            Envoyer {{ items.length }} {{ plural(items.length, mediaNoun) }}
+            {{ sendText(items.length) }}
           </button>
         </div>
       </div>
@@ -207,37 +207,35 @@
         <svg v-else class="w-9 h-9 text-red-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
       </div>
       <h2 class="mt-4 font-display text-2xl text-surface-900">
-        <template v-if="doneItems.length">{{ doneItems.length }} {{ plural(doneItems.length, mediaNoun) }} {{ agree('ajouté', doneItems.length) }} !</template>
-        <template v-else>L'envoi n'a pas abouti</template>
+        <template v-if="doneItems.length">{{ addedText(doneItems.length) }}</template>
+        <template v-else>{{ $t("L'envoi n'a pas abouti") }}</template>
       </h2>
       <ul class="mt-3 space-y-1 text-surface-600">
-        <li v-if="summary.sharedWith">{{ capitalize(agree('partagé', doneItems.length)) }} avec « {{ summary.sharedWith }} ».</li>
-        <li v-if="summary.albumName">{{ capitalize(agree('rangé', doneItems.length)) }} dans l'album « {{ summary.albumName }} ».</li>
+        <li v-if="summary.sharedWith">{{ sharedText(doneItems.length, summary.sharedWith) }}</li>
+        <li v-if="summary.albumName">{{ filedText(doneItems.length, summary.albumName) }}</li>
         <li v-if="summary.warning" class="text-amber-700 dark:text-amber-300">{{ summary.warning }}</li>
-        <li v-if="doneItems.length" class="text-sm text-surface-500">Dates, lieux et visages sont reconnus automatiquement dans les minutes qui suivent.</li>
+        <li v-if="doneItems.length" class="text-sm text-surface-500">{{ $t('Dates, lieux et visages sont reconnus automatiquement dans les minutes qui suivent.') }}</li>
       </ul>
 
       <div v-if="failedItems.length" class="mt-5 mx-auto max-w-md rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 px-4 py-3 text-left">
         <p class="text-sm font-medium text-red-800 dark:text-red-200">
-          {{ failedItems.length }} {{ plural(failedItems.length, mediaNoun) }} {{ failedItems.length > 1 ? "n'ont" : "n'a" }} pas pu être {{ agree('envoyé', failedItems.length) }}
-          (connexion coupée ?).
+          {{ failedText(failedItems.length) }}
         </p>
-        <button type="button" class="mt-2 btn-primary" @click="retryFailed">Réessayer</button>
+        <button type="button" class="mt-2 btn-primary" @click="retryFailed">{{ $t('Réessayer') }}</button>
       </div>
 
       <div class="mt-6 flex flex-col sm:flex-row justify-center gap-3">
-        <Link v-if="doneItems.length && !targetAlbumId" href="/media" class="btn-primary">Voir mes photos</Link>
+        <Link v-if="doneItems.length && !targetAlbumId" href="/media" class="btn-primary">{{ $t('Voir mes photos') }}</Link>
         <button v-if="doneItems.length && !targetAlbumId && !summary.albumName" type="button" class="btn-secondary" @click="emit('organize', doneItems.map((i) => i.media.id))">
-          Ranger dans un album
+          {{ $t('Ranger dans un album') }}
         </button>
-        <button type="button" class="btn-secondary" @click="clearAll">Ajouter d'autres photos</button>
+        <button type="button" class="btn-secondary" @click="clearAll">{{ $t("Ajouter d'autres photos") }}</button>
       </div>
     </div>
 
     <!-- Fichiers refusés à la sélection -->
     <div v-if="rejected.length" class="mt-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
-      {{ rejected.length }} {{ plural(rejected.length, 'fichier') }} {{ rejected.length > 1 ? 'ignorés' : 'ignoré' }} :
-      {{ rejected.slice(0, 3).join(' · ') }}<span v-if="rejected.length > 3"> …</span>
+      {{ $tc(':count fichier ignoré : :list|:count fichiers ignorés : :list', rejected.length, { list: rejected.slice(0, 3).join(' · ') }) }}<span v-if="rejected.length > 3"> …</span>
     </div>
   </div>
 </template>
@@ -251,6 +249,7 @@ import { useCircle } from '@/Composables/useCircle';
 import { useConfirm } from '@/Composables/useConfirm';
 import { apiError } from '@/utils/apiError';
 import { takePendingFiles } from '@/utils/pendingUpload';
+import { t, tc } from '@/i18n';
 
 // `album-attached` : { albumId, albumName, count, isNew } ; `organize` : ids
 // envoyés, pour proposer un rangement en album après coup.
@@ -277,9 +276,9 @@ const shareWithCircle = ref(true);
 
 // ---------------------------------------------------------------- album
 const albumModeOptions = [
-  { value: 'none', label: 'Aucun' },
-  { value: 'existing', label: 'Album existant' },
-  { value: 'new', label: 'Nouvel album' },
+  { value: 'none', label: t('Aucun') },
+  { value: 'existing', label: t('Album existant') },
+  { value: 'new', label: t('Nouvel album') },
 ];
 const showAlbumOptions = ref(false);
 const albumMode = ref('none');
@@ -335,17 +334,41 @@ const resolveMime = (file) => {
 };
 const isVideo = (mime) => mime.startsWith('video/');
 
-const plural = (n, word) => (n > 1 ? `${word}s` : word);
-// « 3 photos choisies », « 2 vidéos ajoutées », « 4 éléments ajoutés ».
-const mediaNoun = computed(() => {
+// « 3 photos choisies », « 2 vidéos ajoutées », « 4 éléments ajoutés » :
+// une phrase complète par nature (photo, vidéo, élément) pour les accords.
+const mediaKind = computed(() => {
   const all = items.value;
   if (all.length && all.every((i) => i.type.startsWith('image/'))) return 'photo';
-  if (all.length && all.every((i) => isVideo(i.type))) return 'vidéo';
-  return 'élément';
+  if (all.length && all.every((i) => isVideo(i.type))) return 'video';
+  return 'item';
 });
-const agree = (participle, n) =>
-  participle + (mediaNoun.value === 'élément' ? '' : 'e') + (n > 1 ? 's' : '');
-const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const byKind = (texts) => texts[mediaKind.value];
+const chosenText = (n) => byKind({
+  photo: tc(':count photo choisie|:count photos choisies', n),
+  video: tc(':count vidéo choisie|:count vidéos choisies', n),
+  item: tc(':count élément choisi|:count éléments choisis', n),
+});
+const sendText = (n) => byKind({
+  photo: tc('Envoyer :count photo|Envoyer :count photos', n),
+  video: tc('Envoyer :count vidéo|Envoyer :count vidéos', n),
+  item: tc('Envoyer :count élément|Envoyer :count éléments', n),
+});
+const addedText = (n) => byKind({
+  photo: tc(':count photo ajoutée !|:count photos ajoutées !', n),
+  video: tc(':count vidéo ajoutée !|:count vidéos ajoutées !', n),
+  item: tc(':count élément ajouté !|:count éléments ajoutés !', n),
+});
+const sharedText = (n, name) => (mediaKind.value === 'item'
+  ? tc('Partagé avec « :name ».|Partagés avec « :name ».', n, { name })
+  : tc('Partagée avec « :name ».|Partagées avec « :name ».', n, { name }));
+const filedText = (n, name) => (mediaKind.value === 'item'
+  ? tc("Rangé dans l'album « :name ».|Rangés dans l'album « :name ».", n, { name })
+  : tc("Rangée dans l'album « :name ».|Rangées dans l'album « :name ».", n, { name }));
+const failedText = (n) => byKind({
+  photo: tc(":count photo n'a pas pu être envoyée (connexion coupée ?).|:count photos n'ont pas pu être envoyées (connexion coupée ?).", n),
+  video: tc(":count vidéo n'a pas pu être envoyée (connexion coupée ?).|:count vidéos n'ont pas pu être envoyées (connexion coupée ?).", n),
+  item: tc(":count élément n'a pas pu être envoyé (connexion coupée ?).|:count éléments n'ont pas pu être envoyés (connexion coupée ?).", n),
+});
 
 // Au-delà de ce seuil (ou pour toute vidéo), upload multipart direct vers S3
 // (contourne les limites 2 Go de PHP/nginx, reprise part par part).
@@ -371,11 +394,11 @@ const addFiles = (files) => {
     const mime = resolveMime(file);
     const ok = IMAGE_TYPES.includes(mime) || VIDEO_TYPES.includes(mime) || DOC_TYPES.includes(mime);
     if (!ok) {
-      rejected.value.push(`${file.name} (format non pris en charge)`);
+      rejected.value.push(t(':name (format non pris en charge)', { name: file.name }));
       continue;
     }
     if (file.size > (isVideo(mime) ? MAX_VIDEO_SIZE : MAX_DEFAULT_SIZE)) {
-      rejected.value.push(`${file.name} (trop lourd)`);
+      rejected.value.push(t(':name (trop lourd)', { name: file.name }));
       continue;
     }
     items.value.push({
@@ -474,10 +497,10 @@ const guardOn = () => {
     // la confirmation, puis on la relance à l'identique si l'on confirme.
     event.preventDefault();
     confirm({
-      title: 'Envoi en cours',
-      message: "L'envoi n'est pas terminé. Quitter quand même ?",
-      confirmLabel: 'Quitter',
-      cancelLabel: 'Rester',
+      title: t('Envoi en cours'),
+      message: t("L'envoi n'est pas terminé. Quitter quand même ?"),
+      confirmLabel: t('Quitter'),
+      cancelLabel: t('Rester'),
       danger: true,
     }).then((ok) => {
       if (!ok) return;
@@ -517,7 +540,7 @@ const runQueue = async (queue) => {
         // Jamais de message technique (« Network Error », exception S3…) :
         // seul un refus de validation (422) est détaillé, en français.
         console.error(`Envoi de « ${item.file?.name} » impossible :`, err);
-        item.error = apiError(err, 'Envoi impossible');
+        item.error = apiError(err, t('Envoi impossible'));
       }
     }
   };
@@ -569,7 +592,7 @@ const shareFresh = async (ids, result) => {
     }
     result.sharedWith = shareCircle.value.name;
   } catch (e) {
-    result.warning = "Photos envoyées, mais le partage avec le cercle a échoué : réessayez depuis « Mes photos ».";
+    result.warning = t('Photos envoyées, mais le partage avec le cercle a échoué : réessayez depuis « Mes photos ».');
   }
 };
 
@@ -593,12 +616,12 @@ const attachToChosenAlbum = async (mediaIds, result) => {
     } else if (albumMode.value === 'existing' && selectedAlbumId.value) {
       const album = ownedAlbums.value.find((a) => a.id === selectedAlbumId.value);
       await addMediaToAlbum(selectedAlbumId.value, mediaIds);
-      result.albumName = album?.name ?? 'choisi';
+      result.albumName = album?.name ?? t('choisi');
       emit('album-attached', { albumId: selectedAlbumId.value, albumName: album?.name ?? '', count: mediaIds.length, isNew: false });
     }
   } catch (e) {
     console.error("Ajout à l'album impossible :", e);
-    result.warning = "Photos envoyées, mais l'ajout à l'album a échoué.";
+    result.warning = t("Photos envoyées, mais l'ajout à l'album a échoué.");
   }
 };
 

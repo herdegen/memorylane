@@ -9,7 +9,7 @@
           <!-- Logo + nav links -->
           <div class="flex">
             <div class="shrink-0 flex items-center">
-              <Link href="/dashboard" class="flex items-center gap-2 group" aria-label="Accueil">
+              <Link href="/dashboard" class="flex items-center gap-2 group" :aria-label="$t('Accueil')">
                 <!-- Logo SVG polaroid -->
                 <span class="w-8 h-8 rounded-lg bg-brand-100 flex items-center justify-center group-hover:bg-brand-200 transition-colors">
                   <svg class="w-5 h-5 text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -32,14 +32,14 @@
             </div>
 
             <div class="hidden sm:ml-6 sm:flex sm:space-x-1">
-              <NavLink href="/dashboard" :active="$page.component === 'Dashboard'">Accueil</NavLink>
-              <NavLink href="/media" :active="$page.component.startsWith('Media/') && $page.component !== 'Media/Upload'">Mes photos</NavLink>
-              <NavLink href="/media/upload" :active="$page.component === 'Media/Upload'">Ajouter</NavLink>
-              <NavLink href="/albums" :active="$page.component.startsWith('Albums/')">Albums</NavLink>
+              <NavLink href="/dashboard" :active="$page.component === 'Dashboard'">{{ $t('Accueil') }}</NavLink>
+              <NavLink href="/media" :active="$page.component.startsWith('Media/') && $page.component !== 'Media/Upload'">{{ $t('Mes photos') }}</NavLink>
+              <NavLink href="/media/upload" :active="$page.component === 'Media/Upload'">{{ $t('Ajouter') }}</NavLink>
+              <NavLink href="/albums" :active="$page.component.startsWith('Albums/')">{{ $t('Albums') }}</NavLink>
               <NavLink href="/people" :active="$page.component.startsWith('People/')">{{ peopleLabel }}</NavLink>
-              <NavLink v-if="isFriends" href="/network" :active="$page.component.startsWith('Network/')">Réseau</NavLink>
-              <NavLink v-else href="/family-tree" :active="$page.component.startsWith('FamilyTree/') || $page.component.startsWith('Network/')">Arbre</NavLink>
-              <NavLink href="/map" :active="$page.component.startsWith('Map/')">Carte</NavLink>
+              <NavLink v-if="isFriends" href="/network" :active="$page.component.startsWith('Network/')">{{ $t('Réseau') }}</NavLink>
+              <NavLink v-else href="/family-tree" :active="$page.component.startsWith('FamilyTree/') || $page.component.startsWith('Network/')">{{ $t('Arbre') }}</NavLink>
+              <NavLink href="/map" :active="$page.component.startsWith('Map/')">{{ $t('Carte') }}</NavLink>
             </div>
           </div>
 
@@ -51,15 +51,15 @@
               @click="toggleTheme"
               class="p-2 rounded-lg text-surface-500 hover:text-surface-700 hover:bg-surface-100
                      focus:outline-hidden focus:ring-2 focus:ring-brand-500 transition-colors"
-              :aria-label="isDark ? 'Passer en mode clair' : 'Passer en mode sombre'"
-              :title="isDark ? 'Mode clair' : 'Mode sombre'"
+              :aria-label="isDark ? $t('Passer en mode clair') : $t('Passer en mode sombre')"
+              :title="isDark ? $t('Mode clair') : $t('Mode sombre')"
             >
               <IconTheme :dark="isDark" icon-class="icon-sm" />
             </button>
 
             <a v-if="isAdmin" href="/admin" class="btn-admin">
               <IconSettings icon-class="icon-sm mr-1.5" />
-              Admin
+              {{ $t('Admin') }}
             </a>
 
             <template v-if="user">
@@ -76,24 +76,24 @@
 
                 <div v-show="showDropdown" class="dropdown">
                   <div class="px-4 py-2.5 border-b border-surface-100">
-                    <p class="text-xs font-medium text-surface-500">Connecté en tant que</p>
+                    <p class="text-xs font-medium text-surface-500">{{ $t('Connecté en tant que') }}</p>
                     <p class="text-sm font-semibold text-surface-900 truncate">{{ user.email }}</p>
                   </div>
-                  <Link href="/profile" class="dropdown-item" @click="showDropdown = false">Mon profil</Link>
-                  <Link href="/households" class="dropdown-item" @click="showDropdown = false">Cercles</Link>
-                  <Link href="/tags" class="dropdown-item" @click="showDropdown = false">Tags</Link>
-                  <Link href="/guide" class="dropdown-item" @click="showDropdown = false">Guide d'utilisation</Link>
-                  <Link href="/tv" class="dropdown-item" @click="showDropdown = false">Relier une télévision</Link>
-                  <button type="button" class="dropdown-item w-full text-left" @click="launchTour">Visite guidée</button>
+                  <Link href="/profile" class="dropdown-item" @click="showDropdown = false">{{ $t('Mon profil') }}</Link>
+                  <Link href="/households" class="dropdown-item" @click="showDropdown = false">{{ $t('Cercles') }}</Link>
+                  <Link href="/tags" class="dropdown-item" @click="showDropdown = false">{{ $t('Tags') }}</Link>
+                  <Link href="/guide" class="dropdown-item" @click="showDropdown = false">{{ $t("Guide d'utilisation") }}</Link>
+                  <Link href="/tv" class="dropdown-item" @click="showDropdown = false">{{ $t('Relier une télévision') }}</Link>
+                  <button type="button" class="dropdown-item w-full text-left" @click="launchTour">{{ $t('Visite guidée') }}</button>
                   <hr class="dropdown-divider" />
                   <button type="button" @click="logout" :disabled="loggingOut" class="dropdown-item w-full text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-300">
-                    Déconnexion
+                    {{ $t('Déconnexion') }}
                   </button>
                 </div>
               </div>
             </template>
             <template v-else>
-              <Link href="/login" class="btn-primary">Connexion</Link>
+              <Link href="/login" class="btn-primary">{{ $t('Connexion') }}</Link>
             </template>
           </div>
 
@@ -106,7 +106,7 @@
               @click="toggleMobileSearch"
               class="p-2 rounded-lg text-surface-500 hover:text-surface-700 hover:bg-surface-100 focus:outline-hidden focus:ring-2 focus:ring-brand-500 transition-colors"
               :class="{ 'bg-surface-100 text-surface-700': showMobileSearch }"
-              :aria-label="showMobileSearch ? 'Fermer la recherche' : 'Rechercher'"
+              :aria-label="showMobileSearch ? $t('Fermer la recherche') : $t('Rechercher')"
               :aria-expanded="showMobileSearch"
               aria-controls="mobile-search"
             >
@@ -118,13 +118,13 @@
               v-if="user"
               type="button"
               class="w-11 h-11 flex items-center justify-center rounded-full focus:outline-hidden focus:ring-2 focus:ring-brand-500"
-              aria-label="Cercles et compte"
+              :aria-label="$t('Cercles et compte')"
               data-tour="account"
               @click="showAccountSheet = true"
             >
               <PersonAvatar :name="user.name" :size="8" />
             </button>
-            <Link v-else href="/login" class="btn-primary">Connexion</Link>
+            <Link v-else href="/login" class="btn-primary">{{ $t('Connexion') }}</Link>
           </div>
         </div>
       </div>
@@ -142,8 +142,8 @@
 
     <!-- Départ de l'application programmé : rappel et annulation, partout. -->
     <div v-if="user?.departure_at" class="bg-amber-100 dark:bg-amber-500/15 text-amber-900 dark:text-amber-200 text-sm px-4 py-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
-      <span>Votre départ de MemoryLane est programmé pour le {{ formatLongDate(user.departure_at) }}.</span>
-      <Link href="/account/departure" class="font-semibold underline">Annuler ou voir les détails</Link>
+      <span>{{ $t('Votre départ de MemoryLane est programmé pour le :date.', { date: formatLongDate(user.departure_at) }) }}</span>
+      <Link href="/account/departure" class="font-semibold underline">{{ $t('Annuler ou voir les détails') }}</Link>
     </div>
 
     <main class="pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-0">

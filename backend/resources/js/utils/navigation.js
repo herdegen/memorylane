@@ -1,3 +1,5 @@
+import { t } from '@/i18n';
+
 // Suivi de la page précédente dans l'application (navigation Inertia).
 //
 // Inertia ne transmet pas de « referer » et document.referrer ne bouge pas en
@@ -45,17 +47,17 @@ export function previousUrl() {
 // Libellé « Retour à … » selon l'origine. Ordre : du plus spécifique au plus
 // général ; défaut générique si la page n'est pas reconnue.
 const BACK_LABELS = [
-  [/^\/people\/\d+/, 'Retour à la fiche'],
-  [/^\/people/, 'Retour aux personnes'],
-  [/^\/albums\/\d+/, "Retour à l'album"],
-  [/^\/albums/, 'Retour aux albums'],
-  [/^\/households\/\d+/, 'Retour au foyer'],
-  [/^\/media\/\d+/, 'Retour au média'],
-  [/^\/media(\?|$)/, 'Retour à mes photos'],
-  [/^\/map/, 'Retour à la carte'],
-  [/^\/tags/, 'Retour aux tags'],
-  [/^\/family-tree/, "Retour à l'arbre"],
-  [/^\/dashboard|^\/$/, "Retour à l'accueil"],
+  [/^\/people\/\d+/, t('Retour à la fiche')],
+  [/^\/people/, t('Retour aux personnes')],
+  [/^\/albums\/\d+/, t("Retour à l'album")],
+  [/^\/albums/, t('Retour aux albums')],
+  [/^\/households\/\d+/, t('Retour au foyer')],
+  [/^\/media\/\d+/, t('Retour au média')],
+  [/^\/media(\?|$)/, t('Retour à mes photos')],
+  [/^\/map/, t('Retour à la carte')],
+  [/^\/tags/, t('Retour aux tags')],
+  [/^\/family-tree/, t("Retour à l'arbre")],
+  [/^\/dashboard|^\/$/, t("Retour à l'accueil")],
 ];
 
 /**
@@ -64,9 +66,9 @@ const BACK_LABELS = [
  *   - `useHistory` : vrai si la page précédente est dans l'historique du
  *     navigateur (on préfère alors history.back(), qui restaure le scroll)
  */
-export function backTarget(fallback = '/media', fallbackLabel = 'Retour à mes photos') {
+export function backTarget(fallback = '/media', fallbackLabel = t('Retour à mes photos')) {
   const prev = previousUrl();
   if (!prev) return { href: fallback, label: fallbackLabel, useHistory: false };
   const match = BACK_LABELS.find(([re]) => re.test(prev));
-  return { href: prev, label: match ? match[1] : 'Retour', useHistory: true };
+  return { href: prev, label: match ? match[1] : t('Retour'), useHistory: true };
 }

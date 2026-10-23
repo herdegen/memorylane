@@ -32,7 +32,7 @@ class RestrictGuest
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            return redirect()->route('login')->withErrors(['email' => 'Ce compte est conservé en mémoire : il n\'est plus possible de s\'y connecter.']);
+            return redirect()->route('login')->withErrors(['email' => __('Ce compte est conservé en mémoire : il n\'est plus possible de s\'y connecter.')]);
         }
 
         if (! $user?->isGuest()) {
@@ -44,7 +44,7 @@ class RestrictGuest
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            return redirect()->route('login')->withErrors(['email' => 'Votre accès invité a expiré.']);
+            return redirect()->route('login')->withErrors(['email' => __('Votre accès invité a expiré.')]);
         }
 
         if (in_array($request->route()?->getName(), self::ALLOWED_ROUTES, true)) {
@@ -52,7 +52,7 @@ class RestrictGuest
         }
 
         if ($request->expectsJson() || ! $request->isMethod('GET')) {
-            abort(403, 'Accès invité en lecture seule.');
+            abort(403, __('Accès invité en lecture seule.'));
         }
 
         return redirect()->route('family-tree.index');

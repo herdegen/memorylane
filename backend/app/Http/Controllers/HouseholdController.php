@@ -74,7 +74,7 @@ class HouseholdController extends Controller
         $kind = $validated['kind'] ?? config('memorylane.default_mode');
         // Un membre crée son cercle d'amis ; la famille reste l'affaire de l'admin.
         if (! $request->user()->isAdmin()) {
-            abort_if($kind !== Household::KIND_FRIENDS, 403, 'Seul un administrateur crée un cercle famille.');
+            abort_if($kind !== Household::KIND_FRIENDS, 403, __('Seul un administrateur crée un cercle famille.'));
             $validated['join'] = true;
         }
         $household = Household::create([
@@ -205,7 +205,7 @@ class HouseholdController extends Controller
             );
         }
 
-        return response()->json(['message' => 'Membre ajouté.'], 201);
+        return response()->json(['message' => __('Membre ajouté.')], 201);
     }
 
     /**
@@ -229,7 +229,7 @@ class HouseholdController extends Controller
     {
         Gate::authorize('manageMembers', $household);
         abort_unless($household->isMember($user), 404);
-        abort_if($user->id === $request->user()->id, 422, 'Pour vous-même, utilisez « Quitter le cercle ».');
+        abort_if($user->id === $request->user()->id, 422, __('Pour vous-même, utilisez « Quitter le cercle ».'));
         $data = $request->validate([
             'photos' => ['nullable', \Illuminate\Validation\Rule::in(['keep', 'withdraw'])],
             'successor_id' => ['nullable', 'uuid'],
@@ -242,7 +242,7 @@ class HouseholdController extends Controller
             $user->notify(new \App\Notifications\RemovedFromCircle($household->name, $request->user()->name, $photos === 'withdraw'));
         }
 
-        return response()->json(['message' => 'Membre retiré.']);
+        return response()->json(['message' => __('Membre retiré.')]);
     }
 
     /**
@@ -273,7 +273,7 @@ class HouseholdController extends Controller
             $request->user(), $household, $data['photos'] ?? 'keep', $data['successor_id'] ?? null,
         );
 
-        return response()->json(['message' => 'Vous avez quitté le cercle.']);
+        return response()->json(['message' => __('Vous avez quitté le cercle.')]);
     }
 
     /**
@@ -286,7 +286,7 @@ class HouseholdController extends Controller
         $household->delete();
 
         if ($request->wantsJson()) {
-            return response()->json(['message' => 'Foyer supprimé.']);
+            return response()->json(['message' => __('Foyer supprimé.')]);
         }
 
         return redirect()->route('households.index');
@@ -306,7 +306,7 @@ class HouseholdController extends Controller
 
         $household->update($validated);
 
-        return response()->json(['message' => 'Cercle mis à jour.']);
+        return response()->json(['message' => __('Cercle mis à jour.')]);
     }
 
     /**
@@ -337,7 +337,7 @@ class HouseholdController extends Controller
             $fresh = $user->fresh();
             if (! \App\Models\Person::inContext($fresh)->whereKey($m[1])->exists()) {
                 return redirect()->route('people.index')
-                    ->with('success', "Cette personne ne fait pas partie de « {$fresh->currentCircle()?->name} ».");
+                    ->with('success', __('Cette personne ne fait pas partie de « :circle ».', ['circle' => $fresh->currentCircle()?->name]));
             }
         }
 
@@ -360,7 +360,7 @@ class HouseholdController extends Controller
     public function personCandidates(Request $request, Household $household)
     {
         Gate::authorize('manageMembers', $household);
-        abort_unless($household->isFriends(), 422, 'Seuls les cercles d\'amis ont des fiches rattachées.');
+        abort_unless($household->isFriends(), 422, __('Seuls les cercles d\'amis ont des fiches rattachées.'));
 
         $q = trim((string) $request->query('q', ''));
         if (mb_strlen($q) < 2) {
@@ -384,7 +384,7 @@ class HouseholdController extends Controller
     public function addPerson(Request $request, Household $household)
     {
         Gate::authorize('manageMembers', $household);
-        abort_unless($household->isFriends(), 422, 'Seuls les cercles d\'amis ont des fiches rattachées.');
+        abort_unless($household->isFriends(), 422, __('Seuls les cercles d\'amis ont des fiches rattachées.'));
 
         $validated = $request->validate([
             'person_id' => ['required', 'uuid', new \App\Rules\VisiblePerson],
@@ -394,7 +394,7 @@ class HouseholdController extends Controller
             $validated['person_id'] => ['added_by' => $request->user()->id],
         ]);
 
-        return response()->json(['message' => 'Fiche ajoutée au cercle.'], 201);
+        return response()->json(['message' => __('Fiche ajoutée au cercle.')], 201);
     }
 
     public function removePerson(Request $request, Household $household, string $personId)
@@ -403,6 +403,6 @@ class HouseholdController extends Controller
 
         $household->people()->detach($personId);
 
-        return response()->json(['message' => 'Fiche retirée du cercle.']);
+        return response()->json(['message' => __('Fiche retirée du cercle.')]);
     }
 }

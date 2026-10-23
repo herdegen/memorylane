@@ -3,20 +3,22 @@
     <img src="/icons/icon-192.png" alt="" class="w-12 h-12 rounded-xl shadow-warm-sm shrink-0" />
 
     <div v-if="justInstalled" class="flex-1 min-w-0">
-      <p class="font-semibold text-surface-900">MemoryLane est installée !</p>
-      <p class="text-sm text-surface-600">Retrouvez-la sur votre écran d'accueil et ouvrez-la toujours par son icône.</p>
+      <p class="font-semibold text-surface-900">{{ $t('MemoryLane est installée !') }}</p>
+      <p class="text-sm text-surface-600">{{ $t("Retrouvez-la sur votre écran d'accueil et ouvrez-la toujours par son icône.") }}</p>
     </div>
 
     <template v-else>
       <div class="flex-1 min-w-0">
-        <p class="font-semibold text-surface-900">Installez MemoryLane sur votre téléphone</p>
+        <p class="font-semibold text-surface-900">{{ $t('Installez MemoryLane sur votre téléphone') }}</p>
         <p class="text-sm text-surface-600">
-          Une icône sur l'écran d'accueil, comme une vraie application<span v-if="device === 'ios'"> — et les notifications de vos proches</span>.
+          {{ device === 'ios'
+            ? $t("Une icône sur l'écran d'accueil, comme une vraie application — et les notifications de vos proches.")
+            : $t("Une icône sur l'écran d'accueil, comme une vraie application.") }}
         </p>
         <div class="mt-2.5 flex flex-wrap items-center gap-2">
-          <button v-if="canPromptNative" type="button" class="btn-primary !py-1.5" @click="install">Installer</button>
-          <button v-else type="button" class="btn-primary !py-1.5" @click="showTutorial = true">Voir comment</button>
-          <button type="button" class="btn-ghost !py-1.5 text-sm" @click="dismiss">Plus tard</button>
+          <button v-if="canPromptNative" type="button" class="btn-primary !py-1.5" @click="install">{{ $t('Installer') }}</button>
+          <button v-else type="button" class="btn-primary !py-1.5" @click="showTutorial = true">{{ $t('Voir comment') }}</button>
+          <button type="button" class="btn-ghost !py-1.5 text-sm" @click="dismiss">{{ $t('Plus tard') }}</button>
         </div>
       </div>
     </template>
@@ -24,7 +26,7 @@
     <button
       type="button"
       class="absolute top-2 right-2 p-1 text-surface-400 hover:text-surface-600"
-      aria-label="Masquer"
+      :aria-label="$t('Masquer')"
       @click="dismiss"
     >
       <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M6 18L18 6M6 6l12 12" /></svg>

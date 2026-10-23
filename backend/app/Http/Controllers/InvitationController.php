@@ -67,16 +67,16 @@ class InvitationController extends Controller
     public function accept(Request $request, string $token)
     {
         $invitation = Invitation::findByToken($token);
-        abort_unless($invitation && $invitation->isUsable(), 410, 'Cette invitation n\'est plus valable.');
+        abort_unless($invitation && $invitation->isUsable(), 410, __('Cette invitation n\'est plus valable.'));
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'password' => ['required', 'confirmed', Password::min(8)],
         ], [
-            'name.required' => 'Indiquez votre prénom et votre nom.',
-            'password.required' => 'Choisissez un mot de passe.',
-            'password.confirmed' => 'Les deux mots de passe ne correspondent pas.',
-            'password.min' => 'Le mot de passe doit faire au moins 8 caractères.',
+            'name.required' => __('Indiquez votre prénom et votre nom.'),
+            'password.required' => __('Choisissez un mot de passe.'),
+            'password.confirmed' => __('Les deux mots de passe ne correspondent pas.'),
+            'password.min' => __('Le mot de passe doit faire au moins 8 caractères.'),
         ]);
 
         $user = $this->invitations->accept($invitation, $data);
@@ -90,7 +90,7 @@ class InvitationController extends Controller
 
         return redirect()->route('dashboard')->with(
             'success',
-            'Bienvenue sur MemoryLane, '.InvitationMail::firstName($user->name).' !'
+            __('Bienvenue sur MemoryLane, :name !', ['name' => InvitationMail::firstName($user->name)])
         );
     }
 
@@ -107,14 +107,14 @@ class InvitationController extends Controller
             'message' => ['nullable', 'string', 'max:1000'],
             'formal' => ['boolean'],
         ], [
-            'email.required' => 'Indiquez son adresse e-mail.',
-            'email.email' => 'Cette adresse e-mail n\'est pas valide.',
+            'email.required' => __('Indiquez son adresse e-mail.'),
+            'email.email' => __('Cette adresse e-mail n\'est pas valide.'),
         ]);
 
         $key = 'member-invitations:'.$user->id;
         if (RateLimiter::tooManyAttempts($key, self::MEMBER_DAILY_LIMIT)) {
             throw ValidationException::withMessages([
-                'email' => 'Vous avez envoyé beaucoup d\'invitations aujourd\'hui : réessayez demain.',
+                'email' => __('Vous avez envoyé beaucoup d\'invitations aujourd\'hui : réessayez demain.'),
             ]);
         }
 
@@ -129,13 +129,14 @@ class InvitationController extends Controller
             report($e);
 
             return response()->json([
-                'message' => 'Le mail n\'a pas pu partir. Réessayez dans un moment, ou prévenez '
-                    .InvitationMail::firstName(config('mail.invitations.admin_from_name')).'.',
+                'message' => __('Le mail n\'a pas pu partir. Réessayez dans un moment, ou prévenez :name.', [
+                    'name' => InvitationMail::firstName(config('mail.invitations.admin_from_name')),
+                ]),
             ], 502);
         }
 
         RateLimiter::hit($key, 86400);
 
-        return response()->json(['message' => 'Invitation envoyée.'], 201);
+        return response()->json(['message' => __('Invitation envoyée.')], 201);
     }
 }

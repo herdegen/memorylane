@@ -23,6 +23,7 @@
 import { computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import { useCircle } from '@/Composables/useCircle';
+import { t } from '@/i18n';
 
 const page = usePage();
 const { isFriends, peopleLabel } = useCircle();
@@ -32,9 +33,9 @@ const segments = computed(() => {
   return [
     { href: '/people', label: peopleLabel.value, active: c.startsWith('People/') },
     isFriends.value
-      ? { href: '/network', label: 'Réseau', active: c.startsWith('Network/') }
-      : { href: '/family-tree', label: 'Arbre', active: c.startsWith('FamilyTree/') || c.startsWith('Network/') },
-    { href: '/map', label: 'Carte', active: c.startsWith('Map/') },
+      ? { href: '/network', label: t('Réseau'), active: c.startsWith('Network/') }
+      : { href: '/family-tree', label: t('Arbre'), active: c.startsWith('FamilyTree/') || c.startsWith('Network/') },
+    { href: '/map', label: t('Carte'), active: c.startsWith('Map/') },
   ];
 });
 </script>

@@ -5,7 +5,7 @@
   <component
     :is="mobile ? BottomSheet : BaseModal"
     v-if="mobile || open"
-    v-bind="mobile ? { open, title: 'Choisir des photos' } : { title: 'Choisir des photos', maxWidth: '4xl', panelClass: 'max-h-[85vh] flex flex-col' }"
+    v-bind="mobile ? { open, title: $t('Choisir des photos') } : { title: $t('Choisir des photos'), maxWidth: '4xl', panelClass: 'max-h-[85vh] flex flex-col' }"
     @close="$emit('close')"
   >
     <div class="flex flex-col gap-3" :class="mobile ? '' : 'px-6 pt-4 pb-2 flex-1 min-h-0'">
@@ -26,14 +26,14 @@
       <!-- Album (onglet Album) + recherche -->
       <div class="flex flex-col sm:flex-row gap-2">
         <select v-if="tab === 'album'" v-model="albumId" class="form-input sm:max-w-xs" @change="reload">
-          <option :value="null" disabled>Choisir un album…</option>
+          <option :value="null" disabled>{{ $t('Choisir un album…') }}</option>
           <option v-for="a in albums" :key="a.id" :value="a.id">{{ a.name }}</option>
         </select>
         <input
           v-model="q"
           type="search"
           class="form-input flex-1"
-          placeholder="Rechercher (titre, album, personne)…"
+          :placeholder="$t('Rechercher (titre, album, personne)…')"
           @input="debouncedReload"
         />
       </div>
@@ -63,10 +63,10 @@
         </div>
         <div v-if="nextPage && !hint" class="py-3 text-center">
           <button type="button" class="btn-secondary" :disabled="loading" @click="loadMore">
-            {{ loading ? 'Chargement…' : 'Afficher plus' }}
+            {{ loading ? $t('Chargement…') : $t('Afficher plus') }}
           </button>
         </div>
-        <p v-if="loading && !items.length" class="py-6 text-sm text-surface-500 text-center">Chargement…</p>
+        <p v-if="loading && !items.length" class="py-6 text-sm text-surface-500 text-center">{{ $t('Chargement…') }}</p>
       </div>
     </div>
 
@@ -76,10 +76,10 @@
       :class="mobile ? 'pt-3 sticky bottom-0 bg-page' : 'px-6 py-4 border-t border-surface-200'"
     >
       <span class="text-sm text-surface-600 flex-1">
-        {{ selected.length ? `${selected.length} photo${selected.length > 1 ? 's' : ''}, dans l'ordre choisi` : 'Touchez les photos à ajouter' }}
-        <span v-if="selected.length >= max" class="text-amber-700"> (maximum {{ max }})</span>
+        {{ selected.length ? $tc(':count photo, dans l\'ordre choisi|:count photos, dans l\'ordre choisi', selected.length) : $t('Touchez les photos à ajouter') }}
+        <span v-if="selected.length >= max" class="text-amber-700"> {{ $t('(maximum :max)', { max }) }}</span>
       </span>
-      <button type="button" class="btn-primary" @click="done">Valider</button>
+      <button type="button" class="btn-primary" @click="done">{{ $t('Valider') }}</button>
     </div>
   </component>
 </template>
@@ -90,6 +90,7 @@ import axios from 'axios';
 import BaseModal from '@/Components/BaseModal.vue';
 import BottomSheet from '@/Components/BottomSheet.vue';
 import { formatDate } from '@/utils/format';
+import { t } from '@/i18n';
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -108,10 +109,10 @@ const mobile = typeof window !== 'undefined' && window.innerWidth < 640;
 
 const firstName = computed(() => (props.personName || '').split(/\s+/)[0]);
 const tabs = computed(() => [
-  { value: 'recent', label: 'Récentes' },
-  ...(props.around ? [{ value: 'date', label: `Autour du ${shortDate(props.around)}` }] : []),
-  ...(props.personId ? [{ value: 'person', label: `Avec ${firstName.value || 'cette personne'}` }] : []),
-  { value: 'album', label: 'Un album' },
+  { value: 'recent', label: t('Récentes') },
+  ...(props.around ? [{ value: 'date', label: t('Autour du :date', { date: shortDate(props.around) }) }] : []),
+  ...(props.personId ? [{ value: 'person', label: t('Avec :name', { name: firstName.value || t('cette personne') }) }] : []),
+  { value: 'album', label: t('Un album') },
 ]);
 
 const tab = ref('recent');
@@ -127,8 +128,8 @@ const shortDate = (d) => formatDate(d);
 const indexOf = (id) => selected.value.findIndex((s) => s.id === id);
 
 const hint = computed(() => {
-  if (tab.value === 'album' && !albumId.value) return 'Choisissez un album.';
-  if (!loading.value && !items.value.length) return q.value ? 'Aucune photo ne correspond.' : 'Aucune photo ici.';
+  if (tab.value === 'album' && !albumId.value) return t('Choisissez un album.');
+  if (!loading.value && !items.value.length) return q.value ? t('Aucune photo ne correspond.') : t('Aucune photo ici.');
   return '';
 });
 

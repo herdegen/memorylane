@@ -1,13 +1,13 @@
 <template>
-  <Head title="Ajouter des photos" />
+  <Head :title="$t('Ajouter des photos')" />
   <AppLayout>
     <div class="py-8 sm:py-12">
       <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-start justify-between gap-4 mb-6">
           <div>
-            <h1 class="text-display text-3xl sm:text-4xl text-surface-900">Ajouter des photos</h1>
+            <h1 class="text-display text-3xl sm:text-4xl text-surface-900">{{ $t('Ajouter des photos') }}</h1>
             <p class="mt-2 text-surface-600">
-              Depuis votre téléphone ou votre ordinateur : elles rejoignent {{ isFriends ? 'vos souvenirs communs' : 'la mémoire de la famille' }}.
+              {{ isFriends ? $t('Depuis votre téléphone ou votre ordinateur : elles rejoignent vos souvenirs communs.') : $t('Depuis votre téléphone ou votre ordinateur : elles rejoignent la mémoire de la famille.') }}
             </p>
           </div>
           <button
@@ -16,7 +16,7 @@
             @click="showTutorial = true"
           >
             <span class="w-5 h-5 rounded-full bg-brand-100 text-brand-700 text-xs font-bold flex items-center justify-center">?</span>
-            <span class="hidden sm:inline">Comment faire</span>
+            <span class="hidden sm:inline">{{ $t('Comment faire') }}</span>
           </button>
         </div>
 
@@ -26,19 +26,21 @@
 
         <!-- Astuce selon l'appareil -->
         <p v-if="device === 'ios'" class="mt-5 text-sm text-surface-500 px-1">
-          <strong class="text-surface-700">Astuce iPhone :</strong> ajoutez MemoryLane à votre écran d'accueil
-          (dans Safari, bouton Partager › « Sur l'écran d'accueil ») pour l'ouvrir comme une application.
+          <Trans text=":tip ajoutez MemoryLane à votre écran d'accueil (dans Safari, bouton Partager › « Sur l'écran d'accueil ») pour l'ouvrir comme une application.">
+            <template #tip><strong class="text-surface-700">{{ $t('Astuce iPhone :') }}</strong></template>
+          </Trans>
         </p>
         <p v-else-if="device === 'android'" class="mt-5 text-sm text-surface-500 px-1">
-          <strong class="text-surface-700">Astuce Android :</strong> installez MemoryLane (menu ⋮ › « Installer l'application »),
-          puis depuis votre Galerie : Partager › MemoryLane.
+          <Trans text=":tip installez MemoryLane (menu ⋮ › « Installer l'application »), puis depuis votre Galerie : Partager › MemoryLane.">
+            <template #tip><strong class="text-surface-700">{{ $t('Astuce Android :') }}</strong></template>
+          </Trans>
         </p>
 
         <!-- Autres façons d'importer -->
         <details class="mt-6 group">
           <summary class="cursor-pointer list-none flex items-center gap-2 text-sm font-medium text-surface-600 hover:text-surface-900 px-1">
             <svg class="w-4 h-4 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
-            Autres façons d'importer (Google Photos, Google Drive, archive complète)
+            {{ $t("Autres façons d'importer (Google Photos, Google Drive, archive complète)") }}
           </summary>
 
           <Link href="/google-photos" class="mt-3 card card--padded flex items-center gap-4 group/item">
@@ -48,8 +50,8 @@
               </svg>
             </span>
             <span class="flex-1">
-              <span class="font-semibold text-surface-900 block">Depuis Google Photos</span>
-              <span class="text-sm text-surface-500">Si vos photos sont déjà chez Google : choisissez-les par personne, lieu ou date.</span>
+              <span class="font-semibold text-surface-900 block">{{ $t('Depuis Google Photos') }}</span>
+              <span class="text-sm text-surface-500">{{ $t('Si vos photos sont déjà chez Google : choisissez-les par personne, lieu ou date.') }}</span>
             </span>
           </Link>
 
@@ -60,8 +62,8 @@
               </svg>
             </span>
             <span class="flex-1">
-              <span class="font-semibold text-surface-900 block">Depuis Google Drive</span>
-              <span class="text-sm text-surface-500">Choisissez des photos rangées dans votre Drive : elles arrivent en pleine qualité, sans téléchargement.</span>
+              <span class="font-semibold text-surface-900 block">{{ $t('Depuis Google Drive') }}</span>
+              <span class="text-sm text-surface-500">{{ $t('Choisissez des photos rangées dans votre Drive : elles arrivent en pleine qualité, sans téléchargement.') }}</span>
             </span>
           </Link>
 
@@ -72,8 +74,8 @@
               </svg>
             </span>
             <span class="flex-1">
-              <span class="font-semibold text-surface-900 block">Archive Google Takeout</span>
-              <span class="text-sm text-surface-500">Tout l'historique Google Photos d'un coup, avec les lieux (pour les gros volumes, sur ordinateur).</span>
+              <span class="font-semibold text-surface-900 block">{{ $t('Archive Google Takeout') }}</span>
+              <span class="text-sm text-surface-500">{{ $t("Tout l'historique Google Photos d'un coup, avec les lieux (pour les gros volumes, sur ordinateur).") }}</span>
             </span>
           </Link>
         </details>
@@ -96,6 +98,8 @@ import { ref, onMounted } from 'vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import Trans from '@/Components/Trans.vue';
+import { tc } from '@/i18n';
 import MediaUploader from '@/Components/MediaUploader.vue';
 import UploadTutorial from '@/Components/UploadTutorial.vue';
 import AddToAlbumModal from '@/Components/AddToAlbumModal.vue';
@@ -133,7 +137,7 @@ const openAlbumModal = (ids) => {
 const handleAlbumDone = ({ albumName, count, isNew }) => {
   showAlbumModal.value = false;
   toast.success(isNew
-    ? `Album « ${albumName} » créé avec ${count} élément${count > 1 ? 's' : ''}.`
-    : `${count} élément${count > 1 ? 's' : ''} ajouté${count > 1 ? 's' : ''} à « ${albumName} ».`);
+    ? tc('Album « :name » créé avec :count élément.|Album « :name » créé avec :count éléments.', count, { name: albumName })
+    : tc(':count élément ajouté à « :name ».|:count éléments ajoutés à « :name ».', count, { name: albumName }));
 };
 </script>

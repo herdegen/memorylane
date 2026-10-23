@@ -135,13 +135,13 @@ class VisionController extends Controller
     public function analyzeOnServer(Request $request, Media $media): JsonResponse
     {
         $this->authorizeFaceEditing($media);
-        abort_unless(in_array($media->type, ['photo', 'video'], true), 422, 'Seules les photos et vidéos s\'analysent.');
-        abort_unless(\App\Services\Vision\FaceEngine::enabled(), 409, 'Analyse serveur désactivée.');
+        abort_unless(in_array($media->type, ['photo', 'video'], true), 422, __('Seules les photos et vidéos s\'analysent.'));
+        abort_unless(\App\Services\Vision\FaceEngine::enabled(), 409, __('Analyse serveur désactivée.'));
 
         // « Forcer » (admin) : cadres non identifiés effacés, détection et
         // identification refaites ; les personnes identifiées sont conservées.
         $force = $request->boolean('force');
-        abort_if($force && ! auth()->user()->isAdmin(), 403, 'Réservé à l\'admin.');
+        abort_if($force && ! auth()->user()->isAdmin(), 403, __('Réservé à l\'admin.'));
 
         \App\Jobs\AnalyzeFaces::dispatchSync($media, $force);
 
@@ -154,7 +154,7 @@ class VisionController extends Controller
      */
     public function analyzeBatch(Request $request): JsonResponse
     {
-        abort_unless(\App\Services\Vision\FaceEngine::enabled(), 409, 'Analyse serveur désactivée.');
+        abort_unless(\App\Services\Vision\FaceEngine::enabled(), 409, __('Analyse serveur désactivée.'));
         $validated = $request->validate(['ids' => 'required|array|max:1000', 'ids.*' => 'uuid']);
 
         $user = auth()->user();
@@ -438,12 +438,12 @@ class VisionController extends Controller
     private function authorizeFaceEditing(?Media $media): void
     {
         $user = auth()->user();
-        abort_unless($media && ($user->isAdmin() || $media->user_id === $user->id), 403, 'Seuls l\'admin et la personne qui a envoyé la photo identifient ses visages.');
+        abort_unless($media && ($user->isAdmin() || $media->user_id === $user->id), 403, __('Seuls l\'admin et la personne qui a envoyé la photo identifient ses visages.'));
     }
 
     private function ensureFacePersonEditable(DetectedFace $face): void
     {
-        abort_unless($face->personVisibleTo(auth()->user()), 403, 'Ce visage est identifié dans un autre cercle.');
+        abort_unless($face->personVisibleTo(auth()->user()), 403, __('Ce visage est identifié dans un autre cercle.'));
     }
 
     /**

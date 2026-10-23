@@ -7,8 +7,8 @@
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
       </svg>
       <div>
-        <p class="text-sm font-medium text-surface-900">Analyse IA en cours...</p>
-        <p class="text-xs text-surface-500">Détection des visages et labels</p>
+        <p class="text-sm font-medium text-surface-900">{{ $t('Analyse IA en cours...') }}</p>
+        <p class="text-xs text-surface-500">{{ $t('Détection des visages et labels') }}</p>
       </div>
     </div>
 
@@ -21,9 +21,9 @@
           </svg>
         </div>
         <div>
-          <p class="text-sm font-medium text-surface-900">Analyse terminée</p>
+          <p class="text-sm font-medium text-surface-900">{{ $t('Analyse terminée') }}</p>
           <p class="text-xs text-surface-500">
-            {{ facesCount }} visage{{ facesCount !== 1 ? 's' : '' }} détecté{{ facesCount !== 1 ? 's' : '' }}
+            {{ $tc(':count visage détecté|:count visages détectés', facesCount) }}
           </p>
         </div>
       </div>
@@ -32,7 +32,7 @@
         @click="$emit('rerun')"
         class="text-xs text-brand-600 hover:text-brand-800 font-medium"
       >
-        Relancer
+        {{ $t('Relancer') }}
       </button>
     </div>
 
@@ -45,8 +45,8 @@
           </svg>
         </div>
         <div>
-          <p class="text-sm font-medium text-surface-900">Échec de l'analyse</p>
-          <p class="text-xs text-red-500">{{ currentError || 'Erreur inconnue' }}</p>
+          <p class="text-sm font-medium text-surface-900">{{ $t('Échec de l\'analyse') }}</p>
+          <p class="text-xs text-red-500">{{ currentError || $t('Erreur inconnue') }}</p>
         </div>
       </div>
       <button
@@ -54,7 +54,7 @@
         @click="$emit('rerun')"
         class="text-xs text-brand-600 hover:text-brand-800 font-medium"
       >
-        Réessayer
+        {{ $t('Réessayer') }}
       </button>
     </div>
   </div>

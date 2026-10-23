@@ -35,8 +35,8 @@ class BirthdaysToday extends PushNotification
 
         // 12 h : un téléphone éteint toute la journée n'a pas à l'apprendre demain.
         return $this->message(
-            $count === 1 ? "Anniversaire aujourd'hui" : "Anniversaires aujourd'hui",
-            "Aujourd'hui : anniversaire {$this->peopleSentence()}",
+            $count === 1 ? __('Anniversaire aujourd\'hui') : __('Anniversaires aujourd\'hui'),
+            __('Aujourd\'hui : anniversaire :people', ['people' => $this->peopleSentence()]),
             $url,
             "birthdays-{$this->date}",
             43200,
@@ -50,16 +50,15 @@ class BirthdaysToday extends PushNotification
         $parts = array_map(function (array $b) {
             // Entre amis, pas d'âge (age null).
             if (($b['age'] ?? null) === null) {
-                return "de {$b['name']}";
+                return __('de :name', ['name' => $b['name']]);
             }
-            $age = $b['age'] === 1 ? '1 an' : "{$b['age']} ans";
 
-            return "de {$b['name']} ({$age})";
+            return trans_choice('de :name (:count an)|de :name (:count ans)', $b['age'], ['name' => $b['name']]);
         }, $shown);
 
         $rest = count($this->birthdays) - count($shown);
         if ($rest > 0) {
-            $parts[] = $rest === 1 ? "d'une autre personne" : "de {$rest} autres personnes";
+            $parts[] = trans_choice('d\'une autre personne|de :count autres personnes', $rest);
         }
 
         if (count($parts) === 1) {
@@ -68,6 +67,6 @@ class BirthdaysToday extends PushNotification
 
         $last = array_pop($parts);
 
-        return implode(', ', $parts) . ' et ' . $last;
+        return __(':list et :last', ['list' => implode(', ', $parts), 'last' => $last]);
     }
 }

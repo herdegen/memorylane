@@ -2,6 +2,7 @@ import { reactive } from 'vue';
 import axios from 'axios';
 import { usePage } from '@inertiajs/vue3';
 import { usePeopleDirectory } from '@/Composables/usePeopleDirectory';
+import { t } from '@/i18n';
 
 /**
  * Choisir, dans un sélecteur, une fiche d'un autre cercle (ou de la famille)
@@ -26,7 +27,7 @@ async function add() {
     close('added');
   } catch (e) {
     state.busy = false;
-    window.alert(e.response?.data?.message || "Impossible d'ajouter la fiche à ce cercle.");
+    window.alert(e.response?.data?.message || t("Impossible d'ajouter la fiche à ce cercle."));
   }
 }
 

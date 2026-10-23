@@ -1,6 +1,6 @@
 <template>
-  <Head title="Carte" />
-  <AppLayout title="Carte">
+  <Head :title="$t('Carte')" />
+  <AppLayout :title="$t('Carte')">
     <PeopleSegments />
     <div class="app-viewport flex relative">
       <!-- Fond assombri (téléphone, panneau des filtres ouvert) -->
@@ -22,12 +22,12 @@
         :class="filtersOpen ? 'max-md:translate-x-0' : 'max-md:-translate-x-full'"
       >
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-xl font-semibold">Recherche de lieu</h2>
+          <h2 class="text-xl font-semibold">{{ $t('Recherche de lieu') }}</h2>
           <button
             type="button"
             @click="filtersOpen = false"
             class="md:hidden -mr-1 p-1 text-surface-500 hover:text-surface-800"
-            aria-label="Fermer les filtres"
+            :aria-label="$t('Fermer les filtres')"
           >
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -41,7 +41,7 @@
             v-model="searchQuery"
             @input="debounceSearch"
             type="text"
-            placeholder="Rechercher un lieu..."
+            :placeholder="$t('Rechercher un lieu...')"
             class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
           />
 
@@ -60,7 +60,7 @@
 
         <!-- Filters -->
         <div class="mb-4">
-          <h3 class="font-semibold mb-2">Filtres</h3>
+          <h3 class="font-semibold mb-2">{{ $t('Filtres') }}</h3>
 
           <!-- Type filter -->
           <select
@@ -68,10 +68,10 @@
             @change="applyFilters"
             class="w-full px-3 py-2 border border-surface-300 rounded-lg mb-3"
           >
-            <option value="">Tous les types</option>
-            <option value="photo">Photos</option>
-            <option value="video">Vidéos</option>
-            <option value="document">Documents</option>
+            <option value="">{{ $t('Tous les types') }}</option>
+            <option value="photo">{{ $t('Photos') }}</option>
+            <option value="video">{{ $t('Vidéos') }}</option>
+            <option value="document">{{ $t('Documents') }}</option>
           </select>
 
           <!-- Search by name -->
@@ -79,13 +79,13 @@
             v-model="filters.search"
             @input="debounceFilters"
             type="text"
-            placeholder="Rechercher par nom..."
+            :placeholder="$t('Rechercher par nom...')"
             class="w-full px-3 py-2 border border-surface-300 rounded-lg mb-3"
           />
 
           <!-- Tag filter -->
           <div v-if="availableTags.length > 0" class="mb-3">
-            <label class="block text-sm font-medium text-surface-700 mb-2">Tags</label>
+            <label class="block text-sm font-medium text-surface-700 mb-2">{{ $t('Tags') }}</label>
             <div class="flex flex-wrap gap-2">
               <button
                 v-for="tag in availableTags"
@@ -107,7 +107,7 @@
 
         <!-- Couches : « Où vit la famille » / « Où vivent mes amis » -->
         <div class="mb-4">
-          <h3 class="font-semibold mb-2">Couches</h3>
+          <h3 class="font-semibold mb-2">{{ $t('Couches') }}</h3>
           <button
             type="button"
             role="switch"
@@ -115,7 +115,7 @@
             @click="toggleHeatmap"
             class="w-full flex items-center justify-between px-3 py-2 border border-surface-300 rounded-lg hover:bg-surface-50 transition-colors"
           >
-            <span class="text-sm text-surface-700">🔥 {{ isFriends ? 'Où vivent mes amis' : 'Où vit la famille' }}</span>
+            <span class="text-sm text-surface-700">🔥 {{ isFriends ? $t('Où vivent mes amis') : $t('Où vit la famille') }}</span>
             <span
               :class="[
                 'relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors',
@@ -131,35 +131,33 @@
             </span>
           </button>
           <p v-if="heatmapEnabled" class="mt-1 text-xs text-surface-500">
-            Positions approximatives (~1 km), jamais les adresses exactes.
+            {{ $t('Positions approximatives (~1 km), jamais les adresses exactes.') }}
           </p>
         </div>
 
         <!-- Media count -->
         <div class="mt-4 p-3 bg-brand-50 rounded-lg">
           <div class="text-sm text-surface-600">
-            {{ geolocatedMedia.length }} média(s)
-            <span v-if="geolocatedAlbums.length"> · {{ geolocatedAlbums.length }} album(s)</span>
-            géolocalisé(s)
+            {{ geolocatedCountLabel }}
           </div>
         </div>
 
         <!-- Nearby search -->
         <div v-if="selectedLocation" class="mt-4 p-3 bg-surface-100 border border-surface-200 rounded-lg">
           <div class="text-sm font-medium text-surface-800 mb-2">
-            Photos à proximité de {{ selectedLocation.name }}
+            {{ $t('Photos à proximité de :place', { place: selectedLocation.name }) }}
           </div>
           <button
             @click="searchNearby"
             class="btn-primary w-full"
           >
-            Rechercher (5km)
+            {{ $t('Rechercher (5km)') }}
           </button>
           <button
             @click="clearSelection"
             class="w-full mt-2 px-4 py-2 bg-surface-200 text-surface-700 rounded-lg hover:bg-surface-300"
           >
-            Effacer la sélection
+            {{ $t('Effacer la sélection') }}
           </button>
         </div>
       </aside>
@@ -184,7 +182,7 @@
           <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h18l-7 8v6l-4 2v-8L3 4z" />
           </svg>
-          Filtres
+          {{ $t('Filtres') }}
           <span
             v-if="activeFilterCount"
             class="ml-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-600 px-1 text-xs font-semibold text-white"
@@ -195,7 +193,7 @@
 
     <!-- Plusieurs souvenirs au même endroit : liste complète (toucher sur
          téléphone, clic au centre de la pile sur ordinateur). -->
-    <BottomSheet :open="!!placeSheet" :title="placeSheet ? `${placeSheet.items.length} souvenirs à cet endroit` : ''" @close="placeSheet = null">
+    <BottomSheet :open="!!placeSheet" :title="placeSheet ? $tc(':count souvenir à cet endroit|:count souvenirs à cet endroit', placeSheet.items.length) : ''" @close="placeSheet = null">
       <div v-if="placeSheet" class="-mx-4 divide-y divide-surface-100">
         <Link
           v-for="item in placeSheet.items"
@@ -233,6 +231,7 @@ import { escapeHtml } from '@/utils/html';
 import { apiError } from '@/utils/apiError';
 import { useToast } from '@/Composables/useToast';
 import { useTags } from '@/Composables/useTags';
+import { t, tc } from '@/i18n';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.heat';
@@ -293,6 +292,14 @@ const activeFilterCount = computed(() =>
   + (heatmapEnabled.value ? 0 : 1)
   + (selectedLocation.value ? 1 : 0));
 
+// Compteur du panneau : médias (et albums) placés sur la carte.
+const geolocatedCountLabel = computed(() => (geolocatedAlbums.value.length
+  ? t(':media · :albums géolocalisés', {
+    media: tc(':count média|:count médias', geolocatedMedia.value.length),
+    albums: tc(':count album|:count albums', geolocatedAlbums.value.length),
+  })
+  : tc(':count média géolocalisé|:count médias géolocalisés', geolocatedMedia.value.length)));
+
 // Initialize map
 onMounted(async () => {
   // Create map
@@ -335,7 +342,7 @@ async function loadTags() {
     availableTags.value = await tagList.load();
   } catch (error) {
     console.error('Failed to load tags:', error);
-    toast.error(apiError(error, 'Impossible de charger les tags pour le filtre.'));
+    toast.error(apiError(error, t('Impossible de charger les tags pour le filtre.')));
   }
 }
 
@@ -359,7 +366,7 @@ async function loadGeolocatedMedia() {
     updateMarkers();
   } catch (error) {
     console.error('Failed to load geolocated media:', error);
-    toast.error(apiError(error, 'Impossible de charger les photos de la carte. Réessayez dans un instant.'));
+    toast.error(apiError(error, t('Impossible de charger les photos de la carte. Réessayez dans un instant.')));
   }
 }
 
@@ -394,15 +401,15 @@ const placeKey = (lat, lng) => `${Number(lat).toFixed(5)},${Number(lng).toFixed(
 const albumItem = (album) => ({
   kind: 'album', id: album.id, lat: album.latitude, lng: album.longitude,
   thumb: album.thumbnail_url, title: album.name,
-  sub: `Album · ${album.media_count} média${album.media_count > 1 ? 's' : ''}`,
+  sub: tc('Album · :count média|Album · :count médias', album.media_count),
   href: `/albums/${encodeURIComponent(album.id)}`,
   raw: album,
 });
 const mediaItem = (media) => ({
   kind: 'media', id: media.id, lat: media.latitude, lng: media.longitude,
   thumb: media.thumbnail_url,
-  title: media.taken_at ? formatDate(media.taken_at) : (media.original_name || 'Photo'),
-  sub: media.type === 'video' ? 'Vidéo' : 'Photo',
+  title: media.taken_at ? formatDate(media.taken_at) : (media.original_name || t('Photo')),
+  sub: media.type === 'video' ? t('Vidéo') : t('Photo'),
   href: `/media/${encodeURIComponent(media.id)}`,
   raw: media,
 });
@@ -419,9 +426,9 @@ function singleMarker(item) {
       <div class="text-center">
         <img src="${escapeHtml(item.thumb)}" alt="${name}" class="w-32 h-32 object-cover rounded-sm mb-2" />
         <div class="font-medium text-sm">📁 ${name}</div>
-        <div class="text-xs text-surface-500">${escapeHtml(item.raw.media_count)} média(s)</div>
+        <div class="text-xs text-surface-500">${escapeHtml(tc(':count média|:count médias', item.raw.media_count))}</div>
         <div class="mt-2">
-          <a href="${escapeHtml(item.href)}" class="text-brand-600 hover:text-brand-800 text-sm">Voir l'album</a>
+          <a href="${escapeHtml(item.href)}" class="text-brand-600 hover:text-brand-800 text-sm">${escapeHtml(t("Voir l'album"))}</a>
         </div>
       </div>
     ` : `
@@ -430,7 +437,7 @@ function singleMarker(item) {
         <div class="font-medium text-sm">${name}</div>
         ${item.raw.taken_at ? `<div class="text-xs text-surface-500">${escapeHtml(formatDate(item.raw.taken_at))}</div>` : ''}
         <div class="mt-2">
-          <a href="${escapeHtml(item.href)}" class="text-brand-600 hover:text-brand-800 text-sm">Voir le média</a>
+          <a href="${escapeHtml(item.href)}" class="text-brand-600 hover:text-brand-800 text-sm">${escapeHtml(t('Voir le média'))}</a>
         </div>
       </div>
     `);
@@ -463,7 +470,7 @@ function stackMarker(items) {
      <span class="ml-stack-label">${escapeHtml(item.title)}</span>`,
     `data-href="${escapeHtml(item.href)}" title="${escapeHtml(item.title)}"`)).join('');
   const moreCard = more ? card(shown.length,
-    `<div class="ml-stack-thumb ml-stack-more">+${more}</div><span class="ml-stack-label">Tout voir</span>`,
+    `<div class="ml-stack-thumb ml-stack-more">+${more}</div><span class="ml-stack-label">${escapeHtml(t('Tout voir'))}</span>`,
     'data-sheet="1"') : '';
 
   const marker = L.marker([items[0].lat, items[0].lng], {
@@ -474,7 +481,7 @@ function stackMarker(items) {
       html: `<div class="ml-stack" style="--r:${radius}px">
           <div class="ml-stack-hit"></div>
           ${cards}${moreCard}
-          <div class="ml-stack-count" title="${items.length} souvenirs à cet endroit">${items.length}</div>
+          <div class="ml-stack-count" title="${escapeHtml(tc(':count souvenir à cet endroit|:count souvenirs à cet endroit', items.length))}">${items.length}</div>
           <div class="ml-stack-tip" style="border-top-color:${hasAlbum ? '#f59e0b' : '#fff'}"></div>
         </div>`,
       iconSize: [48, 56],
@@ -561,7 +568,7 @@ async function showHeatmap() {
       ]);
     } catch (error) {
       console.error('Failed to load heatmap:', error);
-      toast.error(apiError(error, "Impossible d'afficher cette couche de la carte."));
+      toast.error(apiError(error, t("Impossible d'afficher cette couche de la carte.")));
       heatmapEnabled.value = false;
       return;
     }
@@ -640,7 +647,7 @@ async function searchLocation() {
     searchResults.value = response.data;
   } catch (error) {
     console.error('Location search failed:', error);
-    toast.error(apiError(error, "La recherche de lieu n'a pas abouti. Réessayez dans un instant."));
+    toast.error(apiError(error, t("La recherche de lieu n'a pas abouti. Réessayez dans un instant.")));
   }
 }
 
@@ -703,7 +710,7 @@ async function searchNearby() {
     if (isMobile()) filtersOpen.value = false;
   } catch (error) {
     console.error('Nearby search failed:', error);
-    toast.error(apiError(error, 'Impossible de rechercher les photos à proximité.'));
+    toast.error(apiError(error, t('Impossible de rechercher les photos à proximité.')));
   }
 }
 

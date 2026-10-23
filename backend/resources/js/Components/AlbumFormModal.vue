@@ -1,25 +1,25 @@
 <template>
-  <BaseModal :title="album ? 'Modifier l\'album' : 'Créer un album'" @close="$emit('close')">
+  <BaseModal :title="album ? $t('Modifier l\'album') : $t('Créer un album')" @close="$emit('close')">
     <!-- Formulaire -->
     <form @submit.prevent="submit" class="px-6 py-4 space-y-4">
       <FormField
         v-model="form.name"
         id="album-name"
-        label="Nom de l'album"
-        placeholder="Ex: Vacances été 2024"
+        :label="$t('Nom de l\'album')"
+        :placeholder="$t('Ex: Vacances été 2024')"
         :error="form.errors.name"
         required
       />
 
       <div>
         <label class="block text-sm font-medium text-surface-700 mb-2">
-          Description
+          {{ $t('Description') }}
         </label>
         <textarea
           v-model="form.description"
           rows="3"
           class="w-full px-4 py-2.5 border border-surface-300 rounded-lg shadow-xs focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-          placeholder="Décrivez cet album..."
+          :placeholder="$t('Décrivez cet album...')"
         ></textarea>
         <p v-if="form.errors.description" class="mt-1 text-sm text-red-600 dark:text-red-400">
           {{ form.errors.description }}
@@ -27,7 +27,7 @@
       </div>
 
       <p class="text-xs text-surface-500">
-        L'album est privé à sa création ; partagez-le ensuite avec un cercle ou des personnes depuis sa page.
+        {{ $t('L\'album est privé à sa création ; partagez-le ensuite avec un cercle ou des personnes depuis sa page.') }}
       </p>
 
       <!-- Album intelligent -->
@@ -40,60 +40,59 @@
             class="h-4 w-4 text-brand-600 focus:ring-brand-500 border-surface-300 rounded-sm"
           />
           <label for="is-smart" class="ml-2 block text-sm text-surface-700">
-            Album intelligent (se remplit tout seul selon des critères)
+            {{ $t('Album intelligent (se remplit tout seul selon des critères)') }}
           </label>
         </div>
 
         <div v-if="form.is_smart" class="mt-4 space-y-3 bg-surface-50 rounded-lg p-4">
           <p class="text-xs text-surface-500">
-            L'album contiendra automatiquement tous les médias correspondant à
-            l'ensemble des critères choisis — y compris les futurs ajouts.
+            {{ $t('L\'album contiendra automatiquement tous les médias correspondant à l\'ensemble des critères choisis — y compris les futurs ajouts.') }}
           </p>
 
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="form-label" for="smart-person">Personne</label>
+              <label class="form-label" for="smart-person">{{ $t('Personne') }}</label>
               <select id="smart-person" v-model="form.smart_rules.person_id" class="form-select">
-                <option :value="null">— Toutes —</option>
+                <option :value="null">{{ $t('— Toutes —') }}</option>
                 <option v-for="person in people" :key="person.id" :value="person.id">
                   {{ person.name }}
                 </option>
               </select>
             </div>
             <div>
-              <label class="form-label" for="smart-tag">Tag</label>
+              <label class="form-label" for="smart-tag">{{ $t('Tag') }}</label>
               <select id="smart-tag" v-model="form.smart_rules.tag_id" class="form-select">
-                <option :value="null">— Tous —</option>
+                <option :value="null">{{ $t('— Tous —') }}</option>
                 <option v-for="tag in tags" :key="tag.id" :value="tag.id">
                   {{ tag.name }}
                 </option>
               </select>
             </div>
             <div>
-              <label class="form-label" for="smart-year">Année</label>
+              <label class="form-label" for="smart-year">{{ $t('Année') }}</label>
               <input
                 id="smart-year"
                 v-model.number="form.smart_rules.year"
                 type="number"
                 min="1800"
                 max="2200"
-                placeholder="Ex : 2025"
+                :placeholder="$t('Ex : 2025')"
                 class="form-input"
               />
             </div>
             <div>
-              <label class="form-label" for="smart-type">Type</label>
+              <label class="form-label" for="smart-type">{{ $t('Type') }}</label>
               <select id="smart-type" v-model="form.smart_rules.type" class="form-select">
-                <option :value="null">— Tous —</option>
-                <option value="photo">Photos</option>
-                <option value="video">Vidéos</option>
-                <option value="document">Documents</option>
+                <option :value="null">{{ $t('— Tous —') }}</option>
+                <option value="photo">{{ $t('Photos') }}</option>
+                <option value="video">{{ $t('Vidéos') }}</option>
+                <option value="document">{{ $t('Documents') }}</option>
               </select>
             </div>
           </div>
 
           <p v-if="form.errors.smart_rules" class="text-sm text-red-600 dark:text-red-400">
-            Choisissez au moins un critère.
+            {{ $t('Choisissez au moins un critère.') }}
           </p>
         </div>
       </div>
@@ -102,12 +101,12 @@
     <!-- Pied de page -->
     <template #footer>
       <button type="button" class="btn-secondary" @click="$emit('close')">
-        Annuler
+        {{ $t('Annuler') }}
       </button>
       <FormButton
         type="submit"
-        :text="album ? 'Enregistrer' : 'Créer'"
-        :loading-text="album ? 'Enregistrement...' : 'Création...'"
+        :text="album ? $t('Enregistrer') : $t('Créer')"
+        :loading-text="album ? $t('Enregistrement...') : $t('Création...')"
         :loading="form.processing"
         @click="submit"
       />

@@ -13,7 +13,7 @@
           @click="removeTag(tag)"
           class="ml-1 hover:text-red-200 transition"
           type="button"
-          title="Retirer ce tag"
+          :title="$t('Retirer ce tag')"
         >
           <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -32,7 +32,7 @@
         @keydown.enter.prevent="selectFirstSuggestion"
         @keydown.escape="showSuggestions = false"
         type="text"
-        placeholder="Ajouter un tag..."
+        :placeholder="$t('Ajouter un tag...')"
         class="w-full px-4 py-2 pr-10 border border-surface-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm"
       />
       <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -58,7 +58,7 @@
             :style="{ backgroundColor: tag.color || '#0D9488' }"
           ></div>
           <span class="text-sm text-surface-900">{{ tag.name }}</span>
-          <span class="text-xs text-surface-500 ml-auto">{{ tag.media_count }} médias</span>
+          <span class="text-xs text-surface-500 ml-auto">{{ $tc(':count média|:count médias', tag.media_count) }}</span>
         </button>
       </div>
 
@@ -67,7 +67,7 @@
         v-if="showSuggestions && searchQuery && filteredTags.length === 0 && availableTags.length > 0"
         class="absolute z-10 w-full mt-1 bg-white border border-surface-200 rounded-lg shadow-lg p-4 text-center text-sm text-surface-500"
       >
-        Aucun tag trouvé pour "{{ searchQuery }}"
+        {{ $t('Aucun tag trouvé pour ":query"', { query: searchQuery }) }}
       </div>
     </div>
   </div>
@@ -79,6 +79,7 @@ import axios from 'axios';
 import { matchesPerson } from '@/utils/personSearch';
 import { useToast } from '@/Composables/useToast';
 import { useTags } from '@/Composables/useTags';
+import { t } from '@/i18n';
 
 const toast = useToast();
 const tagList = useTags();
@@ -104,7 +105,7 @@ const loading = ref(false);
 
 // Filter tags based on search query and exclude already attached tags
 const filteredTags = computed(() => {
-  const attachedIds = mediaTags.value.map(t => t.id);
+  const attachedIds = mediaTags.value.map(tg => tg.id);
   let tags = availableTags.value.filter(tag => !attachedIds.includes(tag.id));
 
   if (searchQuery.value) {
@@ -139,7 +140,7 @@ const addTag = async (tag) => {
     showSuggestions.value = false;
     emit('tags-updated', mediaTags.value);
   } catch (error) {
-    toast.error(error.response?.data?.message || 'Impossible d\'ajouter le tag.');
+    toast.error(error.response?.data?.message || t('Impossible d\'ajouter le tag.'));
   } finally {
     loading.value = false;
   }
@@ -155,10 +156,10 @@ const removeTag = async (tag) => {
       tag_id: tag.id,
     });
 
-    mediaTags.value = mediaTags.value.filter(t => t.id !== tag.id);
+    mediaTags.value = mediaTags.value.filter(tg => tg.id !== tag.id);
     emit('tags-updated', mediaTags.value);
   } catch (error) {
-    toast.error(error.response?.data?.message || 'Impossible de retirer le tag.');
+    toast.error(error.response?.data?.message || t('Impossible de retirer le tag.'));
   } finally {
     loading.value = false;
   }

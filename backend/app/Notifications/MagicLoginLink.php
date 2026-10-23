@@ -51,11 +51,11 @@ class MagicLoginLink extends Notification implements ShouldQueue
         $url = self::urlFor($notifiable);
 
         return (new MailMessage)
-            ->subject('Votre lien de connexion MemoryLane')
-            ->greeting('Bonjour ' . $notifiable->name . ',')
-            ->line('Cliquez sur le bouton ci-dessous pour ouvrir MemoryLane. Pas besoin de mot de passe.')
-            ->action('Ouvrir MemoryLane', $url)
-            ->line('Ce lien est valable ' . self::EXPIRATION_MINUTES . ' minutes. Si vous n\'avez pas demandé ce lien, vous pouvez ignorer cet e-mail.')
-            ->salutation('À bientôt sur MemoryLane');
+            ->subject(__('Votre lien de connexion MemoryLane'))
+            ->greeting(__('Bonjour :name,', ['name' => $notifiable->name]))
+            ->line(__('Cliquez sur le bouton ci-dessous pour ouvrir MemoryLane. Pas besoin de mot de passe.'))
+            ->action(__('Ouvrir MemoryLane'), $url)
+            ->line(__('Ce lien est valable :minutes minutes. Si vous n\'avez pas demandé ce lien, vous pouvez ignorer cet e-mail.', ['minutes' => self::EXPIRATION_MINUTES]))
+            ->salutation(__('À bientôt sur MemoryLane'));
     }
 }

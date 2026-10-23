@@ -1,5 +1,5 @@
 <template>
-  <BaseModal title="Installer MemoryLane sur votre téléphone" max-width="2xl" @close="$emit('close')">
+  <BaseModal :title="$t('Installer MemoryLane sur votre téléphone')" max-width="2xl" @close="$emit('close')">
     <div class="px-5 sm:px-6 pt-4 pb-6">
       <div class="flex rounded-lg bg-surface-100 p-1 text-sm font-medium mb-5">
         <button
@@ -15,8 +15,11 @@
       </div>
 
       <p v-if="current === 'ios' && browser === 'in-app'" class="mb-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
-        Vous êtes dans une autre application (Gmail, Facebook…). Ouvrez d'abord cette page dans <strong>Safari</strong>
-        (menu <strong>⋯</strong> ou icône <strong>boussole</strong> › « Ouvrir dans Safari »), puis suivez ces étapes.
+        <Trans text="Vous êtes dans une autre application (Gmail, Facebook…). Ouvrez d'abord cette page dans :safari (menu :dots ou icône :compass › « Ouvrir dans Safari »), puis suivez ces étapes.">
+          <template #safari><strong>Safari</strong></template>
+          <template #dots><strong>⋯</strong></template>
+          <template #compass><strong>{{ $t('boussole') }}</strong></template>
+        </Trans>
       </p>
 
       <ol class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -45,7 +48,7 @@
               <div class="h-4 rounded bg-surface-100"></div>
               <div class="rounded-md ring-2 ring-brand-500 bg-brand-50 px-1.5 py-1 flex items-center gap-1 text-[9px] font-semibold text-surface-800">
                 <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3" /><path stroke-linecap="round" d="M12 8v8M8 12h8" /></svg>
-                {{ current === 'android' ? 'Installer l\'application' : 'Sur l\'écran d\'accueil' }}
+                {{ current === 'android' ? $t("Installer l'application") : $t("Sur l'écran d'accueil") }}
               </div>
               <div class="h-4 rounded bg-surface-100"></div>
             </div>
@@ -56,7 +59,7 @@
             </div>
           </div>
           <div>
-            <p class="text-xs font-semibold uppercase tracking-wider text-brand-700">Étape {{ i + 1 }}</p>
+            <p class="text-xs font-semibold uppercase tracking-wider text-brand-700">{{ $t('Étape :n', { n: i + 1 }) }}</p>
             <p class="mt-1 text-sm text-surface-800 leading-relaxed" v-html="step.text"></p>
           </div>
         </li>
@@ -66,7 +69,7 @@
     </div>
 
     <template #footer>
-      <button type="button" class="btn-primary" @click="$emit('close')">J'ai compris</button>
+      <button type="button" class="btn-primary" @click="$emit('close')">{{ $t("J'ai compris") }}</button>
     </template>
   </BaseModal>
 </template>
@@ -74,6 +77,8 @@
 <script setup>
 import { computed, ref } from 'vue';
 import BaseModal from '@/Components/BaseModal.vue';
+import Trans from '@/Components/Trans.vue';
+import { t } from '@/i18n';
 import { iosBrowser } from '@/Composables/useInstallApp';
 
 const props = defineProps({
@@ -93,22 +98,22 @@ const tileColors = ['bg-amber-200', 'bg-sky-200', 'bg-rose-200', 'bg-emerald-200
 
 // Textes statiques (aucune donnée utilisateur) : v-html sert juste au gras.
 const shareText = computed(() => (browser === 'chrome' || browser === 'edge'
-  ? 'Touchez le bouton <strong>Partager</strong> (carré avec une flèche ↑), en haut à droite à côté de l\'adresse.'
-  : 'Touchez le bouton <strong>Partager</strong> (carré avec une flèche ↑). Sur les iPhone récents, il est dans le menu <strong>« ⋯ »</strong> en bas à droite.'));
+  ? t('Touchez le bouton <strong>Partager</strong> (carré avec une flèche ↑), en haut à droite à côté de l\'adresse.')
+  : t('Touchez le bouton <strong>Partager</strong> (carré avec une flèche ↑). Sur les iPhone récents, il est dans le menu <strong>« ⋯ »</strong> en bas à droite.')));
 
 const steps = computed(() => (current.value === 'android'
   ? [
-      { art: 'dots', text: 'Dans Chrome, touchez le menu <strong>⋮</strong> en haut à droite.' },
-      { art: 'menu', text: 'Touchez <strong>« Installer l\'application »</strong> (ou « Ajouter à l\'écran d\'accueil »).' },
-      { art: 'home', text: 'Confirmez avec <strong>« Installer »</strong> : l\'icône MemoryLane apparaît sur votre écran d\'accueil.' },
+      { art: 'dots', text: t('Dans Chrome, touchez le menu <strong>⋮</strong> en haut à droite.') },
+      { art: 'menu', text: t('Touchez <strong>« Installer l\'application »</strong> (ou « Ajouter à l\'écran d\'accueil »).') },
+      { art: 'home', text: t('Confirmez avec <strong>« Installer »</strong> : l\'icône MemoryLane apparaît sur votre écran d\'accueil.') },
     ]
   : [
       { art: 'share', text: shareText.value },
-      { art: 'menu', text: 'Faites défiler et touchez <strong>« Sur l\'écran d\'accueil »</strong>.' },
-      { art: 'home', text: 'Touchez <strong>« Ajouter »</strong> : l\'icône MemoryLane apparaît sur votre écran d\'accueil.' },
+      { art: 'menu', text: t('Faites défiler et touchez <strong>« Sur l\'écran d\'accueil »</strong>.') },
+      { art: 'home', text: t('Touchez <strong>« Ajouter »</strong> : l\'icône MemoryLane apparaît sur votre écran d\'accueil.') },
     ]));
 
 const footer = computed(() => (current.value === 'android'
-  ? 'Ensuite, ouvrez MemoryLane depuis son icône : vous restez connecté. Sur Samsung Internet : menu ☰ › « Ajouter la page à » › « Écran d\'accueil ».'
-  : 'Ensuite, ouvrez MemoryLane <strong>depuis son icône</strong> : vous restez connecté, et c\'est la seule façon de recevoir les notifications sur iPhone.'));
+  ? t('Ensuite, ouvrez MemoryLane depuis son icône : vous restez connecté. Sur Samsung Internet : menu ☰ › « Ajouter la page à » › « Écran d\'accueil ».')
+  : t('Ensuite, ouvrez MemoryLane <strong>depuis son icône</strong> : vous restez connecté, et c\'est la seule façon de recevoir les notifications sur iPhone.')));
 </script>

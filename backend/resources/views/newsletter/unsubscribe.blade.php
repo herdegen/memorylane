@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{ app()->getLocale() }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
-    <title>Lettre du dimanche — MemoryLane</title>
+    <title>{{ __('Lettre du dimanche') }} — MemoryLane</title>
     <style>
         body { margin: 0; background: #f6f1e9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #44403c; }
         .wrap { max-width: 480px; margin: 0 auto; padding: 48px 16px; }
@@ -22,24 +22,24 @@
     <div class="brand">✦ MemoryLane</div>
     <div class="card">
         @if ($done === 'unsubscribed')
-            <h1>C'est noté, {{ $firstName }}.</h1>
-            <p>Vous ne recevrez plus la lettre du dimanche. Les souvenirs de la famille restent bien sûr accessibles sur MemoryLane.</p>
-            <form method="post" action="{{ $resubscribeUrl }}">@csrf<button type="submit" class="secondary">Finalement, je veux la recevoir</button></form>
+            <h1>{{ __('C\'est noté, :name.', ['name' => $firstName]) }}</h1>
+            <p>{{ __('Vous ne recevrez plus la lettre du dimanche. Les souvenirs de la famille restent bien sûr accessibles sur MemoryLane.') }}</p>
+            <form method="post" action="{{ $resubscribeUrl }}">@csrf<button type="submit" class="secondary">{{ __('Finalement, je veux la recevoir') }}</button></form>
         @elseif ($done === 'resubscribed' || ($subscribed && ! $done))
             @if ($done === 'resubscribed')
-                <h1>Ravi de vous retrouver, {{ $firstName }} !</h1>
-                <p>La lettre du dimanche reprend dès cette semaine.</p>
+                <h1>{{ __('Ravi de vous retrouver, :name !', ['name' => $firstName]) }}</h1>
+                <p>{{ __('La lettre du dimanche reprend dès cette semaine.') }}</p>
             @else
-                <h1>Ne plus recevoir la lettre du dimanche ?</h1>
-                <p>Chaque dimanche, elle vous donne les nouvelles photos, les anniversaires à venir et un petit coup de projecteur sur la famille.</p>
-                <form method="post" action="{{ $unsubscribeUrl }}">@csrf<button type="submit">Me désabonner</button></form>
+                <h1>{{ __('Ne plus recevoir la lettre du dimanche ?') }}</h1>
+                <p>{{ __('Chaque dimanche, elle vous donne les nouvelles photos, les anniversaires à venir et un petit coup de projecteur sur la famille.') }}</p>
+                <form method="post" action="{{ $unsubscribeUrl }}">@csrf<button type="submit">{{ __('Me désabonner') }}</button></form>
             @endif
         @else
-            <h1>Vous êtes déjà désabonné.</h1>
-            <p>Vous ne recevez plus la lettre du dimanche.</p>
-            <form method="post" action="{{ $resubscribeUrl }}">@csrf<button type="submit" class="secondary">Me réabonner</button></form>
+            <h1>{{ __('Vous êtes déjà désabonné.') }}</h1>
+            <p>{{ __('Vous ne recevez plus la lettre du dimanche.') }}</p>
+            <form method="post" action="{{ $resubscribeUrl }}">@csrf<button type="submit" class="secondary">{{ __('Me réabonner') }}</button></form>
         @endif
-        <p style="margin:18px 0 0; font-size:13px;"><a href="{{ url('/profile') }}">Gérer mes préférences</a></p>
+        <p style="margin:18px 0 0; font-size:13px;"><a href="{{ url('/profile') }}">{{ __('Gérer mes préférences') }}</a></p>
     </div>
 </div>
 </body>

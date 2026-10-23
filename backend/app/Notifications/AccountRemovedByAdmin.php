@@ -21,10 +21,10 @@ class AccountRemovedByAdmin extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Votre compte MemoryLane a été fermé')
-            ->greeting('Bonjour '.explode(' ', trim($notifiable->name))[0].',')
-            ->line("{$this->byName}, administrateur de MemoryLane, a fermé votre compte.")
-            ->line('Votre fiche reste dans l\'arbre de la famille ; ce que vous aviez partagé a été confié à un administrateur, le reste a été retiré.')
-            ->line('Si vous pensez que c\'est une erreur, répondez simplement à ce mail.');
+            ->subject(__('Votre compte MemoryLane a été fermé'))
+            ->greeting(__('Bonjour :name,', ['name' => explode(' ', trim($notifiable->name))[0]]))
+            ->line(__(':name, administrateur de MemoryLane, a fermé votre compte.', ['name' => $this->byName]))
+            ->line(__('Votre fiche reste dans l\'arbre de la famille ; ce que vous aviez partagé a été confié à un administrateur, le reste a été retiré.'))
+            ->line(__('Si vous pensez que c\'est une erreur, répondez simplement à ce mail.'));
     }
 }

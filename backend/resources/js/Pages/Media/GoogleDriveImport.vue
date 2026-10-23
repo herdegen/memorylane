@@ -1,13 +1,12 @@
 <template>
-  <Head title="Import Google Drive" />
+  <Head :title="$t('Import Google Drive')" />
   <AppLayout>
     <div class="py-12">
       <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="mb-6">
-          <h1 class="text-display text-4xl text-surface-900">Importer depuis Google Drive</h1>
+          <h1 class="text-display text-4xl text-surface-900">{{ $t('Importer depuis Google Drive') }}</h1>
           <p class="mt-2 text-surface-600">
-            Choisissez vos photos et vidéos directement dans votre Drive : MemoryLane les récupère
-            en pleine qualité, sans passer par votre ordinateur.
+            {{ $t('Choisissez vos photos et vidéos directement dans votre Drive : MemoryLane les récupère en pleine qualité, sans passer par votre ordinateur.') }}
           </p>
         </div>
 
@@ -20,29 +19,28 @@
         />
 
         <div v-if="!isConfigured" class="card card--padded mb-6 text-sm text-surface-600">
-          L'import Google Drive n'est pas encore activé sur ce site (clé d'API Google manquante).
+          {{ $t("L'import Google Drive n'est pas encore activé sur ce site (clé d'API Google manquante).") }}
         </div>
 
         <!-- Étape 1 : connexion Google -->
         <div class="card card--padded mb-6" :class="{ 'opacity-50': !isConfigured }">
           <div class="flex items-center justify-between gap-4">
             <div>
-              <h2 class="card-title mb-1">1. Connecter Google Drive</h2>
+              <h2 class="card-title mb-1">{{ $t('1. Connecter Google Drive') }}</h2>
               <p class="text-sm text-surface-500">
-                {{ isConnected ? 'Compte Google connecté.' : 'MemoryLane ne verra que les fichiers que vous choisirez, rien d\'autre de votre Drive.' }}
+                {{ isConnected ? $t('Compte Google connecté.') : $t('MemoryLane ne verra que les fichiers que vous choisirez, rien d\'autre de votre Drive.') }}
               </p>
             </div>
-            <span v-if="isConnected" class="badge-teal shrink-0">Connecté</span>
-            <a v-else-if="isConfigured" href="/google-drive/connect" class="btn-primary shrink-0">Se connecter</a>
+            <span v-if="isConnected" class="badge-teal shrink-0">{{ $t('Connecté') }}</span>
+            <a v-else-if="isConfigured" href="/google-drive/connect" class="btn-primary shrink-0">{{ $t('Se connecter') }}</a>
           </div>
         </div>
 
         <!-- Étape 2 : sélection -->
         <div class="card card--padded mb-6" :class="{ 'opacity-50': !isConnected }">
-          <h2 class="card-title mb-1">2. Choisir les photos</h2>
+          <h2 class="card-title mb-1">{{ $t('2. Choisir les photos') }}</h2>
           <p class="text-sm text-surface-500 mb-4">
-            Ouvrez un dossier puis sélectionnez les photos (Maj + clic pour en prendre une série,
-            Ctrl + A pour tout le dossier). Vous pouvez recommencer pour piocher dans plusieurs dossiers.
+            {{ $t('Ouvrez un dossier puis sélectionnez les photos (Maj + clic pour en prendre une série, Ctrl + A pour tout le dossier). Vous pouvez recommencer pour piocher dans plusieurs dossiers.') }}
           </p>
 
           <div class="flex flex-wrap items-center gap-3">
@@ -52,7 +50,7 @@
               :disabled="!isConnected || !isConfigured || openingPicker || importing"
               @click="openPicker"
             >
-              {{ openingPicker ? 'Ouverture…' : (selected.length ? 'Ajouter d\'autres photos' : 'Ouvrir Google Drive') }}
+              {{ openingPicker ? $t('Ouverture…') : (selected.length ? $t('Ajouter d\'autres photos') : $t('Ouvrir Google Drive')) }}
             </button>
             <button
               v-if="selected.length && !importing"
@@ -60,7 +58,7 @@
               class="btn-ghost btn-sm"
               @click="selected = []"
             >
-              Vider la sélection
+              {{ $t('Vider la sélection') }}
             </button>
           </div>
 
@@ -69,7 +67,7 @@
               <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
               </svg>
-              {{ selected.length }} fichier{{ selected.length > 1 ? 's' : '' }} sélectionné{{ selected.length > 1 ? 's' : '' }}
+              {{ $tc(':count fichier sélectionné|:count fichiers sélectionnés', selected.length) }}
               <span v-if="totalSize" class="font-normal text-surface-500">({{ formatFileSize(totalSize) }})</span>
             </p>
             <ul class="mt-2 flex flex-wrap gap-1.5">
@@ -82,7 +80,7 @@
                 {{ doc.name }}
               </li>
               <li v-if="selected.length > 12" class="px-2.5 py-1 text-xs text-surface-500">
-                et {{ selected.length - 12 }} autre{{ selected.length - 12 > 1 ? 's' : '' }}
+                {{ $tc('et :count autre|et :count autres', selected.length - 12) }}
               </li>
             </ul>
           </div>
@@ -90,38 +88,37 @@
 
         <!-- Étape 3 : rattachement + import -->
         <div class="card card--padded" :class="{ 'opacity-50': !selected.length && !importing }">
-          <h2 class="card-title mb-1">3. Importer</h2>
+          <h2 class="card-title mb-1">{{ $t('3. Importer') }}</h2>
           <p class="text-sm text-surface-500 mb-4">
-            Optionnel : les photos importées seront directement rattachées à une personne
-            et/ou un album.
+            {{ $t('Optionnel : les photos importées seront directement rattachées à une personne et/ou un album.') }}
           </p>
 
           <form v-if="!importing" @submit.prevent="startImport" class="space-y-4">
             <div class="grid sm:grid-cols-2 gap-4">
               <div>
-                <label class="form-label" for="person">Personne</label>
+                <label class="form-label" for="person">{{ $t('Personne') }}</label>
                 <select id="person" v-model="importForm.person_id" class="form-select" :disabled="!selected.length">
-                  <option :value="null">— Aucune —</option>
+                  <option :value="null">{{ $t('— Aucune —') }}</option>
                   <option v-for="person in people" :key="person.id" :value="person.id">
                     {{ person.name }}
                   </option>
                 </select>
               </div>
               <div>
-                <label class="form-label" for="album">Album</label>
+                <label class="form-label" for="album">{{ $t('Album') }}</label>
                 <select id="album" v-model="importForm.album_id" class="form-select" :disabled="!selected.length">
-                  <option :value="null">— Aucun —</option>
+                  <option :value="null">{{ $t('— Aucun —') }}</option>
                   <option v-for="album in albums" :key="album.id" :value="album.id">
                     {{ album.name }}
                   </option>
-                  <option value="__new__">➕ Créer un nouvel album…</option>
+                  <option value="__new__">{{ $t('➕ Créer un nouvel album…') }}</option>
                 </select>
                 <input
                   v-if="importForm.album_id === '__new__'"
                   v-model="importForm.new_album_name"
                   type="text"
                   class="form-input mt-2"
-                  placeholder="Nom du nouvel album"
+                  :placeholder="$t('Nom du nouvel album')"
                   :disabled="!selected.length"
                 />
               </div>
@@ -130,13 +127,13 @@
             <label v-if="current" class="flex items-start gap-3 rounded-xl border border-surface-200 px-4 py-3 cursor-pointer">
               <input v-model="shareWithCircle" type="checkbox" class="mt-0.5 h-5 w-5 rounded border-surface-300 text-brand-600 focus:ring-brand-500" />
               <span>
-                <span class="block font-medium text-surface-900">Partager avec « {{ current.name }} »</span>
-                <span class="block text-sm text-surface-500">Les membres pourront les voir, par exemple sur la fiche de la personne. Décochez pour les garder pour vous.</span>
+                <span class="block font-medium text-surface-900">{{ $t('Partager avec « :name »', { name: current.name }) }}</span>
+                <span class="block text-sm text-surface-500">{{ $t('Les membres pourront les voir, par exemple sur la fiche de la personne. Décochez pour les garder pour vous.') }}</span>
               </span>
             </label>
 
             <button type="submit" :disabled="!selected.length || launching" class="btn-primary">
-              {{ launching ? 'Lancement…' : (selected.length ? `Importer ${selected.length} fichier${selected.length > 1 ? 's' : ''}` : 'Importer ma sélection') }}
+              {{ launching ? $t('Lancement…') : (selected.length ? $tc('Importer :count fichier|Importer :count fichiers', selected.length) : $t('Importer ma sélection')) }}
             </button>
           </form>
 
@@ -157,6 +154,7 @@ import FormError from '@/Components/Forms/FormError.vue';
 import ImportProgress from '@/Components/ImportProgress.vue';
 import { useCircle } from '@/Composables/useCircle';
 import { formatFileSize } from '@/utils/format';
+import { t, locale } from '@/i18n';
 
 const props = defineProps({
   isConfigured: Boolean,
@@ -215,7 +213,7 @@ const loadPickerApi = () => {
 
 const sessionExpired = () => {
   isConnected.value = false;
-  errorMessage.value = 'La connexion Google a expiré. Reconnectez-vous (étape 1).';
+  errorMessage.value = t('La connexion Google a expiré. Reconnectez-vous (étape 1).');
 };
 
 const onPicked = (data) => {
@@ -245,21 +243,21 @@ const openPicker = async () => {
       return configure(view);
     };
     const myDrive = docsView((v) => v.setParent('root'));
-    myDrive.setLabel?.('Mon Drive');
+    myDrive.setLabel?.(t('Mon Drive'));
     const sharedWithMe = docsView((v) => v.setOwnedByMe(false));
-    sharedWithMe.setLabel?.('Partagés avec moi');
+    sharedWithMe.setLabel?.(t('Partagés avec moi'));
     const allMedia = new picker.DocsView(picker.ViewId.DOCS_IMAGES_AND_VIDEOS)
       .setMimeTypes(MIME_TYPES.join(','))
       .setMode(picker.DocsViewMode.GRID);
-    allMedia.setLabel?.('Toutes mes photos');
+    allMedia.setLabel?.(t('Toutes mes photos'));
 
     new picker.PickerBuilder()
       .setDeveloperKey(props.picker.apiKey)
       .setAppId(props.picker.appId)
       .setOAuthToken(data.access_token)
       .setOrigin(window.location.origin)
-      .setLocale('fr')
-      .setTitle('Choisissez vos photos')
+      .setLocale(locale() === 'en' ? 'en-GB' : 'fr')
+      .setTitle(t('Choisissez vos photos'))
       .addView(myDrive)
       .addView(sharedWithMe)
       .addView(allMedia)
@@ -271,7 +269,7 @@ const openPicker = async () => {
     if (error.response?.status === 401) {
       sessionExpired();
     } else {
-      errorMessage.value = 'Impossible d\'ouvrir Google Drive. Vérifiez votre connexion et réessayez.';
+      errorMessage.value = t('Impossible d\'ouvrir Google Drive. Vérifiez votre connexion et réessayez.');
     }
   } finally {
     openingPicker.value = false;
@@ -300,7 +298,7 @@ const startImport = async () => {
     if (error.response?.status === 401) {
       sessionExpired();
     } else {
-      errorMessage.value = 'Le lancement de l\'import a échoué. Réessayez.';
+      errorMessage.value = t('Le lancement de l\'import a échoué. Réessayez.');
     }
   } finally {
     launching.value = false;

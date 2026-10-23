@@ -1,9 +1,9 @@
 <template>
-  <Head :title="`${title} — Télévision`" />
+  <Head :title="$t(':title — Télévision', { title })" />
   <TvLayout
     :tab="tab" :circle="circle" :circles="circles" :account="account"
     :back="backHref"
-    :hints="[['OK', 'Voir la photo'], ['◀ ▲ ▼ ▶', 'Se déplacer'], ['▶❚❚', 'Diaporama'], ['↩', 'Retour']]"
+    :hints="[['OK', $t('Voir la photo')], ['◀ ▲ ▼ ▶', $t('Se déplacer')], ['▶❚❚', $t('Diaporama')], ['↩', $t('Retour')]]"
   >
     <div class="px-24 pt-10 pb-6 flex flex-col gap-8">
       <header class="flex items-end gap-8">
@@ -14,15 +14,15 @@
         </div>
         <div v-if="items.length" class="flex gap-5 shrink-0" data-tv-row>
           <button type="button" data-tv data-tv-autofocus class="tv-btn tv-btn-primary" @click="open(0, true)">
-            <svg class="w-7 h-7" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>Diaporama
+            <svg class="w-7 h-7" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>{{ $t('Diaporama') }}
           </button>
-          <button type="button" data-tv class="tv-btn" @click="open(randomStart(), true, true)">Lecture aléatoire</button>
-          <Link v-if="gameAlbumId" :href="`/tv/ecran/qui-est-ce?album=${gameAlbumId}`" data-tv class="tv-btn">Qui est-ce ?</Link>
+          <button type="button" data-tv class="tv-btn" @click="open(randomStart(), true, true)">{{ $t('Lecture aléatoire') }}</button>
+          <Link v-if="gameAlbumId" :href="`/tv/ecran/qui-est-ce?album=${gameAlbumId}`" data-tv class="tv-btn">{{ $t('Qui est-ce ?') }}</Link>
         </div>
       </header>
 
       <TvMediaGrid v-if="items.length" :items="items" @open="(i) => open(i, false)" />
-      <p v-else class="text-[2rem] text-[#c9bfb1]">Rien à regarder ici pour l'instant.</p>
+      <p v-else class="text-[2rem] text-[#c9bfb1]">{{ $t('Rien à regarder ici pour l\'instant.') }}</p>
     </div>
 
     <TvViewer

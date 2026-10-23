@@ -316,12 +316,12 @@ class MediaController extends Controller
 
         if ($request->wantsJson()) {
             return response()->json([
-                'message' => 'Media mis a jour',
+                'message' => __('Media mis a jour'),
                 'media' => $media,
             ]);
         }
 
-        return redirect()->back()->with('success', 'Media mis a jour');
+        return redirect()->back()->with('success', __('Media mis a jour'));
     }
 
     /**
@@ -342,7 +342,7 @@ class MediaController extends Controller
             ->update(['taken_at' => $validated['taken_at']]);
 
         return response()->json([
-            'message' => "Date appliquée à {$updated} média(s)",
+            'message' => trans_choice('Date appliquée à :count média|Date appliquée à :count médias', $updated),
             'updated' => $updated,
             'skipped' => count($validated['media_ids']) - $updated,
         ]);
@@ -374,7 +374,7 @@ class MediaController extends Controller
         );
 
         return response()->json([
-            'message' => "Position appliquée à {$ownedIds->count()} média(s)",
+            'message' => trans_choice('Position appliquée à :count média|Position appliquée à :count médias', $ownedIds->count()),
             'updated' => $ownedIds->count(),
             'skipped' => count($validated['media_ids']) - $ownedIds->count(),
         ]);
@@ -415,7 +415,7 @@ class MediaController extends Controller
         }
 
         return response()->json([
-            'message' => "{$ownedIds->count()} média(s) partagé(s) avec « {$household->name} »",
+            'message' => trans_choice(':count média partagé avec « :circle »|:count médias partagés avec « :circle »', $ownedIds->count(), ['circle' => $household->name]),
             'updated' => $ownedIds->count(),
             'skipped' => count($validated['media_ids']) - $ownedIds->count(),
         ]);
@@ -443,7 +443,7 @@ class MediaController extends Controller
         $removed = $household->media()->detach($ownedIds->all());
 
         return response()->json([
-            'message' => "{$removed} média(s) retiré(s) de « {$household->name} »",
+            'message' => trans_choice(':count média retiré de « :circle »|:count médias retirés de « :circle »', $removed, ['circle' => $household->name]),
             'updated' => $removed,
             'skipped' => count($validated['media_ids']) - $ownedIds->count(),
         ]);
@@ -483,7 +483,7 @@ class MediaController extends Controller
     public function setVideoFrame(Request $request, Media $media)
     {
         abort_unless($media->user_id === $request->user()->id || $request->user()->isAdmin(), 403);
-        abort_unless($media->type === 'video', 422, 'Seule une vidéo a une image à choisir.');
+        abort_unless($media->type === 'video', 422, __('Seule une vidéo a une image à choisir.'));
         $validated = $request->validate(['time' => ['required', 'numeric', 'min:0', 'max:'.max(1, (float) $media->duration)]]);
 
         DB::transaction(function () use ($media, $validated) {
@@ -499,7 +499,7 @@ class MediaController extends Controller
         // Miniatures refaites depuis cette image, puis visages recherchés dessus.
         \App\Jobs\GenerateMediaConversions::dispatch($media->fresh());
 
-        return response()->json(['message' => 'Nouvelle miniature en préparation.']);
+        return response()->json(['message' => __('Nouvelle miniature en préparation.')]);
     }
 
     public function storeClips(Request $request, Media $media)
@@ -507,11 +507,11 @@ class MediaController extends Controller
         Gate::authorize('update', $media);
 
         if ($media->type !== 'video') {
-            return response()->json(['error' => 'Seules les vidéos peuvent être découpées.'], 422);
+            return response()->json(['error' => __('Seules les vidéos peuvent être découpées.')], 422);
         }
 
         if ($media->source_media_id !== null) {
-            return response()->json(['error' => 'Un clip ne peut pas être re-découpé.'], 422);
+            return response()->json(['error' => __('Un clip ne peut pas être re-découpé.')], 422);
         }
 
         $maxEnd = $media->duration ? (float) $media->duration + 1 : null; // +1s de tolérance d'arrondi
@@ -526,7 +526,7 @@ class MediaController extends Controller
         \App\Jobs\SplitVideoIntoClips::dispatch($media, $validated['segments']);
 
         return response()->json([
-            'message' => 'Découpage lancé. Les clips apparaîtront dans la galerie dans quelques instants.',
+            'message' => __('Découpage lancé. Les clips apparaîtront dans la galerie dans quelques instants.'),
             'count' => count($validated['segments']),
         ], 202);
     }

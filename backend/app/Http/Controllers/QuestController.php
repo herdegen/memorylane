@@ -88,7 +88,7 @@ class QuestController extends Controller
             : $type->subjectClass()::findOrFail($validated['subject_id']);
 
         if ($kind === 'no' && ! $type->allowsNo()) {
-            return response()->json(['message' => 'Cette question n\'accepte pas la réponse « non ».'], 422);
+            return response()->json(['message' => __('Cette question n\'accepte pas la réponse « non ».')], 422);
         }
 
         $payload = match ($kind) {
@@ -132,7 +132,7 @@ class QuestController extends Controller
         $this->quests->forget($user);
 
         return response()->json([
-            'message' => 'Merci !',
+            'message' => __('Merci !'),
             'completed_count' => $this->quests->completedCount($user),
             'next' => $this->quests->next($user),
         ], 201);

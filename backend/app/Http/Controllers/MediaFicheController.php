@@ -32,8 +32,8 @@ class MediaFicheController extends Controller
         return response()->json([
             'status' => $status,
             'message' => $status === FichePublisher::PUBLISHED
-                ? "Sur la fiche de {$first}, visible par tous."
-                : "{$first} doit valider : en attendant, seuls vous deux le voyez.",
+                ? __('Sur la fiche de :name, visible par tous.', ['name' => $first])
+                : __(':name doit valider : en attendant, seuls vous deux le voyez.', ['name' => $first]),
         ]);
     }
 
@@ -44,7 +44,7 @@ class MediaFicheController extends Controller
         abort_unless($media->user_id === $user->id || $user->isAdmin() || $user->person_id === $person->id, 403);
         $this->fiches->withdraw($media, $person);
 
-        return response()->json(['message' => 'Retiré de la fiche : seuls ceux qui y avaient déjà accès le voient.']);
+        return response()->json(['message' => __('Retiré de la fiche : seuls ceux qui y avaient déjà accès le voient.')]);
     }
 
     /** La personne concernée valide (afficher pour tout le monde) ou garde privé. */
@@ -53,6 +53,6 @@ class MediaFicheController extends Controller
         $validated = $request->validate(['publish' => ['required', 'boolean']]);
         $this->fiches->decide($media, $request->user(), (bool) $validated['publish']);
 
-        return response()->json(['message' => $validated['publish'] ? 'Affiché sur ta fiche pour tout le monde.' : 'Gardé privé.']);
+        return response()->json(['message' => $validated['publish'] ? __('Affiché sur ta fiche pour tout le monde.') : __('Gardé privé.')]);
     }
 }

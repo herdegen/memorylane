@@ -18,6 +18,6 @@ class OnboardingController extends Controller
     {
         $request->user()->setPreference("onboarding.{$step}", now()->toIso8601String());
 
-        return response()->json(['message' => 'Noté.']);
+        return response()->json(['message' => __('Noté.')]);
     }
 }

@@ -1,14 +1,14 @@
 <template>
-  <Head title="Mon profil" />
+  <Head :title="$t('Mon profil')" />
   <AppLayout>
     <div class="py-12">
       <div class="max-w-3xl mx-auto sm:px-6 lg:px-8 space-y-6">
         <!-- En-tête -->
         <div class="bg-white overflow-hidden shadow-xs sm:rounded-lg">
           <div class="p-6">
-            <h1 class="text-display text-2xl text-surface-900">Mon profil</h1>
+            <h1 class="text-display text-2xl text-surface-900">{{ $t('Mon profil') }}</h1>
             <p class="mt-1 text-sm text-surface-500">
-              Membre depuis le {{ formatLongDate(user.created_at) }}
+              {{ $t('Membre depuis le :date', { date: formatLongDate(user.created_at) }) }}
             </p>
           </div>
         </div>
@@ -17,10 +17,10 @@
         <div class="bg-white overflow-hidden shadow-xs sm:rounded-lg">
           <div class="p-6">
             <h2 class="text-lg font-medium text-surface-900 mb-4">
-              Informations du profil
+              {{ $t('Informations du profil') }}
             </h2>
             <p class="mt-1 text-sm text-surface-600 mb-6">
-              Mettez à jour les informations de votre compte.
+              {{ $t('Mettez à jour les informations de votre compte.') }}
             </p>
 
             <form @submit.prevent="updateProfile" class="space-y-6">
@@ -28,8 +28,8 @@
                 v-model="profileForm.name"
                 id="name"
                 type="text"
-                label="Nom"
-                placeholder="Votre nom"
+                :label="$t('Nom')"
+                :placeholder="$t('Votre nom')"
                 :error="profileForm.errors.name"
                 required
               />
@@ -38,8 +38,8 @@
                 v-model="profileForm.email"
                 id="email"
                 type="email"
-                label="Email"
-                placeholder="votre@email.com"
+                :label="$t('Email')"
+                :placeholder="$t('votre@email.com')"
                 :error="profileForm.errors.email"
                 autocomplete="email"
                 required
@@ -50,25 +50,25 @@
                 v-model="profileForm.current_password"
                 id="current_password_email"
                 type="password"
-                label="Mot de passe actuel"
+                :label="$t('Mot de passe actuel')"
                 placeholder="••••••••"
                 :error="profileForm.errors.current_password"
                 autocomplete="current-password"
-                help="Nécessaire pour changer d'adresse e-mail."
+                :help="$t('Nécessaire pour changer d\'adresse e-mail.')"
                 required
               />
 
               <ToggleSwitch
                 v-model="profileForm.share_address_with_household"
-                label="Partager mon adresse avec ma famille"
-                help="Les membres de vos cercles familiaux verront votre adresse sur votre fiche (jamais vos cercles d'amis). Sans cela, seule une position approximative (~1 km) alimente la carte."
+                :label="$t('Partager mon adresse avec ma famille')"
+                :help="$t('Les membres de vos cercles familiaux verront votre adresse sur votre fiche (jamais vos cercles d\'amis). Sans cela, seule une position approximative (~1 km) alimente la carte.')"
               />
 
               <div class="flex items-center gap-4">
                 <FormButton
                   type="submit"
-                  text="Enregistrer"
-                  loading-text="Enregistrement..."
+                  :text="$t('Enregistrer')"
+                  :loading-text="$t('Enregistrement...')"
                   :loading="profileForm.processing"
                 />
               </div>
@@ -82,14 +82,17 @@
         <!-- Lettre du dimanche -->
         <NewsletterSettingsCard :initial="newsletter" />
 
+        <!-- Langue de l'interface -->
+        <LanguageSettingsCard />
+
         <!-- Mot de passe -->
         <div class="bg-white overflow-hidden shadow-xs sm:rounded-lg">
           <div class="p-6">
             <h2 class="text-lg font-medium text-surface-900 mb-4">
-              Modifier le mot de passe
+              {{ $t('Modifier le mot de passe') }}
             </h2>
             <p class="mt-1 text-sm text-surface-600 mb-6">
-              Assurez-vous d'utiliser un mot de passe long et sécurisé.
+              {{ $t("Assurez-vous d'utiliser un mot de passe long et sécurisé.") }}
             </p>
 
             <form @submit.prevent="updatePassword" class="space-y-6">
@@ -97,7 +100,7 @@
                 v-model="passwordForm.current_password"
                 id="current_password"
                 type="password"
-                label="Mot de passe actuel"
+                :label="$t('Mot de passe actuel')"
                 placeholder="••••••••"
                 :error="passwordForm.errors.current_password"
                 autocomplete="current-password"
@@ -108,11 +111,11 @@
                 v-model="passwordForm.password"
                 id="password"
                 type="password"
-                label="Nouveau mot de passe"
+                :label="$t('Nouveau mot de passe')"
                 placeholder="••••••••"
                 :error="passwordForm.errors.password"
                 autocomplete="new-password"
-                help="Minimum 8 caractères recommandés"
+                :help="$t('Minimum 8 caractères recommandés')"
                 required
               />
 
@@ -120,7 +123,7 @@
                 v-model="passwordForm.password_confirmation"
                 id="password_confirmation"
                 type="password"
-                label="Confirmer le mot de passe"
+                :label="$t('Confirmer le mot de passe')"
                 placeholder="••••••••"
                 autocomplete="new-password"
                 required
@@ -129,8 +132,8 @@
               <div class="flex items-center gap-4">
                 <FormButton
                   type="submit"
-                  text="Modifier le mot de passe"
-                  loading-text="Enregistrement..."
+                  :text="$t('Modifier le mot de passe')"
+                  :loading-text="$t('Enregistrement...')"
                   :loading="passwordForm.processing"
                 />
               </div>
@@ -142,8 +145,8 @@
         <div class="bg-white overflow-hidden shadow-xs sm:rounded-lg">
           <div class="p-6 space-y-3">
             <div>
-              <h2 class="text-lg font-medium text-surface-900">Mes photos</h2>
-              <p class="mt-1 text-sm text-surface-600">Récupérez tous les originaux que vous avez envoyés, rangés par année, avec un index (date, albums, personnes). Vous recevrez les liens par mail.</p>
+              <h2 class="text-lg font-medium text-surface-900">{{ $t('Mes photos') }}</h2>
+              <p class="mt-1 text-sm text-surface-600">{{ $t('Récupérez tous les originaux que vous avez envoyés, rangés par année, avec un index (date, albums, personnes). Vous recevrez les liens par mail.') }}</p>
             </div>
             <ExportMediaButton />
           </div>
@@ -153,11 +156,11 @@
         <div class="bg-white overflow-hidden shadow-xs sm:rounded-lg">
           <div class="p-6 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 class="text-lg font-medium text-surface-900">Quitter MemoryLane</h2>
-              <p class="mt-1 text-sm text-surface-600">Supprimer votre compte, en choisissant ce que vous laissez à la famille.</p>
+              <h2 class="text-lg font-medium text-surface-900">{{ $t('Quitter MemoryLane') }}</h2>
+              <p class="mt-1 text-sm text-surface-600">{{ $t('Supprimer votre compte, en choisissant ce que vous laissez à la famille.') }}</p>
             </div>
             <Link href="/account/departure" class="px-4 py-2 rounded-lg border border-red-300 dark:border-red-500/40 text-sm font-semibold text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10">
-              Quitter MemoryLane…
+              {{ $t('Quitter MemoryLane…') }}
             </Link>
           </div>
         </div>
@@ -176,6 +179,7 @@ import FormButton from '@/Components/Forms/FormButton.vue';
 import ToggleSwitch from '@/Components/Forms/ToggleSwitch.vue';
 import PushSettingsCard from '@/Components/PushSettingsCard.vue';
 import NewsletterSettingsCard from '@/Components/NewsletterSettingsCard.vue';
+import LanguageSettingsCard from '@/Components/LanguageSettingsCard.vue';
 import { formatLongDate } from '@/utils/format';
 
 // Page unique du compte : consultation ET modification (fusion de l'ancien

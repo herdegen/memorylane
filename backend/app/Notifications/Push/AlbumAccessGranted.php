@@ -22,8 +22,8 @@ class AlbumAccessGranted extends PushNotification
     public function toWebPush(object $notifiable, Notification $notification): WebPushMessage
     {
         return $this->message(
-            'Album partagé',
-            "{$this->actorFirstName} vous a donné accès à l'album « {$this->albumName} ».",
+            __('Album partagé'),
+            __(':name vous a donné accès à l\'album « :album ».', ['name' => $this->actorFirstName, 'album' => $this->albumName]),
             "/albums/{$this->albumId}",
             "album-access-{$this->albumId}",
         );

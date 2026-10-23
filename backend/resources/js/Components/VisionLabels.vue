@@ -1,12 +1,12 @@
 <template>
   <div v-if="labels && labels.length > 0" class="bg-white rounded-xl border border-surface-200 shadow-xs p-6">
-    <h2 class="text-lg font-semibold text-surface-900 mb-4">Labels IA</h2>
+    <h2 class="text-lg font-semibold text-surface-900 mb-4">{{ $t('Labels IA') }}</h2>
     <div class="flex flex-wrap gap-2">
       <span
         v-for="label in labels"
         :key="label.name"
         class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-violet-100 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-500/30"
-        :title="`Confiance : ${Math.round(label.score * 100)}%`"
+        :title="$t('Confiance : :percent%', { percent: Math.round(label.score * 100) })"
       >
         <svg class="w-3 h-3 mr-1 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />

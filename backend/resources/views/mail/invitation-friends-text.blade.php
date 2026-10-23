@@ -1,52 +1,52 @@
-{{ $tv('Salut', 'Bonjour') }} {{ $firstName }},
+{{ $tv(__('Salut :name,', ['name' => $firstName]), __('Bonjour :name,', ['name' => $firstName])) }}
 
 @if ($byAuthor)
-C’est {{ $inviterFirstName }}. J’ai construit moi-même, sur mon temps libre, MemoryLane : un site privé pour rassembler nos photos et les histoires qui vont avec. J’aimerais beaucoup que {{ $tv('tu rejoignes', 'vous rejoigniez') }} notre groupe, « {{ $circleName }} ».
+{{ __('C’est :name.', ['name' => $inviterFirstName]) }} {{ __('J’ai construit moi-même, sur mon temps libre, MemoryLane : un site privé pour rassembler nos photos et les histoires qui vont avec.') }} {{ $tv(__('J’aimerais beaucoup que tu rejoignes notre groupe, « :circle ».', ['circle' => $circleName]), __('J’aimerais beaucoup que vous rejoigniez notre groupe, « :circle ».', ['circle' => $circleName])) }}
 @else
-{{ $inviterFirstName }} {{ $tv('t’invite', 'vous invite') }} à rejoindre « {{ $circleName }} » sur MemoryLane, un site privé de souvenirs que {{ $authorFirstName }} a construit lui-même, sur son temps libre.
+{{ $tv(__(':name t’invite à rejoindre « :circle » sur MemoryLane, un site privé de souvenirs que :author a construit lui-même, sur son temps libre.', ['name' => $inviterFirstName, 'circle' => $circleName, 'author' => $authorFirstName]), __(':name vous invite à rejoindre « :circle » sur MemoryLane, un site privé de souvenirs que :author a construit lui-même, sur son temps libre.', ['name' => $inviterFirstName, 'circle' => $circleName, 'author' => $authorFirstName])) }}
 @endif
 @if ($personalMessage)
 
-Le mot de {{ $inviterFirstName }} :
-« {{ $personalMessage }} »
+{{ __('Le mot de :name :', ['name' => $inviterFirstName]) }}
+{{ __('« :name »', ['name' => $personalMessage]) }}
 @endif
 
-{{ $tv('TA PLACE EST DÉJÀ LÀ', 'VOTRE PLACE EST DÉJÀ LÀ') }}
-{{ $personName }} — « {{ $circleName }} »
+{{ mb_strtoupper($tv(__('Ta place est déjà là'), __('Votre place est déjà là'))) }}
+{{ $personName }} — {{ __('« :name »', ['name' => $circleName]) }}
 @if ($circlePhotoCount > 0)
-Déjà {{ $circlePhotoCount }} photo{{ $circlePhotoCount > 1 ? 's' : '' }} partagée{{ $circlePhotoCount > 1 ? 's' : '' }} dans le groupe.
+{{ trans_choice('Déjà :count photo partagée dans le groupe.|Déjà :count photos partagées dans le groupe.', $circlePhotoCount) }}
 @endif
 
-CE QUE {{ $tv('TU Y TROUVERAS', 'VOUS Y TROUVEREZ') }}
-- Le réseau de la bande : qui apparaît avec qui, tissé par vos photos.
-- Vos souvenirs ensemble : sur la fiche de chacun, vos photos communes.
-- Des albums partagés au groupe, avec les visages reconnus automatiquement.
-- « Comment vous êtes-vous connus ? » : chacun raconte sa version.
-- Une page d’accueil vivante : souvenirs du jour, anniversaires des amis.
+{{ mb_strtoupper($tv(__('Ce que tu y trouveras'), __('Ce que vous y trouverez'))) }}
+- {{ __('Le réseau de la bande : qui apparaît avec qui, tissé par vos photos.') }}
+- {{ __('Vos souvenirs ensemble : sur la fiche de chacun, vos photos communes.') }}
+- {{ __('Des albums partagés au groupe, avec les visages reconnus automatiquement.') }}
+- {{ __('« Comment vous êtes-vous connus ? » : chacun raconte sa version.') }}
+- {{ __('Une page d’accueil vivante : souvenirs du jour, anniversaires des amis.') }}
 
-{{ $tv('TES', 'VOS') }} PROPRES GROUPES D’AMIS
-{{ $tv('Tu peux', 'Vous pouvez') }} aussi créer {{ $tv('tes', 'vos') }} propres groupes — les copains du lycée, le club de sport, les voisins — et y inviter qui {{ $tv('tu veux', 'vous voulez') }}. Chaque groupe est étanche : ce qui y est partagé reste dans le groupe.
+{{ mb_strtoupper($tv(__('Tes propres groupes d’amis'), __('Vos propres groupes d’amis'))) }}
+{{ $tv(__('Tu peux aussi créer tes propres groupes — les copains du lycée, le club de sport, les voisins — et y inviter qui tu veux.'), __('Vous pouvez aussi créer vos propres groupes — les copains du lycée, le club de sport, les voisins — et y inviter qui vous voulez.')) }} {{ __('Chaque groupe est étanche : ce qui y est partagé reste dans le groupe.') }}
 
-ET LA FAMILLE ?
-MemoryLane a aussi un mode famille : un arbre généalogique et la mémoire de toute une famille. Famille et amis sont deux mondes séparés, sauf pour un album que {{ $tv('tu choisis', 'vous choisissez') }} de partager avec les deux, comme celui d’un mariage.
+{{ mb_strtoupper(__('Et la famille ?')) }}
+{{ __('MemoryLane a aussi un mode famille : un arbre généalogique et la mémoire de toute une famille.') }} {{ $tv(__('Famille et amis sont deux mondes séparés, sauf pour un album que tu choisis de partager avec les deux, comme celui d’un mariage.'), __('Famille et amis sont deux mondes séparés, sauf pour un album que vous choisissez de partager avec les deux, comme celui d’un mariage.')) }}
 
-CRÉER MON ACCÈS (une minute, {{ $tv('tu choisis', 'vous choisissez') }} un mot de passe) :
+{{ $tv(__('CRÉER MON ACCÈS (une minute, tu choisis un mot de passe) :'), __('CRÉER MON ACCÈS (une minute, vous choisissez un mot de passe) :')) }}
 {{ $url }}
 @if ($expiresAt)
-Lien personnel, valable jusqu’au {{ $expiresAt }}.
+{{ __('Lien personnel, valable jusqu’au :date.', ['date' => $expiresAt]) }}
 @endif
 
-Pas un réseau social : ni fil d’actualité, ni « j’aime », ni publicité. Rien n’est public.
+{{ __('Pas un réseau social : ni fil d’actualité, ni « j’aime », ni publicité.') }} {{ __('Rien n’est public.') }}
 
-UNE QUESTION, UN BUG, UNE IDÉE ?
+{{ mb_strtoupper(__('Une question, un bug, une idée ?')) }}
 @if ($byAuthor && $repliesToAuthor)
-Réponds simplement à ce mail{{ $contactPhone ? ', ou appelle-moi au '.$contactPhone : '' }}.
+{{ $contactPhone ? __('Réponds simplement à ce mail, ou appelle-moi au :phone.', ['phone' => $contactPhone]) : __('Réponds simplement à ce mail.') }}
 @else
-Écrire à {{ $authorFirstName }} : {{ $authorEmail }}@if ($contactPhone) — {{ $contactPhone }}@endif
+{{ __('Écrire à :name : :email', ['name' => $authorFirstName, 'email' => $authorEmail]) }}@if ($contactPhone) — {{ $contactPhone }}@endif
 @endif
 
-À très vite sur MemoryLane,
+{{ __('À très vite sur MemoryLane,') }}
 {{ $inviterFirstName }}
 
 --
-MemoryLane · nos souvenirs entre amis · {{ $appHost }}
+MemoryLane · {{ __('nos souvenirs entre amis') }} · {{ $appHost }}

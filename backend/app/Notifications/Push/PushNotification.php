@@ -47,7 +47,7 @@ abstract class PushNotification extends Notification implements ShouldQueue
             ->body($body)
             ->icon(self::ICON)
             ->badge(self::ICON)
-            ->lang('fr')
+            ->lang(app()->getLocale())
             ->tag($tag)
             ->data(['url' => $url])
             ->options(['TTL' => $ttlSeconds, 'urgency' => 'normal']);

@@ -44,7 +44,7 @@ class LifeEventController extends Controller
         $event = LifeEvent::create($data);
         $this->syncPhotos($event, $photos);
 
-        return response()->json(['message' => 'Moment ajouté', 'event' => $event], 201);
+        return response()->json(['message' => __('Moment ajouté'), 'event' => $event], 201);
     }
 
     public function update(Request $request, LifeEvent $lifeEvent)
@@ -71,7 +71,7 @@ class LifeEventController extends Controller
         $lifeEvent->update($data);
         $this->syncPhotos($lifeEvent, $photos);
 
-        return response()->json(['message' => 'Moment mis à jour', 'event' => $lifeEvent->fresh()]);
+        return response()->json(['message' => __('Moment mis à jour'), 'event' => $lifeEvent->fresh()]);
     }
 
     public function destroy(LifeEvent $lifeEvent)
@@ -87,7 +87,7 @@ class LifeEventController extends Controller
 
         $lifeEvent->delete();
 
-        return response()->json(['message' => 'Moment supprimé']);
+        return response()->json(['message' => __('Moment supprimé')]);
     }
 
     private function validated(Request $request): array

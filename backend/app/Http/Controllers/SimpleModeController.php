@@ -187,8 +187,8 @@ class SimpleModeController extends Controller
 
         return $this->photoPayload($media, $user) + [
             'heading' => $sameDay
-                ? ($years === 1 ? 'Il y a un an, jour pour jour' : "Il y a {$years} ans, jour pour jour")
-                : 'Un souvenir pour aujourd\'hui',
+                ? ($years === 1 ? __('Il y a un an, jour pour jour') : __('Il y a :years ans, jour pour jour', ['years' => $years]))
+                : __('Un souvenir pour aujourd\'hui'),
         ];
     }
 
@@ -229,7 +229,7 @@ class SimpleModeController extends Controller
             'title' => self::caption($media),
             'when' => $media->taken_at ? self::whenLabel($media->taken_at) : null,
             'who' => $media->people
-                ->map(fn (Person $p) => $p->id === $user->person_id ? 'vous' : self::shortName($p))
+                ->map(fn (Person $p) => $p->id === $user->person_id ? __('vous') : self::shortName($p))
                 ->values()
                 ->all(),
             'voice_notes_count' => $media->voice_notes_count ?? 0,
@@ -259,7 +259,7 @@ class SimpleModeController extends Controller
             return (string) $date->year;
         }
 
-        return $date->locale('fr')->translatedFormat('F Y');
+        return $date->locale(app()->getLocale())->translatedFormat('F Y');
     }
 
     /** Premier prénom usuel (« Suzanne » pour « Suzanne Geneviève Clothilde »). */

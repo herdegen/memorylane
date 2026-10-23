@@ -24,13 +24,13 @@
           class="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 dark:border-brand-500/30 dark:bg-brand-500/10"
         >
           <p class="flex-1 min-w-0 text-sm text-surface-800">
-            {{ ficheRequest.by || 'Quelqu’un' }} a ajouté ce média à ta fiche. L’afficher pour tout le monde ?
+            {{ $t(':name a ajouté ce média à ta fiche. L’afficher pour tout le monde ?', { name: ficheRequest.by || $t('Quelqu’un') }) }}
           </p>
           <button type="button" class="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-700" @click="decideFiche(true)">
-            Afficher pour tout le monde
+            {{ $t('Afficher pour tout le monde') }}
           </button>
           <button type="button" class="rounded-md px-3 py-1.5 text-sm font-semibold text-surface-700 hover:bg-surface-100" @click="decideFiche(false)">
-            Garder privé
+            {{ $t('Garder privé') }}
           </button>
         </div>
 
@@ -59,7 +59,7 @@
                   class="text-sm font-medium text-brand-600 hover:text-brand-800"
                   @click="viewingOriginal = true"
                 >
-                  🔍 Voir l’original
+                  🔍 {{ $t('Voir l’original') }}
                   <span v-if="media.width && media.height" class="font-normal text-surface-500">({{ media.width }} × {{ media.height }})</span>
                 </button>
                 <template v-if="canEditFaces">
@@ -69,12 +69,12 @@
                     class="text-sm font-medium text-brand-600 hover:text-brand-800 disabled:opacity-50"
                     @click="addingFace = !addingFace"
                   >
-                    {{ addingFace ? 'Annuler' : '＋ Ajouter un visage' }}
+                    {{ addingFace ? $t('Annuler') : $t('＋ Ajouter un visage') }}
                   </button>
                   <span v-if="addingFace && !savingFace" class="text-xs text-surface-500">
-                    Cliquez-glissez sur la photo pour entourer le visage.
+                    {{ $t('Cliquez-glissez sur la photo pour entourer le visage.') }}
                   </span>
-                  <span v-if="savingFace" class="text-xs text-brand-600">Ajout du visage…</span>
+                  <span v-if="savingFace" class="text-xs text-brand-600">{{ $t('Ajout du visage…') }}</span>
                 </template>
               </div>
 
@@ -93,7 +93,7 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
                 <h3 class="text-lg font-medium text-surface-900 mb-2">{{ media.original_name }}</h3>
-                <p class="text-sm text-surface-500 mb-4">Document ({{ formatFileSize(media.size) }})</p>
+                <p class="text-sm text-surface-500 mb-4">{{ $t('Document (:size)', { size: formatFileSize(media.size) }) }}</p>
                 <a
                   :href="`/media/${media.id}/download`"
                   class="inline-flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition"
@@ -101,7 +101,7 @@
                   <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
-                  Télécharger
+                  {{ $t('Télécharger') }}
                 </a>
               </div>
             </div>
@@ -109,16 +109,16 @@
             <!-- Détection de visages sur l'image extraite (vidéos) -->
             <div v-if="media.type === 'video'" class="mt-4 bg-white rounded-lg shadow-xs overflow-hidden">
               <div class="px-4 py-3 border-b border-surface-100 flex items-center justify-between">
-                <h2 class="text-sm font-semibold text-surface-900">Visages sur l'image du clip</h2>
+                <h2 class="text-sm font-semibold text-surface-900">{{ $t("Visages sur l'image du clip") }}</h2>
                 <div v-if="canEditFaces" class="flex flex-wrap items-center justify-end gap-x-4 gap-y-1">
                   <button
                     type="button"
                     :disabled="settingFrame"
                     class="text-sm font-medium text-brand-600 hover:text-brand-800 disabled:opacity-50"
-                    title="L'image affichée en ce moment dans le lecteur devient la miniature ; les visages y sont recherchés à nouveau"
+                    :title="$t('L\'image affichée en ce moment dans le lecteur devient la miniature ; les visages y sont recherchés à nouveau')"
                     @click="useCurrentFrame"
                   >
-                    {{ settingFrame ? 'Préparation…' : '🖼 Utiliser l’image actuelle' }}
+                    {{ settingFrame ? $t('Préparation…') : $t('🖼 Utiliser l’image actuelle') }}
                   </button>
                   <button
                     type="button"
@@ -126,7 +126,7 @@
                     class="text-sm font-medium text-brand-600 hover:text-brand-800 disabled:opacity-50"
                     @click="addingFace = !addingFace"
                   >
-                    {{ addingFace ? 'Annuler' : '＋ Ajouter un visage' }}
+                    {{ addingFace ? $t('Annuler') : $t('＋ Ajouter un visage') }}
                   </button>
                 </div>
               </div>
@@ -141,9 +141,9 @@
                 />
               </div>
               <p v-if="addingFace && !savingFace" class="px-4 py-2 text-xs text-surface-500">
-                Cliquez-glissez sur l'image pour entourer le visage.
+                {{ $t("Cliquez-glissez sur l'image pour entourer le visage.") }}
               </p>
-              <p v-if="savingFace" class="px-4 py-2 text-xs text-brand-600">Ajout du visage…</p>
+              <p v-if="savingFace" class="px-4 py-2 text-xs text-brand-600">{{ $t('Ajout du visage…') }}</p>
             </div>
 
             <!-- Provenance : ce média est un clip d'une vidéo source -->
@@ -155,10 +155,13 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z" />
               </svg>
               <p class="text-sm text-surface-600">
-                Extrait de
-                <Link :href="`/media/${media.source_media.id}`" class="font-medium text-brand-600 hover:text-brand-800">
-                  {{ media.source_media.original_name }}
-                </Link>
+                <Trans text="Extrait de :source">
+                  <template #source>
+                    <Link :href="`/media/${media.source_media.id}`" class="font-medium text-brand-600 hover:text-brand-800">
+                      {{ media.source_media.original_name }}
+                    </Link>
+                  </template>
+                </Trans>
                 <span v-if="media.clip_start != null && media.clip_end != null" class="text-surface-400">
                   ({{ formatDuration(media.clip_start) }} → {{ formatDuration(media.clip_end) }})
                 </span>
@@ -177,7 +180,7 @@
 
             <!-- Clips déjà découpés à partir de cette vidéo -->
             <div v-if="media.clips && media.clips.length" class="mt-4 bg-white rounded-lg shadow-xs p-6">
-              <h2 class="text-lg font-semibold text-surface-900 mb-4">Clips ({{ media.clips.length }})</h2>
+              <h2 class="text-lg font-semibold text-surface-900 mb-4">{{ $t('Clips (:count)', { count: media.clips.length }) }}</h2>
               <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <Link
                   v-for="clip in media.clips"
@@ -221,7 +224,7 @@
 
             <!-- Tags -->
             <div class="order-4 sm:order-none bg-white rounded-lg shadow-xs p-4 sm:p-6">
-              <h2 class="text-lg font-semibold text-surface-900 mb-4">Tags</h2>
+              <h2 class="text-lg font-semibold text-surface-900 mb-4">{{ $t('Tags') }}</h2>
               <TagInput :media-id="media.id" :initial-tags="media.tags || []" />
             </div>
 
@@ -236,8 +239,8 @@
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
                 <div>
-                  <p class="text-sm font-medium text-surface-900">Détection en cours…</p>
-                  <p class="text-xs text-surface-500">{{ detectProgress || 'Analyse de la photo' }}</p>
+                  <p class="text-sm font-medium text-surface-900">{{ $t('Détection en cours…') }}</p>
+                  <p class="text-xs text-surface-500">{{ detectProgress || $t('Analyse de la photo') }}</p>
                 </div>
               </div>
 
@@ -253,10 +256,10 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                   </svg>
-                  {{ detectError ? 'Réessayer' : 'Détecter les visages' }}
+                  {{ detectError ? $t('Réessayer') : $t('Détecter les visages') }}
                 </button>
                 <p class="mt-2 text-xs text-surface-400">
-                  {{ serverFaces ? 'Analyse sur le serveur (InsightFace) : quelques secondes.' : 'Analyse locale dans votre navigateur (~12 Mo de modèles au premier lancement).' }}
+                  {{ serverFaces ? $t('Analyse sur le serveur (InsightFace) : quelques secondes.') : $t('Analyse locale dans votre navigateur (~12 Mo de modèles au premier lancement).') }}
                 </p>
               </div>
             </div>
@@ -282,7 +285,7 @@
               @click="markNoKnownFaces"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
-              Personne de connu ici ({{ unidentifiedCount }} visage{{ unidentifiedCount > 1 ? 's' : '' }})
+              {{ $tc('Personne de connu ici (:count visage)|Personne de connu ici (:count visages)', unidentifiedCount) }}
             </button>
 
             <!-- Admin : tout recommencer (cadres non identifiés effacés,
@@ -293,7 +296,7 @@
               class="order-8 sm:order-none w-full text-xs font-medium text-surface-500 hover:text-brand-700 underline underline-offset-2"
               @click="forceDetection"
             >
-              Tout recommencer sur cette photo (admin)
+              {{ $t('Tout recommencer sur cette photo (admin)') }}
             </button>
 
             <!-- Face Match Panel -->
@@ -332,14 +335,14 @@
               class="order-2 sm:order-none bg-white rounded-xl border border-surface-200 shadow-xs p-4 sm:p-6"
             >
               <div class="flex items-center justify-between gap-3" :class="moments.length ? 'mb-3' : ''">
-                <h2 class="text-lg font-semibold text-surface-900">Moments</h2>
+                <h2 class="text-lg font-semibold text-surface-900">{{ $t('Moments') }}</h2>
                 <button
                   v-if="canMakeMoment"
                   type="button"
                   class="text-sm font-semibold text-brand-700 dark:text-brand-400 hover:underline"
                   @click="showMakeMoment = true"
                 >
-                  + En faire un moment
+                  {{ $t('+ En faire un moment') }}
                 </button>
               </div>
               <ul v-if="moments.length" class="space-y-1.5">
@@ -351,7 +354,7 @@
                 </li>
               </ul>
               <p v-else class="text-sm text-surface-500 mt-1">
-                Faites de cette photo un moment de la frise d'une personne (mariage, voyage, fête…).
+                {{ $t("Faites de cette photo un moment de la frise d'une personne (mariage, voyage, fête…).") }}
               </p>
             </div>
 
@@ -375,7 +378,7 @@
 
             <!-- Actions -->
             <div class="order-9 sm:order-none bg-white rounded-lg shadow-xs p-4 sm:p-6">
-              <h2 class="text-lg font-semibold text-surface-900 mb-4">Actions</h2>
+              <h2 class="text-lg font-semibold text-surface-900 mb-4">{{ $t('Actions') }}</h2>
               <div class="space-y-2">
                 <a
                   :href="`/media/${media.id}/download`"
@@ -384,7 +387,7 @@
                   <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
-                  Télécharger
+                  {{ $t('Télécharger') }}
                 </a>
 
                 <button
@@ -394,7 +397,7 @@
                   <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
-                  Supprimer
+                  {{ $t('Supprimer') }}
                 </button>
               </div>
             </div>
@@ -450,6 +453,8 @@ import { formatFileSize, formatDuration, formatDate } from '@/utils/format';
 import { backTarget } from '@/utils/navigation';
 import { conversionUrl, displayUrl, webVideoUrl, thumbnailUrl as smallThumbUrl } from '@/utils/media';
 import axios from 'axios';
+import { t } from '@/i18n';
+import Trans from '@/Components/Trans.vue';
 
 // Éditeur de découpe : chargé seulement pour une vidéo. (VideoPlayer, lui,
 // reste importé statiquement — il est minuscule et charge Plyr à son
@@ -463,7 +468,7 @@ const { confirm } = useConfirm();
 
 // Bouton « Retour » : page précédente dans l'app (history.back() restaure
 // le scroll de la galerie), sinon la galerie « Mes photos ».
-const back = backTarget('/media', 'Retour à mes photos');
+const back = backTarget('/media', t('Retour à mes photos'));
 const goBack = () => {
   if (back.useHistory && window.history.length > 1) {
     window.history.back();
@@ -508,7 +513,7 @@ const decideFiche = async (publish) => {
     ficheAsked.value = false;
     toast.success(data.message);
   } catch (error) {
-    toast.error(apiError(error, 'Impossible d’enregistrer ton choix.'));
+    toast.error(apiError(error, t('Impossible d’enregistrer ton choix.')));
   }
 };
 
@@ -544,9 +549,9 @@ const settingFrame = ref(false);
 const useCurrentFrame = async () => {
   const time = playerGetCurrentTime();
   const ok = await confirm({
-    title: 'Changer l’image de la vidéo ?',
-    message: `L’image à ${formatDuration(time)} devient la miniature. Les cadres de visages actuels sont effacés et les visages sont recherchés sur la nouvelle image ; les personnes déjà identifiées restent sur la vidéo.`,
-    confirmLabel: 'Utiliser cette image',
+    title: t('Changer l’image de la vidéo ?'),
+    message: t('L’image à :time devient la miniature. Les cadres de visages actuels sont effacés et les visages sont recherchés sur la nouvelle image ; les personnes déjà identifiées restent sur la vidéo.', { time: formatDuration(time) }),
+    confirmLabel: t('Utiliser cette image'),
   });
   if (!ok) return;
   settingFrame.value = true;
@@ -557,10 +562,10 @@ const useCurrentFrame = async () => {
     setTimeout(() => router.reload({ only: ['media'], onFinish: () => { settingFrame.value = false; } }), 6000);
   } catch (error) {
     settingFrame.value = false;
-    toast.error(apiError(error, 'Impossible de changer l’image.'));
+    toast.error(apiError(error, t('Impossible de changer l’image.')));
   }
 };
-const playerSeekTo = (t) => playerRef.value?.seekTo?.(t);
+const playerSeekTo = (time) => playerRef.value?.seekTo?.(time);
 
 // Vignette d'un clip (conversion small/thumbnail, sinon l'original).
 const clipThumb = (clip) => conversionUrl(clip, 'small', 'thumbnail', 'medium') || clip.url || null;
@@ -592,7 +597,7 @@ const { detectFaces, computeDescriptorForRegion } = browserDetection;
 const serverDetecting = ref(false);
 const serverError = ref(null);
 const detecting = computed(() => serverDetecting.value || browserDetection.loading.value);
-const detectProgress = computed(() => (serverDetecting.value ? 'Analyse sur le serveur…' : browserDetection.progress.value));
+const detectProgress = computed(() => (serverDetecting.value ? t('Analyse sur le serveur…') : browserDetection.progress.value));
 const detectError = computed(() => serverError.value || browserDetection.error.value);
 
 // Ajout manuel d'un visage (dessin d'une zone).
@@ -637,9 +642,9 @@ const notScanned = computed(
 // Admin : « forcer » = repartir d'une détection propre (après confirmation).
 const forceDetection = async () => {
   const ok = await confirm({
-    title: 'Tout recommencer sur cette photo ?',
-    message: 'Les cadres non identifiés sont effacés, puis la détection et l’identification automatique sont refaites. Les personnes validées (à la main ou par une quête) sont conservées ; un nom posé automatiquement là où plus aucun visage n’est vu est retiré.',
-    confirmLabel: 'Recommencer',
+    title: t('Tout recommencer sur cette photo ?'),
+    message: t('Les cadres non identifiés sont effacés, puis la détection et l’identification automatique sont refaites. Les personnes validées (à la main ou par une quête) sont conservées ; un nom posé automatiquement là où plus aucun visage n’est vu est retiré.'),
+    confirmLabel: t('Recommencer'),
     danger: true,
   });
   if (ok) await runDetection(true);
@@ -654,7 +659,7 @@ const runDetection = async (force = false) => {
       await axios.post(`/vision/media/${props.media.id}/analyze`, force === true ? { force: true } : {});
       router.reload();
     } catch (e) {
-      serverError.value = apiError(e, "L'analyse des visages a échoué. Réessayez dans un instant.");
+      serverError.value = apiError(e, t("L'analyse des visages a échoué. Réessayez dans un instant."));
     } finally {
       serverDetecting.value = false;
     }
@@ -711,11 +716,15 @@ const handleFaceReset = () => {
 
 const deleteMedia = async () => {
   // Suppression douce : le média part dans la corbeille (restaurable).
-  const what = { photo: 'La photo', video: 'La vidéo', document: 'Le document' }[props.media.type] || 'Le média';
+  const message = {
+    photo: t('Êtes-vous sûr de vouloir supprimer ce média ? La photo ira dans la corbeille.'),
+    video: t('Êtes-vous sûr de vouloir supprimer ce média ? La vidéo ira dans la corbeille.'),
+    document: t('Êtes-vous sûr de vouloir supprimer ce média ? Le document ira dans la corbeille.'),
+  }[props.media.type] || t('Êtes-vous sûr de vouloir supprimer ce média ? Le média ira dans la corbeille.');
   const ok = await confirm({
-    title: 'Supprimer ce média',
-    message: `Êtes-vous sûr de vouloir supprimer ce média ? ${what} ira dans la corbeille.`,
-    confirmLabel: 'Supprimer',
+    title: t('Supprimer ce média'),
+    message,
+    confirmLabel: t('Supprimer'),
     danger: true,
   });
   if (!ok) return;
@@ -724,7 +733,7 @@ const deleteMedia = async () => {
     await axios.delete(`/media/${props.media.id}`);
     router.visit('/media');
   } catch (error) {
-    toast.error(apiError(error, 'Erreur lors de la suppression.'));
+    toast.error(apiError(error, t('Erreur lors de la suppression.')));
   }
 };
 </script>

@@ -27,7 +27,7 @@ class PersonCircleController extends Controller
         $user = $request->user();
 
         $household = Household::findOrFail($validated['household_id']);
-        abort_unless($this->canAddTo($user, $household, $person), 403, 'Vous ne pouvez pas ajouter cette fiche à ce cercle.');
+        abort_unless($this->canAddTo($user, $household, $person), 403, __('Vous ne pouvez pas ajouter cette fiche à ce cercle.'));
 
         if ($household->isFriends()) {
             $household->people()->syncWithoutDetaching([$person->id => ['added_by' => $user->id]]);
@@ -49,7 +49,7 @@ class PersonCircleController extends Controller
             abort_unless($household->isManagedBy($user) || $pivot->added_by === $user->id, 403);
             $household->people()->detach($person->id);
         } else {
-            abort_unless($user->isAdmin(), 403, 'Seul un administrateur retire une fiche de la famille.');
+            abort_unless($user->isAdmin(), 403, __('Seul un administrateur retire une fiche de la famille.'));
             $person->forceFill(['in_family_directory' => false])->save();
         }
 
@@ -80,7 +80,7 @@ class PersonCircleController extends Controller
 
         $in = [];
         if ($person->in_family_directory) {
-            $in[] = ['id' => $mine->firstWhere('kind', Household::KIND_FAMILY)?->id, 'name' => 'Famille', 'kind' => Household::KIND_FAMILY, 'can_remove' => $user->isAdmin()];
+            $in[] = ['id' => $mine->firstWhere('kind', Household::KIND_FAMILY)?->id, 'name' => __('Famille'), 'kind' => Household::KIND_FAMILY, 'can_remove' => $user->isAdmin()];
         }
         foreach ($mine->where('kind', Household::KIND_FRIENDS) as $h) {
             if ($p = $pivots->get($h->id)) {
@@ -98,7 +98,7 @@ class PersonCircleController extends Controller
         $familyGate = Household::where('kind', Household::KIND_FAMILY)->get()
             ->first(fn ($h) => $this->canAddTo($user, $h, $person));
         if ($familyGate) {
-            $canAdd[] = ['id' => $familyGate->id, 'name' => 'Famille', 'kind' => Household::KIND_FAMILY];
+            $canAdd[] = ['id' => $familyGate->id, 'name' => __('Famille'), 'kind' => Household::KIND_FAMILY];
         }
 
         return ['in' => $in, 'can_add' => $canAdd];

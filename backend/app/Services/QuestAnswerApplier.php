@@ -48,7 +48,7 @@ class QuestAnswerApplier
             // dans QuestService::detectHouseholdAddressGaps).
             abort_unless($this->canFillAddress($user, $subject), 403);
         } elseif ($type === QuestType::HowMet) {
-            abort_unless($user->person_id, 422, "Reliez d'abord votre compte à votre fiche (« C'est moi »).");
+            abort_unless($user->person_id, 422, __("Reliez d'abord votre compte à votre fiche (« C'est moi »)."));
         }
         // Autres questions Person : fiches lisibles par tout compte connecté ;
         // le remplissage de champs vides est ouvert à tous, tracé dans
@@ -75,7 +75,7 @@ class QuestAnswerApplier
         $this->authorize($user, $type, $subject);
 
         if (! $this->quests->gapExists($type, $subject, $user)) {
-            throw new StaleQuestException('Cette information a déjà été complétée.');
+            throw new StaleQuestException(__('Cette information a déjà été complétée.'));
         }
 
         match ($type) {
@@ -132,7 +132,7 @@ class QuestAnswerApplier
 
     private function applyParent(Person $person, string $parentId, string $slot): void
     {
-        abort_if($parentId === $person->id, 422, 'Une personne ne peut pas être son propre parent.');
+        abort_if($parentId === $person->id, 422, __('Une personne ne peut pas être son propre parent.'));
 
         $person->update([$slot.'_id' => $parentId]);
     }
@@ -145,7 +145,7 @@ class QuestAnswerApplier
      */
     private function applyMarital(Person $person, array $payload): void
     {
-        abort_if($payload['spouse_id'] === $person->id, 422, 'Une personne ne peut pas être son propre conjoint.');
+        abort_if($payload['spouse_id'] === $person->id, 422, __('Une personne ne peut pas être son propre conjoint.'));
 
         $ids = [$person->id, $payload['spouse_id']];
         sort($ids);
@@ -172,7 +172,7 @@ class QuestAnswerApplier
     /** Version du compte du récit de rencontre (lui ↔ l'ami). */
     private function applyHowMet(User $user, Person $friend, array $payload): void
     {
-        abort_if($friend->id === $user->person_id, 422, 'C\'est votre propre fiche.');
+        abort_if($friend->id === $user->person_id, 422, __('C\'est votre propre fiche.'));
 
         [$p1, $p2] = PersonLink::pairKey($user->person_id, $friend->id);
 

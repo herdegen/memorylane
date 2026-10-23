@@ -94,19 +94,19 @@ class AlbumDiscovery
         if ($thisMonth->isNotEmpty()) {
             $f = $thisMonth->take(3)->random();
             $years = now()->year - $f->month_year;
-            $featured = ['id' => $f->id, 'reason' => $years === 1 ? 'Il y a un an ce mois-ci' : "Il y a {$years} ans ce mois-ci"];
+            $featured = ['id' => $f->id, 'reason' => $years === 1 ? __('Il y a un an ce mois-ci') : __('Il y a :years ans ce mois-ci', ['years' => $years])];
         } elseif ($recent->isNotEmpty()) {
-            $featured = ['id' => $recent->first()->id, 'reason' => 'Récemment enrichi'];
+            $featured = ['id' => $recent->first()->id, 'reason' => __('Récemment enrichi')];
         } else {
-            $featured = ['id' => $here->random()->id, 'reason' => 'À redécouvrir'];
+            $featured = ['id' => $here->random()->id, 'reason' => __('À redécouvrir')];
         }
 
         $rows = [];
         if ($thisMonth->count() >= 1) {
-            $rows[] = ['key' => 'month', 'title' => 'Ce mois-ci, les années passées', 'ids' => $thisMonth->pluck('id')->all()];
+            $rows[] = ['key' => 'month', 'title' => __('Ce mois-ci, les années passées'), 'ids' => $thisMonth->pluck('id')->all()];
         }
         if ($recent->count() >= 2) {
-            $rows[] = ['key' => 'recent', 'title' => 'Récemment enrichis', 'ids' => $recent->take(12)->pluck('id')->all()];
+            $rows[] = ['key' => 'recent', 'title' => __('Récemment enrichis'), 'ids' => $recent->take(12)->pluck('id')->all()];
         }
 
         // Les proches les plus présents dans ces albums : une rangée chacun.
@@ -122,7 +122,7 @@ class AlbumDiscovery
             $withIds = DB::table('media_person as mp')->join('album_media as am', 'am.media_id', '=', 'mp.media_id')
                 ->where('mp.person_id', $person->id)->whereIn('am.album_id', $ids)
                 ->groupBy('am.album_id')->orderByRaw('count(*) desc')->pluck('am.album_id')->all();
-            $rows[] = ['key' => 'person-'.$person->id, 'title' => 'Avec '.($person->first_name ?: explode(' ', $person->name)[0]), 'ids' => $withIds];
+            $rows[] = ['key' => 'person-'.$person->id, 'title' => __('Avec :name', ['name' => $person->first_name ?: explode(' ', $person->name)[0]]), 'ids' => $withIds];
         }
 
         // Décennies (d'après la première photo datée de chaque album).

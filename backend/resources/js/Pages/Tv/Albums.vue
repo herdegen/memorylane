@@ -1,9 +1,9 @@
 <template>
-  <Head title="Albums — Télévision" />
+  <Head :title="$t('Albums — Télévision')" />
   <TvLayout
     :tab="tab" :circle="circle" :circles="circles" :account="account"
     back="/tv/ecran/accueil" fill nav-class="relative z-10"
-    :hints="[['OK', 'Ouvrir l\'album'], ['▲ ▼', 'Autres rangées'], ['↩', 'Accueil']]"
+    :hints="[['OK', $t('Ouvrir l\'album')], ['▲ ▼', $t('Autres rangées')], ['↩', $t('Accueil')]]"
   >
     <!-- Fond : les photos de l'album en vue (celui à l'honneur, puis celui choisi) -->
     <div class="fixed inset-x-0 top-0 h-[38.75rem] pointer-events-none">
@@ -16,18 +16,18 @@
 
     <div class="relative z-10 flex-1 min-h-0 flex flex-col">
       <div v-if="active" class="shrink-0 px-24 pt-14 w-[66rem] flex flex-col gap-4">
-        <span class="self-start px-4.5 py-2 rounded-full bg-white/15 text-[1.375rem] font-extrabold tracking-[.08em] uppercase">{{ active.reason || 'Album' }}</span>
+        <span class="self-start px-4.5 py-2 rounded-full bg-white/15 text-[1.375rem] font-extrabold tracking-[.08em] uppercase">{{ active.reason || $t('Album') }}</span>
         <h1 class="font-display text-[4.5rem] leading-[1.02] font-bold line-clamp-2">{{ active.name }}</h1>
         <p class="text-[1.875rem] text-[#e7e0d6]">{{ active.meta }}</p>
         <div class="flex gap-5 mt-2" data-tv-row>
           <Link :href="`/tv/ecran/albums/${active.id}?play=1`" data-tv data-tv-autofocus class="tv-btn tv-btn-primary">
-            <svg class="w-7 h-7" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>Diaporama
+            <svg class="w-7 h-7" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>{{ $t('Diaporama') }}
           </Link>
-          <Link :href="`/tv/ecran/albums/${active.id}?play=1&shuffle=1`" data-tv class="tv-btn">Lecture aléatoire</Link>
-          <Link :href="`/tv/ecran/albums/${active.id}`" data-tv class="tv-btn">Voir les photos</Link>
+          <Link :href="`/tv/ecran/albums/${active.id}?play=1&shuffle=1`" data-tv class="tv-btn">{{ $t('Lecture aléatoire') }}</Link>
+          <Link :href="`/tv/ecran/albums/${active.id}`" data-tv class="tv-btn">{{ $t('Voir les photos') }}</Link>
         </div>
       </div>
-      <p v-else class="px-24 pt-14 text-[2rem] text-[#c9bfb1]">Aucun album avec des photos dans ce cercle pour l'instant.</p>
+      <p v-else class="px-24 pt-14 text-[2rem] text-[#c9bfb1]">{{ $t('Aucun album avec des photos dans ce cercle pour l\'instant.') }}</p>
 
       <!-- Rangées : défilent sous l'en-tête -->
       <div class="flex-1 min-h-0 overflow-y-auto mt-10 flex flex-col gap-8 pb-8">

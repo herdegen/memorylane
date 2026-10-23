@@ -7,8 +7,8 @@
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
       </svg>
       <span class="text-sm text-surface-700">
-        <span class="font-semibold text-surface-900">{{ count }}</span>
-        photo(s) importée(s)… <span class="text-surface-400">l'import continue en arrière-plan.</span>
+        <span class="font-semibold text-surface-900">{{ $tc(':count photo importée…|:count photos importées…', count) }}</span>
+        <span class="text-surface-400">{{ $t("l'import continue en arrière-plan.") }}</span>
       </span>
     </div>
 
@@ -18,8 +18,8 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
       </svg>
       <span class="text-sm text-surface-700">
-        Import interrompu — <span class="font-semibold text-surface-900">{{ count }}</span>
-        photo(s) importée(s). <span class="text-surface-400">Relancez pour récupérer les manquantes.</span>
+        {{ $tc('Import interrompu — :count photo importée.|Import interrompu — :count photos importées.', count) }}
+        <span class="text-surface-400">{{ $t('Relancez pour récupérer les manquantes.') }}</span>
       </span>
     </div>
 
@@ -29,13 +29,15 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
       </svg>
       <span class="text-sm text-surface-700">
-        <span class="font-semibold text-surface-900">{{ count }}</span>
-        photo(s) importée(s). Import terminé — <span class="text-surface-400">si des photos manquent, relancez l'import.</span>
+        <span class="font-semibold text-surface-900">{{ $tc(':count photo importée.|:count photos importées.', count) }}</span>
+        <Trans text="Import terminé — :hint">
+          <template #hint><span class="text-surface-400">{{ $t("si des photos manquent, relancez l'import.") }}</span></template>
+        </Trans>
         <span v-if="videos" class="block text-surface-500">
-          {{ videos }} vidéo(s) en cours d’optimisation : elles apparaîtront dans « Mes photos » d’ici quelques minutes (environ 10 min par heure de vidéo).
+          {{ $tc(':count vidéo en cours d’optimisation : elle apparaîtra dans « Mes photos » d’ici quelques minutes (environ 10 min par heure de vidéo).|:count vidéos en cours d’optimisation : elles apparaîtront dans « Mes photos » d’ici quelques minutes (environ 10 min par heure de vidéo).', videos) }}
         </span>
         <span v-if="skipped" class="block text-surface-500">
-          {{ skipped }} fichier(s) ignoré(s) : format non pris en charge, trop lourd ou inaccessible.
+          {{ $tc(':count fichier ignoré : format non pris en charge, trop lourd ou inaccessible.|:count fichiers ignorés : format non pris en charge, trop lourd ou inaccessible.', skipped) }}
         </span>
       </span>
     </div>
@@ -51,7 +53,7 @@
       />
     </div>
 
-    <Link href="/media" class="btn-secondary btn-sm">Voir mes photos</Link>
+    <Link href="/media" class="btn-secondary btn-sm">{{ $t('Voir mes photos') }}</Link>
   </div>
 </template>
 
@@ -59,6 +61,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import axios from 'axios';
+import Trans from '@/Components/Trans.vue';
 
 // Suivi d'un import lancé en arrière-plan : les photos arrivent au fur et à
 // mesure. `statusUrl` renvoie { count, items, finished, failed, skipped, videos }.

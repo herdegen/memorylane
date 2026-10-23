@@ -1,5 +1,5 @@
 <template>
-  <Head title="Mes photos" />
+  <Head :title="$t('Mes photos')" />
   <AppLayout>
     <div class="py-3 sm:py-12">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -7,11 +7,11 @@
         <div class="mb-3 sm:mb-6 flex items-center justify-between gap-4">
           <div class="min-w-0">
             <h1 class="text-display text-[26px] sm:text-4xl text-surface-900 truncate">
-              <span class="sm:hidden">Photos</span><span class="hidden sm:inline">Mes photos</span>
+              <span class="sm:hidden">{{ $t('Photos') }}</span><span class="hidden sm:inline">{{ $t('Mes photos') }}</span>
               <span v-if="totalCount" class="font-sans text-sm font-semibold text-surface-500 ml-1">{{ totalCount }}</span>
             </h1>
             <p class="mt-2 text-surface-600 hidden sm:block">
-              Parcourez vos photos, vidéos et documents
+              {{ $t('Parcourez vos photos, vidéos et documents') }}
             </p>
           </div>
           <div class="flex items-center gap-2 shrink-0">
@@ -21,7 +21,7 @@
               :class="selectionMode ? 'bg-brand-600 border-brand-600 text-white' : 'bg-white border-surface-300 text-surface-900'"
               @click="toggleSelectionMode"
             >
-              {{ selectionMode ? 'Terminer' : 'Sélectionner' }}
+              {{ selectionMode ? $t('Terminer') : $t('Sélectionner') }}
             </button>
             <Link
               href="/media/upload"
@@ -30,7 +30,7 @@
               <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
-              Ajouter des photos
+              {{ $t('Ajouter des photos') }}
             </Link>
           </div>
         </div>
@@ -43,7 +43,7 @@
                  flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-3 sm:rounded-lg bg-brand-600 px-4 py-3 text-white shadow-md"
         >
           <span class="font-medium">
-            {{ selectedIds.length }} sélectionné{{ selectedIds.length > 1 ? 's' : '' }}
+            {{ $tc(':count sélectionné|:count sélectionnés', selectedIds.length) }}
           </span>
           <div class="flex flex-nowrap sm:flex-wrap items-center gap-2 sm:ml-auto overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible [&>button]:shrink-0">
             <button
@@ -56,7 +56,7 @@
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              Tout sélectionner
+              {{ $t('Tout sélectionner') }}
             </button>
             <button
               v-if="selectedIds.length > 0"
@@ -64,16 +64,16 @@
               class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-white/15 hover:bg-white/25 transition"
               @click="selectedIds = []"
             >
-              Effacer
+              {{ $t('Effacer') }}
             </button>
             <button
               type="button"
               class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-white text-brand-700 hover:bg-brand-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
               :disabled="selectedIds.length === 0 || selectedIds.length > 24"
-              :title="selectedIds.length > 24 ? '24 photos au plus par moment' : ''"
+              :title="selectedIds.length > 24 ? $t('24 photos au plus par moment') : ''"
               @click="showMakeMoment = true"
             >
-              Créer un moment
+              {{ $t('Créer un moment') }}
             </button>
             <button
               type="button"
@@ -84,7 +84,7 @@
               <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              Dater
+              {{ $t('Dater') }}
             </button>
             <button
               type="button"
@@ -96,7 +96,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              Géolocaliser
+              {{ $t('Géolocaliser') }}
             </button>
             <button
               type="button"
@@ -107,7 +107,7 @@
               <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" />
               </svg>
-              Ajouter à un album
+              {{ $t('Ajouter à un album') }}
             </button>
             <button
               type="button"
@@ -118,17 +118,17 @@
               <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h3m10-11v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
-              Cercle
+              {{ $t('Cercle') }}
             </button>
             <button
               type="button"
               class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-white text-brand-700 hover:bg-brand-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
               :disabled="selectedIds.length === 0 || markingStrangers"
-              title="Tous les visages encore à identifier de la sélection passent en « personne inconnue »"
+              :title="$t('Tous les visages encore à identifier de la sélection passent en « personne inconnue »')"
               @click="markNoKnownFaces"
             >
               <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
-              Personne de connu
+              {{ $t('Personne de connu') }}
             </button>
           </div>
         </div>
@@ -144,7 +144,7 @@
             :href="`/albums/${albumFeedback.albumId}`"
             class="font-semibold underline shrink-0"
           >
-            Voir l'album
+            {{ $t("Voir l'album") }}
           </Link>
         </div>
 
@@ -160,7 +160,7 @@
             <input
               v-model="searchQuery"
               type="text"
-              placeholder="Rechercher dans vos médias..."
+              :placeholder="$t('Rechercher dans vos médias...')"
               class="block w-full pl-10 pr-3 py-2 border border-surface-300 rounded-full sm:rounded-md leading-5 bg-white placeholder-surface-500 focus:outline-hidden focus:placeholder-surface-400 focus:ring-1 focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
               @input="debouncedSearch"
             />
@@ -169,25 +169,25 @@
           <!-- Video Advanced Filters (visible uniquement sur l'onglet Vidéos) -->
           <div v-if="currentFilter === 'video'" class="pt-4 border-t border-surface-100">
             <div class="flex items-center justify-between mb-3">
-              <span class="text-sm font-medium text-surface-700">Filtres avancés</span>
+              <span class="text-sm font-medium text-surface-700">{{ $t('Filtres avancés') }}</span>
               <button
                 v-if="hasVideoFilters"
                 @click="clearVideoFilters"
                 class="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 transition"
               >
-                Réinitialiser
+                {{ $t('Réinitialiser') }}
               </button>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <!-- Durée -->
               <div>
-                <label class="block text-xs font-medium text-surface-500 mb-1">Durée (minutes)</label>
+                <label class="block text-xs font-medium text-surface-500 mb-1">{{ $t('Durée (minutes)') }}</label>
                 <div class="flex items-center gap-2">
                   <input
                     v-model.number="videoFilters.durationMin"
                     type="number"
                     min="0"
-                    placeholder="Min"
+                    :placeholder="$t('Min')"
                     class="w-full px-2 py-1.5 text-sm border border-surface-300 rounded-md focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
                   />
                   <span class="text-surface-400 text-xs shrink-0">→</span>
@@ -195,14 +195,14 @@
                     v-model.number="videoFilters.durationMax"
                     type="number"
                     min="0"
-                    placeholder="Max"
+                    :placeholder="$t('Max')"
                     class="w-full px-2 py-1.5 text-sm border border-surface-300 rounded-md focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
                   />
                 </div>
               </div>
               <!-- Résolution -->
               <div>
-                <label class="block text-xs font-medium text-surface-500 mb-1">Résolution minimale</label>
+                <label class="block text-xs font-medium text-surface-500 mb-1">{{ $t('Résolution minimale') }}</label>
                 <div class="flex flex-wrap gap-1.5">
                   <button
                     v-for="res in resolutionOptions"
@@ -221,12 +221,12 @@
               </div>
               <!-- Codec -->
               <div v-if="availableCodecs && availableCodecs.length > 0">
-                <label class="block text-xs font-medium text-surface-500 mb-1">Codec vidéo</label>
+                <label class="block text-xs font-medium text-surface-500 mb-1">{{ $t('Codec vidéo') }}</label>
                 <select
                   v-model="videoFilters.codec"
                   class="w-full px-2 py-1.5 text-sm border border-surface-300 rounded-md focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
                 >
-                  <option value="">Tous</option>
+                  <option value="">{{ $t('Tous') }}</option>
                   <option v-for="codec in availableCodecs" :key="codec" :value="codec">
                     {{ codec.toUpperCase() }}
                   </option>
@@ -237,7 +237,7 @@
               @click="applyVideoFilters"
               class="mt-3 px-4 py-1.5 text-sm font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition"
             >
-              Appliquer
+              {{ $t('Appliquer') }}
             </button>
           </div>
 
@@ -304,9 +304,9 @@
 
     <GeolocatePickerModal
       v-if="showGeoModal"
-      :title="`Géolocaliser ${selectedIds.length} média${selectedIds.length > 1 ? 's' : ''}`"
-      description="Cliquez sur la carte ou cherchez une adresse : la position sera appliquée à toute la sélection."
-      apply-label="Appliquer la position"
+      :title="$tc('Géolocaliser :count média|Géolocaliser :count médias', selectedIds.length)"
+      :description="$t('Cliquez sur la carte ou cherchez une adresse : la position sera appliquée à toute la sélection.')"
+      :apply-label="$t('Appliquer la position')"
       :saving="bulkSaving"
       :error-message="bulkError"
       @close="closeBulkModals"
@@ -337,6 +337,7 @@ import { apiError } from '@/utils/apiError';
 import { useTags } from '@/Composables/useTags';
 import MomentFromPhotos from '@/Components/MomentFromPhotos.vue';
 import { thumbnailUrl as smallThumbUrl } from '@/utils/media';
+import { t, tc } from '@/i18n';
 
 // Chargé à l'ouverture seulement : la carte embarque Leaflet (~45 ko gzip).
 const GeolocatePickerModal = defineAsyncComponent(() => import('@/Components/GeolocatePickerModal.vue'));
@@ -399,13 +400,13 @@ const toast = useToast();
 const markingStrangers = ref(false);
 const markNoKnownFaces = async () => {
   const n = selectedIds.value.length;
-  if (!window.confirm(`Aucune personne connue sur ${n} photo${n > 1 ? 's' : ''} ? Les visages encore à identifier passeront en « personne inconnue » (les visages déjà nommés ne bougent pas).`)) return;
+  if (!window.confirm(tc('Aucune personne connue sur :count photo ? Les visages encore à identifier passeront en « personne inconnue » (les visages déjà nommés ne bougent pas).|Aucune personne connue sur :count photos ? Les visages encore à identifier passeront en « personne inconnue » (les visages déjà nommés ne bougent pas).', n))) return;
   markingStrangers.value = true;
   try {
     const { data } = await axios.post('/vision/no-known-faces', { media_ids: selectedIds.value });
-    toast.success(`${data.marked} visage${data.marked > 1 ? 's' : ''} rangé${data.marked > 1 ? 's' : ''} en « inconnu ».`);
+    toast.success(tc(':count visage rangé en « inconnu ».|:count visages rangés en « inconnu ».', data.marked));
   } catch (error) {
-    toast.error(apiError(error, 'Impossible de ranger ces visages.'));
+    toast.error(apiError(error, t('Impossible de ranger ces visages.')));
   } finally {
     markingStrangers.value = false;
   }
@@ -471,13 +472,13 @@ const selectedPhotosForMoment = computed(() => {
 const hasMorePages = computed(() => page.value < lastPage.value);
 
 // Compteur du titre (téléphone) : total de l'onglet « Tous ».
-const totalCount = computed(() => (filterTabs.value || []).find((t) => t.value === 'all')?.count ?? null);
+const totalCount = computed(() => (filterTabs.value || []).find((tab) => tab.value === 'all')?.count ?? null);
 
 const filterTabs = computed(() => [
-  { value: 'all', label: 'Tous', count: props.media.total },
-  { value: 'photo', label: 'Photos' },
-  { value: 'video', label: 'Vidéos' },
-  { value: 'document', label: 'Documents' },
+  { value: 'all', label: t('Tous'), count: props.media.total },
+  { value: 'photo', label: t('Photos') },
+  { value: 'video', label: t('Vidéos') },
+  { value: 'document', label: t('Documents') },
 ]);
 
 const hasActiveFilters = computed(() => !!(
@@ -487,18 +488,18 @@ const hasActiveFilters = computed(() => !!(
 
 const emptyStateMessage = computed(() => {
   if (hasActiveFilters.value) {
-    return 'Aucun média ne correspond à ces filtres.';
+    return t('Aucun média ne correspond à ces filtres.');
   }
   if (currentFilter.value !== 'all') {
     return {
-      photo: 'Aucune photo trouvée.',
-      video: 'Aucune vidéo trouvée.',
-    }[currentFilter.value] || 'Aucun document trouvé.';
+      photo: t('Aucune photo trouvée.'),
+      video: t('Aucune vidéo trouvée.'),
+    }[currentFilter.value] || t('Aucun document trouvé.');
   }
   if (searchQuery.value) {
-    return `Aucun résultat pour "${searchQuery.value}".`;
+    return t('Aucun résultat pour ":query".', { query: searchQuery.value });
   }
-  return 'Commencez par ajouter vos premières photos.';
+  return t('Commencez par ajouter vos premières photos.');
 });
 
 // Construit les paramètres de requête courants (type, recherche, tags et,
@@ -612,7 +613,7 @@ const selectAll = async () => {
     selectedIds.value = data.ids || [];
   } catch (error) {
     console.error('« Tout sélectionner » a échoué :', error);
-    toast.error(apiError(error, 'Impossible de sélectionner tous les médias. Réessayez.'));
+    toast.error(apiError(error, t('Impossible de sélectionner tous les médias. Réessayez.')));
   } finally {
     selectingAll.value = false;
   }
@@ -628,7 +629,7 @@ const finishBulk = (data) => {
   closeBulkModals();
   albumFeedback.value = {
     message: data.skipped > 0
-      ? `${data.message} — ${data.skipped} ignoré(s) (médias d'un autre membre).`
+      ? tc(":message — :count ignoré (média d'un autre membre).|:message — :count ignorés (médias d'un autre membre).", data.skipped, { message: data.message })
       : data.message,
   };
   selectedIds.value = [];
@@ -646,7 +647,7 @@ const applyBulkDate = async (takenAt) => {
     // La date change l'ordre de la galerie : on recharge avec les filtres courants.
     navigate();
   } catch (e) {
-    bulkError.value = apiError(e, "Impossible d'appliquer la date.");
+    bulkError.value = apiError(e, t("Impossible d'appliquer la date."));
   } finally {
     bulkSaving.value = false;
   }
@@ -663,7 +664,7 @@ const applyBulkGeolocation = async ({ latitude, longitude }) => {
     });
     finishBulk(data);
   } catch (e) {
-    bulkError.value = apiError(e, "Impossible d'appliquer la position.");
+    bulkError.value = apiError(e, t("Impossible d'appliquer la position."));
   } finally {
     bulkSaving.value = false;
   }
@@ -672,7 +673,7 @@ const applyBulkGeolocation = async ({ latitude, longitude }) => {
 // Partage foyer terminé : toast récapitulatif (dont les ignorés — médias
 // d'autrui présents dans la sélection) et sortie du mode sélection.
 const handleHouseholdDone = ({ message, skipped }) => {
-  toast.success(skipped > 0 ? `${message} (${skipped} ignoré(s) : pas à vous)` : message);
+  toast.success(skipped > 0 ? tc(':message (:count ignoré : pas à vous)|:message (:count ignorés : pas à vous)', skipped, { message }) : message);
   selectedIds.value = [];
 };
 
@@ -680,8 +681,8 @@ const handleAlbumDone = ({ albumId, albumName, count, isNew }) => {
   albumFeedback.value = {
     albumId,
     message: isNew
-      ? `Album « ${albumName} » créé avec ${count} média${count > 1 ? 's' : ''}.`
-      : `${count} média${count > 1 ? 's' : ''} ajouté${count > 1 ? 's' : ''} à « ${albumName} ».`,
+      ? tc('Album « :name » créé avec :count média.|Album « :name » créé avec :count médias.', count, { name: albumName })
+      : tc(':count média ajouté à « :name ».|:count médias ajoutés à « :name ».', count, { name: albumName }),
   };
   selectedIds.value = [];
 };
@@ -711,7 +712,7 @@ const handleLoadMore = async () => {
   } catch (error) {
     console.error('Erreur lors du chargement de la page suivante :', error);
     loadMoreFailedAt = Date.now();
-    toast.error(apiError(error, 'Impossible de charger la suite de la galerie. Faites défiler ou touchez « Charger plus » pour réessayer.'));
+    toast.error(apiError(error, t('Impossible de charger la suite de la galerie. Faites défiler ou touchez « Charger plus » pour réessayer.')));
   } finally {
     loadingMore.value = false;
   }

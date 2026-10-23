@@ -1,9 +1,9 @@
 <template>
-  <BaseModal max-width="4xl" panel-class="max-h-[80vh] flex flex-col" title="Ajouter des médias" @close="$emit('close')">
+  <BaseModal max-width="4xl" panel-class="max-h-[80vh] flex flex-col" :title="$t('Ajouter des médias')" @close="$emit('close')">
     <!-- Compteur à droite du titre -->
     <template #header-extra>
       <span v-if="mode === 'pick'" class="text-sm text-surface-500">
-        {{ selectedIds.length }} sélectionné(s)
+        {{ $tc(':count sélectionné|:count sélectionnés', selectedIds.length) }}
       </span>
     </template>
 
@@ -16,7 +16,7 @@
           :class="mode === 'pick' ? 'bg-white text-surface-900 shadow-xs' : 'text-surface-500 hover:text-surface-700'"
           @click="mode = 'pick'"
         >
-          Mes photos
+          {{ $t('Mes photos') }}
         </button>
         <button
           type="button"
@@ -24,7 +24,7 @@
           :class="mode === 'upload' ? 'bg-white text-surface-900 shadow-xs' : 'text-surface-500 hover:text-surface-700'"
           @click="mode = 'upload'"
         >
-          Téléverser
+          {{ $t('Téléverser') }}
         </button>
       </div>
     </div>
@@ -32,7 +32,7 @@
     <!-- Téléversement direct dans l'album -->
     <div v-if="mode === 'upload'" class="flex-1 overflow-y-auto p-6">
       <p v-if="uploadedCount > 0" class="mb-4 text-sm text-teal-700 dark:text-teal-300">
-        {{ uploadedCount }} média(s) ajouté(s) à l'album.
+        {{ $tc(':count média ajouté à l\'album.|:count médias ajoutés à l\'album.', uploadedCount) }}
       </p>
       <MediaUploader
         :target-album-id="albumId"
@@ -79,7 +79,7 @@
             d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
           />
         </svg>
-        <p class="mt-4 text-surface-500">Aucun média disponible</p>
+        <p class="mt-4 text-surface-500">{{ $t('Aucun média disponible') }}</p>
       </div>
 
       <div
@@ -176,7 +176,7 @@
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
           </svg>
-          Chargement…
+          {{ $t('Chargement…') }}
         </div>
         <button
           v-else
@@ -184,7 +184,7 @@
           class="px-4 py-2 text-sm font-medium text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50"
           @click="handleLoadMore"
         >
-          Charger plus
+          {{ $t('Charger plus') }}
         </button>
       </div>
     </div>
@@ -197,7 +197,7 @@
     <!-- Pied de page -->
     <template #footer>
       <button type="button" class="btn-secondary" @click="$emit('close')">
-        {{ mode === 'upload' ? 'Fermer' : 'Annuler' }}
+        {{ mode === 'upload' ? $t('Fermer') : $t('Annuler') }}
       </button>
       <button
         v-if="mode === 'pick'"
@@ -226,7 +226,7 @@
             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
           />
         </svg>
-        Ajouter {{ selectedIds.length }} média(s)
+        {{ $tc('Ajouter :count média|Ajouter :count médias', selectedIds.length) }}
       </button>
     </template>
   </BaseModal>
@@ -239,6 +239,7 @@ import axios from 'axios';
 import BaseModal from '@/Components/BaseModal.vue';
 import MediaUploader from '@/Components/MediaUploader.vue';
 import { thumbnailUrl } from '@/utils/media';
+import { t } from '@/i18n';
 
 const props = defineProps({
   albumId: {
@@ -354,7 +355,7 @@ const confirm = async () => {
     emit('added', selectedIds.value);
     emit('close');
   } catch (error) {
-    errorMessage.value = error.response?.data?.message || "Impossible d'ajouter les médias à l'album.";
+    errorMessage.value = error.response?.data?.message || t("Impossible d'ajouter les médias à l'album.");
   } finally {
     submitting.value = false;
   }

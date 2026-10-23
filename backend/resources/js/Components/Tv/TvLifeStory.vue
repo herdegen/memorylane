@@ -9,11 +9,11 @@
     <!-- En-tête : de qui, où l'on en est -->
     <div class="absolute z-10 left-24 right-24 top-[3.375rem] flex items-start justify-between">
       <div class="flex flex-col gap-1">
-        <span class="text-[1.625rem] text-[#e7e0d6]">La vie de {{ personName }}</span>
-        <span class="text-[1.375rem] text-[#a89c8b]">Chapitre {{ index + 1 }} sur {{ events.length }}</span>
+        <span class="text-[1.625rem] text-[#e7e0d6]">{{ $t('La vie de :name', { name: personName }) }}</span>
+        <span class="text-[1.375rem] text-[#a89c8b]">{{ $t('Chapitre :current sur :total', { current: index + 1, total: events.length }) }}</span>
       </div>
       <span class="flex items-center gap-3 px-5 py-2.5 rounded-full text-[1.5rem] font-bold" style="background: rgba(255,255,255,.14)">
-        {{ playing ? 'Lecture' : 'En pause' }}
+        {{ playing ? $t('Lecture') : $t('En pause') }}
       </span>
     </div>
 
@@ -47,9 +47,9 @@
     </div>
 
     <div class="absolute z-10 left-24 bottom-[2.5rem] flex gap-10 text-[1.375rem] text-[#a89c8b]">
-      <span>◀ ▶ Chapitre précédent / suivant</span>
-      <span>OK {{ playing ? 'Pause' : 'Lecture' }}</span>
-      <span>↩ Fermer</span>
+      <span>◀ ▶ {{ $t('Chapitre précédent / suivant') }}</span>
+      <span>OK {{ playing ? $t('Pause') : $t('Lecture') }}</span>
+      <span>↩ {{ $t('Fermer') }}</span>
     </div>
   </div>
 </template>

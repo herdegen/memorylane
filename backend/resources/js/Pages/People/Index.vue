@@ -11,12 +11,12 @@
               {{ peopleLabel }}
               <span class="sm:hidden font-sans text-sm font-semibold text-surface-500 ml-1">{{ people.length }}</span>
             </h1>
-            <p class="mt-1 text-sm text-surface-500 hidden sm:block">Gérez les personnes présentes sur vos médias</p>
+            <p class="mt-1 text-sm text-surface-500 hidden sm:block">{{ $t('Gérez les personnes présentes sur vos médias') }}</p>
           </div>
           <button
             type="button"
             class="sm:hidden w-10 h-10 rounded-full bg-brand-600 text-white flex items-center justify-center shrink-0"
-            aria-label="Ajouter une personne"
+            :aria-label="$t('Ajouter une personne')"
             @click="showCreateModal = true"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
@@ -28,13 +28,13 @@
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
-            Ajouter une personne
+            {{ $t('Ajouter une personne') }}
           </button>
         </div>
 
         <!-- Tri (téléphone : puces sur une ligne qui défile + sens) -->
         <div v-if="people.length > 0" class="flex flex-nowrap sm:flex-wrap items-center gap-2 sm:gap-3 mb-3 sm:mb-6 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible [&>*]:shrink-0">
-          <label class="text-sm font-medium text-surface-600 hidden sm:block">Trier par</label>
+          <label class="text-sm font-medium text-surface-600 hidden sm:block">{{ $t('Trier par') }}</label>
           <div class="flex gap-2 sm:inline-flex sm:gap-0 sm:rounded-lg sm:border sm:border-surface-200 sm:bg-white sm:p-0.5">
             <button
               v-for="opt in sortOptions"
@@ -51,19 +51,19 @@
           <button
             @click="toggleDir"
             class="inline-flex items-center gap-1 px-3 py-1.5 text-[13px] sm:text-sm rounded-full sm:rounded-lg border border-surface-300 sm:border-surface-200 bg-white text-surface-600 hover:bg-surface-100 transition-colors"
-            :title="sortDir === 'asc' ? 'Ordre croissant' : 'Ordre décroissant'"
+            :title="sortDir === 'asc' ? $t('Ordre croissant') : $t('Ordre décroissant')"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path v-if="sortDir === 'asc'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9M3 12h5m4 4l4 4m0 0l4-4m-4 4V4" />
               <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9M3 12h5m4 8l4-4m0 0l-4-4m4 4V4" />
             </svg>
-            <span class="hidden sm:inline">{{ sortDir === 'asc' ? 'Croissant' : 'Décroissant' }}</span>
+            <span class="hidden sm:inline">{{ sortDir === 'asc' ? $t('Croissant') : $t('Décroissant') }}</span>
           </button>
           <p
             v-if="sortBy === 'proximity' && !selfPersonId && !isFriends"
             class="text-xs text-surface-500 hidden sm:block"
           >
-            Astuce : ouvrez une fiche et cliquez « C'est moi » pour trier par proximité familiale.
+            {{ $t("Astuce : ouvrez une fiche et cliquez « C'est moi » pour trier par proximité familiale.") }}
           </p>
         </div>
 
@@ -113,7 +113,7 @@
                 {{ personLabel(person) }}
               </h3>
               <p class="text-sm text-surface-500 mt-1">
-                {{ person.media_count }} {{ person.media_count === 1 ? 'média' : 'médias' }}
+                {{ $tc(':count média|:count médias', person.media_count) }}
               </p>
               <p v-if="person.birth_date" class="text-xs text-surface-400 mt-1">
                 {{ formatLongDate(person.birth_date) }}
@@ -141,8 +141,8 @@
               d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
             />
           </svg>
-          <h3 class="mt-4 text-lg font-medium text-surface-900">Aucune personne</h3>
-          <p class="mt-2 text-surface-500">Ajoutez des personnes pour les tagger sur vos photos.</p>
+          <h3 class="mt-4 text-lg font-medium text-surface-900">{{ $t('Aucune personne') }}</h3>
+          <p class="mt-2 text-surface-500">{{ $t('Ajoutez des personnes pour les tagger sur vos photos.') }}</p>
           <button
             @click="showCreateModal = true"
             class="mt-6 inline-flex items-center px-4 py-2 text-sm font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100"
@@ -150,7 +150,7 @@
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
-            Ajouter une personne
+            {{ $t('Ajouter une personne') }}
           </button>
         </div>
 
@@ -175,6 +175,7 @@ import PeopleSegments from '@/Components/PeopleSegments.vue';
 import { personLabel } from '@/utils/personName';
 import { formatLongDate } from '@/utils/format';
 import { useCircle } from '@/Composables/useCircle';
+import { t, tc, intlLocale } from '@/i18n';
 
 const { peopleLabel, isFriends } = useCircle();
 
@@ -194,16 +195,16 @@ const showCreateModal = ref(false);
 // Amis : pas de parenté — on trie par photos (les plus présents d'abord).
 const sortOptions = computed(() => [
   isFriends.value
-    ? { value: 'photos', label: 'Les plus photographiés' }
-    : { value: 'proximity', label: 'Proximité' },
-  { value: 'last_name', label: 'Nom' },
-  { value: 'first_name', label: 'Prénom' },
-  { value: 'birth_year', label: 'Année de naissance' },
+    ? { value: 'photos', label: t('Les plus photographiés') }
+    : { value: 'proximity', label: t('Proximité') },
+  { value: 'last_name', label: t('Nom') },
+  { value: 'first_name', label: t('Prénom') },
+  { value: 'birth_year', label: t('Année de naissance') },
 ]);
 const sortBy = ref(isFriends.value ? 'photos' : 'proximity');
 const sortDir = ref('asc'); // 'asc' | 'desc'
 
-const collator = new Intl.Collator('fr', { sensitivity: 'base', numeric: true });
+const collator = new Intl.Collator(intlLocale(), { sensitivity: 'base', numeric: true });
 const byName = (a, b) => collator.compare(a.name || '', b.name || '');
 
 // nulls toujours en fin, quel que soit le sens
@@ -254,14 +255,14 @@ const sortedPeople = computed(() => {
 const capitalize = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 const personMeta = (person) => {
   const parts = [];
-  if (person.is_self) parts.push('Moi');
+  if (person.is_self) parts.push(t('Moi'));
   else if (person.relation_label) parts.push(capitalize(person.relation_label));
   if (person.birth_date) {
     const birth = String(person.birth_date).slice(0, 4);
     parts.push(person.death_date ? `${birth} – ${String(person.death_date).slice(0, 4)}` : birth);
   }
   const n = person.media_count || 0;
-  if (n) parts.push(`${n} photo${n > 1 ? 's' : ''}`);
+  if (n) parts.push(tc(':count photo|:count photos', n));
   return parts.join(' · ');
 };
 

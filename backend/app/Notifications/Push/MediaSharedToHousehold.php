@@ -25,11 +25,9 @@ class MediaSharedToHousehold extends PushNotification
 
     public function toWebPush(object $notifiable, Notification $notification): WebPushMessage
     {
-        $what = $this->count === 1 ? 'un souvenir' : "{$this->count} souvenirs";
-
         return $this->message(
-            "« {$this->householdName} »",
-            "{$this->actorFirstName} a partagé {$what} avec le cercle.",
+            __('« :name »', ['name' => $this->householdName]),
+            trans_choice(':name a partagé un souvenir avec le cercle.|:name a partagé :count souvenirs avec le cercle.', $this->count, ['name' => $this->actorFirstName]),
             "/households/{$this->householdId}",
             "household-share-{$this->householdId}",
         )->renotify();

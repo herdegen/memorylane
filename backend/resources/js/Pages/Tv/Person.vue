@@ -1,11 +1,11 @@
 <template>
   <!-- Fiche d'un proche : sa vie en grandes cartes (frise), son récit de vie
        sur la carte, sa place dans l'arbre, ses photos. -->
-  <Head :title="`${person.name} — Télévision`" />
+  <Head :title="$t(':title — Télévision', { title: person.name })" />
   <TvLayout
     :tab="tab" :circle="circle" :circles="circles" :account="account"
     :back="back"
-    :hints="[['OK', 'Ouvrir'], ['◀ ▲ ▼ ▶', 'Se déplacer'], ['▶❚❚', 'Diaporama'], ['↩', 'Retour']]"
+    :hints="[['OK', $t('Ouvrir')], ['◀ ▲ ▼ ▶', $t('Se déplacer')], ['▶❚❚', $t('Diaporama')], ['↩', $t('Retour')]]"
   >
     <div class="px-24 pt-8 pb-6 flex flex-col gap-9">
       <header class="flex items-center gap-8">
@@ -22,16 +22,16 @@
 
       <div class="flex gap-5 flex-wrap" data-tv-row>
         <button v-if="story.length" type="button" data-tv data-tv-autofocus class="tv-btn tv-btn-primary" @click="openStory(0)">
-          <svg class="w-7 h-7" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>Le récit de sa vie
+          <svg class="w-7 h-7" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>{{ $t('Le récit de sa vie') }}
         </button>
-        <button v-if="items.length" type="button" data-tv :data-tv-autofocus="story.length ? null : ''" class="tv-btn" :class="{ 'tv-btn-primary': !story.length }" @click="openViewer(0, true)">Diaporama de ses photos</button>
-        <Link v-if="inTree" :href="`/tv/ecran/arbre/${person.id}`" data-tv class="tv-btn">Dans l'arbre</Link>
+        <button v-if="items.length" type="button" data-tv :data-tv-autofocus="story.length ? null : ''" class="tv-btn" :class="{ 'tv-btn-primary': !story.length }" @click="openViewer(0, true)">{{ $t('Diaporama de ses photos') }}</button>
+        <Link v-if="inTree" :href="`/tv/ecran/arbre/${person.id}`" data-tv class="tv-btn">{{ $t('Dans l\'arbre') }}</Link>
       </div>
 
       <!-- Sa vie : un événement par carte -->
       <section v-if="showLife && (lifeEvents.length || loadingLife)" class="flex flex-col gap-4">
-        <h2 class="font-display text-[2.25rem] font-bold">Sa vie</h2>
-        <p v-if="loadingLife" class="text-[1.625rem] text-[#a89c8b]">Chargement de la frise…</p>
+        <h2 class="font-display text-[2.25rem] font-bold">{{ $t('Sa vie') }}</h2>
+        <p v-if="loadingLife" class="text-[1.625rem] text-[#a89c8b]">{{ $t('Chargement de la frise…') }}</p>
         <div v-else class="flex gap-6 overflow-x-auto -mx-24 px-24 py-6 -my-3" data-tv-row>
           <button
             v-for="(ev, i) in lifeEvents"
@@ -44,7 +44,7 @@
             <span class="relative h-[11rem] bg-[#2c261e] flex items-center justify-center">
               <img v-if="ev.image" :src="ev.image" alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover" />
               <span v-else class="text-[4.5rem]">{{ ev.icon }}</span>
-              <span v-if="ev.burst.length" class="absolute right-3 bottom-3 px-3 py-1 rounded-full text-[1.125rem] font-bold" style="background: rgba(0,0,0,.65)">{{ ev.burst.length }} photos</span>
+              <span v-if="ev.burst.length" class="absolute right-3 bottom-3 px-3 py-1 rounded-full text-[1.125rem] font-bold" style="background: rgba(0,0,0,.65)">{{ $tc(':count photo|:count photos', ev.burst.length) }}</span>
             </span>
             <span class="flex flex-col gap-1.5 px-5 py-4">
               <span class="text-[1.375rem] font-bold text-[#fcd34d]">{{ ev.icon }} {{ ev.dateLabel }}</span>
@@ -56,10 +56,10 @@
       </section>
 
       <section v-if="items.length" class="flex flex-col gap-4">
-        <h2 class="font-display text-[2.25rem] font-bold">Ses photos</h2>
+        <h2 class="font-display text-[2.25rem] font-bold">{{ $t('Ses photos') }}</h2>
         <TvMediaGrid :items="items" @open="(i) => openViewer(i, false)" />
       </section>
-      <p v-else-if="!story.length && !loadingLife" class="text-[2rem] text-[#c9bfb1]">Pas encore de photo de {{ person.name }} dans ce cercle.</p>
+      <p v-else-if="!story.length && !loadingLife" class="text-[2rem] text-[#c9bfb1]">{{ $t('Pas encore de photo de :name dans ce cercle.', { name: person.name }) }}</p>
     </div>
 
     <TvViewer v-if="viewer" :key="viewer.key" :items="items" :start="viewer.start" :autoplay="viewer.play" :title="person.name" @close="closeViewer" />

@@ -3,18 +3,18 @@
        au-dessus, ses frères et sœurs à gauche, son ou ses conjoints à
        droite, ses enfants en dessous. OK sur quelqu'un : il passe au centre.
        OK sur la personne du centre : sa fiche. Retour : la personne d'avant. -->
-  <Head title="Arbre — Télévision" />
+  <Head :title="$t('Arbre — Télévision')" />
   <TvLayout
     :tab="tab" :circle="circle" :circles="circles" :account="account"
     back="/tv/ecran/accueil"
-    :hints="[['◀ ▲ ▼ ▶', 'Parents, enfants, frères et sœurs, conjoint'], ['OK', current && focusIsActive ? 'Sa fiche' : 'Au centre'], ['↩', trail.length ? 'Personne précédente' : 'Accueil']]"
+    :hints="[['◀ ▲ ▼ ▶', $t('Parents, enfants, frères et sœurs, conjoint')], ['OK', current && focusIsActive ? $t('Sa fiche') : $t('Au centre')], ['↩', trail.length ? $t('Personne précédente') : $t('Accueil')]]"
   >
     <Transition name="tvtree" mode="out-in">
       <div v-if="current" :key="current.focus.id" class="px-24 pt-4 flex flex-col items-center gap-0">
         <!-- Parents -->
         <div class="flex justify-center gap-6 min-h-[11.5rem]" data-tv-row>
           <TvTreeCard v-for="p in current.parents" :key="p.id" :person="p" @pick="recenter" />
-          <p v-if="!current.parents.length" class="self-center text-[1.5rem] text-[#7c7164]">Parents inconnus</p>
+          <p v-if="!current.parents.length" class="self-center text-[1.5rem] text-[#7c7164]">{{ $t('Parents inconnus') }}</p>
         </div>
         <span class="tv-tree-line h-7"></span>
 
@@ -28,7 +28,7 @@
           </div>
           <TvTreeCard :person="current.focus" big data-tv-autofocus @pick="openFocus" />
           <div class="flex flex-col items-start gap-2 min-w-0">
-            <span v-if="current.spouses.length" class="text-[1.375rem] text-[#a89c8b] pl-3">{{ current.spouses.length > 1 ? 'Unions' : 'Union' }}</span>
+            <span v-if="current.spouses.length" class="text-[1.375rem] text-[#a89c8b] pl-3">{{ current.spouses.length > 1 ? $t('Unions') : $t('Union') }}</span>
             <div class="flex gap-3 overflow-x-auto max-w-full py-3 px-3" data-tv-row>
               <TvTreeCard v-for="p in current.spouses" :key="p.id" :person="p" :badge="p.union" @pick="recenter" />
             </div>
@@ -38,10 +38,10 @@
         <span class="tv-tree-line h-7"></span>
         <!-- Enfants -->
         <div class="max-w-full flex flex-col items-center gap-1">
-          <span v-if="current.children.length" class="text-[1.375rem] text-[#a89c8b]">{{ current.children.length }} enfant{{ current.children.length > 1 ? 's' : '' }}</span>
+          <span v-if="current.children.length" class="text-[1.375rem] text-[#a89c8b]">{{ $tc(':count enfant|:count enfants', current.children.length) }}</span>
           <div class="flex gap-3 overflow-x-auto max-w-full py-3 px-3 min-h-[11.5rem]" data-tv-row>
             <TvTreeCard v-for="p in current.children" :key="p.id" :person="p" @pick="recenter" />
-            <p v-if="!current.children.length" class="self-center text-[1.5rem] text-[#7c7164]">Pas d'enfant connu</p>
+            <p v-if="!current.children.length" class="self-center text-[1.5rem] text-[#7c7164]">{{ $t('Pas d\'enfant connu') }}</p>
           </div>
         </div>
       </div>
@@ -57,6 +57,7 @@ import axios from 'axios';
 import TvLayout from '@/Layouts/TvLayout.vue';
 import TvTreeCard from '@/Components/Tv/TvTreeCard.vue';
 import { focusInitial, onTvKey } from '@/Tv/remote';
+import { t } from '@/i18n';
 
 const props = defineProps({ tab: String, circle: Object, circles: Array, account: Object, start: Object });
 
@@ -70,8 +71,8 @@ const focusIsActive = ref(true);
 const siblingsLabel = computed(() => {
   const s = current.value?.siblings || [];
   const women = s.filter((p) => p.gender === 'F').length;
-  if (s.length === 1) return women ? 'Sa sœur' : 'Son frère';
-  return women === s.length ? 'Ses sœurs' : women === 0 ? 'Ses frères' : 'Frères et sœurs';
+  if (s.length === 1) return women ? t('Sa sœur') : t('Son frère');
+  return women === s.length ? t('Ses sœurs') : women === 0 ? t('Ses frères') : t('Frères et sœurs');
 });
 
 const show = async (personId, { remember = true } = {}) => {
@@ -87,7 +88,7 @@ const show = async (personId, { remember = true } = {}) => {
     // Après la transition : focus sur la personne du centre.
     setTimeout(() => focusInitial(), 260);
   } catch (e) {
-    error.value = 'Impossible d\'afficher cette personne.';
+    error.value = t('Impossible d\'afficher cette personne.');
   } finally {
     loading.value = false;
   }

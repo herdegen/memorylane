@@ -43,13 +43,13 @@ class AccountDepartureController extends Controller
         ]);
         $first = mb_strtolower(explode(' ', trim($request->user()->name))[0]);
         if (mb_strtolower(trim($data['confirm'])) !== $first) {
-            return back()->withErrors(['confirm' => 'Tapez votre prénom pour confirmer.']);
+            return back()->withErrors(['confirm' => __('Tapez votre prénom pour confirmer.')]);
         }
         unset($data['confirm']);
 
         $this->departures->requestAccountDeparture($request->user(), $data);
 
-        return redirect()->route('account.departure')->with('success', 'Départ programmé : vous pouvez encore l\'annuler.');
+        return redirect()->route('account.departure')->with('success', __('Départ programmé : vous pouvez encore l\'annuler.'));
     }
 
     /**
@@ -60,17 +60,17 @@ class AccountDepartureController extends Controller
     {
         $user = $request->user();
         if (! \Illuminate\Support\Facades\Cache::add("media-export:{$user->id}", true, now()->addHours(6))) {
-            return response()->json(['message' => 'Un export est déjà en préparation : vous recevrez un mail.'], 429);
+            return response()->json(['message' => __('Un export est déjà en préparation : vous recevrez un mail.')], 429);
         }
         \App\Jobs\ExportUserMedia::dispatch($user);
 
-        return response()->json(['message' => 'C\'est parti : vous recevrez un mail avec les liens de téléchargement (quelques minutes à une heure selon le nombre de photos).']);
+        return response()->json(['message' => __('C\'est parti : vous recevrez un mail avec les liens de téléchargement (quelques minutes à une heure selon le nombre de photos).')]);
     }
 
     public function destroy(Request $request)
     {
         $this->departures->cancelAccountDeparture($request->user());
 
-        return redirect()->route('account.departure')->with('success', 'Départ annulé : rien n\'a changé.');
+        return redirect()->route('account.departure')->with('success', __('Départ annulé : rien n\'a changé.'));
     }
 }

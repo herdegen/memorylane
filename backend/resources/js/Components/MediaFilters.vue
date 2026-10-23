@@ -4,7 +4,7 @@
          sur écran large sous leur bouton. -->
     <div class="relative flex flex-wrap items-center gap-2">
       <!-- Tri -->
-      <label class="sr-only" for="media-sort">Trier</label>
+      <label class="sr-only" for="media-sort">{{ $t('Trier') }}</label>
       <select id="media-sort" v-model="sortModel" class="form-select !w-auto !py-1.5 text-sm">
         <option v-for="opt in SORTS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
       </select>
@@ -13,29 +13,29 @@
       <div class="sm:relative">
         <button type="button" :class="pillClass(dateActive)" @click="toggle('date')">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-          Date
+          {{ $t('Date') }}
           <span v-if="dateActive ? 1 : 0" class="min-w-5 h-5 px-1 inline-flex items-center justify-center rounded-full bg-brand-600 text-white text-xs">{{ dateActive ? 1 : 0 }}</span>
           <svg class="w-3.5 h-3.5 opacity-60" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
         </button>
         <div v-if="open === 'date'" :class="[panelClass, 'sm:w-80']">
-          <p class="text-xs font-semibold uppercase tracking-wide text-surface-500 mb-2">Période de prise de vue</p>
+          <p class="text-xs font-semibold uppercase tracking-wide text-surface-500 mb-2">{{ $t('Période de prise de vue') }}</p>
           <div class="flex items-center gap-2">
-            <select v-model.number="yearFrom" class="form-select !py-1.5 text-sm" aria-label="De l'année">
-              <option :value="null">Début</option>
+            <select v-model.number="yearFrom" class="form-select !py-1.5 text-sm" :aria-label="$t('De l\'année')">
+              <option :value="null">{{ $t('Début') }}</option>
               <option v-for="y in yearsAsc" :key="y" :value="y">{{ y }}</option>
             </select>
-            <span class="text-surface-400 text-sm shrink-0">à</span>
-            <select v-model.number="yearTo" class="form-select !py-1.5 text-sm" aria-label="À l'année">
-              <option :value="null">Aujourd'hui</option>
+            <span class="text-surface-400 text-sm shrink-0">{{ $t('à') }}</span>
+            <select v-model.number="yearTo" class="form-select !py-1.5 text-sm" :aria-label="$t('À l\'année')">
+              <option :value="null">{{ $t('Aujourd\'hui') }}</option>
               <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
             </select>
           </div>
           <button type="button" class="btn-primary btn-sm mt-3 w-full justify-center" @click="applyPeriod">
-            Afficher cette période
+            {{ $t('Afficher cette période') }}
           </button>
           <div class="dropdown-divider !my-3" />
           <button type="button" :class="optionClass(state.undated)" @click="pick({ undated: !state.undated, yearFrom: null, yearTo: null })">
-            <span>Sans date</span>
+            <span>{{ $t('Sans date') }}</span>
             <span class="text-xs text-surface-400">{{ counts.undated }}</span>
           </button>
         </div>
@@ -45,32 +45,32 @@
       <div class="sm:relative">
         <button type="button" :class="pillClass(peopleActive)" @click="toggle('people')">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-          Personnes
+          {{ $t('Personnes') }}
           <span v-if="peopleCount" class="min-w-5 h-5 px-1 inline-flex items-center justify-center rounded-full bg-brand-600 text-white text-xs">{{ peopleCount }}</span>
           <svg class="w-3.5 h-3.5 opacity-60" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
         </button>
         <div v-if="open === 'people'" :class="[panelClass, 'sm:w-80']">
           <button type="button" :class="optionClass(state.peopleMode === 'unidentified')" @click="pick({ peopleMode: state.peopleMode === 'unidentified' ? null : 'unidentified', people: [] })">
-            <span>Visages à identifier</span>
+            <span>{{ $t('Visages à identifier') }}</span>
             <span class="text-xs text-surface-400">{{ counts.unidentified }}</span>
           </button>
           <button type="button" :class="optionClass(state.peopleMode === 'none')" @click="pick({ peopleMode: state.peopleMode === 'none' ? null : 'none', people: [] })">
-            <span>Aucune personne identifiée</span>
+            <span>{{ $t('Aucune personne identifiée') }}</span>
             <span class="text-xs text-surface-400">{{ counts.no_people }}</span>
           </button>
           <div class="dropdown-divider !my-3" />
           <p class="text-xs font-semibold uppercase tracking-wide text-surface-500 mb-2">
-            Avec…
-            <span class="normal-case font-normal tracking-normal">(plusieurs = ensemble sur la photo)</span>
+            {{ $t('Avec…') }}
+            <span class="normal-case font-normal tracking-normal">{{ $t('(plusieurs = ensemble sur la photo)') }}</span>
           </p>
           <input
             ref="peopleSearchRef"
             v-model="peopleQuery"
             type="search"
-            placeholder="Chercher une personne"
+            :placeholder="$t('Chercher une personne')"
             class="form-input !py-1.5 text-sm mb-2"
           />
-          <p v-if="peopleLoading" class="text-sm text-surface-500 py-2">Chargement…</p>
+          <p v-if="peopleLoading" class="text-sm text-surface-500 py-2">{{ $t('Chargement…') }}</p>
           <p v-else-if="peopleError" class="text-sm text-red-600 dark:text-red-400 py-2">{{ peopleError }}</p>
           <ul v-else class="max-h-64 overflow-y-auto -mx-1">
             <li v-for="p in filteredPeople" :key="p.id">
@@ -85,7 +85,7 @@
                 <span class="text-xs text-surface-400">{{ p.media_count }}</span>
               </label>
             </li>
-            <li v-if="!filteredPeople.length" class="px-2 py-2 text-sm text-surface-500">Aucune personne trouvée.</li>
+            <li v-if="!filteredPeople.length" class="px-2 py-2 text-sm text-surface-500">{{ $t('Aucune personne trouvée.') }}</li>
           </ul>
         </div>
       </div>
@@ -94,7 +94,7 @@
       <div v-if="tags.length" class="sm:relative">
         <button type="button" :class="pillClass(state.tags.length > 0)" @click="toggle('tags')">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
-          Tags
+          {{ $t('Tags') }}
           <span v-if="state.tags.length" class="min-w-5 h-5 px-1 inline-flex items-center justify-center rounded-full bg-brand-600 text-white text-xs">{{ state.tags.length }}</span>
           <svg class="w-3.5 h-3.5 opacity-60" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
         </button>
@@ -130,7 +130,7 @@
         <button
           type="button"
           class="w-5 h-5 inline-flex items-center justify-center rounded-full hover:bg-brand-100 dark:hover:bg-brand-500/25"
-          :aria-label="`Retirer le filtre ${chip.label}`"
+          :aria-label="$t('Retirer le filtre :label', { label: chip.label })"
           @click="emit('change', chip.remove)"
         >
           <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -142,7 +142,7 @@
         class="text-sm font-medium text-surface-500 hover:text-surface-800"
         @click="emit('change', CLEARED)"
       >
-        Tout effacer
+        {{ $t('Tout effacer') }}
       </button>
     </div>
   </div>
@@ -154,6 +154,7 @@ import axios from 'axios';
 import { personLabel } from '@/utils/personName';
 import { searchPeople } from '@/utils/personSearch';
 import { apiError } from '@/utils/apiError';
+import { t } from '@/i18n';
 
 // Barre de tri/filtres de la galerie « Mes photos ». Ne navigue pas
 // elle-même : émet `change` avec les champs modifiés, la page recharge.
@@ -170,9 +171,9 @@ const props = defineProps({
 const emit = defineEmits(['change']);
 
 const SORTS = [
-  { value: 'recent', label: 'Plus récentes d\'abord' },
-  { value: 'oldest', label: 'Plus anciennes d\'abord' },
-  { value: 'added', label: 'Dernières ajoutées' },
+  { value: 'recent', label: t('Plus récentes d\'abord') },
+  { value: 'oldest', label: t('Plus anciennes d\'abord') },
+  { value: 'added', label: t('Dernières ajoutées') },
 ];
 const sortModel = computed({
   get: () => props.state.sort,
@@ -214,10 +215,10 @@ const applyPeriod = () => {
 const dateActive = computed(() => !!(props.state.undated || props.state.yearFrom || props.state.yearTo));
 const dateLabel = computed(() => {
   const { undated, yearFrom: from, yearTo: to } = props.state;
-  if (undated) return 'Sans date';
-  if (from && to) return from === to ? `En ${from}` : `${from} – ${to}`;
-  if (from) return `Depuis ${from}`;
-  if (to) return `Jusqu'en ${to}`;
+  if (undated) return t('Sans date');
+  if (from && to) return from === to ? t('En :year', { year: from }) : `${from} – ${to}`;
+  if (from) return t('Depuis :year', { year: from });
+  if (to) return t('Jusqu\'en :year', { year: to });
   return '';
 });
 
@@ -236,7 +237,7 @@ const loadPeople = async () => {
     const { data } = await axios.get('/media/people');
     people.value = data.people;
   } catch (e) {
-    peopleError.value = apiError(e, 'Impossible de charger la liste des personnes.');
+    peopleError.value = apiError(e, t('Impossible de charger la liste des personnes.'));
   } finally {
     peopleLoading.value = false;
   }
@@ -254,7 +255,7 @@ const filteredPeople = computed(() => searchPeople(peopleQuery.value, people.val
 const nameOf = (id) =>
   (people.value || []).find((p) => p.id === id)?.name
   || props.knownPeople.find((p) => p.id === id)?.name
-  || 'Personne';
+  || t('Personne');
 
 // Cocher une personne ne ferme pas le panneau : on peut en cocher plusieurs.
 const togglePerson = (p) => {
@@ -266,7 +267,7 @@ const togglePerson = (p) => {
 
 const peopleCount = computed(() => props.state.people.length + (props.state.peopleMode ? 1 : 0));
 const peopleActive = computed(() => peopleCount.value > 0);
-const MODE_LABELS = { unidentified: 'Visages à identifier', none: 'Aucune personne identifiée' };
+const MODE_LABELS = { unidentified: t('Visages à identifier'), none: t('Aucune personne identifiée') };
 
 // --- Tags ---------------------------------------------------------------------
 const toggleTag = (tagId) => {
@@ -288,15 +289,15 @@ const chips = computed(() => {
   props.state.people.forEach((id) => {
     list.push({
       key: `p-${id}`,
-      label: `Avec ${nameOf(id)}`,
+      label: t('Avec :name', { name: nameOf(id) }),
       remove: { people: props.state.people.filter((x) => x !== id) },
     });
   });
   props.state.tags.forEach((id) => {
-    const tag = props.tags.find((t) => t.id === id);
+    const tag = props.tags.find((tg) => tg.id === id);
     list.push({
       key: `t-${id}`,
-      label: tag ? `#${tag.name}` : 'Tag',
+      label: tag ? `#${tag.name}` : t('Tag'),
       remove: { tags: props.state.tags.filter((x) => x !== id) },
     });
   });

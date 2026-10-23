@@ -48,9 +48,9 @@
       <span
         v-if="album.is_smart"
         class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-violet-100/95 text-violet-700 backdrop-blur-sm"
-        title="Album intelligent : se remplit automatiquement"
+        :title="$t('Album intelligent : se remplit automatiquement')"
       >
-        ✦ Auto
+        ✦ {{ $t('Auto') }}
       </span>
       <span
         :class="['inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold backdrop-blur-sm', visibility.class]"
@@ -71,6 +71,7 @@
 
 <script setup>
 import { computed, ref, watch, onBeforeUnmount } from 'vue';
+import { t, tc, intlLocale } from '@/i18n';
 
 const props = defineProps({
   album: {
@@ -112,16 +113,16 @@ onBeforeUnmount(stop);
 
 const visibility = computed(() => {
   if ((props.album.households_count || 0) > 0) {
-    return { label: 'Cercle', class: 'bg-teal-100/95 text-teal-800' };
+    return { label: t('Cercle'), class: 'bg-teal-100/95 text-teal-800' };
   }
   if ((props.album.accesses_count || 0) > 0 || props.album.has_share_link) {
-    return { label: 'Partagé', class: 'bg-amber-100/95 text-amber-800' };
+    return { label: t('Partagé'), class: 'bg-amber-100/95 text-amber-800' };
   }
-  return { label: 'Privé', class: 'bg-white/85 text-surface-600' };
+  return { label: t('Privé'), class: 'bg-white/85 text-surface-600' };
 });
 
 // « juin 2020 », ou « 1939 → 1972 » pour un album qui couvre plusieurs années.
-const monthYear = (d) => new Date(`${d}T12:00:00`).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+const monthYear = (d) => new Date(`${d}T12:00:00`).toLocaleDateString(intlLocale(), { month: 'long', year: 'numeric' });
 const period = computed(() => {
   const { first_at: a, last_at: b } = props.album;
   if (!a) return null;
@@ -133,9 +134,9 @@ const period = computed(() => {
 const subLine = computed(() => {
   const count = props.album.media_count || 0;
   return [
-    `${count} ${count === 1 ? 'média' : 'médias'}`,
+    tc(':count média|:count médias', count),
     period.value,
-    props.ownerName ? `partagé par ${props.ownerName}` : null,
+    props.ownerName ? t('partagé par :name', { name: props.ownerName }) : null,
     props.album.description || null,
   ].filter(Boolean).join(' · ');
 });

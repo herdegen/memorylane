@@ -1,6 +1,6 @@
 <template>
-  <Head title="Arbre généalogique" />
-  <AppLayout title="Arbre genealogique">
+  <Head :title="$t('Arbre généalogique')" />
+  <AppLayout :title="$t('Arbre généalogique')">
     <PeopleSegments />
     <div class="app-viewport flex relative">
       <!-- Backdrop (mobile, tiroir ouvert) -->
@@ -20,15 +20,15 @@
         :class="drawerOpen ? 'max-md:translate-x-0' : 'max-md:-translate-x-full'"
       >
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-xl font-semibold text-surface-900">Arbre généalogique</h2>
+          <h2 class="text-xl font-semibold text-surface-900">{{ $t('Arbre généalogique') }}</h2>
           <div class="inline-flex rounded-full border border-surface-200 p-0.5 text-xs font-semibold max-md:hidden">
-            <span class="px-3 py-1 rounded-full bg-brand-100 text-brand-800 dark:bg-brand-500/20 dark:text-brand-200">Arbre</span>
-            <Link href="/network" class="px-3 py-1 rounded-full text-surface-600 hover:text-surface-900">Réseau</Link>
+            <span class="px-3 py-1 rounded-full bg-brand-100 text-brand-800 dark:bg-brand-500/20 dark:text-brand-200">{{ $t('Arbre') }}</span>
+            <Link href="/network" class="px-3 py-1 rounded-full text-surface-600 hover:text-surface-900">{{ $t('Réseau') }}</Link>
           </div>
           <button
             @click="drawerOpen = false"
             class="md:hidden -mr-1 p-1 text-surface-500 hover:text-surface-800"
-            aria-label="Fermer le panneau"
+            :aria-label="$t('Fermer le panneau')"
           >
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -39,13 +39,13 @@
         <!-- Person search -->
         <div class="mb-4">
           <label class="block text-sm font-medium text-surface-700 mb-1">
-            Centrer sur une personne
+            {{ $t('Centrer sur une personne') }}
           </label>
           <div class="relative">
             <input
               v-model="searchQuery"
               type="text"
-              placeholder="Rechercher..."
+              :placeholder="$t('Rechercher...')"
               class="form-input"
             />
             <div
@@ -91,7 +91,7 @@
               @click="editing ? (editing = false) : startEdit()"
               class="p-1.5 rounded-lg shrink-0 transition-colors"
               :class="editing ? 'bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300' : 'text-surface-400 hover:text-surface-600 hover:bg-surface-100'"
-              :title="editing ? `Fermer l'édition` : 'Modifier les informations'"
+              :title="editing ? $t(`Fermer l'édition`) : $t('Modifier les informations')"
               :aria-pressed="editing"
             >
               <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -104,22 +104,22 @@
           <div v-if="!editing" class="px-4 pb-4">
             <dl class="space-y-2 text-sm">
               <div v-if="selectedPerson.data.birth_date || selectedPerson.data.birth_place">
-                <dt class="text-[11px] font-semibold uppercase tracking-wider text-surface-400">Naissance</dt>
+                <dt class="text-[11px] font-semibold uppercase tracking-wider text-surface-400">{{ $t('Naissance') }}</dt>
                 <dd class="text-surface-700">
-                  {{ selectedPerson.data.birth_date ? formatLongDate(selectedPerson.data.birth_date) : 'Date inconnue' }}
+                  {{ selectedPerson.data.birth_date ? formatLongDate(selectedPerson.data.birth_date) : $t('Date inconnue') }}
                   <span v-if="selectedPerson.data.birth_place" class="text-surface-500"> — {{ selectedPerson.data.birth_place }}</span>
                 </dd>
               </div>
               <div v-if="selectedPerson.data.death_date || selectedPerson.data.death_place">
-                <dt class="text-[11px] font-semibold uppercase tracking-wider text-surface-400">Décès</dt>
+                <dt class="text-[11px] font-semibold uppercase tracking-wider text-surface-400">{{ $t('Décès') }}</dt>
                 <dd class="text-surface-700">
-                  {{ selectedPerson.data.death_date ? formatLongDate(selectedPerson.data.death_date) : 'Date inconnue' }}
+                  {{ selectedPerson.data.death_date ? formatLongDate(selectedPerson.data.death_date) : $t('Date inconnue') }}
                   <span v-if="selectedPerson.data.death_place" class="text-surface-500"> — {{ selectedPerson.data.death_place }}</span>
                   <span v-if="ageLabel(selectedPerson.data)" class="text-surface-500"> ({{ ageLabel(selectedPerson.data) }})</span>
                 </dd>
               </div>
               <div v-if="selectedPerson.data.maiden_name">
-                <dt class="text-[11px] font-semibold uppercase tracking-wider text-surface-400">Nom de naissance</dt>
+                <dt class="text-[11px] font-semibold uppercase tracking-wider text-surface-400">{{ $t('Nom de naissance') }}</dt>
                 <dd class="text-surface-700">{{ selectedPerson.data.maiden_name }}</dd>
               </div>
             </dl>
@@ -130,7 +130,7 @@
               @click="startEdit"
               class="mt-3 w-full text-left text-xs text-brand-700 dark:text-brand-400 border border-dashed border-brand-300 dark:border-brand-500/40 rounded-lg px-3 py-2 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-colors"
             >
-              + Compléter : {{ missingInfoLabel }}
+              {{ $t('+ Compléter : :fields', { fields: missingInfoLabel }) }}
             </button>
 
             <!-- Famille proche, cliquable pour naviguer dans l'arbre -->
@@ -160,7 +160,7 @@
               :href="`/people/${selectedPerson.id}`"
               class="mt-4 inline-flex items-center text-sm font-medium text-brand-600 hover:text-brand-800"
             >
-              Voir la fiche complète &rarr;
+              {{ $t('Voir la fiche complète') }} &rarr;
             </Link>
           </div>
 
@@ -168,44 +168,44 @@
           <form v-else @submit.prevent="saveEdit" class="px-4 pb-4 space-y-3">
             <div class="grid grid-cols-2 gap-2">
               <div>
-                <label class="block text-xs font-medium text-surface-500 mb-1">Prénom(s)</label>
+                <label class="block text-xs font-medium text-surface-500 mb-1">{{ $t('Prénom(s)') }}</label>
                 <input v-model="editForm.first_name" type="text" required class="form-input !py-1.5 text-sm" />
               </div>
               <div>
-                <label class="block text-xs font-medium text-surface-500 mb-1">Nom</label>
+                <label class="block text-xs font-medium text-surface-500 mb-1">{{ $t('Nom') }}</label>
                 <input v-model="editForm.last_name" type="text" class="form-input !py-1.5 text-sm" />
               </div>
             </div>
             <div>
-              <label class="block text-xs font-medium text-surface-500 mb-1">Nom de naissance</label>
-              <input v-model="editForm.maiden_name" type="text" placeholder="Si différent" class="form-input !py-1.5 text-sm" />
+              <label class="block text-xs font-medium text-surface-500 mb-1">{{ $t('Nom de naissance') }}</label>
+              <input v-model="editForm.maiden_name" type="text" :placeholder="$t('Si différent')" class="form-input !py-1.5 text-sm" />
             </div>
             <div>
-              <label class="block text-xs font-medium text-surface-500 mb-1">Genre</label>
+              <label class="block text-xs font-medium text-surface-500 mb-1">{{ $t('Genre') }}</label>
               <select v-model="editForm.gender" class="form-input !py-1.5 text-sm">
-                <option value="U">Non spécifié</option>
-                <option value="M">Masculin</option>
-                <option value="F">Féminin</option>
+                <option value="U">{{ $t('Non spécifié') }}</option>
+                <option value="M">{{ $t('Masculin') }}</option>
+                <option value="F">{{ $t('Féminin') }}</option>
               </select>
             </div>
             <div class="grid grid-cols-2 gap-2">
               <div>
-                <label class="block text-xs font-medium text-surface-500 mb-1">Naissance</label>
+                <label class="block text-xs font-medium text-surface-500 mb-1">{{ $t('Naissance') }}</label>
                 <input v-model="editForm.birth_date" type="date" class="form-input !py-1.5 text-sm" />
               </div>
               <div>
-                <label class="block text-xs font-medium text-surface-500 mb-1">Lieu de naissance</label>
-                <input v-model="editForm.birth_place" type="text" placeholder="Ville, pays" class="form-input !py-1.5 text-sm" />
+                <label class="block text-xs font-medium text-surface-500 mb-1">{{ $t('Lieu de naissance') }}</label>
+                <input v-model="editForm.birth_place" type="text" :placeholder="$t('Ville, pays')" class="form-input !py-1.5 text-sm" />
               </div>
             </div>
             <div class="grid grid-cols-2 gap-2">
               <div>
-                <label class="block text-xs font-medium text-surface-500 mb-1">Décès</label>
+                <label class="block text-xs font-medium text-surface-500 mb-1">{{ $t('Décès') }}</label>
                 <input v-model="editForm.death_date" type="date" class="form-input !py-1.5 text-sm" />
               </div>
               <div>
-                <label class="block text-xs font-medium text-surface-500 mb-1">Lieu de décès</label>
-                <input v-model="editForm.death_place" type="text" placeholder="Ville, pays" class="form-input !py-1.5 text-sm" />
+                <label class="block text-xs font-medium text-surface-500 mb-1">{{ $t('Lieu de décès') }}</label>
+                <input v-model="editForm.death_place" type="text" :placeholder="$t('Ville, pays')" class="form-input !py-1.5 text-sm" />
               </div>
             </div>
             <p v-for="(msgs, field) in editErrors" :key="field" class="text-xs text-red-600 dark:text-red-400">
@@ -213,14 +213,14 @@
             </p>
             <div class="flex items-center justify-end gap-2 pt-1">
               <button type="button" @click="editing = false" class="px-3 py-1.5 text-sm text-surface-600 hover:text-surface-800">
-                Annuler
+                {{ $t('Annuler') }}
               </button>
               <button
                 type="submit"
                 :disabled="saving"
                 class="px-3.5 py-1.5 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50"
               >
-                {{ saving ? 'Enregistrement…' : 'Enregistrer' }}
+                {{ saving ? $t('Enregistrement…') : $t('Enregistrer') }}
               </button>
             </div>
           </form>
@@ -229,13 +229,13 @@
         <!-- Stats -->
         <div class="mt-4 p-3 bg-brand-50 rounded-lg dark:bg-brand-500/10">
           <div class="text-sm text-surface-600">
-            {{ treeNodes.length }} personne(s) dans l'arbre
+            {{ $tc(":count personne dans l'arbre|:count personnes dans l'arbre", treeNodes.length) }}
           </div>
         </div>
 
         <p class="mt-4 text-xs text-surface-400 leading-relaxed">
-          <span class="max-md:hidden">Molette pour zoomer, glisser pour déplacer. Cliquez sur une carte pour afficher les détails de la personne ici.</span>
-          <span class="md:hidden">Pincez pour zoomer, glissez à un doigt pour déplacer. Touchez une personne pour ouvrir sa fiche.</span>
+          <span class="max-md:hidden">{{ $t('Molette pour zoomer, glisser pour déplacer. Cliquez sur une carte pour afficher les détails de la personne ici.') }}</span>
+          <span class="md:hidden">{{ $t('Pincez pour zoomer, glissez à un doigt pour déplacer. Touchez une personne pour ouvrir sa fiche.') }}</span>
         </p>
       </div>
 
@@ -248,12 +248,12 @@
                  rounded-full bg-white/90 backdrop-blur px-3 py-2 text-sm font-medium
                  text-surface-700 shadow-warm border border-surface-200
                  dark:bg-surface-100/90"
-          aria-label="Ouvrir le panneau (recherche et infos)"
+          :aria-label="$t('Ouvrir le panneau (recherche et infos)')"
         >
           <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
           </svg>
-          Rechercher
+          {{ $t('Rechercher') }}
         </button>
 
         <!-- Bascule Arbre | Réseau (mobile) : la bascule du panneau est masquée
@@ -262,8 +262,8 @@
           class="md:hidden absolute top-3 right-3 z-10 inline-flex rounded-full border border-surface-200
                  bg-white/90 backdrop-blur p-0.5 text-xs font-semibold shadow-warm-sm dark:bg-surface-100/90"
         >
-          <span class="px-3 py-1.5 rounded-full bg-brand-100 text-brand-800 dark:bg-brand-500/20 dark:text-brand-200">Arbre</span>
-          <Link href="/network" class="px-3 py-1.5 rounded-full text-surface-600 hover:text-surface-900">Réseau</Link>
+          <span class="px-3 py-1.5 rounded-full bg-brand-100 text-brand-800 dark:bg-brand-500/20 dark:text-brand-200">{{ $t('Arbre') }}</span>
+          <Link href="/network" class="px-3 py-1.5 rounded-full text-surface-600 hover:text-surface-900">{{ $t('Réseau') }}</Link>
         </div>
 
         <!-- Contrôles de vue : tout voir / recentrer -->
@@ -277,24 +277,24 @@
             class="inline-flex items-center gap-1.5 rounded-full bg-white/90 backdrop-blur
                    px-3 py-2 text-sm font-medium text-surface-700 shadow-warm
                    border border-surface-200 hover:bg-white dark:bg-surface-100/90"
-            aria-label="Voir tout l'arbre"
+            :aria-label="$t(`Voir tout l'arbre`)"
           >
             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V6a2 2 0 012-2h2M4 16v2a2 2 0 002 2h2m8-16h2a2 2 0 012 2v2m-4 12h2a2 2 0 002-2v-2" />
             </svg>
-            <span class="max-md:hidden">Tout voir</span>
+            <span class="max-md:hidden">{{ $t('Tout voir') }}</span>
           </button>
           <button
             @click="recenter"
             class="inline-flex items-center gap-1.5 rounded-full bg-white/90 backdrop-blur
                    px-3 py-2 text-sm font-medium text-surface-700 shadow-warm
                    border border-surface-200 hover:bg-white dark:bg-surface-100/90"
-            aria-label="Recentrer sur la personne sélectionnée"
+            :aria-label="$t('Recentrer sur la personne sélectionnée')"
           >
             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v8m-4-4h8M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span class="max-md:hidden">Recentrer</span>
+            <span class="max-md:hidden">{{ $t('Recentrer') }}</span>
           </button>
         </div>
 
@@ -304,8 +304,8 @@
             <svg class="mx-auto h-16 w-16 text-surface-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            <p class="text-surface-500 mb-4">Aucune personne avec des liens familiaux.</p>
-            <Link href="/people" class="btn-primary">Gérer les personnes</Link>
+            <p class="text-surface-500 mb-4">{{ $t('Aucune personne avec des liens familiaux.') }}</p>
+            <Link href="/people" class="btn-primary">{{ $t('Gérer les personnes') }}</Link>
           </div>
         </div>
 
@@ -344,19 +344,19 @@
               <div class="min-w-0 flex-1">
                 <p class="font-semibold text-surface-900 leading-tight truncate">{{ personLabel(selectedPerson.data) }}</p>
                 <p class="text-xs text-surface-500 mt-0.5 truncate">
-                  {{ [lifespanLabel(selectedPerson.data), selectedPerson.data.birth_place].filter(Boolean).join(' · ') || 'Aucune information' }}
+                  {{ [lifespanLabel(selectedPerson.data), selectedPerson.data.birth_place].filter(Boolean).join(' · ') || $t('Aucune information') }}
                 </p>
               </div>
               <Link
                 :href="`/people/${selectedPerson.id}`"
                 class="shrink-0 inline-flex items-center rounded-full bg-brand-600 text-white text-sm font-medium px-3.5 py-2 hover:bg-brand-700"
               >
-                Voir la fiche
+                {{ $t('Voir la fiche') }}
               </Link>
               <button
                 @click="mobileCard = false"
                 class="shrink-0 p-1 text-surface-400 hover:text-surface-600"
-                aria-label="Fermer"
+                :aria-label="$t('Fermer')"
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -373,16 +373,17 @@
         >
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
-              <p class="text-xs font-semibold uppercase tracking-widest text-brand-700">Lien de parenté</p>
+              <p class="text-xs font-semibold uppercase tracking-widest text-brand-700">{{ $t('Lien de parenté') }}</p>
               <p class="text-sm font-semibold text-surface-900 mt-0.5">
                 <template v-if="kinship.found">
-                  {{ kinship.path[kinship.path.length - 1].name }} est
-                  {{ kinship.relation_label || `relié·e à vous en ${kinship.steps} lien${kinship.steps > 1 ? 's' : ''}` }}
+                  {{ kinship.relation_label
+                    ? $t(':name est :relation', { name: kinship.path[kinship.path.length - 1].name, relation: kinship.relation_label })
+                    : $tc(':name est relié·e à vous en :count lien|:name est relié·e à vous en :count liens', kinship.steps, { name: kinship.path[kinship.path.length - 1].name }) }}
                 </template>
-                <template v-else>Aucun lien de parenté trouvé dans l'arbre.</template>
+                <template v-else>{{ $t("Aucun lien de parenté trouvé dans l'arbre.") }}</template>
               </p>
             </div>
-            <button @click="stopKinship" class="text-surface-400 hover:text-surface-600 shrink-0" aria-label="Fermer">
+            <button @click="stopKinship" class="text-surface-400 hover:text-surface-600 shrink-0" :aria-label="$t('Fermer')">
               <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
@@ -398,7 +399,7 @@
                     : i < kinshipStep ? 'bg-brand-100 dark:bg-brand-500/15 text-brand-800 dark:text-brand-300' : 'bg-surface-100 text-surface-500'"
                 >
                   <img v-if="p.avatar_url" :src="p.avatar_url" class="w-4.5 h-4.5 rounded-full object-cover" />
-                  {{ i === 0 ? 'Vous' : p.name.split(' ')[0] }}
+                  {{ i === 0 ? $t('Vous') : p.name.split(' ')[0] }}
                 </span>
                 <svg v-if="i < kinship.path.length - 1" class="w-3 h-3 text-surface-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
               </template>
@@ -406,22 +407,22 @@
             <div class="mt-2 flex items-center justify-between gap-3">
               <p class="text-xs text-surface-500 min-h-4">
                 <template v-if="kinshipApexView">
-                  Vue depuis {{ kinship.path[kinship.apex_index].name.split(' ')[0] }}, votre ancêtre commun — les deux branches sont en surbrillance.
+                  {{ $t('Vue depuis :name, votre ancêtre commun — les deux branches sont en surbrillance.', { name: kinship.path[kinship.apex_index].name.split(' ')[0] }) }}
                 </template>
                 <template v-else-if="kinshipStep > 0">… {{ kinship.edge_labels[kinshipStep - 1] }}</template>
-                <template v-else>Départ : votre fiche</template>
+                <template v-else>{{ $t('Départ : votre fiche') }}</template>
               </p>
               <div class="flex gap-2 shrink-0">
                 <button
                   v-if="kinshipStep < kinship.path.length - 1"
                   @click="finishKinshipWalk"
                   class="text-xs font-medium text-surface-500 hover:text-surface-700"
-                >Passer</button>
+                >{{ $t('Passer') }}</button>
                 <button
                   v-else
                   @click="startKinshipWalk"
                   class="text-xs font-medium text-brand-700 dark:text-brand-400 hover:underline"
-                >Rejouer</button>
+                >{{ $t('Rejouer') }}</button>
               </div>
             </div>
           </template>
@@ -454,6 +455,7 @@ import { formatLongDate } from '@/utils/format';
 import { useToast } from '@/Composables/useToast';
 import { escapeHtml } from '@/utils/html';
 import { apiError } from '@/utils/apiError';
+import { t, tc } from '@/i18n';
 
 const toast = useToast();
 
@@ -497,7 +499,7 @@ const mobileCardVisible = computed(() => mobileCard.value && !!selectedPerson.va
 // ---- Panneau détail : état civil & famille -------------------------------
 
 function genderLabel(g) {
-  return { M: 'Homme', F: 'Femme' }[g] || null;
+  return { M: t('Homme'), F: t('Femme') }[g] || null;
 }
 
 // Âge révolu entre deux dates (naissance → décès ou aujourd'hui).
@@ -514,7 +516,7 @@ function ageBetween(birth, end) {
 function ageLabel(d) {
   if (!d.birth_date || !d.death_date) return null;
   const age = ageBetween(d.birth_date, d.death_date);
-  return age === null ? null : `à ${age} ans`;
+  return age === null ? null : tc('à :count an|à :count ans', age);
 }
 
 // Sous le nom : « 1950 – 2020 » ou « 74 ans » pour les vivants.
@@ -522,7 +524,7 @@ function lifespanLabel(d) {
   if (d.death_date) return yearSpan(d.birth_date, d.death_date);
   if (d.birth_date) {
     const age = ageBetween(d.birth_date, null);
-    return age === null ? d.birth_date.substring(0, 4) : `${age} ans`;
+    return age === null ? d.birth_date.substring(0, 4) : tc(':count an|:count ans', age);
   }
   return null;
 }
@@ -532,9 +534,9 @@ const missingInfoLabel = computed(() => {
   const d = selectedPerson.value?.data;
   if (!d) return null;
   const missing = [];
-  if (!d.birth_date) missing.push('date de naissance');
-  if (!d.birth_place) missing.push('lieu de naissance');
-  if (!d.gender || d.gender === 'U') missing.push('genre');
+  if (!d.birth_date) missing.push(t('date de naissance'));
+  if (!d.birth_place) missing.push(t('lieu de naissance'));
+  if (!d.gender || d.gender === 'U') missing.push(t('genre'));
   return missing.length ? missing.join(', ') : null;
 });
 
@@ -553,10 +555,10 @@ const familyGroups = computed(() => {
       (p.rels.mother && n.rels.mother === p.rels.mother)
     ));
   return [
-    { label: 'Parents', people: parents },
-    { label: spouses.length > 1 ? 'Conjoints' : 'Conjoint·e', people: spouses },
-    { label: 'Enfants', people: children },
-    { label: 'Frères et sœurs', people: siblings },
+    { label: t('Parents'), people: parents },
+    { label: spouses.length > 1 ? t('Conjoints') : t('Conjoint·e'), people: spouses },
+    { label: t('Enfants'), people: children },
+    { label: t('Frères et sœurs'), people: siblings },
   ].filter(g => g.people.length);
 });
 
@@ -616,12 +618,12 @@ async function saveEdit() {
       chart.updateTree({});
     }
     editing.value = false;
-    toast.success('Informations mises à jour');
+    toast.success(t('Informations mises à jour'));
   } catch (e) {
     if (e.response?.status === 422) {
       editErrors.value = e.response.data.errors || {};
     } else {
-      toast.error(apiError(e, "Impossible d'enregistrer."));
+      toast.error(apiError(e, t("Impossible d'enregistrer.")));
     }
   } finally {
     saving.value = false;
@@ -811,7 +813,7 @@ async function loadKinship(personId) {
     if (data.found) startKinshipWalk();
   } catch (e) {
     console.error('Lien de parenté indisponible :', e);
-    toast.error(apiError(e, 'Impossible de retrouver le lien de parenté pour le moment.'));
+    toast.error(apiError(e, t('Impossible de retrouver le lien de parenté pour le moment.')));
   }
 }
 
@@ -916,7 +918,7 @@ onMounted(async () => {
     rawById = Object.fromEntries(treeNodes.value.map(n => [n.id, n]));
   } catch (error) {
     console.error('Erreur lors du chargement de l\'arbre:', error);
-    toast.error(apiError(error, "Impossible de charger l'arbre. Rechargez la page pour réessayer."));
+    toast.error(apiError(error, t("Impossible de charger l'arbre. Rechargez la page pour réessayer.")));
   } finally {
     loading.value = false;
   }

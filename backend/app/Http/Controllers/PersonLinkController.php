@@ -31,7 +31,7 @@ class PersonLinkController extends Controller
                 'mine' => $l->created_by === $viewer->id,
                 'author' => $l->author?->name,
                 'context' => $l->context,
-                'context_label' => PersonLink::CONTEXTS[$l->context] ?? null,
+                'context_label' => PersonLink::contextLabels()[$l->context] ?? null,
                 'via' => $l->via ? ['id' => $l->via->id, 'name' => $l->via->name] : null,
                 'story' => $l->story,
                 'year' => $l->met_year,
@@ -39,7 +39,7 @@ class PersonLinkController extends Controller
 
         return response()->json([
             'with' => $other,
-            'contexts' => collect(PersonLink::CONTEXTS)->map(fn ($label, $key) => ['key' => $key, 'label' => $label])->values(),
+            'contexts' => collect(PersonLink::contextLabels())->map(fn ($label, $key) => ['key' => $key, 'label' => $label])->values(),
             'versions' => $versions->values(),
         ]);
     }
@@ -55,7 +55,7 @@ class PersonLinkController extends Controller
         ]);
 
         $other = $this->otherId($request, $person);
-        abort_unless($other, 422, "Reliez d'abord votre compte à votre fiche (« C'est moi »).");
+        abort_unless($other, 422, __('Reliez d\'abord votre compte à votre fiche (« C\'est moi »).'));
 
         [$p1, $p2] = PersonLink::pairKey($person->id, $other);
 

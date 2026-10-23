@@ -67,14 +67,22 @@ class FacePlausibility
 
         $tolerance = self::DATE_TOLERANCE_YEARS;
         if ($person->birth_date && $person->birth_date->gt($takenAt->copy()->addYears($tolerance))) {
-            return sprintf('%s est %s en %d : %s ne peut pas figurer sur une photo de %d.',
-                $person->name, $this->agree($person, 'né', 'née'), $person->birth_date->year,
-                $this->agree($person, 'il', 'elle'), $takenAt->year);
+            $values = ['name' => $person->name, 'year' => $person->birth_date->year, 'photo_year' => $takenAt->year];
+
+            return match ($person->gender) {
+                'F' => __(':name est née en :year : elle ne peut pas figurer sur une photo de :photo_year.', $values),
+                'M' => __(':name est né en :year : il ne peut pas figurer sur une photo de :photo_year.', $values),
+                default => __(':name est né(e) en :year : il ou elle ne peut pas figurer sur une photo de :photo_year.', $values),
+            };
         }
         if ($person->death_date && $person->death_date->lt($takenAt->copy()->subYears($tolerance))) {
-            return sprintf('%s est %s en %d : %s ne peut pas figurer sur une photo de %d.',
-                $person->name, $this->agree($person, 'décédé', 'décédée'), $person->death_date->year,
-                $this->agree($person, 'il', 'elle'), $takenAt->year);
+            $values = ['name' => $person->name, 'year' => $person->death_date->year, 'photo_year' => $takenAt->year];
+
+            return match ($person->gender) {
+                'F' => __(':name est décédée en :year : elle ne peut pas figurer sur une photo de :photo_year.', $values),
+                'M' => __(':name est décédé en :year : il ne peut pas figurer sur une photo de :photo_year.', $values),
+                default => __(':name est décédé(e) en :year : il ou elle ne peut pas figurer sur une photo de :photo_year.', $values),
+            };
         }
 
         return null;
@@ -85,7 +93,7 @@ class FacePlausibility
     {
         if ($reason = $this->impossibility($person, $media)) {
             throw ValidationException::withMessages([
-                $field => $reason.' Si la date de la photo est fausse, corrigez-la d\'abord.',
+                $field => __(':reason Si la date de la photo est fausse, corrigez-la d\'abord.', ['reason' => $reason]),
             ]);
         }
     }
@@ -263,15 +271,20 @@ class FacePlausibility
         // Choisi à la main malgré tout : on signale ce que dit l'arbre.
         if ($media->taken_at && $this->genealogyImplausible($person, $media->taken_at->year)) {
             $bounds = $this->genealogyBounds()[$person->id];
+            $female = $person->gender === 'F';
             $doubts[] = ['code' => 'generation', 'label' => $bounds['latest'] !== null && $media->taken_at->year - $bounds['latest'] > self::PRESUMED_MAX_AGE
-                ? "D'après l'arbre, né".($person->gender === 'F' ? 'e' : '')." avant {$bounds['latest']}"
-                : "D'après l'arbre, pas encore né".($person->gender === 'F' ? 'e' : '')];
+                ? ($female
+                    ? __('D\'après l\'arbre, née avant :year', ['year' => $bounds['latest']])
+                    : __('D\'après l\'arbre, né avant :year', ['year' => $bounds['latest']]))
+                : ($female ? __('D\'après l\'arbre, pas encore née') : __('D\'après l\'arbre, pas encore né'))];
         }
 
         if ($media->taken_at && $person->birth_date && $person->birth_date->lte($media->taken_at)) {
             $age = (int) $person->birth_date->diffInYears($media->taken_at);
             if ($age < self::BABY_MAX_AGE) {
-                $doubts[] = ['code' => 'baby', 'label' => $age === 0 ? 'Bébé sur cette photo' : "{$age} an".($age > 1 ? 's' : '').' sur cette photo'];
+                $doubts[] = ['code' => 'baby', 'label' => $age === 0
+                    ? __('Bébé sur cette photo')
+                    : trans_choice(':count an sur cette photo|:count ans sur cette photo', $age)];
             }
         }
 
@@ -280,8 +293,8 @@ class FacePlausibility
         if ($kin !== null && $this->isFamily($person)
             && ($kin[$person->id] ?? PHP_INT_MAX) > self::CLOSE_KIN_MAX_DISTANCE) {
             $doubts[] = ['code' => 'distant', 'label' => isset($kin[$person->id])
-                ? 'Parenté lointaine avec la photo'
-                : 'Pas de lien familial à l\'époque de la photo'];
+                ? __('Parenté lointaine avec la photo')
+                : __('Pas de lien familial à l\'époque de la photo')];
         }
 
         return $doubts;
@@ -393,14 +406,5 @@ class FacePlausibility
         }
 
         return $this->graphs[$key] = $adj;
-    }
-
-    private function agree(Person $person, string $masculine, string $feminine): string
-    {
-        return match ($person->gender) {
-            'F' => $feminine,
-            'M' => $masculine,
-            default => $masculine === 'il' ? 'il ou elle' : $masculine.'(e)',
-        };
     }
 }

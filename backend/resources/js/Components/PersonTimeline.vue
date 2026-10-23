@@ -1,16 +1,16 @@
 <template>
   <div class="pt-9 pb-2">
     <div class="flex items-center justify-between mb-4 px-4 sm:px-8">
-      <h2 class="font-display text-xl sm:text-2xl font-semibold text-surface-900">Sa vie</h2>
+      <h2 class="font-display text-xl sm:text-2xl font-semibold text-surface-900">{{ $t('Sa vie') }}</h2>
       <div class="flex items-center gap-2">
       <button
         v-if="hasPlayable"
         @click="playSlideshow"
         class="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-brand-600 text-sm font-medium text-white hover:bg-brand-700 transition"
-        title="Lire le récit de sa vie"
+        :title="$t('Lire le récit de sa vie')"
       >
         <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-        Lire
+        {{ $t('Lire') }}
       </button>
       <button
         v-if="canManage"
@@ -18,16 +18,16 @@
         class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-surface-300 text-sm font-medium text-surface-700 hover:bg-surface-50 transition"
       >
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-        Ajouter un moment
+        {{ $t('Ajouter un moment') }}
       </button>
       </div>
     </div>
 
-    <div v-if="loading" class="text-sm text-surface-500 px-4 sm:px-8">Chargement de la frise…</div>
+    <div v-if="loading" class="text-sm text-surface-500 px-4 sm:px-8">{{ $t('Chargement de la frise…') }}</div>
 
     <div v-else-if="eventItems.length === 0" class="text-sm text-surface-500 px-4 sm:px-8">
-      Aucun événement daté pour l'instant.
-      <span v-if="canManage">Ajoutez un moment pour commencer la frise.</span>
+      {{ $t("Aucun événement daté pour l'instant.") }}
+      <span v-if="canManage">{{ $t('Ajoutez un moment pour commencer la frise.') }}</span>
     </div>
 
     <!-- Frise HORIZONTALE : rail + cartes photo, défilement latéral.
@@ -38,7 +38,7 @@
         v-show="canScrollLeft"
         @click="scrollByCards(-1)"
         class="hidden sm:flex absolute left-2 top-[60px] z-10 w-10 h-10 rounded-full bg-white/90 dark:bg-surface-800/90 shadow-warm-md border border-surface-200 items-center justify-center text-surface-700 hover:bg-white dark:hover:bg-surface-700 transition"
-        title="Reculer dans le temps"
+        :title="$t('Reculer dans le temps')"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
       </button>
@@ -46,7 +46,7 @@
         v-show="canScrollRight"
         @click="scrollByCards(1)"
         class="hidden sm:flex absolute right-2 top-[60px] z-10 w-10 h-10 rounded-full bg-white/90 dark:bg-surface-800/90 shadow-warm-md border border-surface-200 items-center justify-center text-surface-700 hover:bg-white dark:hover:bg-surface-700 transition"
-        title="Avancer dans le temps"
+        :title="$t('Avancer dans le temps')"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
       </button>
@@ -85,10 +85,10 @@
 
               <!-- Actions gestionnaire sur les moments (au survol) -->
               <div v-if="canManage && item.life_event_id" class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button @click.stop="openEdit(item)" class="p-1.5 rounded-full bg-white/90 text-surface-600 hover:text-brand-600 shadow-sm" title="Modifier">
+                <button @click.stop="openEdit(item)" class="p-1.5 rounded-full bg-white/90 text-surface-600 hover:text-brand-600 shadow-sm" :title="$t('Modifier')">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                 </button>
-                <button v-if="item.can_delete" @click.stop="removeEvent(item)" class="p-1.5 rounded-full bg-white/90 text-surface-600 hover:text-red-500 shadow-sm" title="Supprimer">
+                <button v-if="item.can_delete" @click.stop="removeEvent(item)" class="p-1.5 rounded-full bg-white/90 text-surface-600 hover:text-red-500 shadow-sm" :title="$t('Supprimer')">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M4 7h16" /></svg>
                 </button>
               </div>
@@ -107,7 +107,7 @@
                 <span v-else>{{ kindIcon(item.kind) }} {{ item.title }}</span>
               </p>
               <p v-if="item.place" class="text-xs text-surface-500">
-                {{ item.place }}<span v-if="item.latitude" title="Lieu géolocalisé"> 📍</span>
+                {{ item.place }}<span v-if="item.latitude" :title="$t('Lieu géolocalisé')"> 📍</span>
               </p>
               <p v-if="item.description" class="text-xs text-surface-500 line-clamp-2">{{ item.description }}</p>
               <Link
@@ -152,6 +152,7 @@ import axios from 'axios';
 import { useToast } from '@/Composables/useToast';
 import { useConfirm } from '@/Composables/useConfirm';
 import { buildStoryEvents, kindIcon, kindLabel, formatEventDate } from '@/utils/lifeStory';
+import { t } from '@/i18n';
 
 // Modale d'un moment et diaporama chargés à la demande : tous deux embarquent
 // Leaflet (~45 ko gzip), inutile tant qu'on ne les ouvre pas.
@@ -218,9 +219,9 @@ const onSaved = () => { showModal.value = false; load(); };
 
 const removeEvent = async (item) => {
   const ok = await confirm({
-    title: 'Supprimer ce moment',
-    message: 'Ce moment sera définitivement supprimé de la frise.',
-    confirmLabel: 'Supprimer',
+    title: t('Supprimer ce moment'),
+    message: t('Ce moment sera définitivement supprimé de la frise.'),
+    confirmLabel: t('Supprimer'),
     danger: true,
   });
   if (!ok) return;
@@ -228,7 +229,7 @@ const removeEvent = async (item) => {
     await axios.delete(`/life-events/${item.life_event_id}`);
     load();
   } catch (e) {
-    toast.error(e.response?.data?.message || 'Impossible de supprimer ce moment.');
+    toast.error(e.response?.data?.message || t('Impossible de supprimer ce moment.'));
   }
 };
 
@@ -239,7 +240,7 @@ const playSlideshow = async () => {
       storyPlayerComponent.value = (await import('@/Components/LifeStoryPlayer.vue')).default;
     } catch (e) {
       console.error('Chargement du diaporama impossible :', e);
-      toast.error('Impossible de lancer le diaporama. Vérifiez votre connexion et réessayez.');
+      toast.error(t('Impossible de lancer le diaporama. Vérifiez votre connexion et réessayez.'));
       return;
     }
     // Le composant doit être monté (ref posée) avant d'appeler start().

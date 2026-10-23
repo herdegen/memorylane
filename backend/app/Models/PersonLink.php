@@ -24,6 +24,27 @@ class PersonLink extends Model
         'other' => 'Autrement',
     ];
 
+    /**
+     * Libellés des contextes dans la langue de l'interface (les valeurs de
+     * CONTEXTS restent la référence française ; ses clés servent à la
+     * validation).
+     *
+     * @return array<string, string>
+     */
+    public static function contextLabels(): array
+    {
+        return [
+            'school' => __('À l\'école'),
+            'studies' => __('Pendant les études'),
+            'work' => __('Au travail'),
+            'friend' => __('Par un ami'),
+            'neighbors' => __('Entre voisins'),
+            'hobby' => __('Par un loisir'),
+            'family' => __('Par la famille'),
+            'other' => __('Autrement'),
+        ];
+    }
+
     protected $fillable = [
         'person1_id', 'person2_id', 'created_by', 'context', 'via_person_id', 'story', 'met_year',
     ];

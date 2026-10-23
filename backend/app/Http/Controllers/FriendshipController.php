@@ -51,7 +51,7 @@ class FriendshipController extends Controller
             $year = ($m->taken_at ?? $m->created_at)?->year;
             $key = $album ? 'album:'.$album->id : 'year:'.$year;
             $chapters[$key] ??= [
-                'title' => $album?->name ?? ($year ? "Photos de {$year}" : 'Sans date'),
+                'title' => $album?->name ?? ($year ? __('Photos de :year', ['year' => $year]) : __('Sans date')),
                 'album_id' => $album?->id,
                 'year' => $year,
                 'count' => 0,

@@ -1,10 +1,10 @@
 <template>
   <!-- Cercles d'une fiche : où elle est, où on peut l'ajouter -->
   <div class="space-y-3">
-    <div v-if="loading" class="text-xs text-surface-500">Chargement…</div>
+    <div v-if="loading" class="text-xs text-surface-500">{{ $t('Chargement…') }}</div>
     <template v-else>
       <div>
-        <div class="text-xs font-semibold text-surface-600 mb-1.5">Visible dans</div>
+        <div class="text-xs font-semibold text-surface-600 mb-1.5">{{ $t('Visible dans') }}</div>
         <div v-if="state.in.length" class="flex flex-wrap gap-1.5">
           <span
             v-for="c in state.in"
@@ -18,16 +18,16 @@
               v-if="c.can_remove && c.id"
               type="button"
               class="w-5 h-5 rounded-full hover:bg-black/10"
-              :aria-label="`Retirer de ${c.name}`"
+              :aria-label="$t('Retirer de :name', { name: c.name })"
               @click="remove(c)"
             >×</button>
           </span>
         </div>
-        <p v-else class="text-xs text-surface-500">Dans aucun de vos cercles.</p>
+        <p v-else class="text-xs text-surface-500">{{ $t('Dans aucun de vos cercles.') }}</p>
       </div>
 
       <div v-if="state.can_add.length">
-        <div class="text-xs font-semibold text-surface-600 mb-1.5">Ajouter à</div>
+        <div class="text-xs font-semibold text-surface-600 mb-1.5">{{ $t('Ajouter à') }}</div>
         <div class="flex flex-wrap gap-1.5">
           <button
             v-for="c in state.can_add"
@@ -41,7 +41,7 @@
             {{ c.name }}
           </button>
         </div>
-        <p class="mt-1.5 text-xs text-surface-500">Les membres du cercle verront sa fiche complète.</p>
+        <p class="mt-1.5 text-xs text-surface-500">{{ $t('Les membres du cercle verront sa fiche complète.') }}</p>
       </div>
     </template>
   </div>
@@ -53,6 +53,7 @@ import axios from 'axios';
 import CircleKindIcon from '@/Components/CircleKindIcon.vue';
 import { usePeopleDirectory } from '@/Composables/usePeopleDirectory';
 import { useToast } from '@/Composables/useToast';
+import { t } from '@/i18n';
 
 const props = defineProps({
   personId: { type: String, required: true },
@@ -85,14 +86,17 @@ async function add(c) {
     usePeopleDirectory().invalidate();
     emit('changed');
   } catch (e) {
-    toast.error(e.response?.data?.message || "Impossible d'ajouter la fiche.");
+    toast.error(e.response?.data?.message || t("Impossible d'ajouter la fiche."));
   } finally {
     busy.value = false;
   }
 }
 
 async function remove(c) {
-  if (!window.confirm(`Retirer ${props.personName || 'cette fiche'} de ${c.name} ? Ses membres ne verront plus sa fiche.`)) return;
+  const question = props.personName
+    ? t('Retirer :person de :circle ? Ses membres ne verront plus sa fiche.', { person: props.personName, circle: c.name })
+    : t('Retirer cette fiche de :circle ? Ses membres ne verront plus sa fiche.', { circle: c.name });
+  if (!window.confirm(question)) return;
   busy.value = true;
   try {
     const { data } = await axios.delete(`/people/${props.personId}/circles/${c.id}`);
@@ -100,7 +104,7 @@ async function remove(c) {
     usePeopleDirectory().invalidate();
     emit('changed');
   } catch (e) {
-    toast.error(e.response?.data?.message || 'Impossible de retirer la fiche.');
+    toast.error(e.response?.data?.message || t('Impossible de retirer la fiche.'));
   } finally {
     busy.value = false;
   }

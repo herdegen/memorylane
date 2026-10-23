@@ -4,23 +4,23 @@
     <div class="flex items-end justify-between gap-4 mb-4 px-4 sm:px-8">
       <div>
         <h2 class="font-display text-2xl font-semibold text-surface-900">
-          {{ data?.together ? 'Vos souvenirs ensemble' : 'Ses souvenirs' }}
+          {{ data?.together ? $t('Vos souvenirs ensemble') : $t('Ses souvenirs') }}
         </h2>
         <p v-if="data?.total" class="text-sm text-surface-500 mt-0.5">
-          {{ data.total }} photo{{ data.total > 1 ? 's' : '' }}
+          {{ $tc(':count photo|:count photos', data.total) }}
           <template v-if="data.first?.date && data.last?.date">
-            · de {{ yearOf(data.first.date) }} à {{ yearOf(data.last.date) }}
+            · {{ $t('de :from à :to', { from: yearOf(data.first.date), to: yearOf(data.last.date) }) }}
           </template>
         </p>
       </div>
     </div>
 
-    <div v-if="loading" class="text-sm text-surface-500 px-4 sm:px-8">Chargement…</div>
+    <div v-if="loading" class="text-sm text-surface-500 px-4 sm:px-8">{{ $t('Chargement…') }}</div>
 
     <div v-else-if="!data?.total" class="text-sm text-surface-500 px-4 sm:px-8">
       {{ data?.together
-        ? `Pas encore de photo de vous deux avec ${personName} dans ce cercle.`
-        : `Pas encore de photo de ${personName} dans ce cercle.` }}
+        ? $t('Pas encore de photo de vous deux avec :name dans ce cercle.', { name: personName })
+        : $t('Pas encore de photo de :name dans ce cercle.', { name: personName }) }}
     </div>
 
     <div v-else class="flex gap-4 overflow-x-auto px-4 sm:px-8 pb-4 snap-x">
@@ -31,7 +31,7 @@
       >
         <img :src="data.first.url" alt="" class="w-full h-36 object-cover" loading="lazy" />
         <div class="p-3">
-          <div class="text-xs font-semibold uppercase tracking-wider text-brand-700">Première photo</div>
+          <div class="text-xs font-semibold uppercase tracking-wider text-brand-700">{{ $t('Première photo') }}</div>
           <div class="text-sm font-semibold text-surface-900 mt-0.5">{{ longDate(data.first.date) }}</div>
         </div>
       </Link>
@@ -59,7 +59,7 @@
         <div class="p-3">
           <div class="text-sm font-semibold text-surface-900 truncate">{{ c.title }}</div>
           <div class="text-xs text-surface-500">
-            <span v-if="c.year && c.album_id">{{ c.year }} · </span>{{ c.count }} photo{{ c.count > 1 ? 's' : '' }}
+            <span v-if="c.year && c.album_id">{{ c.year }} · </span>{{ $tc(':count photo|:count photos', c.count) }}
           </div>
         </div>
       </component>
@@ -72,7 +72,7 @@
       >
         <img :src="data.last.url" alt="" class="w-full h-36 object-cover" loading="lazy" />
         <div class="p-3">
-          <div class="text-xs font-semibold uppercase tracking-wider text-brand-700">Dernière photo</div>
+          <div class="text-xs font-semibold uppercase tracking-wider text-brand-700">{{ $t('Dernière photo') }}</div>
           <div class="text-sm font-semibold text-surface-900 mt-0.5">{{ longDate(data.last.date) }}</div>
         </div>
       </Link>
@@ -85,6 +85,7 @@ import { ref, watch } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import { formatLongDate } from '@/utils/format';
+import { t } from '@/i18n';
 
 const props = defineProps({
   personId: { type: String, required: true },
@@ -95,7 +96,7 @@ const loading = ref(true);
 const data = ref(null);
 
 const yearOf = (d) => (d ? d.substring(0, 4) : '');
-const longDate = (d) => (d ? formatLongDate(d) : 'Sans date');
+const longDate = (d) => (d ? formatLongDate(d) : t('Sans date'));
 
 async function load() {
   loading.value = true;

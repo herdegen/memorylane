@@ -1,6 +1,7 @@
 // Récit de vie : icônes et libellés des événements de la frise, et
 // préparation des chapitres du diaporama (site et télévision).
 import { formatPartialDate } from '@/utils/format';
+import { t } from '@/i18n';
 
 export const ICONS = {
   birth: '🎂', death: '🕯️', marriage: '💍', child: '👶',
@@ -12,15 +13,15 @@ export const ICONS = {
   moment: '★', custom: '★',
 };
 export const LABELS = {
-  birth: 'Naissance', death: 'Décès', marriage: 'Mariage', child: 'Enfant',
-  job: 'Emploi', education: 'Études', residence: 'Résidence', photo: 'Photo',
-  voyage: 'Voyage', military: 'Parcours militaire', distinction: 'Distinction',
-  bapteme: 'Baptême', communion: 'Communion', confirmation: 'Confirmation', mariage_religieux: 'Mariage religieux',
-  mariage: 'Mariage', fiancailles: 'Fiançailles', anniversaire: 'Anniversaire', diplome: 'Remise de diplôme', fete: 'Fête',
-  moment: 'Moment', custom: 'Moment',
+  birth: t('Naissance'), death: t('Décès'), marriage: t('Mariage'), child: t('Enfant'),
+  job: t('Emploi'), education: t('Études'), residence: t('Résidence'), photo: t('Photo'),
+  voyage: t('Voyage'), military: t('Parcours militaire'), distinction: t('Distinction'),
+  bapteme: t('Baptême'), communion: t('Communion'), confirmation: t('Confirmation'), mariage_religieux: t('Mariage religieux'),
+  mariage: t('Mariage'), fiancailles: t('Fiançailles'), anniversaire: t('Anniversaire'), diplome: t('Remise de diplôme'), fete: t('Fête'),
+  moment: t('Moment'), custom: t('Moment'),
 };
 export const kindIcon = (k) => ICONS[k] || '★';
-export const kindLabel = (k) => LABELS[k] || 'Moment';
+export const kindLabel = (k) => LABELS[k] || t('Moment');
 
 export const formatEventDate = (d, precision = 'day') => formatPartialDate(d, precision) || d || '';
 

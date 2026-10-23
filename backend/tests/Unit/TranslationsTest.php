@@ -42,7 +42,10 @@ class TranslationsTest extends TestCase
 
         $keys = [];
         foreach ($files as $path) {
-            $src = file_get_contents($path);
+            // Commentaires blanchis (lignes « // », « * », « /* », « # » et
+            // blocs <!-- -->) : les exemples de documentation ne comptent pas.
+            $src = preg_replace_callback('/<!--[\s\S]*?-->/', fn ($c) => preg_replace('/[^\n]/', ' ', $c[0]), file_get_contents($path));
+            $src = preg_replace_callback('/^[ \t]*(\/\/|\/\*|\*|#(?!\[)).*$/m', fn ($c) => str_repeat(' ', strlen($c[0])), $src);
             $php = str_ends_with($path, '.php');
             preg_match_all(self::CALL, $src, $m, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
             foreach ($m as $match) {
@@ -109,10 +112,20 @@ class TranslationsTest extends TestCase
 
     public function test_les_traductions_gardent_les_memes_parametres(): void
     {
-        $params = function (string $s, bool $plural): array {
+        $params = function (string $s, bool $plural, array $known = []): array {
             preg_match_all('/:([A-Za-z_][A-Za-z0-9_]*)/', $s, $m);
-            $names = array_unique(array_map('strtolower', $m[1]));
-            $names = array_values(array_filter($names, fn ($p) => ! ($plural && $p === 'count')));
+            $names = array_map('strtolower', $m[1]);
+            // « :decades » vaut « :decade » suivi de « s » (Laravel remplace
+            // le plus long paramètre connu).
+            if ($known) {
+                $names = array_map(function ($p) use ($known) {
+                    $prefixes = array_filter($known, fn ($k) => str_starts_with($p, $k));
+                    usort($prefixes, fn ($x, $y) => strlen($y) <=> strlen($x));
+
+                    return $prefixes[0] ?? $p;
+                }, $names);
+            }
+            $names = array_values(array_unique(array_filter($names, fn ($p) => ! ($plural && $p === 'count'))));
             sort($names);
 
             return $names;
@@ -121,10 +134,14 @@ class TranslationsTest extends TestCase
         $wrong = [];
         foreach ($this->dictionary() as $key => $value) {
             $plural = str_contains($key, '|');
-            if ($params($key, $plural) !== $params((string) $value, $plural)) {
+            $expected = $params($key, $plural);
+            if ($expected !== $params((string) $value, $plural, $params($key, false))) {
                 $wrong[] = json_encode($key, JSON_UNESCAPED_UNICODE).' → '.json_encode($value, JSON_UNESCAPED_UNICODE);
             }
-            if ($plural !== str_contains((string) $value, '|')) {
+            // Une traduction au pluriel pour une clé qui ne l'est pas
+            // s'afficherait telle quelle (« a|b »). L'inverse est permis
+            // (« :count selected » convient à tous les nombres).
+            if (! $plural && str_contains((string) $value, '|')) {
                 $wrong[] = 'pluriel : '.json_encode($key, JSON_UNESCAPED_UNICODE);
             }
         }

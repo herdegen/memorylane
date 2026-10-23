@@ -1,12 +1,12 @@
 <template>
-  <Head title="Raconter cette photo" />
+  <Head :title="$t('Raconter cette photo')" />
   <ImpersonationBanner />
   <div class="min-h-[100dvh] bg-page text-surface-900 px-5 py-6 sm:px-10 sm:py-8 flex flex-col gap-6">
 
     <header>
       <Link :href="backHref" class="inline-flex min-h-[72px] px-7 rounded-full bg-white border-2 border-surface-200 items-center gap-3 text-[24px] font-semibold">
         <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
-        Retour à la photo
+        {{ $t('Retour à la photo') }}
       </Link>
     </header>
 
@@ -18,8 +18,8 @@
           <img :src="photo.url" alt="" class="max-h-[46vh] w-full object-contain" />
         </div>
         <div class="flex flex-col gap-2">
-          <div class="text-[22px] font-bold text-brand-800 uppercase tracking-wide">Racontez-nous</div>
-          <div class="font-display text-3xl sm:text-4xl font-bold leading-snug">Où étiez-vous ce jour-là ? Qui est sur la photo ?</div>
+          <div class="text-[22px] font-bold text-brand-800 uppercase tracking-wide">{{ $t('Racontez-nous') }}</div>
+          <div class="font-display text-3xl sm:text-4xl font-bold leading-snug">{{ $t('Où étiez-vous ce jour-là ? Qui est sur la photo ?') }}</div>
         </div>
       </div>
 
@@ -30,55 +30,55 @@
           <button
             type="button"
             class="w-56 h-56 sm:w-60 sm:h-60 rounded-full border-[10px] border-brand-200 bg-brand-700 text-[#fff] flex items-center justify-center shadow-warm-lg active:scale-95 transition"
-            aria-label="Commencer l'enregistrement"
+            :aria-label="$t('Commencer l\'enregistrement')"
             @click="start"
           >
             <svg class="w-24 h-24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>
           </button>
-          <div class="text-3xl font-bold">Appuyez et parlez</div>
-          <div class="text-2xl text-surface-600 max-w-md">Prenez votre temps. Vous pouvez parler aussi longtemps que vous voulez.</div>
+          <div class="text-3xl font-bold">{{ $t('Appuyez et parlez') }}</div>
+          <div class="text-2xl text-surface-600 max-w-md">{{ $t('Prenez votre temps. Vous pouvez parler aussi longtemps que vous voulez.') }}</div>
         </template>
 
         <template v-else-if="state === 'recording'">
           <button
             type="button"
             class="w-56 h-56 sm:w-60 sm:h-60 rounded-full border-[10px] border-red-200 bg-red-700 text-[#fff] flex items-center justify-center animate-pulse active:scale-95 transition"
-            aria-label="Arrêter l'enregistrement"
+            :aria-label="$t('Arrêter l\'enregistrement')"
             @click="stop"
           >
             <svg class="w-20 h-20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
           </button>
           <div class="text-5xl font-bold tabular-nums">{{ elapsedLabel }}</div>
-          <div class="text-2xl text-surface-600">Je vous écoute… Appuyez pour terminer.</div>
+          <div class="text-2xl text-surface-600">{{ $t('Je vous écoute… Appuyez pour terminer.') }}</div>
         </template>
 
         <template v-else-if="state === 'recorded' || state === 'sending'">
-          <div class="text-3xl font-bold">Envoi de votre souvenir…</div>
+          <div class="text-3xl font-bold">{{ $t('Envoi de votre souvenir…') }}</div>
         </template>
 
         <template v-else-if="state === 'sent'">
           <div class="w-40 h-40 rounded-full bg-green-100 text-green-800 flex items-center justify-center">
             <svg class="w-20 h-20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
           </div>
-          <div class="font-display text-4xl font-bold">Merci {{ firstName }} !</div>
-          <div class="text-2xl text-surface-700 max-w-md">Votre souvenir est gardé avec la photo. Toute la famille pourra l'écouter.</div>
+          <div class="font-display text-4xl font-bold">{{ $t('Merci :name !', { name: firstName }) }}</div>
+          <div class="text-2xl text-surface-700 max-w-md">{{ $t('Votre souvenir est gardé avec la photo. Toute la famille pourra l\'écouter.') }}</div>
           <div class="flex gap-4 flex-wrap justify-center">
             <button type="button" class="min-h-[80px] px-7 rounded-[20px] border-2 border-surface-300 bg-white text-2xl font-semibold" @click="replay">
-              {{ playing ? 'Arrêter' : 'Réécouter' }}
+              {{ playing ? $t('Arrêter') : $t('Réécouter') }}
             </button>
             <button type="button" class="min-h-[80px] px-7 rounded-[20px] border-2 border-surface-300 bg-white text-2xl font-semibold" @click="redo">
-              Recommencer
+              {{ $t('Recommencer') }}
             </button>
           </div>
           <Link :href="backHref" class="min-h-[84px] px-9 rounded-[22px] bg-brand-700 text-[#fff] flex items-center text-[26px] font-bold">
-            Revenir aux photos
+            {{ $t('Revenir aux photos') }}
           </Link>
         </template>
 
         <template v-else-if="state === 'error'">
           <div class="text-2xl text-red-800 max-w-md">{{ error }}</div>
           <button type="button" class="min-h-[84px] px-9 rounded-[22px] bg-brand-700 text-[#fff] text-[26px] font-bold" @click="retry">
-            Réessayer
+            {{ $t('Réessayer') }}
           </button>
         </template>
       </div>

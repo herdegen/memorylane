@@ -54,12 +54,12 @@
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
-          {{ creating ? 'Création…' : `Créer la fiche « ${query.trim()} »` }}
+          {{ creating ? $t('Création…') : $t('Créer la fiche « :name »', { name: query.trim() }) }}
         </button>
       </div>
 
       <p v-if="showResults && query.length >= 2 && results.length === 0 && !allowCreate" class="text-xs text-surface-400 mt-1">
-        Aucune personne trouvée
+        {{ $t('Aucune personne trouvée') }}
       </p>
     </div>
   </div>
@@ -74,12 +74,13 @@ import { searchPeople } from '@/utils/personSearch';
 import { useToast } from '@/Composables/useToast';
 import { usePeopleDirectory } from '@/Composables/usePeopleDirectory';
 import { useBringIn } from '@/Composables/useBringIn';
+import { t } from '@/i18n';
 
 const props = defineProps({
   label: { type: String, required: true },
   currentPerson: { type: Object, default: null },
   excludeIds: { type: Array, default: () => [] },
-  placeholder: { type: String, default: 'Rechercher une personne...' },
+  placeholder: { type: String, default: () => t('Rechercher une personne...') },
   // Propose « Créer la fiche » quand la personne cherchée n'existe pas encore.
   allowCreate: { type: Boolean, default: false },
   // Champs pré-remplis à la création (ex. gender: 'M' pour un père).
@@ -111,7 +112,7 @@ async function createPerson() {
     peopleDirectory.invalidate();
     selectPerson(data.person);
   } catch (error) {
-    toast.error(error.response?.data?.message || 'Impossible de créer la fiche.');
+    toast.error(error.response?.data?.message || t('Impossible de créer la fiche.'));
   } finally {
     creating.value = false;
   }

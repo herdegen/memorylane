@@ -11,10 +11,10 @@
             @keyup.enter="searchAddress"
             type="text"
             class="form-input"
-            placeholder="Rechercher une adresse, une ville…"
+            :placeholder="$t('Rechercher une adresse, une ville…')"
           />
           <button @click="searchAddress" type="button" :disabled="searching" class="btn-secondary shrink-0">
-            {{ searching ? '…' : 'Chercher' }}
+            {{ searching ? '…' : $t('Chercher') }}
           </button>
         </div>
         <ul
@@ -36,8 +36,8 @@
       <div ref="mapEl" class="h-[min(20rem,40dvh)] min-h-48 rounded-lg overflow-hidden border border-surface-200 z-0"></div>
 
       <p class="mt-3 text-sm" :class="coords ? 'text-surface-700' : 'text-surface-400'">
-        <template v-if="coords">Position choisie : {{ coords.lat.toFixed(5) }}, {{ coords.lng.toFixed(5) }}</template>
-        <template v-else>Aucune position choisie.</template>
+        <template v-if="coords">{{ $t('Position choisie : :lat, :lng', { lat: coords.lat.toFixed(5), lng: coords.lng.toFixed(5) }) }}</template>
+        <template v-else>{{ $t('Aucune position choisie.') }}</template>
       </p>
 
       <p v-if="errorMessage" class="mt-2 text-sm text-red-600 dark:text-red-400">{{ errorMessage }}</p>
@@ -45,14 +45,14 @@
 
     <!-- Pied de page -->
     <template #footer>
-      <button @click="$emit('close')" type="button" class="btn-secondary">Annuler</button>
+      <button @click="$emit('close')" type="button" class="btn-secondary">{{ $t('Annuler') }}</button>
       <button
         @click="$emit('apply', { latitude: coords.lat, longitude: coords.lng })"
         type="button"
         :disabled="!coords || saving"
         class="btn-primary"
       >
-        {{ saving ? 'Application…' : applyLabel }}
+        {{ saving ? $t('Application…') : applyLabel }}
       </button>
     </template>
   </BaseModal>
@@ -67,11 +67,12 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
 import BaseModal from '@/Components/BaseModal.vue';
+import { t } from '@/i18n';
 
 defineProps({
   title: { type: String, required: true },
   description: { type: String, default: '' },
-  applyLabel: { type: String, default: 'Appliquer' },
+  applyLabel: { type: String, default: () => t('Appliquer') },
   saving: { type: Boolean, default: false },
   errorMessage: { type: String, default: null },
 });

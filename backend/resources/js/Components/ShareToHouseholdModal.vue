@@ -1,30 +1,29 @@
 <template>
-  <BaseModal title="Partager avec un cercle" @close="$emit('close')">
+  <BaseModal :title="$t('Partager avec un cercle')" @close="$emit('close')">
     <template #header-extra>
       <span class="text-sm text-surface-500">
-        {{ mediaIds.length }} média{{ mediaIds.length > 1 ? 's' : '' }}
+        {{ $tc(':count média|:count médias', mediaIds.length) }}
       </span>
     </template>
 
     <div class="px-6 py-4">
       <!-- Chargement des foyers -->
       <div v-if="loading" class="py-8 text-center text-sm text-surface-500">
-        Chargement des cercles…
+        {{ $t('Chargement des cercles…') }}
       </div>
 
       <!-- Aucun foyer -->
       <div v-else-if="households.length === 0" class="py-6 text-center">
-        <p class="text-sm text-surface-600">Vous n'appartenez à aucun cercle.</p>
+        <p class="text-sm text-surface-600">{{ $t('Vous n\'appartenez à aucun cercle.') }}</p>
         <Link href="/households" class="mt-2 inline-block text-sm font-medium text-brand-600 dark:text-brand-400 hover:underline">
-          Voir les cercles
+          {{ $t('Voir les cercles') }}
         </Link>
       </div>
 
       <!-- Choix du foyer -->
       <div v-else class="space-y-2">
         <p class="text-sm text-surface-500 mb-3">
-          Les membres du cercle choisi pourront voir ces médias. Seuls les médias
-          qui vous appartiennent seront partagés.
+          {{ $t('Les membres du cercle choisi pourront voir ces médias. Seuls les médias qui vous appartiennent seront partagés.') }}
         </p>
         <label
           v-for="household in households"
@@ -44,7 +43,7 @@
           <span class="flex-1">
             <span class="block text-sm font-medium text-surface-900">{{ household.name }}</span>
             <span class="block text-xs text-surface-500">
-              {{ household.members_count }} membre{{ household.members_count > 1 ? 's' : '' }}
+              {{ $tc(':count membre|:count membres', household.members_count) }}
             </span>
           </span>
         </label>
@@ -60,16 +59,16 @@
         :disabled="!selectedHouseholdId || saving"
         @click="submit('remove')"
       >
-        Retirer du cercle
+        {{ $t('Retirer du cercle') }}
       </button>
-      <button type="button" class="btn-secondary" @click="$emit('close')">Annuler</button>
+      <button type="button" class="btn-secondary" @click="$emit('close')">{{ $t('Annuler') }}</button>
       <button
         type="button"
         class="btn-primary"
         :disabled="!selectedHouseholdId || saving"
         @click="submit('share')"
       >
-        {{ saving ? 'Partage…' : 'Partager' }}
+        {{ saving ? $t('Partage…') : $t('Partager') }}
       </button>
     </template>
   </BaseModal>
@@ -80,6 +79,7 @@ import { onMounted, ref } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import BaseModal from '@/Components/BaseModal.vue';
+import { t } from '@/i18n';
 
 const props = defineProps({
   // Sélection à partager (IDs de médias).
@@ -106,7 +106,7 @@ onMounted(async () => {
       selectedHouseholdId.value = data[0].id;
     }
   } catch (e) {
-    errorMessage.value = 'Impossible de charger vos cercles.';
+    errorMessage.value = t('Impossible de charger vos cercles.');
   } finally {
     loading.value = false;
   }
@@ -125,7 +125,7 @@ const submit = async (action) => {
     emit('done', data);
     emit('close');
   } catch (e) {
-    errorMessage.value = e.response?.data?.message || 'Erreur lors du partage.';
+    errorMessage.value = e.response?.data?.message || t('Erreur lors du partage.');
   } finally {
     saving.value = false;
   }

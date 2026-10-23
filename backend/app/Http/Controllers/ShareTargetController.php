@@ -25,8 +25,8 @@ class ShareTargetController extends Controller
             'media'   => ['required', 'array', 'min:1'],
             'media.*' => ['file', 'mimetypes:image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm', 'max:512000'],
         ], [
-            'media.required' => 'Aucun fichier reçu.',
-            'media.*.mimetypes' => 'Seules les photos et vidéos sont acceptées.',
+            'media.required' => __('Aucun fichier reçu.'),
+            'media.*.mimetypes' => __('Seules les photos et vidéos sont acceptées.'),
         ]);
 
         $userId = auth()->id();
@@ -40,8 +40,8 @@ class ShareTargetController extends Controller
         return redirect()->route('media.index')->with(
             'success',
             $count === 1
-                ? 'Votre photo est arrivée dans la galerie.'
-                : "Vos {$count} médias sont arrivés dans la galerie."
+                ? __('Votre photo est arrivée dans la galerie.')
+                : __('Vos :count médias sont arrivés dans la galerie.', ['count' => $count])
         );
     }
 }

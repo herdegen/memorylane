@@ -1,9 +1,9 @@
 <template>
-  <BaseModal panel-class="max-h-[85vh] flex flex-col" title="Ajouter à un album" @close="$emit('close')">
+  <BaseModal panel-class="max-h-[85vh] flex flex-col" :title="$t('Ajouter à un album')" @close="$emit('close')">
     <!-- Compteur à droite du titre -->
     <template #header-extra>
       <span class="text-sm text-surface-500">
-        {{ mediaIds.length }} média{{ mediaIds.length > 1 ? 's' : '' }}
+        {{ $tc(':count média|:count médias', mediaIds.length) }}
       </span>
     </template>
 
@@ -17,7 +17,7 @@
           :class="mode === 'new' ? 'bg-white text-surface-900 shadow-xs' : 'text-surface-500 hover:text-surface-700'"
           @click="mode = 'new'"
         >
-          Nouvel album
+          {{ $t('Nouvel album') }}
         </button>
         <button
           type="button"
@@ -25,21 +25,21 @@
           :class="mode === 'existing' ? 'bg-white text-surface-900 shadow-xs' : 'text-surface-500 hover:text-surface-700'"
           @click="mode = 'existing'"
         >
-          Album existant
+          {{ $t('Album existant') }}
         </button>
       </div>
 
       <!-- New album -->
       <div v-if="mode === 'new'">
         <label for="new-album-name" class="block text-sm font-medium text-surface-700 mb-1">
-          Nom de l'album
+          {{ $t('Nom de l\'album') }}
         </label>
         <input
           id="new-album-name"
           v-model="newAlbumName"
           type="text"
           autofocus
-          placeholder="Ex. Vacances été 2026"
+          :placeholder="$t('Ex. Vacances été 2026')"
           class="block w-full px-3 py-2 border border-surface-300 rounded-md focus:outline-hidden focus:ring-1 focus:ring-brand-500 focus:border-brand-500 sm:text-sm"
           @keyup.enter="confirm"
         />
@@ -54,7 +54,7 @@
           </svg>
         </div>
         <p v-else-if="ownedAlbums.length === 0" class="text-center py-8 text-sm text-surface-500">
-          Vous n'avez pas encore d'album. Créez-en un nouveau.
+          {{ $t('Vous n\'avez pas encore d\'album. Créez-en un nouveau.') }}
         </p>
         <ul v-else class="space-y-1.5 max-h-72 overflow-y-auto">
           <li v-for="album in ownedAlbums" :key="album.id">
@@ -68,7 +68,7 @@
             >
               <span class="font-medium text-surface-800 truncate">{{ album.name }}</span>
               <span class="ml-2 shrink-0 text-xs text-surface-400">
-                {{ album.media_count }} média{{ album.media_count > 1 ? 's' : '' }}
+                {{ $tc(':count média|:count médias', album.media_count) }}
               </span>
             </button>
           </li>
@@ -81,7 +81,7 @@
     <!-- Pied de page -->
     <template #footer>
       <button type="button" class="btn-secondary" @click="$emit('close')">
-        Annuler
+        {{ $t('Annuler') }}
       </button>
       <button
         type="button"
@@ -93,7 +93,7 @@
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
         </svg>
-        {{ mode === 'new' ? 'Créer l\'album' : 'Ajouter' }}
+        {{ mode === 'new' ? $t('Créer l\'album') : $t('Ajouter') }}
       </button>
     </template>
   </BaseModal>
@@ -103,6 +103,7 @@
 import { ref, computed, onMounted } from 'vue';
 import BaseModal from '@/Components/BaseModal.vue';
 import { fetchOwnedAlbums, createAlbumWithMedia, addMediaToAlbum } from '@/utils/albums';
+import { t } from '@/i18n';
 
 const props = defineProps({
   // IDs des médias à ajouter/regrouper dans un album.
@@ -168,7 +169,7 @@ const confirm = async () => {
     }
     emit('close');
   } catch (e) {
-    error.value = e?.response?.data?.message || "Impossible d'ajouter les médias à l'album.";
+    error.value = e?.response?.data?.message || t("Impossible d'ajouter les médias à l'album.");
     console.error('Ajout à l\'album impossible :', e);
   } finally {
     submitting.value = false;

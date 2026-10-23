@@ -38,7 +38,7 @@
           v-else-if="face.person_restricted"
           class="absolute -bottom-6 left-0 text-xs bg-surface-500 text-white px-1.5 py-0.5 rounded-sm whitespace-nowrap"
         >
-          Autre cercle
+          {{ $t('Autre cercle') }}
         </span>
         <!-- Unknown indicator if unmatched -->
         <span

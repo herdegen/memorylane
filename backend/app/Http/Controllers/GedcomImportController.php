@@ -40,7 +40,7 @@ class GedcomImportController extends Controller
         $suggestions = $this->importService->generateMatchSuggestions($import);
 
         return response()->json([
-            'message' => 'Fichier GEDCOM analyse',
+            'message' => __('Fichier GEDCOM analyse'),
             'import_id' => $import->id,
             'individuals_count' => $import->individuals_count,
             'families_count' => $import->families_count,
@@ -76,7 +76,7 @@ class GedcomImportController extends Controller
 
         if ($gedcomImport->status !== 'matching') {
             return response()->json([
-                'message' => 'Cet import a deja ete traite',
+                'message' => __('Cet import a deja ete traite'),
             ], 422);
         }
 
@@ -88,7 +88,7 @@ class GedcomImportController extends Controller
         $stats = $this->importService->executeImport($gedcomImport, $validated['decisions']);
 
         return response()->json([
-            'message' => 'Import termine',
+            'message' => __('Import termine'),
             'stats' => $stats,
         ]);
     }

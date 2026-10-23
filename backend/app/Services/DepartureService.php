@@ -68,7 +68,7 @@ class DepartureService
         $summary = $this->circleSummary($user, $circle);
         if ($summary['needs_successor']) {
             if (! $successorId || ! collect($summary['candidates'])->contains('id', $successorId)) {
-                throw ValidationException::withMessages(['successor_id' => 'Choisissez qui reprend ce groupe.']);
+                throw ValidationException::withMessages(['successor_id' => __('Choisissez qui reprend ce groupe.')]);
             }
         }
 
@@ -149,7 +149,7 @@ class DepartureService
     public function requestAccountDeparture(User $user, array $options): void
     {
         if ($user->isAdmin() && $this->fallbackOwner($user) === null) {
-            throw ValidationException::withMessages(['account' => 'Vous êtes le dernier administrateur : nommez-en un autre avant de partir.']);
+            throw ValidationException::withMessages(['account' => __('Vous êtes le dernier administrateur : nommez-en un autre avant de partir.')]);
         }
         $user->forceFill(['departure_requested_at' => now(), 'departure_options' => $options])->save();
     }

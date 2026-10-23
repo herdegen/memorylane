@@ -49,7 +49,7 @@ class DashboardController extends Controller
     {
         $request->user()->forceFill(['dashboard_guide_hidden_at' => now()])->save();
 
-        return response()->json(['message' => 'Guide masqué.']);
+        return response()->json(['message' => __('Guide masqué.')]);
     }
 
     /**
@@ -116,8 +116,13 @@ class DashboardController extends Controller
                 'title' => $person->name,
                 // Entre amis, pas d'âge : juste le jour.
                 'sub' => auth()->user()->mode() === \App\Models\Household::KIND_FRIENDS
-                    ? ucfirst($this->whenLabel($days))
-                    : "{$age} ans {$this->whenLabel($days)}",
+                    ? $this->whenLabel($days, __('Aujourd\'hui'), __('Demain'), __('Dans :days jours', ['days' => $days]))
+                    : $this->whenLabel(
+                        $days,
+                        trans_choice(':count an aujourd\'hui|:count ans aujourd\'hui', $age),
+                        trans_choice(':count an demain|:count ans demain', $age),
+                        trans_choice(':count an dans :days jours|:count ans dans :days jours', $age, ['days' => $days]),
+                    ),
                 'days_until' => $days,
                 'avatar_url' => $this->avatarUrl($person),
                 'person_id' => $person->id,
@@ -141,7 +146,12 @@ class DashboardController extends Controller
                 'kind' => 'memorial',
                 'emoji' => '🕯️',
                 'title' => $person->name,
-                'sub' => 'En mémoire · ' . self::yearsLabel($years) . " {$this->whenLabel($days)}",
+                'sub' => $this->whenLabel(
+                    $days,
+                    trans_choice('En mémoire · :count an aujourd\'hui|En mémoire · :count ans aujourd\'hui', $years),
+                    trans_choice('En mémoire · :count an demain|En mémoire · :count ans demain', $years),
+                    trans_choice('En mémoire · :count an dans :days jours|En mémoire · :count ans dans :days jours', $years, ['days' => $days]),
+                ),
                 'days_until' => $days,
                 'avatar_url' => $this->avatarUrl($person),
                 'person_id' => $person->id,
@@ -167,7 +177,7 @@ class DashboardController extends Controller
                     'kind' => 'nameday',
                     'emoji' => '🥳',
                     'title' => $person->name,
-                    'sub' => "Bonne fête {$first} !",
+                    'sub' => __('Bonne fête :name !', ['name' => $first]),
                     'days_until' => 0,
                     'avatar_url' => $this->avatarUrl($person),
                     'person_id' => $person->id,
@@ -194,12 +204,23 @@ class DashboardController extends Controller
                 continue;
             }
             $years = $today->copy()->addDays($days)->year - $start->year;
-            $word = $union->type === 'partner' ? "d'union" : 'de mariage';
             $entries->push([
                 'kind' => 'wedding',
                 'emoji' => '💍',
                 'title' => "{$union->p1_name} & {$union->p2_name}",
-                'sub' => "{$years} ans {$word} {$this->whenLabel($days)}",
+                'sub' => $union->type === 'partner'
+                    ? $this->whenLabel(
+                        $days,
+                        trans_choice(':count an d\'union aujourd\'hui|:count ans d\'union aujourd\'hui', $years),
+                        trans_choice(':count an d\'union demain|:count ans d\'union demain', $years),
+                        trans_choice(':count an d\'union dans :days jours|:count ans d\'union dans :days jours', $years, ['days' => $days]),
+                    )
+                    : $this->whenLabel(
+                        $days,
+                        trans_choice(':count an de mariage aujourd\'hui|:count ans de mariage aujourd\'hui', $years),
+                        trans_choice(':count an de mariage demain|:count ans de mariage demain', $years),
+                        trans_choice(':count an de mariage dans :days jours|:count ans de mariage dans :days jours', $years, ['days' => $days]),
+                    ),
                 'days_until' => $days,
                 'avatar_url' => null,
                 'person_id' => $union->p1_id,
@@ -209,17 +230,16 @@ class DashboardController extends Controller
         return $entries->sortBy('days_until')->values()->take(8);
     }
 
-    private static function yearsLabel(int $years): string
-    {
-        return $years === 1 ? '1 an' : "{$years} ans";
-    }
-
-    private function whenLabel(int $days): string
+    /**
+     * Phrase selon l'échéance (aujourd'hui, demain, dans N jours) : chaque
+     * variante est une phrase entière, traduite à l'appel.
+     */
+    private function whenLabel(int $days, string $today, string $tomorrow, string $later): string
     {
         return match (true) {
-            $days === 0 => "aujourd'hui",
-            $days === 1 => 'demain',
-            default => "dans {$days} jours",
+            $days === 0 => $today,
+            $days === 1 => $tomorrow,
+            default => $later,
         };
     }
 

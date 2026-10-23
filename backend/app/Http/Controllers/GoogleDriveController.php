@@ -76,14 +76,14 @@ class GoogleDriveController extends Controller
             || $request->input('state') !== $request->session()->pull('google_drive.oauth_state')
         ) {
             return redirect()->route('google-drive.index')
-                ->withErrors(['google' => 'La connexion à Google Drive a échoué. Réessayez.']);
+                ->withErrors(['google' => __('La connexion à Google Drive a échoué. Réessayez.')]);
         }
 
         $token = $oauth->exchangeCode($request->input('code'));
 
         if (! $token) {
             return redirect()->route('google-drive.index')
-                ->withErrors(['google' => 'Google a refusé la connexion. Réessayez.']);
+                ->withErrors(['google' => __('Google a refusé la connexion. Réessayez.')]);
         }
 
         $request->session()->put('google_drive.token', $token);
@@ -156,7 +156,7 @@ class GoogleDriveController extends Controller
 
         return response()->json([
             'started_at' => now()->toIso8601String(),
-            'message' => 'Import lancé.',
+            'message' => __('Import lancé.'),
         ]);
     }
 

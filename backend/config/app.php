@@ -80,7 +80,10 @@ return [
 
     'locale' => env('APP_LOCALE', 'fr'),
 
-    'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
+    // Toujours le français : c'est la langue source, les phrases françaises
+    // servent de clés (lang/en.json). Avec 'en', trans_choice() irait
+    // chercher la traduction anglaise pour un membre francophone.
+    'fallback_locale' => 'fr',
 
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
 

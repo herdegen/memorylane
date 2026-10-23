@@ -1,5 +1,5 @@
 <template>
-  <Head title="Bienvenue" />
+  <Head :title="$t('Bienvenue')" />
   <div class="min-h-screen flex flex-col sm:justify-center items-center px-4 py-8 bg-linear-to-br from-brand-50 via-white to-surface-50">
     <div class="w-full sm:max-w-md bg-white shadow-xl rounded-2xl border border-surface-200 overflow-hidden">
 
@@ -18,31 +18,43 @@
             />
           </div>
           <h1 class="mt-4 font-display text-3xl font-bold text-surface-900">
-            Bienvenue, {{ person.first_name }}&nbsp;!
+            {{ $t('Bienvenue, :name\u00a0!', { name: person.first_name }) }}
           </h1>
           <p class="mt-2 text-sm text-surface-600">
-            {{ formal ? 'Votre' : 'Ta' }} fiche
-            <strong class="text-surface-800">{{ person.name }}{{ person.birth_year ? ` (${person.birth_year})` : '' }}</strong>
-            {{ formal ? 'vous attend' : "t'attend" }} {{ friendsCircle ? `dans « ${friendsCircle} »` : "dans l'arbre de la famille" }}.
+            <Trans v-if="formal && friendsCircle" text="Votre fiche :person vous attend dans « :circle »." :values="{ circle: friendsCircle }">
+              <template #person><strong class="text-surface-800">{{ personLabel }}</strong></template>
+            </Trans>
+            <Trans v-else-if="formal" text="Votre fiche :person vous attend dans l'arbre de la famille.">
+              <template #person><strong class="text-surface-800">{{ personLabel }}</strong></template>
+            </Trans>
+            <Trans v-else-if="friendsCircle" text="Ta fiche :person t'attend dans « :circle »." :values="{ circle: friendsCircle }">
+              <template #person><strong class="text-surface-800">{{ personLabel }}</strong></template>
+            </Trans>
+            <Trans v-else text="Ta fiche :person t'attend dans l'arbre de la famille.">
+              <template #person><strong class="text-surface-800">{{ personLabel }}</strong></template>
+            </Trans>
           </p>
         </div>
 
         <div class="px-8 py-6">
           <p v-if="loggedInAs" class="mb-4 rounded-lg bg-surface-50 px-3 py-2 text-xs text-surface-500">
-            Vous êtes connecté en tant que {{ loggedInAs }} : créer cet accès vous déconnectera de ce compte.
+            {{ $t('Vous êtes connecté en tant que :name : créer cet accès vous déconnectera de ce compte.', { name: loggedInAs }) }}
           </p>
 
           <p class="text-sm text-surface-600 mb-5">
-            Dernière étape : {{ formal ? 'choisissez votre' : 'choisis ton' }} mot de passe.
-            {{ formal ? 'Votre' : 'Ton' }} identifiant sera
-            <strong class="text-surface-800 break-all">{{ email }}</strong>.
+            <Trans v-if="formal" text="Dernière étape : choisissez votre mot de passe. Votre identifiant sera :email.">
+              <template #email><strong class="text-surface-800 break-all">{{ email }}</strong></template>
+            </Trans>
+            <Trans v-else text="Dernière étape : choisis ton mot de passe. Ton identifiant sera :email.">
+              <template #email><strong class="text-surface-800 break-all">{{ email }}</strong></template>
+            </Trans>
           </p>
 
           <form @submit.prevent="submit" class="space-y-5">
             <FormField
               v-model="form.name"
               id="name"
-              label="Prénom et nom"
+              :label="$t('Prénom et nom')"
               :error="form.errors.name"
               autocomplete="name"
               required
@@ -51,7 +63,7 @@
               v-model="form.password"
               id="password"
               type="password"
-              label="Mot de passe (8 caractères minimum)"
+              :label="$t('Mot de passe (8 caractères minimum)')"
               placeholder="••••••••"
               :error="form.errors.password"
               autocomplete="new-password"
@@ -61,7 +73,7 @@
               v-model="form.password_confirmation"
               id="password_confirmation"
               type="password"
-              label="Le même, pour vérifier"
+              :label="$t('Le même, pour vérifier')"
               placeholder="••••••••"
               autocomplete="new-password"
               required
@@ -70,16 +82,17 @@
 
             <FormButton
               type="submit"
-              text="Créer mon accès"
-              loading-text="Création…"
+              :text="$t('Créer mon accès')"
+              :loading-text="$t('Création…')"
               :loading="form.processing"
               full-width
             />
           </form>
 
           <p class="mt-5 text-xs text-center text-surface-400">
-            Mot de passe oublié plus tard ? Pas de souci : la page de connexion
-            {{ formal ? 'vous enverra' : "t'enverra" }} un lien par e-mail.
+            {{ formal
+              ? $t('Mot de passe oublié plus tard ? Pas de souci : la page de connexion vous enverra un lien par e-mail.')
+              : $t("Mot de passe oublié plus tard ? Pas de souci : la page de connexion t'enverra un lien par e-mail.") }}
           </p>
         </div>
       </template>
@@ -93,9 +106,12 @@
         </div>
         <h1 class="mt-4 font-display text-2xl font-bold text-surface-900">{{ closed.title }}</h1>
         <p class="mt-2 text-sm text-surface-600">{{ closed.text }}</p>
-        <Link href="/login" class="btn-primary mt-6 inline-flex">Aller à la connexion</Link>
+        <Link href="/login" class="btn-primary mt-6 inline-flex">{{ $t('Aller à la connexion') }}</Link>
       </div>
     </div>
+
+    <!-- Langue de l'interface -->
+    <LocaleSwitch class="mt-4" />
   </div>
 </template>
 
@@ -106,6 +122,9 @@ import FormField from '@/Components/Forms/FormField.vue';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
 import FormError from '@/Components/Forms/FormError.vue';
 import FormButton from '@/Components/Forms/FormButton.vue';
+import LocaleSwitch from '@/Components/LocaleSwitch.vue';
+import Trans from '@/Components/Trans.vue';
+import { t } from '@/i18n';
 
 const props = defineProps({
   // ok | accepted | expired | revoked | invalid
@@ -132,21 +151,26 @@ const submit = () => {
   });
 };
 
+// Fiche : « Prénom Nom (1950) ».
+const personLabel = computed(() => (props.person
+  ? `${props.person.name}${props.person.birth_year ? ` (${props.person.birth_year})` : ''}`
+  : ''));
+
 const closed = computed(() => ({
   accepted: {
-    title: 'Cet accès a déjà été créé',
-    text: 'Le lien a déjà servi. Connectez-vous avec votre adresse e-mail et votre mot de passe (ou demandez un lien de connexion par e-mail).',
+    title: t('Cet accès a déjà été créé'),
+    text: t('Le lien a déjà servi. Connectez-vous avec votre adresse e-mail et votre mot de passe (ou demandez un lien de connexion par e-mail).'),
   },
   expired: {
-    title: 'Ce lien a expiré',
-    text: 'Les liens d\'invitation sont valables 30 jours. Demandez à la personne qui vous a invité de vous en renvoyer un.',
+    title: t('Ce lien a expiré'),
+    text: t('Les liens d\'invitation sont valables 30 jours. Demandez à la personne qui vous a invité de vous en renvoyer un.'),
   },
   revoked: {
-    title: 'Ce lien n\'est plus valable',
-    text: 'Cette invitation a été annulée ou remplacée par un lien plus récent : vérifiez le dernier mail reçu.',
+    title: t('Ce lien n\'est plus valable'),
+    text: t('Cette invitation a été annulée ou remplacée par un lien plus récent : vérifiez le dernier mail reçu.'),
   },
 }[props.state] ?? {
-  title: 'Lien introuvable',
-  text: 'Ce lien d\'invitation n\'existe pas ou n\'est plus valable. Vérifiez qu\'il a été copié en entier.',
+  title: t('Lien introuvable'),
+  text: t('Ce lien d\'invitation n\'existe pas ou n\'est plus valable. Vérifiez qu\'il a été copié en entier.'),
 }));
 </script>

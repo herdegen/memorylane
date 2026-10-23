@@ -24,8 +24,8 @@ class VoiceNoteRecorded extends PushNotification
     public function toWebPush(object $notifiable, Notification $notification): WebPushMessage
     {
         return $this->message(
-            'Un souvenir raconté',
-            "{$this->narratorFirstName} a raconté une photo. Allez l'écouter !",
+            __('Un souvenir raconté'),
+            __(':name a raconté une photo. Allez l\'écouter !', ['name' => $this->narratorFirstName]),
             "/media/{$this->mediaId}",
             "voice-note-{$this->mediaId}",
         );

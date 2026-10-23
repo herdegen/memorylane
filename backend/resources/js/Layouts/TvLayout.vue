@@ -4,18 +4,18 @@
        1080p) : l'écran garde ses proportions quelle que soit la résolution
        annoncée par le téléviseur. Couleurs fixes (pas de mode clair/sombre). -->
   <div class="tv-root min-h-screen bg-[#12100c] text-[#f7f2ea] font-sans flex flex-col" :class="{ 'h-screen overflow-hidden': fill }">
-    <nav v-if="!bare" aria-label="Navigation" class="shrink-0 flex items-center gap-9 h-[4.5rem] mx-24 mt-[3.375rem]" :class="navClass">
+    <nav v-if="!bare" :aria-label="$t('Navigation')" class="shrink-0 flex items-center gap-9 h-[4.5rem] mx-24 mt-[3.375rem]" :class="navClass">
       <div class="font-display text-[2.25rem] font-bold whitespace-nowrap">MemoryLane</div>
       <div class="flex gap-1.5 flex-1 min-w-0" data-tv-row>
         <Link v-for="t in TABS" :key="t.key" :href="t.href" data-tv class="tv-pill" :class="{ 'tv-pill-on': tab === t.key }">{{ t.label }}</Link>
-        <Link href="/tv/ecran/recherche" data-tv class="tv-pill flex items-center" :class="{ 'tv-pill-on': tab === 'search' }" aria-label="Recherche">
+        <Link href="/tv/ecran/recherche" data-tv class="tv-pill flex items-center" :class="{ 'tv-pill-on': tab === 'search' }" :aria-label="$t('Recherche')">
           <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></svg>
         </Link>
       </div>
       <div class="flex items-center gap-4" data-tv-row>
-        <button v-if="circles.length > 1" type="button" data-tv class="tv-chip" @click="menu = 'circle'">{{ circle?.name || 'Cercle' }}</button>
+        <button v-if="circles.length > 1" type="button" data-tv class="tv-chip" @click="menu = 'circle'">{{ circle?.name || $t('Cercle') }}</button>
         <span v-else-if="circle" class="tv-chip">{{ circle.name }}</span>
-        <button type="button" data-tv class="w-14 h-14 rounded-full bg-[#fcd34d] text-[#14110d] text-[1.625rem] font-extrabold flex items-center justify-center" :aria-label="`Compte de ${account?.name}`" @click="menu = 'account'">
+        <button type="button" data-tv class="w-14 h-14 rounded-full bg-[#fcd34d] text-[#14110d] text-[1.625rem] font-extrabold flex items-center justify-center" :aria-label="$t('Compte de :name', { name: account?.name })" @click="menu = 'account'">
           {{ (account?.name || '?').slice(0, 1).toUpperCase() }}
         </button>
       </div>
@@ -37,7 +37,7 @@
     <!-- Choix du cercle affiché sur cette TV -->
     <div v-if="menu === 'circle'" data-tv-scope class="fixed inset-0 z-[70] bg-black/80 flex items-center justify-center">
       <div class="w-[44rem] rounded-[2.25rem] bg-[#211d17] p-12 flex flex-col gap-4">
-        <h2 class="font-display text-[3rem] font-bold mb-4">Quel cercle afficher ?</h2>
+        <h2 class="font-display text-[3rem] font-bold mb-4">{{ $t('Quel cercle afficher ?') }}</h2>
         <button
           v-for="c in circles"
           :key="c.id"
@@ -47,7 +47,7 @@
           class="tv-option"
           @click="chooseCircle(c)"
         >
-          {{ c.name }}<span v-if="c.id === circle?.id" class="ml-auto text-[#fcd34d]">affiché</span>
+          {{ c.name }}<span v-if="c.id === circle?.id" class="ml-auto text-[#fcd34d]">{{ $t('affiché') }}</span>
         </button>
       </div>
     </div>
@@ -55,11 +55,11 @@
     <!-- Compte / télévision -->
     <div v-if="menu === 'account'" data-tv-scope class="fixed inset-0 z-[70] bg-black/80 flex items-center justify-center">
       <div class="w-[48rem] rounded-[2.25rem] bg-[#211d17] p-12 flex flex-col gap-4">
-        <h2 class="font-display text-[3rem] font-bold">{{ account?.device || 'Cette télévision' }}</h2>
-        <p class="text-[1.75rem] text-[#c9bfb1] mb-4">Reliée au compte de {{ account?.name }}.</p>
-        <button type="button" data-tv data-tv-autofocus class="tv-option" @click="menu = null">Continuer</button>
-        <button type="button" data-tv class="tv-option" @click="openFrame">Lancer le cadre photo</button>
-        <button v-if="account?.device" type="button" data-tv class="tv-option text-[#fca5a5]" @click="unlink">Délier cette télévision</button>
+        <h2 class="font-display text-[3rem] font-bold">{{ account?.device || $t('Cette télévision') }}</h2>
+        <p class="text-[1.75rem] text-[#c9bfb1] mb-4">{{ $t('Reliée au compte de :name.', { name: account?.name }) }}</p>
+        <button type="button" data-tv data-tv-autofocus class="tv-option" @click="menu = null">{{ $t('Continuer') }}</button>
+        <button type="button" data-tv class="tv-option" @click="openFrame">{{ $t('Lancer le cadre photo') }}</button>
+        <button v-if="account?.device" type="button" data-tv class="tv-option text-[#fca5a5]" @click="unlink">{{ $t('Délier cette télévision') }}</button>
       </div>
     </div>
   </div>
@@ -71,6 +71,7 @@ import { Link, router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import { installRemote, focusInitial, onTvKey, tvActivity } from '@/Tv/remote';
 import TvFrame from '@/Components/Tv/TvFrame.vue';
+import { t } from '@/i18n';
 import '../../css/tv.css';
 
 const props = defineProps({
@@ -81,7 +82,7 @@ const props = defineProps({
   // Page précédente (touche Retour) ; null sur l'accueil.
   back: { type: String, default: null },
   // Aide télécommande en pied de page : [touche, libellé].
-  hints: { type: Array, default: () => [['OK', 'Ouvrir'], ['◀ ▲ ▼ ▶', 'Se déplacer'], ['↩', 'Retour']] },
+  hints: { type: Array, default: () => [['OK', t('Ouvrir')], ['◀ ▲ ▼ ▶', t('Se déplacer')], ['↩', t('Retour')]] },
   // Sans barre de navigation (appairage, jeu).
   bare: { type: Boolean, default: false },
   // Page à hauteur d'écran (pas de défilement de la page entière).
@@ -92,13 +93,13 @@ const props = defineProps({
 });
 
 const ALL_TABS = [
-  { key: 'home', label: 'Accueil', href: '/tv/ecran/accueil' },
-  { key: 'albums', label: 'Albums', href: '/tv/ecran/albums' },
-  { key: 'photos', label: 'Photos', href: '/tv/ecran/photos' },
-  { key: 'people', label: 'Proches', href: '/tv/ecran/proches' },
-  { key: 'tree', label: 'Arbre', href: '/tv/ecran/arbre', family: true },
-  { key: 'map', label: 'Carte', href: '/tv/ecran/carte' },
-  { key: 'game', label: 'Qui est-ce ?', href: '/tv/ecran/qui-est-ce' },
+  { key: 'home', label: t('Accueil'), href: '/tv/ecran/accueil' },
+  { key: 'albums', label: t('Albums'), href: '/tv/ecran/albums' },
+  { key: 'photos', label: t('Photos'), href: '/tv/ecran/photos' },
+  { key: 'people', label: t('Proches'), href: '/tv/ecran/proches' },
+  { key: 'tree', label: t('Arbre'), href: '/tv/ecran/arbre', family: true },
+  { key: 'map', label: t('Carte'), href: '/tv/ecran/carte' },
+  { key: 'game', label: t('Qui est-ce ?'), href: '/tv/ecran/qui-est-ce' },
 ];
 // L'arbre n'a de sens que dans un cercle familial.
 const page = usePage();

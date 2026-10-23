@@ -44,7 +44,7 @@ class PushController extends Controller
         }
 
         return response()->json([
-            'message' => 'Notifications activées sur cet appareil.',
+            'message' => __('Notifications activées sur cet appareil.'),
             'subscriptions' => $this->subscriptionList($user),
             'preferences' => $user->pushPreferences(),
         ], 201);
@@ -61,7 +61,7 @@ class PushController extends Controller
         $subscription->delete();
 
         return response()->json([
-            'message' => 'Appareil retiré.',
+            'message' => __('Appareil retiré.'),
             'subscriptions' => $this->subscriptionList($request->user()),
         ]);
     }
@@ -82,7 +82,7 @@ class PushController extends Controller
         ));
 
         return response()->json([
-            'message' => 'Préférences enregistrées.',
+            'message' => __('Préférences enregistrées.'),
             'preferences' => $user->pushPreferences(),
         ]);
     }
@@ -90,11 +90,11 @@ class PushController extends Controller
     /** Envoie une notification de test à tous les appareils de l'utilisateur. */
     public function test(Request $request)
     {
-        abort_unless($request->user()->pushSubscriptions()->exists(), 422, 'Aucun appareil abonné.');
+        abort_unless($request->user()->pushSubscriptions()->exists(), 422, __('Aucun appareil abonné.'));
 
         $request->user()->notify(new TestPush());
 
-        return response()->json(['message' => 'Notification de test envoyée.']);
+        return response()->json(['message' => __('Notification de test envoyée.')]);
     }
 
     /** « Plus tard » sur la carte du tableau de bord : ne plus la proposer. */

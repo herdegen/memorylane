@@ -2,16 +2,16 @@
   <!-- « Comment on s'est connus » : une version par compte, la mienne éditable -->
   <div class="space-y-2">
     <div class="flex items-center justify-between">
-      <div class="text-xs font-semibold text-surface-600">Comment vous vous êtes connus</div>
+      <div class="text-xs font-semibold text-surface-600">{{ $t('Comment vous vous êtes connus') }}</div>
       <button
         v-if="!editing && mine"
         type="button"
         class="text-xs font-semibold text-brand-700 hover:underline"
         @click="startEdit"
-      >Modifier</button>
+      >{{ $t('Modifier') }}</button>
     </div>
 
-    <div v-if="loading" class="text-xs text-surface-500">Chargement…</div>
+    <div v-if="loading" class="text-xs text-surface-500">{{ $t('Chargement…') }}</div>
 
     <template v-else-if="!editing">
       <div
@@ -24,7 +24,7 @@
           <span v-if="v.story"> — {{ v.story }}</span>
         </div>
         <div class="text-xs text-surface-500 mt-0.5">
-          {{ v.mine ? 'Votre version' : `Raconté par ${v.author}` }}<span v-if="v.year"> · {{ v.year }}</span>
+          {{ v.mine ? $t('Votre version') : $t('Raconté par :name', { name: v.author }) }}<span v-if="v.year"> · {{ v.year }}</span>
         </div>
       </div>
       <button
@@ -33,7 +33,7 @@
         class="w-full h-11 rounded-xl border border-dashed border-brand-300 text-sm font-semibold text-brand-700 hover:bg-brand-50 dark:hover:bg-brand-500/10"
         @click="startEdit"
       >
-        {{ versions.length ? 'Ajouter ma version' : 'Raconter votre rencontre' }}
+        {{ versions.length ? $t('Ajouter ma version') : $t('Raconter votre rencontre') }}
       </button>
     </template>
 
@@ -50,12 +50,12 @@
           @click="form.context = c.key"
         >{{ c.label }}</button>
       </div>
-      <input v-model="form.story" type="text" maxlength="500" class="form-input" placeholder="En une phrase (facultatif)" aria-label="Récit (facultatif)" />
-      <input v-model="form.year" type="number" min="1900" :max="currentYear" class="form-input w-32" placeholder="Année ?" aria-label="Année (facultatif)" />
+      <input v-model="form.story" type="text" maxlength="500" class="form-input" :placeholder="$t('En une phrase (facultatif)')" :aria-label="$t('Récit (facultatif)')" />
+      <input v-model="form.year" type="number" min="1900" :max="currentYear" class="form-input w-32" :placeholder="$t('Année ?')" :aria-label="$t('Année (facultatif)')" />
       <div class="flex gap-2">
-        <button type="submit" class="btn-primary" :disabled="!form.context || saving">Enregistrer</button>
-        <button type="button" class="btn-secondary" @click="editing = false">Annuler</button>
-        <button v-if="mine" type="button" class="ml-auto text-xs font-semibold text-red-600 dark:text-red-400" @click="remove">Supprimer</button>
+        <button type="submit" class="btn-primary" :disabled="!form.context || saving">{{ $t('Enregistrer') }}</button>
+        <button type="button" class="btn-secondary" @click="editing = false">{{ $t('Annuler') }}</button>
+        <button v-if="mine" type="button" class="ml-auto text-xs font-semibold text-red-600 dark:text-red-400" @click="remove">{{ $t('Supprimer') }}</button>
       </div>
     </form>
   </div>
@@ -65,6 +65,7 @@
 import { ref, computed, watch } from 'vue';
 import axios from 'axios';
 import { useToast } from '@/Composables/useToast';
+import { t } from '@/i18n';
 
 const props = defineProps({
   personId: { type: String, required: true },
@@ -105,8 +106,8 @@ async function load() {
 }
 
 function headline(v) {
-  if (v.context === 'friend' && v.via) return `Par ${v.via.name}`;
-  return v.context_label || 'Rencontre';
+  if (v.context === 'friend' && v.via) return t('Par :name', { name: v.via.name });
+  return v.context_label || t('Rencontre');
 }
 
 function startEdit() {
@@ -130,7 +131,7 @@ async function save() {
     apply(data);
     editing.value = false;
   } catch (e) {
-    toast.error(e.response?.data?.message || "Impossible d'enregistrer.");
+    toast.error(e.response?.data?.message || t("Impossible d'enregistrer."));
   } finally {
     saving.value = false;
   }
@@ -142,7 +143,7 @@ async function remove() {
     apply(data);
     editing.value = false;
   } catch {
-    toast.error('Impossible de supprimer.');
+    toast.error(t('Impossible de supprimer.'));
   }
 }
 

@@ -1,5 +1,5 @@
 <template>
-  <Head title="Accueil" />
+  <Head :title="$t('Accueil')" />
   <AppLayout>
     <div class="page-container">
       <div class="page-content flex flex-col gap-6 sm:gap-9 px-4 sm:px-6 lg:px-8">
@@ -7,7 +7,7 @@
         <!-- Salutation compacte -->
         <div class="order-first flex flex-col sm:flex-row sm:flex-wrap sm:items-baseline sm:justify-between gap-0.5 sm:gap-2">
           <h1 class="font-display text-[26px] sm:text-4xl font-bold text-surface-900">
-            Bonjour<span v-if="user">, {{ user.name.split(' ')[0] }}</span>.
+            {{ user ? $t('Bonjour, :name.', { name: user.name.split(' ')[0] }) : $t('Bonjour.') }}
           </h1>
           <span class="text-[13px] sm:text-sm text-surface-400">{{ formattedToday }}</span>
         </div>
@@ -21,13 +21,13 @@
         <!-- ============ Souvenirs « Il y a N ans » ============ -->
         <div v-if="onThisDay.length > 0" class="space-y-4" data-tour="today">
           <div class="flex items-center justify-between">
-            <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400">Vos souvenirs du jour</h2>
+            <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400">{{ $t('Vos souvenirs du jour') }}</h2>
             <button
               @click="playMemories(0)"
               class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-surface-300 text-sm font-medium text-surface-700 hover:bg-surface-50 transition"
             >
               <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-              Revivre en diaporama
+              {{ $t('Revivre en diaporama') }}
             </button>
           </div>
 
@@ -51,12 +51,12 @@
               <div v-else class="absolute inset-0 bg-linear-to-br from-brand-200 to-surface-300"></div>
               <div class="absolute inset-0 bg-linear-to-b from-black/10 via-transparent to-black/60"></div>
               <span class="absolute top-3.5 left-3.5 px-3 py-1 rounded-full bg-white/90 text-surface-900 text-[13px] font-bold">
-                {{ group.years_ago === 1 ? 'Il y a 1 an' : `Il y a ${group.years_ago} ans` }}
+                {{ $tc('Il y a :count an|Il y a :count ans', group.years_ago) }}
               </span>
               <div class="absolute bottom-3.5 left-4 right-4 flex items-end justify-between gap-3">
                 <div>
                   <div class="font-display text-xl font-semibold text-white">{{ group.year }}</div>
-                  <div class="text-[13px] text-white/85">{{ group.media.length }} photo{{ group.media.length > 1 ? 's' : '' }}</div>
+                  <div class="text-[13px] text-white/85">{{ $tc(':count photo|:count photos', group.media.length) }}</div>
                 </div>
                 <div class="hidden sm:flex gap-1">
                   <div
@@ -80,7 +80,7 @@
 
         <!-- ============ Personne du jour (repli sans souvenir daté) ============ -->
         <div v-else-if="personOfTheDay" class="space-y-4" data-tour="today">
-          <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400">La personne du jour</h2>
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400">{{ $t('La personne du jour') }}</h2>
           <div class="flex flex-col sm:flex-row bg-white border border-surface-200 rounded-2xl overflow-hidden shadow-warm-md">
             <!-- Avatar, sinon la première photo où la personne apparaît. -->
             <PersonAvatar
@@ -92,10 +92,10 @@
               fallback-class="text-6xl font-bold text-brand-700"
             />
             <div class="flex-1 p-6 sm:p-7 flex flex-col justify-center gap-2">
-              <div class="text-xs font-semibold uppercase tracking-widest text-brand-700">Personne du jour</div>
+              <div class="text-xs font-semibold uppercase tracking-widest text-brand-700">{{ $t('Personne du jour') }}</div>
               <div class="font-display text-3xl font-semibold text-surface-900">{{ personOfTheDay.name }}</div>
               <p class="text-sm text-surface-500">
-                {{ personOfTheDay.media_count }} photo{{ personOfTheDay.media_count > 1 ? 's' : '' }} {{ isFriends ? 'dans vos souvenirs communs' : 'dans votre mémoire familiale' }}<span v-if="personOfTheDay.oldest_year"> — la plus ancienne date de {{ personOfTheDay.oldest_year }}</span>.
+                {{ personOfTheDayLine }}
               </p>
               <div v-if="personOfTheDay.photos.length" class="flex gap-1.5 mt-1.5">
                 <Link
@@ -108,7 +108,7 @@
                 </Link>
               </div>
               <div class="mt-3">
-                <Link :href="`/people/${personOfTheDay.id}`" class="btn-primary btn-sm">Voir sa fiche</Link>
+                <Link :href="`/people/${personOfTheDay.id}`" class="btn-primary btn-sm">{{ $t('Voir sa fiche') }}</Link>
               </div>
             </div>
           </div>
@@ -116,7 +116,7 @@
 
         <!-- ============ Fêtes & anniversaires ============ -->
         <div v-if="celebrations.length > 0" class="space-y-4">
-          <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400">Fêtes, anniversaires &amp; souvenirs</h2>
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400">{{ $t('Fêtes, anniversaires & souvenirs') }}</h2>
           <div class="flex flex-nowrap sm:flex-wrap gap-3 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible">
             <Link
               v-for="(c, i) in celebrations"
@@ -157,8 +157,8 @@
           <button
             @click="hideGuide"
             class="absolute top-3 right-3 text-surface-400 hover:text-surface-600 transition"
-            title="Ne plus afficher"
-            aria-label="Ne plus afficher"
+            :title="$t('Ne plus afficher')"
+            :aria-label="$t('Ne plus afficher')"
           >
             <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
@@ -168,20 +168,20 @@
             </svg>
           </div>
           <div class="flex-1 min-w-0">
-            <h2 class="text-base font-semibold text-surface-900">Bien démarrer avec MemoryLane</h2>
+            <h2 class="text-base font-semibold text-surface-900">{{ $t('Bien démarrer avec MemoryLane') }}</h2>
             <p class="text-sm text-surface-500 mt-0.5">
-              Importer vos photos, créer des albums, identifier les visages, partager avec vos proches — le guide pas à pas.
+              {{ $t('Importer vos photos, créer des albums, identifier les visages, partager avec vos proches — le guide pas à pas.') }}
             </p>
           </div>
           <Link href="/guide" class="btn-primary shrink-0">
-            Ouvrir le guide
+            {{ $t('Ouvrir le guide') }}
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
           </Link>
         </div>
 
         <!-- ============ Accès rapide (desktop ; sur téléphone la barre d'onglets suffit) ============ -->
         <div class="hidden sm:block">
-          <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400 mb-4">Accès rapide</h2>
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400 mb-4">{{ $t('Accès rapide') }}</h2>
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Link href="/media/upload" class="action-card group">
               <div class="flex items-start gap-4">
@@ -191,8 +191,8 @@
                   </svg>
                 </div>
                 <div>
-                  <h3 class="font-semibold text-surface-900">Ajouter des photos</h3>
-                  <p class="text-sm text-surface-500 mt-0.5">Depuis le téléphone ou l'ordinateur</p>
+                  <h3 class="font-semibold text-surface-900">{{ $t('Ajouter des photos') }}</h3>
+                  <p class="text-sm text-surface-500 mt-0.5">{{ $t('Depuis le téléphone ou l\'ordinateur') }}</p>
                 </div>
               </div>
             </Link>
@@ -205,8 +205,8 @@
                   </svg>
                 </div>
                 <div>
-                  <h3 class="font-semibold text-surface-900">Mes photos</h3>
-                  <p class="text-sm text-surface-500 mt-0.5">Tous vos médias</p>
+                  <h3 class="font-semibold text-surface-900">{{ $t('Mes photos') }}</h3>
+                  <p class="text-sm text-surface-500 mt-0.5">{{ $t('Tous vos médias') }}</p>
                 </div>
               </div>
             </Link>
@@ -219,8 +219,8 @@
                   </svg>
                 </div>
                 <div>
-                  <h3 class="font-semibold text-surface-900">{{ isFriends ? 'Amis' : 'Personnes' }}</h3>
-                  <p class="text-sm text-surface-500 mt-0.5">{{ isFriends ? 'Les fiches du cercle' : 'Votre famille' }}</p>
+                  <h3 class="font-semibold text-surface-900">{{ isFriends ? $t('Amis') : $t('Personnes') }}</h3>
+                  <p class="text-sm text-surface-500 mt-0.5">{{ isFriends ? $t('Les fiches du cercle') : $t('Votre famille') }}</p>
                 </div>
               </div>
             </Link>
@@ -233,8 +233,8 @@
                   </svg>
                 </div>
                 <div>
-                  <h3 class="font-semibold text-surface-900">{{ isFriends ? 'Réseau' : 'Arbre' }}</h3>
-                  <p class="text-sm text-surface-500 mt-0.5">{{ isFriends ? 'Qui apparaît avec qui' : 'Généalogie' }}</p>
+                  <h3 class="font-semibold text-surface-900">{{ isFriends ? $t('Réseau') : $t('Arbre') }}</h3>
+                  <p class="text-sm text-surface-500 mt-0.5">{{ isFriends ? $t('Qui apparaît avec qui') : $t('Généalogie') }}</p>
                 </div>
               </div>
             </Link>
@@ -245,7 +245,7 @@
     </div>
 
     <!-- Diaporama des souvenirs -->
-    <FullscreenSlideshow ref="memoriesSlideshow" :slides="memorySlides" :photo-duration="6000" title="Ce jour-là" />
+    <FullscreenSlideshow ref="memoriesSlideshow" :slides="memorySlides" :photo-duration="6000" :title="$t('Ce jour-là')" />
   </AppLayout>
 </template>
 
@@ -255,6 +255,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { formatLongDate } from '@/utils/format';
+import { tc, intlLocale } from '@/i18n';
 import FullscreenSlideshow from '@/Components/FullscreenSlideshow.vue';
 import QuestCard from '@/Components/QuestCard.vue';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
@@ -293,8 +294,24 @@ const props = defineProps({
 });
 
 const formattedToday = computed(() =>
-  new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  new Date().toLocaleDateString(intlLocale(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 );
+
+// Phrase de la personne du jour : cercle famille / amis, et année de la
+// photo la plus ancienne quand elle est connue.
+const personOfTheDayLine = computed(() => {
+  const p = props.personOfTheDay;
+  if (!p) return '';
+  const n = p.media_count;
+  if (p.oldest_year) {
+    return isFriends.value
+      ? tc(':count photo dans vos souvenirs communs — la plus ancienne date de :year.|:count photos dans vos souvenirs communs — la plus ancienne date de :year.', n, { year: p.oldest_year })
+      : tc(':count photo dans votre mémoire familiale — la plus ancienne date de :year.|:count photos dans votre mémoire familiale — la plus ancienne date de :year.', n, { year: p.oldest_year });
+  }
+  return isFriends.value
+    ? tc(':count photo dans vos souvenirs communs.|:count photos dans vos souvenirs communs.', n)
+    : tc(':count photo dans votre mémoire familiale.|:count photos dans votre mémoire familiale.', n);
+});
 
 // Couverture d'une carte souvenir : conversion medium de la 1re photo.
 const coverUrl = (group) => {
@@ -313,7 +330,7 @@ const memorySlides = computed(() =>
       type: m.type === 'video' ? 'video' : 'photo',
       src: slideUrl(m),
       label: m.title || null,
-      chapter: group.years_ago === 1 ? 'Il y a 1 an' : `Il y a ${group.years_ago} ans`,
+      chapter: tc('Il y a :count an|Il y a :count ans', group.years_ago),
       when: m.taken_at ? formatLongDate(m.taken_at) : null,
     }))
   )

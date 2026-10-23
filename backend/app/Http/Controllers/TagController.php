@@ -52,7 +52,7 @@ class TagController extends Controller
             ], 201);
         }
 
-        return redirect()->back()->with('success', 'Tag créé avec succès');
+        return redirect()->back()->with('success', __('Tag créé avec succès'));
     }
 
     /**
@@ -78,7 +78,7 @@ class TagController extends Controller
             ]);
         }
 
-        return redirect()->back()->with('success', 'Tag modifié avec succès');
+        return redirect()->back()->with('success', __('Tag modifié avec succès'));
     }
 
     /**
@@ -96,7 +96,7 @@ class TagController extends Controller
             ]);
         }
 
-        return redirect()->back()->with('success', 'Tag supprimé avec succès');
+        return redirect()->back()->with('success', __('Tag supprimé avec succès'));
     }
 
     /**

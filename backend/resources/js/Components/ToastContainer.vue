@@ -32,7 +32,7 @@
           <button
             type="button"
             class="shrink-0 opacity-60 hover:opacity-100 transition-opacity"
-            aria-label="Fermer"
+            :aria-label="$t('Fermer')"
             @click="dismiss(toast.id)"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

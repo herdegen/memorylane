@@ -18,7 +18,7 @@
     </button>
 
     <div v-show="open && !sheet" role="menu" class="absolute left-0 mt-2 w-80 bg-white border border-surface-200 rounded-2xl shadow-warm-lg p-2 z-50">
-      <div class="px-3 pt-2 pb-1 text-xs font-semibold uppercase tracking-wider text-surface-500">Mes cercles</div>
+      <div class="px-3 pt-2 pb-1 text-xs font-semibold uppercase tracking-wider text-surface-500">{{ $t('Mes cercles') }}</div>
       <button
         v-for="c in circles"
         :key="c.id"
@@ -43,10 +43,10 @@
 
       <template v-if="canManage || canCreate">
         <hr class="my-2 border-surface-200" />
-        <div v-if="canManage" class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-surface-500">Administration</div>
+        <div v-if="canManage" class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-surface-500">{{ $t('Administration') }}</div>
         <Link href="/households" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-surface-700 hover:bg-surface-50" @click="open = false">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-          {{ canManage ? 'Créer et gérer les cercles' : 'Créer un cercle d\'amis' }}
+          {{ canManage ? $t('Créer et gérer les cercles') : $t("Créer un cercle d'amis") }}
         </Link>
       </template>
     </div>

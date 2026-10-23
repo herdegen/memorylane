@@ -34,23 +34,23 @@ class InvitationService
     public function personIneligibility(Person $person): ?string
     {
         if ($person->death_date !== null) {
-            return 'Cette personne est décédée.';
+            return __('Cette personne est décédée.');
         }
 
         if ($person->birth_date !== null && $person->birth_date->lt(now()->subYears(self::MAX_AGE_YEARS))) {
-            return 'Cette personne est née il y a plus de '.self::MAX_AGE_YEARS.' ans.';
+            return __('Cette personne est née il y a plus de :years ans.', ['years' => self::MAX_AGE_YEARS]);
         }
 
         if ($person->birth_date === null && $this->looksLikeAncestor($person)) {
-            return 'Cette personne semble appartenir à une génération ancienne de l\'arbre.';
+            return __('Cette personne semble appartenir à une génération ancienne de l\'arbre.');
         }
 
         if (User::where('person_id', $person->id)->exists()) {
-            return 'Cette personne a déjà un compte.';
+            return __('Cette personne a déjà un compte.');
         }
 
         if (Invitation::open()->where('person_id', $person->id)->exists()) {
-            return 'Une invitation est déjà en cours pour cette personne.';
+            return __('Une invitation est déjà en cours pour cette personne.');
         }
 
         return null;
@@ -162,16 +162,16 @@ class InvitationService
         }
 
         if (User::whereRaw('lower(email) = ?', [$email])->exists()) {
-            throw ValidationException::withMessages(['email' => 'Un compte existe déjà avec cette adresse.']);
+            throw ValidationException::withMessages(['email' => __('Un compte existe déjà avec cette adresse.')]);
         }
 
         if (Invitation::open()->where('email', $email)->exists()) {
-            throw ValidationException::withMessages(['email' => 'Une invitation est déjà en cours pour cette adresse.']);
+            throw ValidationException::withMessages(['email' => __('Une invitation est déjà en cours pour cette adresse.')]);
         }
 
         if (! $this->canInvite($inviter, $person)) {
             throw ValidationException::withMessages([
-                'person_id' => 'Dans ce cercle, seul un administrateur peut inviter de nouvelles personnes.',
+                'person_id' => __('Dans ce cercle, seul un administrateur peut inviter de nouvelles personnes.'),
             ]);
         }
 
@@ -198,7 +198,7 @@ class InvitationService
      */
     public function send(Invitation $invitation): void
     {
-        abort_if($invitation->accepted_at !== null, 422, 'Cette invitation a déjà été acceptée.');
+        abort_if($invitation->accepted_at !== null, 422, __('Cette invitation a déjà été acceptée.'));
 
         $token = Str::random(48);
         $invitation->forceFill([
@@ -251,10 +251,10 @@ class InvitationService
         $user = DB::transaction(function () use ($invitation, $data) {
             $invitation = Invitation::whereKey($invitation->id)->lockForUpdate()->firstOrFail();
 
-            abort_unless($invitation->isUsable(), 410, 'Cette invitation n\'est plus valable.');
+            abort_unless($invitation->isUsable(), 410, __('Cette invitation n\'est plus valable.'));
 
             if (User::whereRaw('lower(email) = ?', [Str::lower($invitation->email)])->exists()) {
-                throw ValidationException::withMessages(['email' => 'Un compte existe déjà avec cette adresse : connectez-vous plutôt.']);
+                throw ValidationException::withMessages(['email' => __('Un compte existe déjà avec cette adresse : connectez-vous plutôt.')]);
             }
 
             $personTaken = User::where('person_id', $invitation->person_id)->exists();

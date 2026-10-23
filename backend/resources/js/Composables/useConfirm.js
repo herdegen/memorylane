@@ -1,4 +1,5 @@
 import { ref } from 'vue';
+import { t } from '@/i18n';
 
 // Boîte de confirmation partagée (module singleton), sur le modèle de
 // useToast : n'importe quel composant demande une confirmation, ConfirmDialog
@@ -20,10 +21,10 @@ let nextId = 1;
 let hosts = 0;
 
 function confirm({
-  title = 'Confirmation',
+  title = t('Confirmation'),
   message = '',
-  confirmLabel = 'Confirmer',
-  cancelLabel = 'Annuler',
+  confirmLabel = t('Confirmer'),
+  cancelLabel = t('Annuler'),
   danger = false,
 } = {}) {
   if (hosts === 0) {

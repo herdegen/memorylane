@@ -709,8 +709,8 @@ class QuestService
             }
         } elseif ($subject instanceof Media) {
             $question['prompt'] = $type === QuestType::MediaDate
-                ? 'Quand cette photo a-t-elle été prise ?'
-                : 'Où cette photo a-t-elle été prise ?';
+                ? __('Quand cette photo a-t-elle été prise ?')
+                : __('Où cette photo a-t-elle été prise ?');
             $question['media'] = [
                 'id' => $subject->id,
                 'image_url' => url("/vision/media/{$subject->id}/image?conversion=medium"),
@@ -719,7 +719,7 @@ class QuestService
                 'origin' => $this->photoOrigin($user, $subject),
             ];
         } elseif ($subject instanceof DetectedFace) {
-            $question['prompt'] = 'Qui est cette personne ?';
+            $question['prompt'] = __('Qui est cette personne ?');
             $question['face'] = [
                 'id' => $subject->id,
                 'crop_url' => url("/vision/faces/{$subject->id}/crop"),
@@ -789,43 +789,68 @@ class QuestService
     private function selfPrompt(QuestType $type): ?string
     {
         return match ($type) {
-            QuestType::BirthDate => 'Quelle est ta date de naissance ?',
-            QuestType::Address => 'Dans quelle ville habites-tu ? (la ville suffit)',
-            QuestType::BirthPlace => 'Où es-tu né·e ?',
+            QuestType::BirthDate => __('Quelle est ta date de naissance ?'),
+            QuestType::Address => __('Dans quelle ville habites-tu ? (la ville suffit)'),
+            QuestType::BirthPlace => __('Où es-tu né·e ?'),
             default => null,
         };
     }
 
     private function personPrompt(QuestType $type, Person $person): string
     {
-        $il = match ($person->gender) {
-            'F' => 'elle',
-            default => 'il',
+        // Accords : une clé complète par forme (elle / il ; née / né / né·e
+        // quand le genre est inconnu).
+        $gender = match ($person->gender) {
+            'F' => 'F',
+            'M' => 'M',
+            default => 'U',
         };
-        $e = match ($person->gender) {
-            'F' => 'e',
-            'M' => '',
-            default => '·e',
-        };
-        $name = $person->name;
+        $female = $gender === 'F';
+        $name = ['name' => $person->name];
 
         return match ($type) {
-            QuestType::BirthDate => "Quelle est la date de naissance de {$name} ?",
-            QuestType::BirthPlace => "Où est né{$e} {$name} ?",
-            QuestType::DeathStatus => "{$name} est-{$il} encore en vie ?",
-            QuestType::DeathDateOld => "Savez-vous quand {$name} est décédé{$e} ?",
-            QuestType::DeathPlace => "Où {$name} est-{$il} décédé{$e} ?",
-            QuestType::Gender => "{$name} était-{$il} un homme ou une femme ?",
-            QuestType::ParentFather => "Qui est le père de {$name} ?",
-            QuestType::ParentMother => "Qui est la mère de {$name} ?",
-            QuestType::MaritalStatus => "{$name} a-t-{$il} été marié{$e} ou en couple ?",
-            QuestType::MaidenName => "Quel était le nom de jeune fille de {$name} ?",
-            QuestType::Job => "Quel métier {$name} a-t-{$il} exercé ?",
-            QuestType::Education => "Où {$name} a-t-{$il} étudié (école, diplôme…) ?",
-            QuestType::Residence => "Où {$name} a-t-{$il} habité ?",
-            QuestType::Address => "Quelle est l'adresse actuelle de {$name} ?",
-            QuestType::HowMet => "Comment as-tu connu {$name} ?",
-            default => $name,
+            QuestType::BirthDate => __('Quelle est la date de naissance de :name ?', $name),
+            QuestType::BirthPlace => match ($gender) {
+                'F' => __('Où est née :name ?', $name),
+                'M' => __('Où est né :name ?', $name),
+                default => __('Où est né·e :name ?', $name),
+            },
+            QuestType::DeathStatus => $female
+                ? __(':name est-elle encore en vie ?', $name)
+                : __(':name est-il encore en vie ?', $name),
+            QuestType::DeathDateOld => match ($gender) {
+                'F' => __('Savez-vous quand :name est décédée ?', $name),
+                'M' => __('Savez-vous quand :name est décédé ?', $name),
+                default => __('Savez-vous quand :name est décédé·e ?', $name),
+            },
+            QuestType::DeathPlace => match ($gender) {
+                'F' => __('Où :name est-elle décédée ?', $name),
+                'M' => __('Où :name est-il décédé ?', $name),
+                default => __('Où :name est-il décédé·e ?', $name),
+            },
+            QuestType::Gender => $female
+                ? __(':name était-elle un homme ou une femme ?', $name)
+                : __(':name était-il un homme ou une femme ?', $name),
+            QuestType::ParentFather => __('Qui est le père de :name ?', $name),
+            QuestType::ParentMother => __('Qui est la mère de :name ?', $name),
+            QuestType::MaritalStatus => match ($gender) {
+                'F' => __(':name a-t-elle été mariée ou en couple ?', $name),
+                'M' => __(':name a-t-il été marié ou en couple ?', $name),
+                default => __(':name a-t-il été marié·e ou en couple ?', $name),
+            },
+            QuestType::MaidenName => __('Quel était le nom de jeune fille de :name ?', $name),
+            QuestType::Job => $female
+                ? __('Quel métier :name a-t-elle exercé ?', $name)
+                : __('Quel métier :name a-t-il exercé ?', $name),
+            QuestType::Education => $female
+                ? __('Où :name a-t-elle étudié (école, diplôme…) ?', $name)
+                : __('Où :name a-t-il étudié (école, diplôme…) ?', $name),
+            QuestType::Residence => $female
+                ? __('Où :name a-t-elle habité ?', $name)
+                : __('Où :name a-t-il habité ?', $name),
+            QuestType::Address => __('Quelle est l\'adresse actuelle de :name ?', $name),
+            QuestType::HowMet => __('Comment as-tu connu :name ?', $name),
+            default => $person->name,
         };
     }
 
@@ -856,7 +881,7 @@ class QuestService
             'photos' => $mine[$friend->id][0] ?? 0,
             'since' => $mine[$friend->id][1] ?? null,
             'via' => $via ? ['id' => $via->id, 'name' => $via->name] : null,
-            'contexts' => collect(PersonLink::CONTEXTS)->map(fn ($label, $key) => ['key' => $key, 'label' => $label])->values(),
+            'contexts' => collect(PersonLink::contextLabels())->map(fn ($label, $key) => ['key' => $key, 'label' => $label])->values(),
         ];
     }
 

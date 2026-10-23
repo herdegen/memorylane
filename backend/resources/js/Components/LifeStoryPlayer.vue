@@ -61,11 +61,11 @@
                 :src="chapterImage"
                 class="w-full h-32 sm:h-full object-cover"
                 :class="currentEvent.media ? 'cursor-zoom-in' : ''"
-                :title="currentEvent.media ? 'Agrandir' : ''"
+                :title="currentEvent.media ? $t('Agrandir') : ''"
                 @click="currentEvent.media && openZoom(currentEvent.media.url || chapterImage)"
               />
               <span v-if="!currentEvent.media" class="absolute bottom-1 right-2 text-[10px] text-white/80 [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
-                Photo du lieu — Wikimedia Commons
+                {{ $t('Photo du lieu — Wikimedia Commons') }}
               </span>
             </div>
             <div class="p-5 sm:p-7 flex-1 min-w-0">
@@ -88,7 +88,7 @@
            qu'il est ouvert et reprend à la fermeture. -->
       <div v-if="zoomSrc" class="absolute inset-0 z-40 bg-black/92 flex items-center justify-center cursor-zoom-out" @click="closeZoom">
         <img :src="zoomSrc" class="max-w-[96vw] max-h-[94vh] object-contain shadow-2xl" @click.stop />
-        <button @click="closeZoom" class="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/15 text-white flex items-center justify-center hover:bg-white/30 transition" title="Fermer (Échap)">
+        <button @click="closeZoom" class="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/15 text-white flex items-center justify-center hover:bg-white/30 transition" :title="$t('Fermer (Échap)')">
           <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
       </div>
@@ -96,16 +96,16 @@
       <!-- Fin du récit -->
       <div v-if="finished" class="absolute inset-0 z-30 flex items-center justify-center bg-black/55">
         <div class="text-center">
-          <p class="font-display text-3xl font-semibold text-white">La vie de {{ personName }}</p>
-          <p class="text-white/70 text-sm mt-2">{{ events.length }} moments — et l'histoire continue.</p>
+          <p class="font-display text-3xl font-semibold text-white">{{ $t('La vie de :name', { name: personName }) }}</p>
+          <p class="text-white/70 text-sm mt-2">{{ $tc(":count moment — et l'histoire continue.|:count moments — et l'histoire continue.", events.length) }}</p>
           <button @click="restart" class="mt-5 inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/90 text-surface-900 text-sm font-semibold hover:bg-white transition">
             <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-            Revoir
+            {{ $t('Revoir') }}
           </button>
           <div>
             <button @click="close" class="mt-3 inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/20 border border-white/70 text-white text-sm font-semibold shadow-lg hover:bg-white/35 transition">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-              Fermer
+              {{ $t('Fermer') }}
             </button>
           </div>
         </div>
@@ -125,17 +125,17 @@
 
       <!-- Contrôles -->
       <div class="absolute z-30 top-4 right-4 flex items-center gap-2">
-        <button @click="prev" :disabled="!canGoPrev" class="w-10 h-10 rounded-full bg-black/45 text-white flex items-center justify-center hover:bg-black/65 transition disabled:opacity-40" title="Précédent">
+        <button @click="prev" :disabled="!canGoPrev" class="w-10 h-10 rounded-full bg-black/45 text-white flex items-center justify-center hover:bg-black/65 transition disabled:opacity-40" :title="$t('Précédent')">
           <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
         </button>
-        <button @click="togglePause" class="w-10 h-10 rounded-full bg-black/45 text-white flex items-center justify-center hover:bg-black/65 transition" :title="paused ? 'Reprendre' : 'Pause'">
+        <button @click="togglePause" class="w-10 h-10 rounded-full bg-black/45 text-white flex items-center justify-center hover:bg-black/65 transition" :title="paused ? $t('Reprendre') : $t('Pause')">
           <svg v-if="paused" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
           <svg v-else class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg>
         </button>
-        <button @click="next" :disabled="!canGoNext" class="w-10 h-10 rounded-full bg-black/45 text-white flex items-center justify-center hover:bg-black/65 transition disabled:opacity-40" title="Suivant">
+        <button @click="next" :disabled="!canGoNext" class="w-10 h-10 rounded-full bg-black/45 text-white flex items-center justify-center hover:bg-black/65 transition disabled:opacity-40" :title="$t('Suivant')">
           <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
         </button>
-        <button @click="close" class="w-10 h-10 rounded-full bg-black/45 text-white flex items-center justify-center hover:bg-black/65 transition" title="Fermer">
+        <button @click="close" class="w-10 h-10 rounded-full bg-black/45 text-white flex items-center justify-center hover:bg-black/65 transition" :title="$t('Fermer')">
           <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
       </div>

@@ -5,7 +5,7 @@
   <component
     :is="mobile ? BottomSheet : BaseModal"
     v-if="mobile || (open && step === 'person')"
-    v-bind="mobile ? { open: open && step === 'person', title: 'Un moment pour qui ?' } : { title: 'Un moment pour qui ?', maxWidth: 'md' }"
+    v-bind="mobile ? { open: open && step === 'person', title: $t('Un moment pour qui ?') } : { title: $t('Un moment pour qui ?'), maxWidth: 'md' }"
     @close="$emit('close')"
   >
     <div class="flex flex-col gap-3" :class="mobile ? '' : 'p-6'">
@@ -20,11 +20,11 @@
         <span v-if="photos.length > 8" class="w-12 h-12 rounded-lg bg-surface-200 text-surface-700 text-xs font-bold flex items-center justify-center shrink-0">+{{ photos.length - 8 }}</span>
       </div>
       <p class="text-sm text-surface-600">
-        Le moment rejoindra la frise de la personne choisie, avec {{ photos.length > 1 ? 'ces photos' : 'cette photo' }}.
+        {{ photos.length > 1 ? $t('Le moment rejoindra la frise de la personne choisie, avec ces photos.') : $t('Le moment rejoindra la frise de la personne choisie, avec cette photo.') }}
       </p>
 
       <div v-if="people.length" class="flex flex-col gap-1.5">
-        <span class="text-xs font-bold uppercase tracking-wider text-surface-500">Sur {{ photos.length > 1 ? 'ces photos' : 'la photo' }}</span>
+        <span class="text-xs font-bold uppercase tracking-wider text-surface-500">{{ photos.length > 1 ? $t('Sur ces photos') : $t('Sur la photo') }}</span>
         <button
           v-for="p in people"
           :key="p.id"
@@ -39,8 +39,8 @@
       </div>
 
       <div class="flex flex-col gap-1.5">
-        <span class="text-xs font-bold uppercase tracking-wider text-surface-500">{{ people.length ? 'Ou quelqu\'un d\'autre' : 'Chercher une personne' }}</span>
-        <input v-model="q" type="search" class="form-input" placeholder="Prénom, nom…" autocomplete="off" />
+        <span class="text-xs font-bold uppercase tracking-wider text-surface-500">{{ people.length ? $t('Ou quelqu\'un d\'autre') : $t('Chercher une personne') }}</span>
+        <input v-model="q" type="search" class="form-input" :placeholder="$t('Prénom, nom…')" autocomplete="off" />
         <div v-if="q.trim()" class="flex flex-col gap-1 max-h-60 overflow-y-auto">
           <button
             v-for="p in results"
@@ -52,7 +52,7 @@
             <PersonAvatar :person="p" :size="8" class="shrink-0" />
             <span class="flex-1 min-w-0 text-sm font-medium text-surface-900 truncate">{{ p.name }}</span>
           </button>
-          <p v-if="!results.length" class="px-2 py-2 text-sm text-surface-500">Aucune fiche ne correspond.</p>
+          <p v-if="!results.length" class="px-2 py-2 text-sm text-surface-500">{{ $t('Aucune fiche ne correspond.') }}</p>
         </div>
       </div>
     </div>
@@ -76,6 +76,7 @@ import PersonAvatar from '@/Components/PersonAvatar.vue';
 import { usePeopleDirectory } from '@/Composables/usePeopleDirectory';
 import { searchPeople } from '@/utils/personSearch';
 import { useToast } from '@/Composables/useToast';
+import { t } from '@/i18n';
 
 const LifeEventFormModal = defineAsyncComponent(() => import('@/Components/LifeEventFormModal.vue'));
 
@@ -135,7 +136,7 @@ const formPrefill = computed(() => {
 });
 
 const onSaved = () => {
-  toast.success(`Moment ajouté à la frise de ${person.value.name.split(/\s+/)[0]}.`);
+  toast.success(t('Moment ajouté à la frise de :name.', { name: person.value.name.split(/\s+/)[0] }));
   emit('saved', person.value);
   emit('close');
 };

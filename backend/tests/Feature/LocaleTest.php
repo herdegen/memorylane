@@ -119,4 +119,18 @@ class LocaleTest extends TestCase
     {
         $this->assertStringNotContainsString('/i18n/', $this->get('/login')->getContent());
     }
+
+    public function test_les_pluriels_du_serveur_restent_en_francais_pour_un_francophone(): void
+    {
+        $key = ':count média|:count médias';
+        $this->assertArrayHasKey($key, json_decode(file_get_contents(lang_path('en.json')), true));
+
+        app()->setLocale('fr');
+        $this->assertSame('2 médias', trans_choice($key, 2));
+        $this->assertSame('1 média', trans_choice($key, 1));
+
+        app()->setLocale('en');
+        $this->assertSame('2 items', trans_choice($key, 2));
+        $this->assertSame('1 item', trans_choice($key, 1));
+    }
 }

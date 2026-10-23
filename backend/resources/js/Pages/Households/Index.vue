@@ -1,13 +1,12 @@
 <template>
-  <Head title="Cercles" />
+  <Head :title="$t('Cercles')" />
   <AppLayout>
     <div class="py-12">
       <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="mb-6">
-          <h1 class="text-display text-4xl text-surface-900">Cercles</h1>
+          <h1 class="text-display text-4xl text-surface-900">{{ $t('Cercles') }}</h1>
           <p class="mt-2 text-surface-600">
-            Un cercle réunit des comptes qui partagent une mémoire commune : la famille (arbre, fiches ouvertes à toute la famille)
-            ou un groupe d'amis (réseau tissé par les photos, fiches visibles du seul cercle).
+            {{ $t("Un cercle réunit des comptes qui partagent une mémoire commune : la famille (arbre, fiches ouvertes à toute la famille) ou un groupe d'amis (réseau tissé par les photos, fiches visibles du seul cercle).") }}
           </p>
         </div>
 
@@ -17,7 +16,7 @@
           class="mb-8 bg-white rounded-2xl border border-surface-200 shadow-warm-sm p-5 flex flex-col gap-4"
           @submit.prevent="createHousehold"
         >
-          <div class="text-sm font-semibold text-surface-900">Nouveau cercle</div>
+          <div class="text-sm font-semibold text-surface-900">{{ $t('Nouveau cercle') }}</div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
               v-for="k in (canCreateFamily ? ['family', 'friends'] : ['friends'])"
@@ -38,28 +37,28 @@
               </span>
               <span>
                 <span class="block font-semibold text-surface-900">{{ KIND_LABELS[k] }}</span>
-                <span class="block text-xs text-surface-500">{{ k === 'friends' ? 'Réseau, fiches réservées au cercle' : 'Arbre, fiches ouvertes à la famille' }}</span>
+                <span class="block text-xs text-surface-500">{{ k === 'friends' ? $t('Réseau, fiches réservées au cercle') : $t('Arbre, fiches ouvertes à la famille') }}</span>
               </span>
             </button>
           </div>
           <div class="flex flex-wrap items-end gap-3">
             <div class="flex-1 min-w-[220px]">
-              <label for="circle-name" class="block text-sm font-medium text-surface-700 mb-1">Nom du cercle</label>
+              <label for="circle-name" class="block text-sm font-medium text-surface-700 mb-1">{{ $t('Nom du cercle') }}</label>
               <input
                 id="circle-name"
                 v-model="newName"
                 type="text"
-                :placeholder="newKind === 'friends' ? 'Ex. Les copains de Lyon' : 'Ex. Famille Herdegen'"
+                :placeholder="newKind === 'friends' ? $t('Ex. Les copains de Lyon') : $t('Ex. Famille Herdegen')"
                 maxlength="120"
                 class="form-input"
               />
             </div>
             <label v-if="canCreateFamily" class="flex items-center gap-2 text-sm text-surface-700 h-10">
               <input v-model="join" type="checkbox" class="rounded border-surface-300 text-brand-600 focus:ring-brand-500" />
-              J'en fais partie
+              {{ $t("J'en fais partie") }}
             </label>
             <button type="submit" class="btn-primary" :disabled="!newName.trim() || creating">
-              Créer le cercle
+              {{ $t('Créer le cercle') }}
             </button>
           </div>
         </form>
@@ -83,17 +82,17 @@
               </span>
             </div>
             <p class="mt-2 text-sm text-surface-500">
-              {{ h.members_count }} membre{{ h.members_count > 1 ? 's' : '' }}
-              · {{ h.invite_policy === 'admin' ? "invitations par l'admin" : 'tout le monde invite' }}
-              <span v-if="canCreateFamily && !h.is_member"> · vous n'en faites pas partie</span>
+              {{ $tc(':count membre|:count membres', h.members_count) }}
+              · {{ h.invite_policy === 'admin' ? $t("invitations par l'admin") : $t('tout le monde invite') }}
+              <span v-if="canCreateFamily && !h.is_member"> · {{ $t("vous n'en faites pas partie") }}</span>
             </p>
           </Link>
         </div>
 
         <div v-else class="text-center py-16 bg-white rounded-2xl border border-surface-200">
-          <h3 class="text-lg font-medium text-surface-900">Aucun cercle</h3>
+          <h3 class="text-lg font-medium text-surface-900">{{ $t('Aucun cercle') }}</h3>
           <p class="mt-2 text-surface-500">
-            Créez votre groupe d'amis pour partager vos souvenirs ensemble.
+            {{ $t("Créez votre groupe d'amis pour partager vos souvenirs ensemble.") }}
           </p>
         </div>
       </div>
@@ -109,6 +108,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import CircleKindIcon from '@/Components/CircleKindIcon.vue';
 import { KIND_LABELS } from '@/Composables/useCircle';
 import { useToast } from '@/Composables/useToast';
+import { t } from '@/i18n';
 
 const toast = useToast();
 
@@ -133,7 +133,7 @@ const createHousehold = async () => {
     const { data } = await axios.post('/households', { name, kind: newKind.value, join: join.value });
     router.visit(`/households/${data.id}`);
   } catch (error) {
-    toast.error(error.response?.data?.message || 'Erreur lors de la création du cercle.');
+    toast.error(error.response?.data?.message || t('Erreur lors de la création du cercle.'));
     creating.value = false;
   }
 };

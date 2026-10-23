@@ -1,21 +1,21 @@
 <template>
-  <Head title="Import GEDCOM" />
-  <AppLayout title="Import GEDCOM">
+  <Head :title="$t('Import GEDCOM')" />
+  <AppLayout :title="$t('Import GEDCOM')">
     <div class="py-12">
       <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
         <Link
           href="/family-tree"
           class="inline-flex items-center text-sm text-surface-500 hover:text-surface-700 mb-6"
         >
-          &larr; Retour à l'arbre
+          &larr; {{ $t("Retour à l'arbre") }}
         </Link>
 
-        <h1 class="text-display text-4xl text-surface-900 mb-6">Importer un fichier GEDCOM</h1>
+        <h1 class="text-display text-4xl text-surface-900 mb-6">{{ $t('Importer un fichier GEDCOM') }}</h1>
 
         <!-- Step 1: Upload -->
         <div v-if="step === 'upload'" class="bg-white rounded-lg shadow-md p-6">
           <p class="text-surface-600 mb-4">
-            Sélectionnez un fichier GEDCOM (.ged) exporté depuis Geneanet ou un autre logiciel de généalogie.
+            {{ $t('Sélectionnez un fichier GEDCOM (.ged) exporté depuis Geneanet ou un autre logiciel de généalogie.') }}
           </p>
 
           <div
@@ -40,20 +40,20 @@
               class="px-6 py-3 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50"
               :disabled="uploading"
             >
-              {{ uploading ? 'Analyse en cours...' : 'Choisir un fichier' }}
+              {{ uploading ? $t('Analyse en cours...') : $t('Choisir un fichier') }}
             </button>
-            <p class="mt-2 text-sm text-surface-500">ou glissez-déposez un fichier .ged ici</p>
+            <p class="mt-2 text-sm text-surface-500">{{ $t('ou glissez-déposez un fichier .ged ici') }}</p>
           </div>
 
           <p v-if="uploadError" class="mt-4 text-red-600 dark:text-red-400 text-sm">{{ uploadError }}</p>
 
           <!-- Previous imports -->
           <div v-if="imports.length > 0" class="mt-8">
-            <h3 class="font-semibold text-surface-900 mb-3">Imports précédents</h3>
+            <h3 class="font-semibold text-surface-900 mb-3">{{ $t('Imports précédents') }}</h3>
             <div v-for="imp in imports" :key="imp.id" class="flex items-center justify-between py-2 border-b">
               <div>
                 <span class="font-medium">{{ imp.filename }}</span>
-                <span class="text-sm text-surface-500 ml-2">{{ imp.individuals_count }} individus</span>
+                <span class="text-sm text-surface-500 ml-2">{{ $tc(':count individu|:count individus', imp.individuals_count) }}</span>
               </div>
               <span
                 :class="{
@@ -74,10 +74,10 @@
         <div v-if="step === 'matching'" class="bg-white rounded-lg shadow-md p-6">
           <div class="flex justify-between items-center mb-6">
             <div>
-              <h2 class="text-lg font-semibold">Vérification des correspondances</h2>
+              <h2 class="text-lg font-semibold">{{ $t('Vérification des correspondances') }}</h2>
               <p class="text-sm text-surface-500">
-                {{ suggestions.length }} individus trouvés dans le fichier.
-                Choisissez de créer, associer ou ignorer chaque personne.
+                {{ $tc(':count individu trouvé dans le fichier.|:count individus trouvés dans le fichier.', suggestions.length) }}
+                {{ $t('Choisissez de créer, associer ou ignorer chaque personne.') }}
               </p>
             </div>
             <div class="flex gap-2">
@@ -85,13 +85,13 @@
                 @click="setAllDecisions('create')"
                 class="px-3 py-1 text-sm bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-300 rounded-sm hover:bg-green-200 dark:hover:bg-green-500/25"
               >
-                Tout créer
+                {{ $t('Tout créer') }}
               </button>
               <button
                 @click="setAllDecisions('skip')"
                 class="px-3 py-1 text-sm bg-surface-100 text-surface-700 rounded-sm hover:bg-surface-200"
               >
-                Tout ignorer
+                {{ $t('Tout ignorer') }}
               </button>
             </div>
           </div>
@@ -117,7 +117,7 @@
                     - {{ suggestion.death_date }}
                   </span>
                   <span class="text-xs text-surface-400 ml-2">
-                    {{ suggestion.sex === 'M' ? 'Homme' : suggestion.sex === 'F' ? 'Femme' : '' }}
+                    {{ suggestion.sex === 'M' ? $t('Homme') : suggestion.sex === 'F' ? $t('Femme') : '' }}
                   </span>
                 </div>
 
@@ -127,20 +127,20 @@
                     :class="decisions[suggestion.gedcom_id] === 'create' ? 'bg-teal-600 text-white' : 'bg-surface-100 text-surface-700'"
                     class="px-3 py-1 text-sm rounded-lg"
                   >
-                    Créer
+                    {{ $t('Créer') }}
                   </button>
                   <button
                     @click="decisions[suggestion.gedcom_id] = 'skip'"
                     :class="decisions[suggestion.gedcom_id] === 'skip' ? 'bg-surface-600 text-white' : 'bg-surface-100 text-surface-700'"
                     class="px-3 py-1 text-sm rounded-lg"
                   >
-                    Ignorer
+                    {{ $t('Ignorer') }}
                   </button>
                 </div>
               </div>
 
               <div v-if="suggestion.matches.length > 0" class="mt-3">
-                <p class="text-xs text-surface-500 mb-1">Correspondances possibles :</p>
+                <p class="text-xs text-surface-500 mb-1">{{ $t('Correspondances possibles :') }}</p>
                 <div class="flex flex-wrap gap-2">
                   <button
                     v-for="match in suggestion.matches"
@@ -162,14 +162,14 @@
               @click="step = 'upload'"
               class="px-4 py-2 text-sm text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50"
             >
-              Annuler
+              {{ $t('Annuler') }}
             </button>
             <button
               @click="confirmImport"
               :disabled="importing"
               class="px-6 py-2 text-sm text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50"
             >
-              {{ importing ? 'Import en cours...' : 'Confirmer l\'import' }}
+              {{ importing ? $t('Import en cours...') : $t('Confirmer l\'import') }}
             </button>
           </div>
         </div>
@@ -179,17 +179,17 @@
           <svg class="mx-auto h-16 w-16 text-green-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
           </svg>
-          <h2 class="text-xl font-semibold text-surface-900 mb-2">Import terminé</h2>
+          <h2 class="text-xl font-semibold text-surface-900 mb-2">{{ $t('Import terminé') }}</h2>
           <div class="text-surface-600 space-y-1">
-            <p>{{ importStats.created }} personne(s) créée(s)</p>
-            <p>{{ importStats.matched }} personne(s) associée(s)</p>
-            <p>{{ importStats.skipped }} personne(s) ignorée(s)</p>
+            <p>{{ $tc(':count personne créée|:count personnes créées', importStats.created) }}</p>
+            <p>{{ $tc(':count personne associée|:count personnes associées', importStats.matched) }}</p>
+            <p>{{ $tc(':count personne ignorée|:count personnes ignorées', importStats.skipped) }}</p>
           </div>
           <Link
             href="/family-tree"
             class="mt-6 inline-flex items-center px-6 py-2 text-sm text-white bg-brand-600 rounded-lg hover:bg-brand-700"
           >
-            Voir l'arbre généalogique
+            {{ $t("Voir l'arbre généalogique") }}
           </Link>
         </div>
       </div>
@@ -204,6 +204,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import axios from 'axios';
 import { useToast } from '@/Composables/useToast';
 import { usePeopleDirectory } from '@/Composables/usePeopleDirectory';
+import { t } from '@/i18n';
 
 const toast = useToast();
 
@@ -258,7 +259,7 @@ async function uploadFile(file) {
 
     step.value = 'matching';
   } catch (error) {
-    uploadError.value = error.response?.data?.message || 'Erreur lors de l\'analyse du fichier';
+    uploadError.value = error.response?.data?.message || t('Erreur lors de l\'analyse du fichier');
   } finally {
     uploading.value = false;
   }
@@ -275,7 +276,7 @@ async function confirmImport() {
     usePeopleDirectory().invalidate();
     step.value = 'results';
   } catch (error) {
-    toast.error(error.response?.data?.message || "Erreur lors de l'import.");
+    toast.error(error.response?.data?.message || t("Erreur lors de l'import."));
   } finally {
     importing.value = false;
   }
@@ -289,11 +290,11 @@ function setAllDecisions(action) {
 
 function statusLabel(status) {
   const labels = {
-    pending: 'En attente',
-    matching: 'En cours de vérification',
-    importing: 'Import en cours',
-    completed: 'Terminé',
-    failed: 'Échoué',
+    pending: t('En attente'),
+    matching: t('En cours de vérification'),
+    importing: t('Import en cours'),
+    completed: t('Terminé'),
+    failed: t('Échoué'),
   };
   return labels[status] || status;
 }

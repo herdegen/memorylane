@@ -8,7 +8,7 @@
         :aria-expanded="expanded"
         @click="open = !open"
       >
-        <h2 class="text-lg font-semibold text-surface-900">Informations</h2>
+        <h2 class="text-lg font-semibold text-surface-900">{{ $t('Informations') }}</h2>
         <svg class="sm:hidden w-5 h-5 text-surface-400 transition-transform" :class="expanded ? 'rotate-180' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
       </button>
       <button
@@ -17,7 +17,7 @@
         class="text-sm text-brand-600 hover:text-brand-800"
         :class="expanded ? '' : 'hidden sm:inline'"
       >
-        Modifier
+        {{ $t('Modifier') }}
       </button>
     </div>
     <div :class="expanded ? '' : 'hidden sm:block'">
@@ -26,33 +26,33 @@
     <form v-if="isEditing" @submit.prevent="save" class="space-y-4">
       <div>
         <label for="title" class="block text-sm font-medium text-surface-700 mb-1">
-          Titre
+          {{ $t('Titre') }}
         </label>
         <input
           id="title"
           v-model="form.title"
           type="text"
           class="w-full px-3 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-          placeholder="Titre du média"
+          :placeholder="$t('Titre du média')"
         />
       </div>
 
       <div>
         <label for="description" class="block text-sm font-medium text-surface-700 mb-1">
-          Description
+          {{ $t('Description') }}
         </label>
         <textarea
           id="description"
           v-model="form.description"
           rows="3"
           class="w-full px-3 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-          placeholder="Décrivez ce média..."
+          :placeholder="$t('Décrivez ce média...')"
         ></textarea>
       </div>
 
       <div>
         <label for="taken_at" class="block text-sm font-medium text-surface-700 mb-1">
-          Date
+          {{ $t('Date') }}
         </label>
         <input
           id="taken_at"
@@ -60,7 +60,7 @@
           type="datetime-local"
           class="w-full px-3 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
         />
-        <p class="mt-1 text-xs text-surface-400">Date de prise de vue affichée dans la galerie.</p>
+        <p class="mt-1 text-xs text-surface-400">{{ $t('Date de prise de vue affichée dans la galerie.') }}</p>
       </div>
 
       <div class="flex justify-end gap-2">
@@ -69,14 +69,14 @@
           @click="cancelEditing"
           class="px-4 py-2 text-sm font-medium text-surface-700 bg-white border border-surface-300 rounded-lg hover:bg-surface-50"
         >
-          Annuler
+          {{ $t('Annuler') }}
         </button>
         <button
           type="submit"
           :disabled="saving"
           class="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50"
         >
-          {{ saving ? 'Enregistrement...' : 'Enregistrer' }}
+          {{ saving ? $t('Enregistrement...') : $t('Enregistrer') }}
         </button>
       </div>
     </form>
@@ -84,22 +84,22 @@
     <!-- View Mode -->
     <dl v-else class="space-y-3">
       <div v-if="media.title || media.description">
-        <dt class="text-sm font-medium text-surface-500">Titre</dt>
+        <dt class="text-sm font-medium text-surface-500">{{ $t('Titre') }}</dt>
         <dd class="mt-1 text-sm text-surface-900">{{ media.title || '—' }}</dd>
       </div>
 
       <div v-if="media.description">
-        <dt class="text-sm font-medium text-surface-500">Description</dt>
+        <dt class="text-sm font-medium text-surface-500">{{ $t('Description') }}</dt>
         <dd class="mt-1 text-sm text-surface-900 whitespace-pre-wrap">{{ media.description }}</dd>
       </div>
 
       <div>
-        <dt class="text-sm font-medium text-surface-500">Nom du fichier</dt>
+        <dt class="text-sm font-medium text-surface-500">{{ $t('Nom du fichier') }}</dt>
         <dd class="mt-1 text-sm text-surface-900">{{ media.original_name }}</dd>
       </div>
 
       <div>
-        <dt class="text-sm font-medium text-surface-500">Type</dt>
+        <dt class="text-sm font-medium text-surface-500">{{ $t('Type') }}</dt>
         <dd class="mt-1">
           <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-800">
             {{ formatType(media.type) }}
@@ -108,58 +108,58 @@
       </div>
 
       <div>
-        <dt class="text-sm font-medium text-surface-500">Taille</dt>
+        <dt class="text-sm font-medium text-surface-500">{{ $t('Taille') }}</dt>
         <dd class="mt-1 text-sm text-surface-900">{{ formatFileSize(media.size) }}</dd>
       </div>
 
       <div v-if="media.width && media.height">
-        <dt class="text-sm font-medium text-surface-500">Dimensions</dt>
+        <dt class="text-sm font-medium text-surface-500">{{ $t('Dimensions') }}</dt>
         <dd class="mt-1 text-sm text-surface-900">{{ media.width }} x {{ media.height }}px</dd>
       </div>
 
       <div v-if="media.duration">
-        <dt class="text-sm font-medium text-surface-500">Durée</dt>
+        <dt class="text-sm font-medium text-surface-500">{{ $t('Durée') }}</dt>
         <dd class="mt-1 text-sm text-surface-900">{{ formatDuration(media.duration) }}</dd>
       </div>
 
       <div>
-        <dt class="text-sm font-medium text-surface-500">Téléchargé le</dt>
+        <dt class="text-sm font-medium text-surface-500">{{ $t('Téléchargé le') }}</dt>
         <dd class="mt-1 text-sm text-surface-900">{{ formatDateTime(media.uploaded_at) }}</dd>
       </div>
 
       <div v-if="media.taken_at">
-        <dt class="text-sm font-medium text-surface-500">Pris le</dt>
+        <dt class="text-sm font-medium text-surface-500">{{ $t('Pris le') }}</dt>
         <dd class="mt-1 text-sm text-surface-900">{{ formatDateTime(media.taken_at) }}</dd>
       </div>
 
       <div v-if="media.user">
-        <dt class="text-sm font-medium text-surface-500">Uploadé par</dt>
+        <dt class="text-sm font-medium text-surface-500">{{ $t('Uploadé par') }}</dt>
         <dd class="mt-1 text-sm text-surface-900">{{ media.user.name }}</dd>
       </div>
 
       <!-- Bloc technique vidéo -->
       <template v-if="media.type === 'video' && hasVideoMetadata">
         <div class="pt-3 mt-1 border-t border-surface-100">
-          <dt class="text-xs font-semibold text-surface-400 uppercase tracking-wide mb-2">Technique</dt>
+          <dt class="text-xs font-semibold text-surface-400 uppercase tracking-wide mb-2">{{ $t('Technique') }}</dt>
           <div class="space-y-2">
             <div v-if="media.resolution_label" class="flex justify-between items-center">
-              <span class="text-sm text-surface-500">Résolution</span>
+              <span class="text-sm text-surface-500">{{ $t('Résolution') }}</span>
               <span class="text-sm font-medium text-surface-900">{{ media.resolution_label }}</span>
             </div>
             <div v-if="media.fps" class="flex justify-between items-center">
-              <span class="text-sm text-surface-500">Fréquence</span>
+              <span class="text-sm text-surface-500">{{ $t('Fréquence') }}</span>
               <span class="text-sm font-medium text-surface-900">{{ Number(media.fps).toFixed(2) }} fps</span>
             </div>
             <div v-if="media.video_codec" class="flex justify-between items-center">
-              <span class="text-sm text-surface-500">Codec vidéo</span>
+              <span class="text-sm text-surface-500">{{ $t('Codec vidéo') }}</span>
               <span class="text-sm font-medium text-surface-900 uppercase">{{ media.video_codec }}</span>
             </div>
             <div v-if="media.audio_codec" class="flex justify-between items-center">
-              <span class="text-sm text-surface-500">Codec audio</span>
+              <span class="text-sm text-surface-500">{{ $t('Codec audio') }}</span>
               <span class="text-sm font-medium text-surface-900 uppercase">{{ media.audio_codec }}</span>
             </div>
             <div v-if="media.bitrate" class="flex justify-between items-center">
-              <span class="text-sm text-surface-500">Débit</span>
+              <span class="text-sm text-surface-500">{{ $t('Débit') }}</span>
               <span class="text-sm font-medium text-surface-900">{{ media.bitrate }} kb/s</span>
             </div>
           </div>
@@ -175,6 +175,7 @@ import { ref, reactive, computed } from 'vue';
 import axios from 'axios';
 import { useToast } from '@/Composables/useToast';
 import { formatFileSize, formatDuration, formatDateTime } from '@/utils/format';
+import { t } from '@/i18n';
 
 const toast = useToast();
 
@@ -236,14 +237,14 @@ const save = async () => {
     emit('updated', response.data.media);
   } catch (error) {
     console.error('Failed to update media:', error);
-    toast.error(error.response?.data?.message || 'Impossible de mettre à jour le média.');
+    toast.error(error.response?.data?.message || t('Impossible de mettre à jour le média.'));
   } finally {
     saving.value = false;
   }
 };
 
 const formatType = (type) => {
-  const types = { photo: 'Photo', video: 'Vidéo', document: 'Document' };
+  const types = { photo: t('Photo'), video: t('Vidéo'), document: t('Document') };
   return types[type] || type;
 };
 

@@ -40,7 +40,7 @@ class RestrictTv
             $request->session()->regenerateToken();
             Cookie::queue(Cookie::forget(TvDevice::COOKIE));
 
-            return $request->expectsJson() ? response()->json(['message' => 'Télévision déliée.'], 401) : redirect()->route('tv.screen');
+            return $request->expectsJson() ? response()->json(['message' => __('Télévision déliée.')], 401) : redirect()->route('tv.screen');
         }
 
         // Cercle de la TV, en mémoire seulement (jamais enregistré sur le compte).
@@ -60,7 +60,7 @@ class RestrictTv
         }
 
         if ($request->expectsJson() || ! $request->isMethod('GET')) {
-            abort(403, 'La télévision est en lecture seule.');
+            abort(403, __('La télévision est en lecture seule.'));
         }
 
         return redirect()->route('tv.screen.home');

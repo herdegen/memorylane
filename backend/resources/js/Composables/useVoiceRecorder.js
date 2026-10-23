@@ -1,5 +1,6 @@
 import { ref, computed, onBeforeUnmount } from 'vue';
 import axios from 'axios';
+import { t } from '@/i18n';
 
 /**
  * Enregistrement d'un mémo vocal (MediaRecorder) puis envoi sur une photo.
@@ -45,14 +46,14 @@ export function useVoiceRecorder({ maxSeconds = 1200 } = {}) {
     error.value = null;
     if (!supported) {
       state.value = 'error';
-      error.value = "Cet appareil ne permet pas d'enregistrer la voix.";
+      error.value = t("Cet appareil ne permet pas d'enregistrer la voix.");
       return;
     }
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
       state.value = 'error';
-      error.value = "Le micro n'est pas autorisé. Demandez à un proche de l'activer dans les réglages de la tablette.";
+      error.value = t("Le micro n'est pas autorisé. Demandez à un proche de l'activer dans les réglages de la tablette.");
       return;
     }
 
@@ -95,7 +96,7 @@ export function useVoiceRecorder({ maxSeconds = 1200 } = {}) {
       return data.voice_note;
     } catch {
       state.value = 'error';
-      error.value = "L'envoi n'a pas marché. Vérifiez la connexion internet puis réessayez.";
+      error.value = t("L'envoi n'a pas marché. Vérifiez la connexion internet puis réessayez.");
       return null;
     }
   }

@@ -46,7 +46,7 @@
       <Link
         href="/albums"
         class="sm:hidden absolute top-3 left-4 z-20 inline-flex items-center justify-center w-10 h-10 rounded-full bg-snow/90 backdrop-blur text-ink shadow-warm-md"
-        aria-label="Retour aux albums"
+        :aria-label="$t('Retour aux albums')"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 19l-7-7 7-7" /></svg>
       </Link>
@@ -60,14 +60,14 @@
           class="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-snow/90 backdrop-blur text-sm font-semibold text-ink shadow-warm-md hover:bg-snow transition"
         >
           <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-          Diaporama
+          {{ $t('Diaporama') }}
         </button>
         <button
           v-if="isOwner"
           @click="showSharePanel = !showSharePanel"
           class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-snow/90 backdrop-blur text-ink shadow-warm-md hover:bg-snow transition"
-          title="Partager"
-          aria-label="Partager"
+          :title="$t('Partager')"
+          :aria-label="$t('Partager')"
         >
           <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
@@ -77,8 +77,8 @@
           <button
             @click="showActionsMenu = !showActionsMenu"
             class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-snow/90 backdrop-blur text-ink shadow-warm-md hover:bg-snow transition"
-            title="Plus d'actions"
-            aria-label="Plus d'actions"
+            :title="$t('Plus d\'actions')"
+            :aria-label="$t('Plus d\'actions')"
           >
             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <circle cx="12" cy="5" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="12" cy="19" r="1.6" />
@@ -87,37 +87,37 @@
           <div v-show="showActionsMenu" class="dropdown top-full w-56">
             <button v-if="isOwner" @click="openFromMenu(() => showAddMediaModal = true)" class="dropdown-item w-full text-left flex items-center gap-2.5">
               <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-              Ajouter des médias
+              {{ $t('Ajouter des médias') }}
             </button>
             <button @click="openFromMenu(toggleSelectionMode)" class="dropdown-item w-full text-left flex items-center gap-2.5">
               <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
-              {{ selectionMode ? 'Terminer la sélection' : 'Sélectionner' }}
+              {{ selectionMode ? $t('Terminer la sélection') : $t('Sélectionner') }}
             </button>
             <button v-if="isOwner && album.hero" @click="openFromMenu(() => setHero(null))" class="dropdown-item w-full text-left flex items-center gap-2.5">
               <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-              Fond du titre par défaut
+              {{ $t('Fond du titre par défaut') }}
             </button>
             <button v-if="pendingFacesCount > 0" @click="openFromMenu(() => unidentifiedOnly = !unidentifiedOnly)" class="dropdown-item w-full text-left flex items-center gap-2.5">
               <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-              {{ unidentifiedOnly ? 'Toutes les photos' : `Visages à identifier (${pendingFacesCount})` }}
+              {{ unidentifiedOnly ? $t('Toutes les photos') : $t('Visages à identifier (:count)', { count: pendingFacesCount }) }}
             </button>
             <button @click="openFromMenu(() => showParticipants = true)" class="dropdown-item w-full text-left flex items-center gap-2.5">
               <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-              Qui était là ?
+              {{ $t('Qui était là ?') }}
             </button>
             <button v-if="isOwner" @click="openFromMenu(() => showGeolocateModal = true)" class="dropdown-item w-full text-left flex items-center gap-2.5">
               <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-              Géolocaliser
+              {{ $t('Géolocaliser') }}
             </button>
             <button v-if="isOwner" @click="openFromMenu(() => showEditModal = true)" class="dropdown-item w-full text-left flex items-center gap-2.5">
               <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-              Modifier
+              {{ $t('Modifier') }}
             </button>
             <template v-if="isOwner">
               <hr class="dropdown-divider" />
               <button @click="openFromMenu(deleteAlbum)" class="dropdown-item w-full text-left flex items-center gap-2.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                Supprimer l'album
+                {{ $t('Supprimer l\'album') }}
               </button>
             </template>
           </div>
@@ -130,15 +130,15 @@
           href="/albums"
           class="hidden sm:inline-flex items-center justify-center w-11 h-11 rounded-full border backdrop-blur-sm transition shrink-0"
           :class="heroLight ? 'bg-snow/70 border-ink/20 text-ink hover:bg-snow' : 'bg-snow/15 border-snow/35 text-snow hover:bg-snow/30'"
-          title="Retour aux albums"
-          aria-label="Retour aux albums"
+          :title="$t('Retour aux albums')"
+          :aria-label="$t('Retour aux albums')"
         >
           <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
           </svg>
         </Link>
         <div class="min-w-0">
-          <div class="text-xs font-medium uppercase tracking-widest" :class="heroLight ? 'text-ink/65' : 'text-snow/75'">Albums</div>
+          <div class="text-xs font-medium uppercase tracking-widest" :class="heroLight ? 'text-ink/65' : 'text-snow/75'">{{ $t('Albums') }}</div>
           <h1
             class="font-display text-[28px] leading-tight sm:text-5xl font-bold truncate"
             :class="heroLight ? 'text-ink [text-shadow:0_1px_10px_rgba(255,255,255,0.8)]' : 'text-snow [text-shadow:0_2px_12px_rgba(23,20,15,0.55)]'"
@@ -146,12 +146,12 @@
             {{ album.name }}
           </h1>
           <div class="mt-1.5 flex items-center gap-3 text-sm" :class="heroLight ? 'text-ink/80' : 'text-snow/85'">
-            <span>{{ album.media_count || 0 }} médias</span>
+            <span>{{ $tc(':count média|:count médias', album.media_count || 0) }}</span>
             <span
               class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border"
               :class="heroLight ? 'bg-snow/70 border-ink/20 text-ink' : 'bg-snow/20 border-snow/30 text-snow'"
             >
-              {{ album.is_owner ? 'Mon album' : 'Partagé avec moi' }}
+              {{ album.is_owner ? $t('Mon album') : $t('Partagé avec moi') }}
             </span>
             <span v-if="album.description" class="hidden sm:inline truncate">{{ album.description }}</span>
           </div>
@@ -170,7 +170,7 @@
           @click="startSlideshow"
         >
           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
-          Diaporama
+          {{ $t('Diaporama') }}
         </button>
         <Link
           v-if="pendingFacesCount > 0"
@@ -178,7 +178,7 @@
           class="h-12 rounded-2xl border bg-white border-surface-300 text-surface-900 text-sm font-bold flex items-center justify-center gap-1.5"
         >
           <span class="inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full text-[11px] font-bold bg-brand-100 text-brand-800">{{ pendingFacesCount > 999 ? '999+' : pendingFacesCount }}</span>
-          <span class="text-[13px] whitespace-nowrap">Qui est-ce ?</span>
+          <span class="text-[13px] whitespace-nowrap">{{ $t('Qui est-ce ?') }}</span>
         </Link>
         <button
           type="button"
@@ -188,7 +188,7 @@
           @click="toggleSelectionMode"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M8 12l3 3 5-6" /></svg>
-          {{ selectionMode ? 'Terminer' : 'Sélection' }}
+          {{ selectionMode ? $t('Terminer') : $t('Sélection') }}
         </button>
       </div>
 
@@ -214,10 +214,10 @@
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5" /><circle cx="17" cy="10" r="2.5" /><path d="M3 19a6 6 0 0112 0M15 19a4 4 0 016 0" /></svg>
         </span>
         <span class="flex-1 min-w-0">
-          <span class="block text-[15px] font-bold text-surface-900">Qui était là ?</span>
+          <span class="block text-[15px] font-bold text-surface-900">{{ $t('Qui était là ?') }}</span>
           <span class="block text-xs text-surface-500 truncate">
-            <template v-if="participantsPreview.length">{{ participantsPreview.length }} participant{{ participantsPreview.length > 1 ? 's' : '' }} · les inconnus sont triés</template>
-            <template v-else>Dites qui était présent : les visages inconnus seront triés</template>
+            <template v-if="participantsPreview.length">{{ $tc(':count participant · les inconnus sont triés|:count participants · les inconnus sont triés', participantsPreview.length) }}</template>
+            <template v-else>{{ $t('Dites qui était présent : les visages inconnus seront triés') }}</template>
           </span>
         </span>
         <span class="text-surface-400">›</span>
@@ -232,7 +232,7 @@
              flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-3 bg-brand-600 px-4 sm:px-8 py-3 text-white shadow-md"
     >
       <span class="font-medium">
-        {{ selectedMediaIds.length }} sélectionné{{ selectedMediaIds.length > 1 ? 's' : '' }}
+        {{ $tc(':count sélectionné|:count sélectionnés', selectedMediaIds.length) }}
       </span>
       <div class="flex flex-nowrap sm:flex-wrap items-center gap-2 sm:ml-auto overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible [&>button]:shrink-0 [&>button]:whitespace-nowrap">
         <button
@@ -240,56 +240,56 @@
           @click="showMakeMoment = true"
           class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-white text-brand-700 hover:bg-brand-50 transition"
         >
-          Créer un moment
+          {{ $t('Créer un moment') }}
         </button>
         <button
           v-if="selectedMediaIds.length === 1"
           @click="editSelected"
           class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-white text-brand-700 hover:bg-brand-50 transition"
         >
-          Éditer
+          {{ $t('Éditer') }}
         </button>
         <button
           v-if="selectedMediaIds.length === 1 && isOwner"
           @click="setAsCover"
           class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-white text-brand-700 hover:bg-brand-50 transition"
         >
-          Couverture
+          {{ $t('Couverture') }}
         </button>
         <button
           v-if="isOwner && selectedHeroCandidate"
           @click="chooseHero(selectedHeroCandidate)"
           class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-white text-brand-700 hover:bg-brand-50 transition"
         >
-          Fond du titre
+          {{ $t('Fond du titre') }}
         </button>
         <button
           v-if="isOwner && selectedToPin.length > 0"
           @click="pinSelected(true)"
           class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-white text-brand-700 hover:bg-brand-50 transition"
-          title="En tête de l'album, dans l'ordre où vous les avez cochées"
+          :title="$t('En tête de l\'album, dans l\'ordre où vous les avez cochées')"
         >
-          ★ À la une ({{ selectedToPin.length }})
+          ★ {{ $t('À la une (:count)', { count: selectedToPin.length }) }}
         </button>
         <button
           v-if="isOwner && selectedPinned.length > 0"
           @click="pinSelected(false)"
           class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-white text-brand-700 hover:bg-brand-50 transition"
         >
-          Retirer de la une ({{ selectedPinned.length }})
+          {{ $t('Retirer de la une (:count)', { count: selectedPinned.length }) }}
         </button>
         <button
           v-if="removableSelectedIds.length > 0"
           @click="removeSelectedMedia"
           class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-white text-red-600 hover:bg-red-50 transition"
         >
-          Retirer ({{ removableSelectedIds.length }})
+          {{ $t('Retirer (:count)', { count: removableSelectedIds.length }) }}
         </button>
         <button
           @click="toggleSelectionMode"
           class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-white/15 hover:bg-white/25 transition"
         >
-          Terminer
+          {{ $t('Terminer') }}
         </button>
       </div>
     </div>
@@ -319,10 +319,15 @@
       class="flex items-center gap-3 px-4 sm:px-8 py-3 bg-surface-50 border-b border-surface-200"
     >
       <span class="text-sm text-surface-800">
-        <strong>{{ albumMedia.length }}</strong> photo{{ albumMedia.length > 1 ? 's' : '' }} avec des visages à identifier · touchez-en une pour nommer
+        <Trans text=":count photos avec des visages à identifier · touchez-en une pour nommer" v-if="albumMedia.length > 1">
+          <template #count><strong>{{ albumMedia.length }}</strong></template>
+        </Trans>
+        <Trans v-else text=":count photo avec des visages à identifier · touchez-en une pour nommer">
+          <template #count><strong>{{ albumMedia.length }}</strong></template>
+        </Trans>
       </span>
       <button type="button" class="ml-auto text-sm font-medium text-brand-700 hover:text-brand-900 shrink-0" @click="unidentifiedOnly = false">
-        Tout l’album
+        {{ $t('Tout l’album') }}
       </button>
     </div>
 
@@ -333,11 +338,13 @@
     >
       <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-500 text-sm font-bold text-snow">{{ placeFilter.index }}</span>
       <span class="text-sm text-surface-800">
-        Étape {{ placeFilter.index }} · <strong>{{ placeFilter.label }}</strong>
-        <span class="text-surface-500">({{ placeFilter.media_ids.length }} média{{ placeFilter.media_ids.length > 1 ? 's' : '' }})</span>
+        <Trans text="Étape :index · :label" :values="{ index: placeFilter.index }">
+          <template #label><strong>{{ placeFilter.label }}</strong></template>
+        </Trans>
+        <span class="text-surface-500">({{ $tc(':count média|:count médias', placeFilter.media_ids.length) }})</span>
       </span>
       <button type="button" class="ml-auto text-sm font-medium text-brand-700 hover:text-brand-900" @click="placeFilter = null">
-        Tout l’album
+        {{ $t('Tout l’album') }}
       </button>
     </div>
 
@@ -357,7 +364,7 @@
         <span
           v-if="isOwner && isPinned(media)"
           class="absolute top-1.5 right-1.5 z-10 pointer-events-none rounded-full bg-black/55 px-1.5 text-xs text-amber-300"
-          title="À la une"
+          :title="$t('À la une')"
         >★</span>
         <MediaCard
           :media="media"
@@ -376,8 +383,8 @@
         <svg class="mx-auto h-16 w-16 text-surface-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
-        <h3 class="mt-4 text-lg font-medium text-surface-900">Aucun média</h3>
-        <p class="mt-2 text-surface-500">Ajoutez des photos et vidéos à cet album.</p>
+        <h3 class="mt-4 text-lg font-medium text-surface-900">{{ $t('Aucun média') }}</h3>
+        <p class="mt-2 text-surface-500">{{ $t('Ajoutez des photos et vidéos à cet album.') }}</p>
         <button
           v-if="isOwner"
           @click="showAddMediaModal = true"
@@ -386,19 +393,19 @@
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
-          Ajouter des médias
+          {{ $t('Ajouter des médias') }}
         </button>
       </div>
     </div>
 
     <!-- Fond du titre : début de l'extrait vidéo -->
-    <BaseModal v-if="heroVideoChoice" title="Vidéo en fond du titre" max-width="md" @close="heroVideoChoice = null">
+    <BaseModal v-if="heroVideoChoice" :title="$t('Vidéo en fond du titre')" max-width="md" @close="heroVideoChoice = null">
       <div class="px-6 py-5 space-y-3">
         <p class="text-sm text-surface-600">
-          Un extrait muet d’environ 25 secondes tournera en boucle derrière le titre. À partir de quel moment de la vidéo ?
+          {{ $t('Un extrait muet d’environ 25 secondes tournera en boucle derrière le titre. À partir de quel moment de la vidéo ?') }}
         </p>
         <label class="block text-sm font-medium text-surface-800">
-          Début (en secondes)
+          {{ $t('Début (en secondes)') }}
           <input
             v-model.number="heroVideoStart"
             type="number"
@@ -407,12 +414,12 @@
             class="mt-1 w-32 rounded-lg border-surface-300 text-sm"
           />
         </label>
-        <p v-if="heroVideoChoice.duration" class="text-xs text-surface-500">La vidéo dure {{ formatDuration(heroVideoChoice.duration) }}.</p>
+        <p v-if="heroVideoChoice.duration" class="text-xs text-surface-500">{{ $t('La vidéo dure :duration.', { duration: formatDuration(heroVideoChoice.duration) }) }}</p>
       </div>
       <template #footer>
-        <button class="px-4 py-2 text-sm rounded-lg text-surface-700 hover:bg-surface-100" @click="heroVideoChoice = null">Annuler</button>
+        <button class="px-4 py-2 text-sm rounded-lg text-surface-700 hover:bg-surface-100" @click="heroVideoChoice = null">{{ $t('Annuler') }}</button>
         <button class="px-4 py-2 text-sm font-semibold rounded-lg bg-brand-600 text-white hover:bg-brand-700" @click="setHero(heroVideoChoice, heroVideoStart)">
-          Utiliser cet extrait
+          {{ $t('Utiliser cet extrait') }}
         </button>
       </template>
     </BaseModal>
@@ -435,9 +442,9 @@
 
     <GeolocatePickerModal
       v-if="showGeolocateModal"
-      :title="`Géolocaliser « ${album.name} »`"
-      description="Cliquez sur la carte pour situer toutes les photos de cet album. Pratique quand la localisation d'origine a été perdue à l'import."
-      apply-label="Appliquer à l'album"
+      :title="$t('Géolocaliser « :name »', { name: album.name })"
+      :description="$t('Cliquez sur la carte pour situer toutes les photos de cet album. Pratique quand la localisation d\'origine a été perdue à l\'import.')"
+      :apply-label="$t('Appliquer à l\'album')"
       :saving="geolocating"
       :error-message="geolocateError"
       @close="showGeolocateModal = false"
@@ -480,6 +487,8 @@ import { slideUrl, thumbnailUrl as smallThumbUrl } from '@/utils/media';
 import AlbumParticipantsModal from '@/Components/AlbumParticipantsModal.vue';
 import MomentFromPhotos from '@/Components/MomentFromPhotos.vue';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
+import Trans from '@/Components/Trans.vue';
+import { t, tc } from '@/i18n';
 
 // Chargé à l'ouverture seulement : la carte embarque Leaflet (~45 ko gzip).
 const GeolocatePickerModal = defineAsyncComponent(() => import('@/Components/GeolocatePickerModal.vue'));
@@ -639,7 +648,7 @@ const applyAlbumGeolocation = async ({ latitude, longitude }) => {
     showGeolocateModal.value = false;
     router.reload();
   } catch (e) {
-    geolocateError.value = e.response?.data?.message || 'Erreur lors de la géolocalisation.';
+    geolocateError.value = e.response?.data?.message || t('Erreur lors de la géolocalisation.');
   } finally {
     geolocating.value = false;
   }
@@ -773,7 +782,7 @@ const setHero = async (media, start = 0) => {
     toast.success(data.message);
     router.reload({ only: ['album'] });
   } catch (error) {
-    toast.error(error.response?.data?.message || 'Impossible de changer le fond du titre.');
+    toast.error(error.response?.data?.message || t('Impossible de changer le fond du titre.'));
   }
 };
 
@@ -791,7 +800,7 @@ const pinSelected = async (pinned) => {
     selectedMediaIds.value = [];
     router.reload({ only: ['album'] });
   } catch (error) {
-    toast.error(error.response?.data?.message || 'Impossible de modifier la une.');
+    toast.error(error.response?.data?.message || t('Impossible de modifier la une.'));
   }
 };
 
@@ -802,7 +811,7 @@ const setAsCover = async () => {
     selectedMediaIds.value = [];
     router.reload();
   } catch (error) {
-    toast.error(error.response?.data?.message || 'Erreur lors de la définition de la couverture.');
+    toast.error(error.response?.data?.message || t('Erreur lors de la définition de la couverture.'));
   }
 };
 
@@ -831,9 +840,9 @@ const removeSelectedMedia = async () => {
   if (ids.length === 0) return;
 
   const ok = await confirm({
-    title: "Retirer de l'album",
-    message: `Retirer ${ids.length} média${ids.length > 1 ? 's' : ''} de l'album ? Les médias ne seront pas supprimés.`,
-    confirmLabel: 'Retirer',
+    title: t("Retirer de l'album"),
+    message: tc("Retirer :count média de l'album ? Les médias ne seront pas supprimés.|Retirer :count médias de l'album ? Les médias ne seront pas supprimés.", ids.length),
+    confirmLabel: t('Retirer'),
     danger: true,
   });
   if (!ok) return;
@@ -845,15 +854,15 @@ const removeSelectedMedia = async () => {
     selectedMediaIds.value = [];
     router.reload();
   } catch (error) {
-    toast.error(error.response?.data?.message || "Impossible de retirer ces médias de l'album.");
+    toast.error(error.response?.data?.message || t("Impossible de retirer ces médias de l'album."));
   }
 };
 
 const deleteAlbum = async () => {
   const ok = await confirm({
-    title: 'Supprimer cet album',
-    message: 'Êtes-vous sûr de vouloir supprimer cet album ? Les médias ne seront pas supprimés.',
-    confirmLabel: 'Supprimer',
+    title: t('Supprimer cet album'),
+    message: t('Êtes-vous sûr de vouloir supprimer cet album ? Les médias ne seront pas supprimés.'),
+    confirmLabel: t('Supprimer'),
     danger: true,
   });
   if (!ok) return;
@@ -862,7 +871,7 @@ const deleteAlbum = async () => {
     await axios.delete(`/albums/${props.album.id}`);
     router.visit('/albums');
   } catch (error) {
-    toast.error(error.response?.data?.message || "Impossible de supprimer l'album.");
+    toast.error(error.response?.data?.message || t("Impossible de supprimer l'album."));
   }
 };
 

@@ -1,7 +1,7 @@
 <template>
   <div class="px-4 sm:px-8 pt-7 sm:pt-9 pb-2">
     <div class="flex items-center justify-between mb-2">
-      <h2 class="font-display text-xl sm:text-2xl font-semibold text-surface-900">Famille</h2>
+      <h2 class="font-display text-xl sm:text-2xl font-semibold text-surface-900">{{ $t('Famille') }}</h2>
       <div class="flex items-center gap-3">
         <button
           v-if="canManage"
@@ -9,10 +9,10 @@
           class="sm:hidden text-sm font-medium text-brand-700 dark:text-brand-400"
           @click="editing = !editing"
         >
-          {{ editing ? 'Terminer' : 'Modifier' }}
+          {{ editing ? $t('Terminer') : $t('Modifier') }}
         </button>
         <Link href="/family-tree" class="inline-flex items-center gap-1.5 text-sm font-medium text-brand-700 dark:text-brand-400 hover:underline">
-          <span class="hidden sm:inline">Voir dans l'arbre</span><span class="sm:hidden">L'arbre</span>
+          <span class="hidden sm:inline">{{ $t("Voir dans l'arbre") }}</span><span class="sm:hidden">{{ $t("L'arbre") }}</span>
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
         </Link>
       </div>
@@ -40,9 +40,9 @@
         <span class="w-12 h-12 rounded-full border-2 border-dashed border-surface-300 text-surface-400 flex items-center justify-center">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
         </span>
-        <span class="text-xs font-semibold text-surface-500">Ajouter</span>
+        <span class="text-xs font-semibold text-surface-500">{{ $t('Ajouter') }}</span>
       </button>
-      <p v-if="!relatives.length && !canManage" class="text-sm text-surface-500 py-2">Aucun proche renseigné.</p>
+      <p v-if="!relatives.length && !canManage" class="text-sm text-surface-500 py-2">{{ $t('Aucun proche renseigné.') }}</p>
     </div>
 
     <!-- Mini-arbre : parents / génération de la personne / enfants -->
@@ -64,7 +64,7 @@
               />
               <div class="absolute inset-x-1.5 bottom-1.5 rounded-lg bg-white/80 backdrop-blur-sm px-2 py-1.5 text-center">
                 <p class="text-[13px] font-semibold text-surface-900 leading-tight line-clamp-2">{{ personLabel(slot === 'father' ? father : mother) }}</p>
-                <p class="text-[11px] text-surface-600">{{ lifeYears(slot === 'father' ? father : mother) || (slot === 'father' ? 'père' : 'mère') }}</p>
+                <p class="text-[11px] text-surface-600">{{ lifeYears(slot === 'father' ? father : mother) || (slot === 'father' ? $t('père') : $t('mère')) }}</p>
               </div>
             </Link>
             <button
@@ -72,7 +72,7 @@
               type="button"
               @click="removeParent(slot)"
               class="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 text-surface-400 hover:text-red-500 dark:hover:text-red-400 bg-white/90 rounded-full p-0.5 transition"
-              title="Retirer"
+              :title="$t('Retirer')"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
@@ -85,7 +85,7 @@
             :class="adding === slot ? 'border-brand-400 text-brand-600 bg-brand-50/50' : 'border-surface-300 text-surface-400 hover:border-brand-300 hover:text-brand-600'"
           >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-            <span class="text-xs font-medium">{{ slot === 'father' ? 'Définir le père' : 'Définir la mère' }}</span>
+            <span class="text-xs font-medium">{{ slot === 'father' ? $t('Définir le père') : $t('Définir la mère') }}</span>
           </button>
         </template>
       </div>
@@ -96,10 +96,10 @@
           label=""
           :current-person="null"
           :exclude-ids="[person.id]"
-          :placeholder="adding === 'father' ? 'Rechercher le père…' : 'Rechercher la mère…'"
+          :placeholder="adding === 'father' ? $t('Rechercher le père…') : $t('Rechercher la mère…')"
           @select="setParent($event, adding)"
         />
-        <button @click="adding = null" class="text-xs text-surface-400 hover:text-surface-600 mt-1">Annuler</button>
+        <button @click="adding = null" class="text-xs text-surface-400 hover:text-surface-600 mt-1">{{ $t('Annuler') }}</button>
       </div>
 
       <div v-if="father || mother || canManage" class="w-0.5 h-7 bg-surface-200"></div>
@@ -146,7 +146,7 @@
             type="button"
             @click="removeSpouse(spouse)"
             class="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 text-surface-400 hover:text-red-500 dark:hover:text-red-400 bg-white/90 rounded-full p-0.5 transition"
-            title="Retirer"
+            :title="$t('Retirer')"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
@@ -160,7 +160,7 @@
           :class="adding === 'spouse' ? 'border-brand-400 text-brand-600 bg-brand-50/50' : 'border-surface-300 text-surface-400 hover:border-brand-300 hover:text-brand-600'"
         >
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-          <span class="text-xs font-medium">Ajouter un conjoint</span>
+          <span class="text-xs font-medium">{{ $t('Ajouter un conjoint') }}</span>
         </button>
         <button
           v-else-if="canManage"
@@ -170,7 +170,7 @@
           :class="adding === 'spouse' ? 'border-brand-400 text-brand-600' : 'border-surface-300 text-surface-400 hover:border-brand-300 hover:text-brand-600'"
         >
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-          Conjoint
+          {{ $t('Conjoint') }}
         </button>
       </div>
 
@@ -180,10 +180,10 @@
           label=""
           :current-person="null"
           :exclude-ids="excludeSpouseIds"
-          placeholder="Rechercher un conjoint…"
+          :placeholder="$t('Rechercher un conjoint…')"
           @select="addSpouse"
         />
-        <button @click="adding = null" class="text-xs text-surface-400 hover:text-surface-600 mt-1">Annuler</button>
+        <button @click="adding = null" class="text-xs text-surface-400 hover:text-surface-600 mt-1">{{ $t('Annuler') }}</button>
       </div>
 
       <div class="w-0.5 h-7 bg-surface-200"></div>
@@ -210,28 +210,28 @@
           :class="adding === 'child' ? 'border-brand-400 text-brand-600 bg-brand-50/50' : 'border-surface-300 text-surface-400 hover:border-brand-300 hover:text-brand-600'"
         >
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-          <span class="text-xs font-medium">Ajouter un enfant</span>
+          <span class="text-xs font-medium">{{ $t('Ajouter un enfant') }}</span>
         </button>
       </div>
 
       <!-- Formulaire enfant -->
       <div v-if="adding === 'child'" class="mt-3 w-80 space-y-2">
         <div v-if="spouses.length > 1">
-          <label class="block text-xs font-medium text-surface-600 mb-1">Autre parent</label>
+          <label class="block text-xs font-medium text-surface-600 mb-1">{{ $t('Autre parent') }}</label>
           <select v-model="coParentId" class="form-input">
-            <option value="">Inconnu</option>
+            <option value="">{{ $t('Inconnu') }}</option>
             <option v-for="s in spouses" :key="s.id" :value="s.id">{{ s.name }}</option>
           </select>
         </div>
         <p v-else-if="spouses.length === 1" class="text-xs text-surface-500">
-          Autre parent : {{ spouses[0].name }}
+          {{ $t('Autre parent : :name', { name: spouses[0].name }) }}
         </p>
 
         <RelationshipPicker
           label=""
           :current-person="null"
           :exclude-ids="excludeChildIds"
-          placeholder="Rechercher l'enfant…"
+          :placeholder="$t(`Rechercher l'enfant…`)"
           @select="addChild"
         />
 
@@ -239,7 +239,7 @@
           <input
             v-model="newChildName"
             type="text"
-            placeholder="ou créer : nom de l'enfant"
+            :placeholder="$t(`ou créer : nom de l'enfant`)"
             class="form-input flex-1"
             @keyup.enter="createAndAddChild"
           />
@@ -248,11 +248,11 @@
             :disabled="!newChildName.trim() || busy"
             class="btn-primary disabled:opacity-50"
           >
-            Créer
+            {{ $t('Créer') }}
           </button>
         </div>
 
-        <button @click="adding = null" class="text-xs text-surface-400 hover:text-surface-600">Annuler</button>
+        <button @click="adding = null" class="text-xs text-surface-400 hover:text-surface-600">{{ $t('Annuler') }}</button>
       </div>
     </div>
   </div>
@@ -266,6 +266,7 @@ import PersonAvatar from '@/Components/PersonAvatar.vue';
 import axios from 'axios';
 import { useToast } from '@/Composables/useToast';
 import { personLabel } from '@/utils/personName';
+import { t } from '@/i18n';
 
 const toast = useToast();
 
@@ -286,11 +287,11 @@ const adding = ref(null);
 const editing = ref(false);
 const relatives = computed(() => {
   const list = [];
-  if (props.father) list.push({ person: props.father, role: 'père' });
-  if (props.mother) list.push({ person: props.mother, role: 'mère' });
-  for (const s of props.spouses) list.push({ person: s, role: s.gender === 'F' ? 'femme' : s.gender === 'M' ? 'mari' : 'conjoint(e)' });
-  for (const c of props.children) list.push({ person: c, role: c.gender === 'F' ? 'fille' : c.gender === 'M' ? 'fils' : 'enfant' });
-  for (const s of props.siblings) list.push({ person: s, role: s.gender === 'F' ? 'sœur' : s.gender === 'M' ? 'frère' : 'fratrie' });
+  if (props.father) list.push({ person: props.father, role: t('père') });
+  if (props.mother) list.push({ person: props.mother, role: t('mère') });
+  for (const s of props.spouses) list.push({ person: s, role: s.gender === 'F' ? t('femme') : s.gender === 'M' ? t('mari') : t('conjoint(e)') });
+  for (const c of props.children) list.push({ person: c, role: c.gender === 'F' ? t('fille') : c.gender === 'M' ? t('fils') : t('enfant') });
+  for (const s of props.siblings) list.push({ person: s, role: s.gender === 'F' ? t('sœur') : s.gender === 'M' ? t('frère') : t('fratrie') });
   return list;
 });
 const coParentId = ref('');
@@ -317,11 +318,11 @@ const lifeYears = (p) => {
   return p.death_date ? `${birth} – ${p.death_date.slice(0, 4)}` : birth;
 };
 
-const spouseLabel = (spouse) => lifeYears(spouse) || 'conjoint(e)';
+const spouseLabel = (spouse) => lifeYears(spouse) || t('conjoint(e)');
 
 // « 1994 · frère » — années + lien de fratrie selon le genre.
 const siblingSub = (s) => {
-  const relation = s.gender === 'F' ? 'sœur' : s.gender === 'M' ? 'frère' : 'fratrie';
+  const relation = s.gender === 'F' ? t('sœur') : s.gender === 'M' ? t('frère') : t('fratrie');
   const years = lifeYears(s);
   return years ? `${years} · ${relation}` : relation;
 };
@@ -349,7 +350,7 @@ async function addChild(child) {
     adding.value = null;
     router.reload();
   } catch (error) {
-    toast.error(error.response?.data?.message || 'Impossible d\'ajouter cet enfant.');
+    toast.error(error.response?.data?.message || t('Impossible d\'ajouter cet enfant.'));
   } finally {
     busy.value = false;
   }
@@ -369,7 +370,7 @@ async function createAndAddChild() {
     adding.value = null;
     router.reload();
   } catch (error) {
-    toast.error(error.response?.data?.message || 'Impossible de créer cet enfant.');
+    toast.error(error.response?.data?.message || t('Impossible de créer cet enfant.'));
   } finally {
     busy.value = false;
   }
@@ -384,7 +385,7 @@ async function setParent(parent, type) {
     adding.value = null;
     router.reload();
   } catch (error) {
-    toast.error(error.response?.data?.message || 'Impossible de définir ce parent.');
+    toast.error(error.response?.data?.message || t('Impossible de définir ce parent.'));
   }
 }
 
@@ -395,7 +396,7 @@ async function removeParent(type) {
     });
     router.reload();
   } catch (error) {
-    toast.error(error.response?.data?.message || 'Impossible de retirer ce parent.');
+    toast.error(error.response?.data?.message || t('Impossible de retirer ce parent.'));
   }
 }
 
@@ -407,7 +408,7 @@ async function addSpouse(spouse) {
     adding.value = null;
     router.reload();
   } catch (error) {
-    toast.error(error.response?.data?.message || 'Impossible d\'ajouter ce conjoint.');
+    toast.error(error.response?.data?.message || t('Impossible d\'ajouter ce conjoint.'));
   }
 }
 
@@ -418,7 +419,7 @@ async function removeSpouse(spouse) {
     });
     router.reload();
   } catch (error) {
-    toast.error(error.response?.data?.message || 'Impossible de retirer ce conjoint.');
+    toast.error(error.response?.data?.message || t('Impossible de retirer ce conjoint.'));
   }
 }
 </script>

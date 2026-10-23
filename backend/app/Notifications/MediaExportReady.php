@@ -19,14 +19,17 @@ class MediaExportReady extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         $mail = (new MailMessage)
-            ->subject('Vos photos MemoryLane sont prêtes à télécharger')
-            ->greeting('Bonjour '.explode(' ', trim($notifiable->name))[0].',')
-            ->line("Vos {$this->count} photos et vidéos (originaux) sont prêtes, en ".count($this->parts).' archive'.(count($this->parts) > 1 ? 's' : '').' ZIP. Chaque archive contient un fichier index.csv (date, titre, albums, personnes).');
+            ->subject(__('Vos photos MemoryLane sont prêtes à télécharger'))
+            ->greeting(__('Bonjour :name,', ['name' => explode(' ', trim($notifiable->name))[0]]))
+            ->line(trans_choice('Vos :total photos et vidéos (originaux) sont prêtes, en :count archive ZIP. Chaque archive contient un fichier index.csv (date, titre, albums, personnes).|Vos :total photos et vidéos (originaux) sont prêtes, en :count archives ZIP. Chaque archive contient un fichier index.csv (date, titre, albums, personnes).', count($this->parts), ['total' => $this->count]));
 
+        // Séparateur des milliers selon la langue (« 1 024 Mo » / « 1,024 MB »).
+        $thousands = app()->getLocale() === 'fr' ? ' ' : ',';
         foreach ($this->parts as $part) {
-            $mail->line("[{$part['name']}]({$part['url']}) — ".number_format($part['size'] / 1048576, 0, ',', ' ').' Mo');
+            $size = __(':size Mo', ['size' => number_format($part['size'] / 1048576, 0, ',', $thousands)]);
+            $mail->line("[{$part['name']}]({$part['url']}) — {$size}");
         }
 
-        return $mail->line('Ces liens sont valables 7 jours. Il suffit de redemander un export depuis votre profil ensuite.');
+        return $mail->line(__('Ces liens sont valables 7 jours. Il suffit de redemander un export depuis votre profil ensuite.'));
     }
 }

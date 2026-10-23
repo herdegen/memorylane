@@ -10,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Traits\Localizable;
 
 /**
  * « Télécharger mes photos » : les originaux du compte, rangés par année,
@@ -19,7 +20,7 @@ use Illuminate\Support\Str;
  */
 class ExportUserMedia implements ShouldQueue
 {
-    use Queueable;
+    use Localizable, Queueable;
 
     public int $timeout = 4 * 3600;
 
@@ -41,6 +42,12 @@ class ExportUserMedia implements ShouldQueue
         @mkdir($workdir, 0775, true);
         $disk = Storage::disk($s3->getDisk());
 
+        // En-tête de l'index et dossier des photos sans date, dans la langue du membre.
+        [$header, $undated] = $this->withLocale($this->user->preferredLocale(), fn () => [
+            [__('fichier'), __('date'), __('titre'), __('albums'), __('personnes')],
+            __('sans-date'),
+        ]);
+
         $parts = [];
         $paths = [];
         $count = 0;
@@ -50,12 +57,12 @@ class ExportUserMedia implements ShouldQueue
         $index = [];
         $used = [];
 
-        $closePart = function () use (&$zip, &$zipPath, &$index, &$parts, &$paths, &$partBytes, &$used, $workdir, $token, $s3) {
+        $closePart = function () use (&$zip, &$zipPath, &$index, &$parts, &$paths, &$partBytes, &$used, $workdir, $token, $s3, $header) {
             if (! $zip) {
                 return;
             }
             $csv = fopen('php://temp', 'r+');
-            fputcsv($csv, ['fichier', 'date', 'titre', 'albums', 'personnes']);
+            fputcsv($csv, $header);
             foreach ($index as $row) {
                 fputcsv($csv, $row);
             }
@@ -82,7 +89,7 @@ class ExportUserMedia implements ShouldQueue
         Media::where('user_id', $this->user->id)
             ->with(['albums:id,name', 'people:id,name'])
             ->orderByRaw('taken_at asc nulls last')->orderBy('id')
-            ->chunk(100, function ($chunk) use (&$zip, &$zipPath, &$partBytes, &$index, &$used, &$count, $workdir, $disk, $closePart, &$parts) {
+            ->chunk(100, function ($chunk) use (&$zip, &$zipPath, &$partBytes, &$index, &$used, &$count, $workdir, $disk, $closePart, &$parts, $undated) {
                 foreach ($chunk as $media) {
                     if (! $media->file_path || ! $disk->exists($media->file_path)) {
                         continue;
@@ -104,7 +111,7 @@ class ExportUserMedia implements ShouldQueue
                     is_resource($in) && fclose($in);
 
                     // Rangé par année, préfixé par la date (tri naturel), sans doublon de nom.
-                    $year = $media->taken_at?->format('Y') ?? 'sans-date';
+                    $year = $media->taken_at?->format('Y') ?? $undated;
                     $base = ($media->taken_at ? $media->taken_at->format('Y-m-d').'_' : '').Str::of($media->original_name ?: $media->id)->replace(['/', '\\'], '-');
                     $entry = "{$year}/{$base}";
                     for ($i = 2; isset($used[$entry]); $i++) {

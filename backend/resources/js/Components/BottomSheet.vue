@@ -32,7 +32,7 @@
             <button
               type="button"
               class="w-9 h-9 rounded-full bg-surface-200 text-surface-700 flex items-center justify-center shrink-0"
-              aria-label="Fermer"
+              :aria-label="$t('Fermer')"
               @click="$emit('close')"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18L18 6M6 6l12 12" /></svg>

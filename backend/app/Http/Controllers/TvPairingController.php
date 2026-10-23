@@ -126,7 +126,7 @@ class TvPairingController extends Controller
             'code' => ['required', 'string', 'regex:/^\d{3}\s?\d{3}$/'],
             'name' => 'nullable|string|max:60',
         ], [
-            'code.regex' => 'Le code fait 6 chiffres.',
+            'code.regex' => __('Le code fait 6 chiffres.'),
         ]);
         $code = preg_replace('/\D/', '', $validated['code']);
         $user = $request->user();
@@ -150,10 +150,10 @@ class TvPairingController extends Controller
         });
 
         if (! $linked) {
-            return back()->withErrors(['code' => 'Ce code est inconnu ou a expiré. Vérifiez le code affiché sur la télévision.']);
+            return back()->withErrors(['code' => __('Ce code est inconnu ou a expiré. Vérifiez le code affiché sur la télévision.')]);
         }
 
-        return back()->with('success', 'C\'est relié : la télévision s\'ouvre.');
+        return back()->with('success', __('C\'est relié : la télévision s\'ouvre.'));
     }
 
     /** L'application Android TV, à installer à la main (memory-lane.fr/apk). */
@@ -179,6 +179,6 @@ class TvPairingController extends Controller
         abort_unless($tvDevice->user_id === $request->user()->id, 404);
         $tvDevice->delete();
 
-        return back()->with('success', 'Télévision déliée : elle revient à l\'écran du code.');
+        return back()->with('success', __('Télévision déliée : elle revient à l\'écran du code.'));
     }
 }

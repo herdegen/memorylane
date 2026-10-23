@@ -26,7 +26,7 @@ class TestPush extends PushNotification
     {
         return $this->message(
             'MemoryLane',
-            'Les notifications fonctionnent sur cet appareil.',
+            __('Les notifications fonctionnent sur cet appareil.'),
             '/profile',
             'test',
             300,

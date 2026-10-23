@@ -10,7 +10,7 @@
         ref="inputEl"
         v-model="query"
         type="search"
-        placeholder="Rechercher…"
+        :placeholder="$t('Rechercher…')"
         class="w-full pl-9 pr-3 py-1.5 text-sm border border-surface-200 rounded-full bg-surface-50
                placeholder-surface-400 text-surface-900
                focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden
@@ -26,12 +26,12 @@
       v-if="isOpen"
       class="absolute right-0 mt-2 w-96 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-warm-lg border border-surface-200 py-2 z-50 max-h-[70vh] overflow-y-auto"
     >
-      <div v-if="loading" class="px-4 py-3 text-sm text-surface-400">Recherche…</div>
+      <div v-if="loading" class="px-4 py-3 text-sm text-surface-400">{{ $t('Recherche…') }}</div>
 
       <template v-else-if="hasResults">
         <!-- Personnes -->
         <div v-if="results.people.length > 0">
-          <p class="px-4 pt-2 pb-1 text-xs font-semibold uppercase tracking-wider text-surface-400">Personnes</p>
+          <p class="px-4 pt-2 pb-1 text-xs font-semibold uppercase tracking-wider text-surface-400">{{ $t('Personnes') }}</p>
           <button
             v-for="person in results.people"
             :key="`person-${person.id}`"
@@ -45,7 +45,7 @@
 
         <!-- Albums -->
         <div v-if="results.albums.length > 0">
-          <p class="px-4 pt-2 pb-1 text-xs font-semibold uppercase tracking-wider text-surface-400">Albums</p>
+          <p class="px-4 pt-2 pb-1 text-xs font-semibold uppercase tracking-wider text-surface-400">{{ $t('Albums') }}</p>
           <button
             v-for="album in results.albums"
             :key="`album-${album.id}`"
@@ -59,7 +59,7 @@
 
         <!-- Tags -->
         <div v-if="results.tags.length > 0">
-          <p class="px-4 pt-2 pb-1 text-xs font-semibold uppercase tracking-wider text-surface-400">Tags</p>
+          <p class="px-4 pt-2 pb-1 text-xs font-semibold uppercase tracking-wider text-surface-400">{{ $t('Tags') }}</p>
           <button
             v-for="tag in results.tags"
             :key="`tag-${tag.id}`"
@@ -73,7 +73,7 @@
 
         <!-- Médias -->
         <div v-if="results.media.length > 0">
-          <p class="px-4 pt-2 pb-1 text-xs font-semibold uppercase tracking-wider text-surface-400">Médias</p>
+          <p class="px-4 pt-2 pb-1 text-xs font-semibold uppercase tracking-wider text-surface-400">{{ $t('Médias') }}</p>
           <button
             v-for="media in results.media"
             :key="`media-${media.id}`"
@@ -96,7 +96,7 @@
       </template>
 
       <div v-else class="px-4 py-3 text-sm text-surface-400">
-        Aucun résultat pour « {{ query }} »
+        {{ $t('Aucun résultat pour « :query »', { query }) }}
       </div>
     </div>
   </div>
@@ -107,6 +107,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
+import { t } from '@/i18n';
 
 const props = defineProps({
   // Panneau de recherche mobile : occupe toute la largeur disponible.
@@ -132,7 +133,7 @@ const hasResults = computed(() =>
   || results.value.tags.length > 0
 );
 
-const typeLabel = (type) => ({ photo: 'photo', video: 'vidéo', document: 'document' }[type] || type);
+const typeLabel = (type) => ({ photo: t('photo'), video: t('vidéo'), document: t('document') }[type] || type);
 
 const search = async () => {
   const q = query.value.trim();

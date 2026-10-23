@@ -28,9 +28,9 @@ class AuthController extends Controller
             'email' => ['required', 'email'],
             'password' => ['required'],
         ], [
-            'email.required' => 'L\'adresse email est requise.',
-            'email.email' => 'L\'adresse email doit être valide.',
-            'password.required' => 'Le mot de passe est requis.',
+            'email.required' => __('L\'adresse email est requise.'),
+            'email.email' => __('L\'adresse email doit être valide.'),
+            'password.required' => __('Le mot de passe est requis.'),
         ]);
 
         // Anti force brute : 5 essais par adresse et par IP, puis attente.
@@ -39,7 +39,7 @@ class AuthController extends Controller
             $minutes = (int) ceil(RateLimiter::availableIn($throttleKey) / 60);
 
             return back()->withErrors([
-                'email' => "Trop de tentatives. Réessayez dans {$minutes} minute".($minutes > 1 ? 's' : '').', ou demandez un lien de connexion par e-mail.',
+                'email' => trans_choice('Trop de tentatives. Réessayez dans :count minute, ou demandez un lien de connexion par e-mail.|Trop de tentatives. Réessayez dans :count minutes, ou demandez un lien de connexion par e-mail.', $minutes),
             ])->onlyInput('email');
         }
 
@@ -47,7 +47,7 @@ class AuthController extends Controller
             if ($request->user()->isMemorial()) {
                 Auth::logout();
 
-                return back()->withErrors(['email' => 'Ce compte est conservé en mémoire : il n\'est plus possible de s\'y connecter.'])->onlyInput('email');
+                return back()->withErrors(['email' => __('Ce compte est conservé en mémoire : il n\'est plus possible de s\'y connecter.')])->onlyInput('email');
             }
             RateLimiter::clear($throttleKey);
             $request->session()->regenerate();
@@ -59,8 +59,8 @@ class AuthController extends Controller
 
         // Return errors on both fields for better UX
         return back()->withErrors([
-            'email' => 'Ces identifiants ne correspondent pas à nos enregistrements.',
-            'password' => 'Veuillez vérifier votre mot de passe.',
+            'email' => __('Ces identifiants ne correspondent pas à nos enregistrements.'),
+            'password' => __('Veuillez vérifier votre mot de passe.'),
         ])->onlyInput('email');
     }
 
@@ -75,15 +75,15 @@ class AuthController extends Controller
         $request->validate([
             'email' => ['required', 'email'],
         ], [
-            'email.required' => 'L\'adresse email est requise.',
-            'email.email' => 'L\'adresse email doit être valide.',
+            'email.required' => __('L\'adresse email est requise.'),
+            'email.email' => __('L\'adresse email doit être valide.'),
         ]);
 
         $throttleKey = 'magic-link:' . strtolower($request->email) . '|' . $request->ip();
 
         if (RateLimiter::tooManyAttempts($throttleKey, 3)) {
             return back()->withErrors([
-                'email' => 'Trop de demandes. Réessayez dans quelques minutes.',
+                'email' => __('Trop de demandes. Réessayez dans quelques minutes.'),
             ])->onlyInput('email');
         }
 
@@ -97,7 +97,7 @@ class AuthController extends Controller
             $user->notify(new MagicLoginLink());
         }
 
-        return back()->with('success', 'Si cette adresse a un compte, un lien de connexion vient de lui être envoyé. Pensez à vérifier vos spams.');
+        return back()->with('success', __('Si cette adresse a un compte, un lien de connexion vient de lui être envoyé. Pensez à vérifier vos spams.'));
     }
 
     /**
@@ -111,12 +111,12 @@ class AuthController extends Controller
         // Usage unique : le jeton du lien est consommé à la première ouverture.
         if (! MagicLoginLink::consume($user, (string) $request->query('n'))) {
             return redirect()->route('login')->withErrors([
-                'email' => 'Ce lien de connexion a déjà servi ou a expiré. Demandez-en un nouveau.',
+                'email' => __('Ce lien de connexion a déjà servi ou a expiré. Demandez-en un nouveau.'),
             ]);
         }
         if ($user->isMemorial()) {
             return redirect()->route('login')->withErrors([
-                'email' => 'Ce compte est conservé en mémoire : il n\'est plus possible de s\'y connecter.',
+                'email' => __('Ce compte est conservé en mémoire : il n\'est plus possible de s\'y connecter.'),
             ]);
         }
 
@@ -132,7 +132,7 @@ class AuthController extends Controller
      */
     public function loginAsGuest(Request $request, User $user, string $person)
     {
-        abort_if(! $user->isGuest() || $user->guestExpired(), 403, 'Ce lien d\'invitation a expiré.');
+        abort_if(! $user->isGuest() || $user->guestExpired(), 403, __('Ce lien d\'invitation a expiré.'));
 
         Auth::login($user);
         $request->session()->regenerate();
@@ -151,7 +151,7 @@ class AuthController extends Controller
             ->first();
 
         if (! $user) {
-            return redirect()->route('login')->withErrors(['email' => 'Ce lien tablette n\'est plus valable. Demandez-en un nouveau.']);
+            return redirect()->route('login')->withErrors(['email' => __('Ce lien tablette n\'est plus valable. Demandez-en un nouveau.')]);
         }
 
         Auth::login($user, remember: true);

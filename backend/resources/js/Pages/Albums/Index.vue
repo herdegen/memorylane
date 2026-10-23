@@ -1,22 +1,22 @@
 <template>
-  <Head title="Albums" />
+  <Head :title="$t('Albums')" />
   <AppLayout>
     <div class="py-4 sm:py-9 px-4 sm:px-8">
       <!-- En-tête (téléphone : titre compact + compteur, bouton « + » rond) -->
       <div class="flex items-end justify-between gap-4 mb-3 sm:mb-5">
         <div class="min-w-0">
           <h1 class="font-display text-[26px] sm:text-4xl font-bold text-surface-900 truncate">
-            Albums
+            {{ $t('Albums') }}
             <span class="sm:hidden font-sans text-sm font-semibold text-surface-500 ml-1">{{ albums.length }}</span>
           </h1>
           <p class="mt-1.5 text-sm text-surface-500 hidden sm:block">
-            {{ albums.length }} {{ albums.length === 1 ? 'album' : 'albums' }} — les souvenirs, rangés par histoire
+            {{ $tc(':count album — les souvenirs, rangés par histoire|:count albums — les souvenirs, rangés par histoire', albums.length) }}
           </p>
         </div>
         <button
           type="button"
           class="sm:hidden w-10 h-10 rounded-full bg-brand-600 text-white flex items-center justify-center shrink-0"
-          aria-label="Nouvel album"
+          :aria-label="$t('Nouvel album')"
           @click="showCreateModal = true"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
@@ -25,7 +25,7 @@
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
-          Nouvel album
+          {{ $t('Nouvel album') }}
         </button>
       </div>
 
@@ -54,10 +54,10 @@
           <span class="inline-block px-3 py-1 rounded-full bg-snow/20 backdrop-blur text-xs font-bold tracking-wide uppercase">{{ discovery.featured.reason }}</span>
           <h2 class="mt-2 font-display text-[28px] sm:text-5xl font-bold leading-tight [text-shadow:0_2px_12px_rgba(0,0,0,.45)]">{{ featured.name }}</h2>
           <p class="mt-1 text-sm sm:text-base text-snow/85">
-            {{ featured.media_count }} médias<span v-if="periodOf(featured)"> · {{ periodOf(featured) }}</span>
+            {{ $tc(':count média|:count médias', featured.media_count) }}<span v-if="periodOf(featured)"> · {{ periodOf(featured) }}</span>
           </p>
           <span class="mt-3 inline-flex items-center gap-2 h-10 px-4 rounded-full bg-snow text-ink text-sm font-bold group-hover:bg-snow/90">
-            Ouvrir l'album
+            {{ $t('Ouvrir l\'album') }}
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
           </span>
         </div>
@@ -83,7 +83,7 @@
             </div>
           </div>
         </section>
-        <h2 class="font-display text-xl sm:text-2xl font-semibold text-surface-900 mb-3">Tous les albums</h2>
+        <h2 class="font-display text-xl sm:text-2xl font-semibold text-surface-900 mb-3">{{ $t('Tous les albums') }}</h2>
       </template>
 
       <!-- Filtres (fusionne « Partagés avec moi » dans la page) ;
@@ -106,7 +106,7 @@
 
       <!-- Par décennie -->
       <div v-if="decades.length > 1" class="flex flex-nowrap sm:flex-wrap items-center gap-2 -mt-2 sm:-mt-3 mb-4 sm:mb-6 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 [&>button]:shrink-0">
-        <span class="text-xs font-semibold uppercase tracking-wider text-surface-500 mr-1 shrink-0">Par décennie</span>
+        <span class="text-xs font-semibold uppercase tracking-wider text-surface-500 mr-1 shrink-0">{{ $t('Par décennie') }}</span>
         <button
           v-for="d in decades"
           :key="d.decade"
@@ -115,13 +115,13 @@
           :class="decade === d.decade ? 'bg-surface-900 border-surface-900 text-page' : 'bg-white border-surface-300 text-surface-600 hover:bg-surface-50'"
           @click="decade = decade === d.decade ? null : d.decade"
         >
-          Années {{ d.decade < 2000 ? String(d.decade).slice(2) : d.decade }} <span class="opacity-60">· {{ d.ids.length }}</span>
+          {{ decadeLabel(d.decade) }} <span class="opacity-60">· {{ d.ids.length }}</span>
         </button>
       </div>
 
       <!-- Grille : albums du cercle courant -->
       <h2 v-if="hereAlbums.length && elsewhereAlbums.length && current" class="text-sm font-semibold uppercase tracking-wider text-surface-500 mb-3">
-        Albums de {{ current.name }}
+        {{ $t('Albums de :name', { name: current.name }) }}
       </h2>
       <!-- Téléphone : le premier album en vedette (pleine largeur), les
            autres sur deux colonnes -->
@@ -153,11 +153,11 @@
         >
           <div class="min-w-0">
             <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-500">
-              Ailleurs
-              <span class="sm:hidden normal-case tracking-normal font-medium">· {{ elsewhereAlbums.length }} {{ elsewhereAlbums.length > 1 ? 'albums' : 'album' }} de vos autres cercles</span>
+              {{ $t('Ailleurs') }}
+              <span class="sm:hidden normal-case tracking-normal font-medium">· {{ $tc(':count album de vos autres cercles|:count albums de vos autres cercles', elsewhereAlbums.length) }}</span>
             </h2>
             <p class="text-xs text-surface-500 mt-1 hidden sm:block">
-              {{ current ? `Pas encore partagés avec ${current.name} : un clic les y ajoute.` : 'Albums partagés avec d\'autres cercles.' }}
+              {{ current ? $t('Pas encore partagés avec :name : un clic les y ajoute.', { name: current.name }) : $t('Albums partagés avec d\'autres cercles.') }}
             </p>
           </div>
           <svg class="sm:hidden w-5 h-5 text-surface-400 shrink-0 transition-transform" :class="elsewhereOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
@@ -179,7 +179,7 @@
               @click="shareWithCurrent(album)"
             >
               <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-              Partager avec {{ current.name }}
+              {{ $t('Partager avec :name', { name: current.name }) }}
             </button>
           </div>
         </div>
@@ -187,9 +187,9 @@
 
       <!-- Aucun résultat pour ce filtre -->
       <div v-if="filteredAlbums.length === 0 && albums.length > 0" class="text-center py-16 bg-white rounded-lg shadow-xs">
-        <p class="text-surface-500">Aucun album ne correspond à ce filtre.</p>
+        <p class="text-surface-500">{{ $t('Aucun album ne correspond à ce filtre.') }}</p>
         <button @click="filter = 'all'" class="mt-3 text-sm font-medium text-brand-700 dark:text-brand-400 hover:underline">
-          Voir tous les albums
+          {{ $t('Voir tous les albums') }}
         </button>
       </div>
 
@@ -203,8 +203,8 @@
             d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
           />
         </svg>
-        <h3 class="mt-4 text-lg font-medium text-surface-900">Aucun album</h3>
-        <p class="mt-2 text-surface-500">Créez votre premier album pour organiser vos médias.</p>
+        <h3 class="mt-4 text-lg font-medium text-surface-900">{{ $t('Aucun album') }}</h3>
+        <p class="mt-2 text-surface-500">{{ $t('Créez votre premier album pour organiser vos médias.') }}</p>
         <button
           @click="showCreateModal = true"
           class="mt-6 inline-flex items-center px-4 py-2 text-sm font-medium text-brand-600 bg-brand-50 dark:bg-brand-500/10 rounded-lg hover:bg-brand-100 dark:hover:bg-brand-500/20"
@@ -212,7 +212,7 @@
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
-          Créer un album
+          {{ $t('Créer un album') }}
         </button>
       </div>
 
@@ -235,6 +235,7 @@ import AlbumFormModal from '@/Components/AlbumFormModal.vue';
 import axios from 'axios';
 import { useCircle } from '@/Composables/useCircle';
 import { useToast } from '@/Composables/useToast';
+import { t, locale, intlLocale } from '@/i18n';
 
 const toast = useToast();
 
@@ -267,16 +268,20 @@ const matchers = {
 };
 
 const filters = computed(() => [
-  { value: 'all', label: 'Tous', count: props.albums.length },
-  { value: 'mine', label: 'Les miens', count: props.albums.filter(matchers.mine).length },
-  { value: 'shared', label: 'Partagés avec moi', count: props.albums.filter(matchers.shared).length },
-  { value: 'circles', label: 'Partagés avec un cercle', count: props.albums.filter(matchers.circles).length },
-  { value: 'smart', label: 'Intelligents', count: props.albums.filter(matchers.smart).length },
+  { value: 'all', label: t('Tous'), count: props.albums.length },
+  { value: 'mine', label: t('Les miens'), count: props.albums.filter(matchers.mine).length },
+  { value: 'shared', label: t('Partagés avec moi'), count: props.albums.filter(matchers.shared).length },
+  { value: 'circles', label: t('Partagés avec un cercle'), count: props.albums.filter(matchers.circles).length },
+  { value: 'smart', label: t('Intelligents'), count: props.albums.filter(matchers.smart).length },
 ]);
 
 // Décennie choisie (null : toutes).
 const decade = ref(null);
 const decades = computed(() => props.discovery?.decades || []);
+// « Années 60 », « Années 2000 » ; en anglais « 1960s », « 2000s ».
+const decadeLabel = (dec) => t('Années :decade', {
+  decade: locale() === 'en' ? `${dec}s` : (dec < 2000 ? String(dec).slice(2) : dec),
+});
 const decadeIds = computed(() => new Set(decades.value.find((d) => d.decade === decade.value)?.ids || []));
 
 const filteredAlbums = computed(() => props.albums
@@ -341,7 +346,7 @@ const periodOf = (a) => {
   const f = a.first_at;
   const l = a.last_at || f;
   if (f.slice(0, 4) === l.slice(0, 4)) return f.slice(0, 7) === l.slice(0, 7)
-    ? new Date(`${f}T12:00:00`).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+    ? new Date(`${f}T12:00:00`).toLocaleDateString(intlLocale(), { month: 'long', year: 'numeric' })
     : f.slice(0, 4);
   return `${f.slice(0, 4)} → ${l.slice(0, 4)}`;
 };
@@ -358,7 +363,7 @@ const shareWithCurrent = async (album) => {
     await axios.post(`/albums/${album.id}/circles`, { household_id: current.value.id });
     router.reload({ only: ['albums'], preserveScroll: true });
   } catch (e) {
-    toast.error(e.response?.data?.message || 'Impossible de partager cet album.');
+    toast.error(e.response?.data?.message || t('Impossible de partager cet album.'));
   } finally {
     sharing.value = null;
   }

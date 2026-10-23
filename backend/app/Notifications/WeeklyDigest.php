@@ -45,18 +45,17 @@ class WeeklyDigest extends Notification implements ShouldQueue
 
     public function toWebPush(object $notifiable, Notification $notification): WebPushMessage
     {
-        $body = $this->mediaCount === 1 ? '1 nouveau souvenir' : "{$this->mediaCount} nouveaux souvenirs";
-        if ($this->uploaderNames !== []) {
-            $body .= ' (' . implode(', ', $this->uploaderNames) . ')';
-        }
+        $body = $this->uploaderNames !== []
+            ? trans_choice(':count nouveau souvenir (:names)|:count nouveaux souvenirs (:names)', $this->mediaCount, ['names' => implode(', ', $this->uploaderNames)])
+            : trans_choice(':count nouveau souvenir|:count nouveaux souvenirs', $this->mediaCount);
 
         // 48 h de durée de vie : passé lundi soir, le résumé n'a plus d'intérêt.
         return (new WebPushMessage)
-            ->title('Cette semaine sur MemoryLane')
+            ->title(__('Cette semaine sur MemoryLane'))
             ->body($body)
             ->icon(PushNotification::ICON)
             ->badge(PushNotification::ICON)
-            ->lang('fr')
+            ->lang(app()->getLocale())
             ->tag('weekly-digest')
             ->data(['url' => '/media'])
             ->options(['TTL' => 172800, 'urgency' => 'normal']);
@@ -65,18 +64,17 @@ class WeeklyDigest extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $mail = (new MailMessage)
-            ->subject('Cette semaine sur MemoryLane')
-            ->greeting('Bonjour ' . $notifiable->name . ',');
+            ->subject(__('Cette semaine sur MemoryLane'))
+            ->greeting(__('Bonjour :name,', ['name' => $notifiable->name]));
 
-        $mail->line(
-            $this->mediaCount === 1
-                ? 'Un nouveau souvenir a été partagé avec vous cette semaine.'
-                : "{$this->mediaCount} nouveaux souvenirs ont été partagés avec vous cette semaine."
-        );
+        $mail->line(trans_choice(
+            'Un nouveau souvenir a été partagé avec vous cette semaine.|:count nouveaux souvenirs ont été partagés avec vous cette semaine.',
+            $this->mediaCount
+        ));
 
         if (! empty($this->uploaderNames)) {
             $names = implode(', ', $this->uploaderNames);
-            $mail->line("Ajoutés par : {$names}.");
+            $mail->line(__('Ajoutés par : :names.', ['names' => $names]));
         }
 
         foreach ($this->samples as $sample) {
@@ -85,8 +83,8 @@ class WeeklyDigest extends Notification implements ShouldQueue
         }
 
         return $mail
-            ->action('Voir les nouveautés', url('/media'))
-            ->line('Bonne semaine, et à bientôt sur MemoryLane.')
-            ->salutation('MemoryLane — les souvenirs de vos proches');
+            ->action(__('Voir les nouveautés'), url('/media'))
+            ->line(__('Bonne semaine, et à bientôt sur MemoryLane.'))
+            ->salutation(__('MemoryLane — les souvenirs de vos proches'));
     }
 }

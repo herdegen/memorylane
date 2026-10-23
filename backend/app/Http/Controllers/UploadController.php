@@ -59,7 +59,7 @@ class UploadController extends Controller
             $uploadId = $this->s3->createMultipartUpload($key, $validated['mime_type']);
         } catch (\Throwable $e) {
             Log::error('Upload initiate failed', ['error' => $e->getMessage()]);
-            return response()->json(['error' => "Impossible d'initier l'upload."], 500);
+            return response()->json(['error' => __('Impossible d\'initier l\'upload.')], 500);
         }
 
         $session = UploadSession::create([
@@ -96,7 +96,7 @@ class UploadController extends Controller
         } catch (\Throwable $e) {
             // Upload S3 disparu/expiré : la session locale est caduque.
             $session->delete();
-            return response()->json(['error' => 'Upload introuvable, à relancer.'], 410);
+            return response()->json(['error' => __('Upload introuvable, à relancer.')], 410);
         }
 
         return response()->json([
@@ -150,7 +150,7 @@ class UploadController extends Controller
             $this->s3->completeMultipartUpload($session->s3_key, $session->upload_id, $parts);
         } catch (\Throwable $e) {
             Log::error('Upload complete failed', ['session' => $session->id, 'error' => $e->getMessage()]);
-            return response()->json(['error' => "Échec de la finalisation de l'upload."], 500);
+            return response()->json(['error' => __('Échec de la finalisation de l\'upload.')], 500);
         }
 
         $media = $this->mediaService->createFromS3Object(
@@ -167,7 +167,7 @@ class UploadController extends Controller
         $media->url = $this->mediaService->fileUrl($media);
 
         return response()->json([
-            'message' => 'Upload terminé',
+            'message' => __('Upload terminé'),
             'media'   => $media,
         ], 201);
     }
@@ -191,7 +191,7 @@ class UploadController extends Controller
 
         $session->delete();
 
-        return response()->json(['message' => 'Upload annulé']);
+        return response()->json(['message' => __('Upload annulé')]);
     }
 
     /**

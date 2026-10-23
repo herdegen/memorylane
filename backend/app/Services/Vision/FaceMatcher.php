@@ -319,7 +319,7 @@ class FaceMatcher
         if (! $allowDuplicate && DetectedFace::where('media_id', $face->media_id)
             ->where('person_id', $personId)->where('id', '!=', $face->id)->exists()) {
             throw \Illuminate\Validation\ValidationException::withMessages([
-                'duplicate' => "{$person->name} est déjà identifié(e) sur un autre visage de cette photo.",
+                'duplicate' => __(':name est déjà identifié(e) sur un autre visage de cette photo.', ['name' => $person->name]),
             ]);
         }
 

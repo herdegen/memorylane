@@ -6,8 +6,8 @@
     <button
       @click="dismiss"
       class="absolute top-3 right-3 text-surface-400 hover:text-surface-600 transition"
-      title="Ne plus proposer"
-      aria-label="Ne plus proposer"
+      :title="$t('Ne plus proposer')"
+      :aria-label="$t('Ne plus proposer')"
     >
       <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
     </button>
@@ -17,21 +17,19 @@
       </svg>
     </div>
     <div class="flex-1 min-w-0">
-      <h2 class="text-base font-semibold text-surface-900">{{ isFriends ? 'Recevoir les nouvelles du groupe' : 'Recevoir les nouvelles de la famille' }}</h2>
+      <h2 class="text-base font-semibold text-surface-900">{{ isFriends ? $t('Recevoir les nouvelles du groupe') : $t('Recevoir les nouvelles de la famille') }}</h2>
       <p v-if="needsIosInstall" class="text-sm text-surface-500 mt-0.5">
-        Sur iPhone, ajoutez MemoryLane à l'écran d'accueil (Partager → Sur l'écran d'accueil)
-        pour pouvoir recevoir les notifications.
+        {{ $t("Sur iPhone, ajoutez MemoryLane à l'écran d'accueil (Partager → Sur l'écran d'accueil) pour pouvoir recevoir les notifications.") }}
       </p>
       <p v-else class="text-sm text-surface-500 mt-0.5">
-        Anniversaires du jour, photos partagées dans vos cercles, résumé du dimanche.
-        Rare et discret, désactivable à tout moment.
+        {{ $t('Anniversaires du jour, photos partagées dans vos cercles, résumé du dimanche. Rare et discret, désactivable à tout moment.') }}
       </p>
     </div>
     <div v-if="!needsIosInstall" class="flex items-center gap-2 shrink-0">
       <button type="button" class="btn-primary" :disabled="busy" @click="enable">
-        {{ busy ? 'Activation…' : 'Activer sur cet appareil' }}
+        {{ busy ? $t('Activation…') : $t('Activer sur cet appareil') }}
       </button>
-      <button type="button" class="btn-ghost" @click="dismiss">Plus tard</button>
+      <button type="button" class="btn-ghost" @click="dismiss">{{ $t('Plus tard') }}</button>
     </div>
   </div>
 </template>
@@ -43,6 +41,7 @@ import axios from 'axios';
 import { usePush } from '@/Composables/usePush';
 import { useToast } from '@/Composables/useToast';
 import { useCircle } from '@/Composables/useCircle';
+import { t } from '@/i18n';
 
 const { isFriends } = useCircle();
 
@@ -67,14 +66,14 @@ const enable = async () => {
   try {
     const data = await subscribe();
     if (!data) {
-      toast.info('Vous avez refusé les notifications pour ce site.');
+      toast.info(t('Vous avez refusé les notifications pour ce site.'));
       visible.value = false;
       return;
     }
-    toast.success('Notifications activées. Réglez-les à tout moment depuis votre profil.');
+    toast.success(t('Notifications activées. Réglez-les à tout moment depuis votre profil.'));
     visible.value = false;
   } catch {
-    toast.error("Impossible d'activer les notifications sur cet appareil.");
+    toast.error(t("Impossible d'activer les notifications sur cet appareil."));
   } finally {
     busy.value = false;
   }

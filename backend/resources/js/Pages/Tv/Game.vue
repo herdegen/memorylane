@@ -2,23 +2,23 @@
   <!-- « Qui est-ce ? » au salon : un visage cerclé sur sa photo, les prénoms
        que propose la reconnaissance, et trois sorties (passer, inconnu, pas un
        visage). Les réponses passent par /quests/answer, comme sur le téléphone. -->
-  <Head title="Qui est-ce ? — Télévision" />
+  <Head :title="$t('Qui est-ce ? — Télévision')" />
   <TvLayout
     :tab="tab" :circle="circle" :circles="circles" :account="account"
     :back="album ? `/tv/ecran/albums/${album.id}` : '/tv/ecran/accueil'" fill
-    :hints="[['▲ ▼', 'Choisir'], ['OK', 'Valider'], ['↩', 'Quitter le jeu']]"
+    :hints="[['▲ ▼', $t('Choisir')], ['OK', $t('Valider')], ['↩', $t('Quitter le jeu')]]"
   >
     <div class="flex-1 min-h-0 px-24 pt-6 flex flex-col gap-6">
       <header class="shrink-0 flex items-center justify-between">
         <div class="flex items-baseline gap-6">
-          <span class="font-display text-[3rem] font-bold">Qui est-ce ?</span>
-          <span class="text-[1.625rem] text-[#b9ad9c]">{{ album ? album.name : circle?.name }}<template v-if="card"> · visage {{ done + 1 }} sur {{ totalLabel }}</template></span>
+          <span class="font-display text-[3rem] font-bold">{{ $t('Qui est-ce ?') }}</span>
+          <span class="text-[1.625rem] text-[#b9ad9c]">{{ album ? album.name : circle?.name }}<template v-if="card"> · {{ $t('visage :current sur :total', { current: done + 1, total: totalLabel }) }}</template></span>
         </div>
         <div class="flex items-center gap-5">
           <span v-if="streak >= 2" class="flex items-center gap-2.5 px-5.5 py-2.5 rounded-full bg-[#3a2f1e] text-[#fcd34d] text-[1.625rem] font-extrabold">
-            <svg class="w-6.5 h-6.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c1 3.5 5 5.5 5 10a5 5 0 01-10 0c0-2 1-3.5 2-4.5 0 2 1 3 2 3 0-3-1-5.5 1-8.5z" /></svg>Série de {{ streak }}
+            <svg class="w-6.5 h-6.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c1 3.5 5 5.5 5 10a5 5 0 01-10 0c0-2 1-3.5 2-4.5 0 2 1 3 2 3 0-3-1-5.5 1-8.5z" /></svg>{{ $t('Série de :count', { count: streak }) }}
           </span>
-          <span v-if="named" class="text-[1.625rem] text-[#c9bfb1]">{{ named }} prénom{{ named > 1 ? 's' : '' }} trouvé{{ named > 1 ? 's' : '' }}</span>
+          <span v-if="named" class="text-[1.625rem] text-[#c9bfb1]">{{ $tc(':count prénom trouvé|:count prénoms trouvés', named) }}</span>
         </div>
       </header>
 
@@ -52,29 +52,29 @@
             <span v-else class="w-[4rem] h-[4rem] shrink-0 rounded-full bg-[#fcd34d] text-[#14110d] text-[2rem] font-extrabold flex items-center justify-center">{{ s.person.name.slice(0, 1) }}</span>
             <span class="flex flex-col gap-1 min-w-0">
               <span class="text-[2.125rem] font-extrabold truncate leading-tight">{{ s.person.name }}</span>
-              <span class="tv-choice-sub text-[1.5rem] text-[#b9ad9c]">{{ s.person.birth_year ? `né·e en ${s.person.birth_year}` : '' }}{{ s.person.birth_year ? ' · ' : '' }}ressemblance {{ Math.round(s.score * 100) }} %</span>
+              <span class="tv-choice-sub text-[1.5rem] text-[#b9ad9c]">{{ s.person.birth_year ? $t('né·e en :year', { year: s.person.birth_year }) : '' }}{{ s.person.birth_year ? ' · ' : '' }}{{ $t('ressemblance :percent %', { percent: Math.round(s.score * 100) }) }}</span>
             </span>
           </button>
-          <p v-if="!suggestions.length" class="text-[1.875rem] text-[#e7e0d6]">Aucune idée de la reconnaissance pour ce visage. Pour lui donner un nom, passez par le téléphone.</p>
+          <p v-if="!suggestions.length" class="text-[1.875rem] text-[#e7e0d6]">{{ $t('Aucune idée de la reconnaissance pour ce visage. Pour lui donner un nom, passez par le téléphone.') }}</p>
           <div class="flex gap-4 mt-2" data-tv-row>
-            <button type="button" data-tv :data-tv-autofocus="suggestions.length ? null : ''" class="tv-option flex-1 justify-center px-4 text-[1.625rem]" :disabled="busy" @click="skip">Passer</button>
-            <button type="button" data-tv class="tv-option flex-1 justify-center px-4 text-[1.625rem]" :disabled="busy" @click="reject">Personne inconnue</button>
-            <button type="button" data-tv class="tv-option flex-1 justify-center px-4 text-[1.625rem]" :disabled="busy" @click="notAFace">Pas un visage</button>
+            <button type="button" data-tv :data-tv-autofocus="suggestions.length ? null : ''" class="tv-option flex-1 justify-center px-4 text-[1.625rem]" :disabled="busy" @click="skip">{{ $t('Passer') }}</button>
+            <button type="button" data-tv class="tv-option flex-1 justify-center px-4 text-[1.625rem]" :disabled="busy" @click="reject">{{ $t('Personne inconnue') }}</button>
+            <button type="button" data-tv class="tv-option flex-1 justify-center px-4 text-[1.625rem]" :disabled="busy" @click="notAFace">{{ $t('Pas un visage') }}</button>
           </div>
         </div>
       </div>
 
-      <div v-else-if="loading" class="flex-1 flex items-center justify-center text-[2rem] text-[#c9bfb1]">Chargement des visages…</div>
+      <div v-else-if="loading" class="flex-1 flex items-center justify-center text-[2rem] text-[#c9bfb1]">{{ $t('Chargement des visages…') }}</div>
 
       <div v-else class="flex-1 flex items-center justify-center">
         <div class="w-[52rem] rounded-[2.25rem] bg-[#211d17] p-14 flex flex-col items-center gap-6 text-center">
           <span class="text-[5rem]">🎉</span>
-          <h2 class="font-display text-[3.5rem] font-bold">{{ done ? 'Bravo !' : 'Rien à identifier' }}</h2>
+          <h2 class="font-display text-[3.5rem] font-bold">{{ done ? $t('Bravo !') : $t('Rien à identifier') }}</h2>
           <p class="text-[1.875rem] text-[#c9bfb1]">
-            <template v-if="done">{{ done }} visage{{ done > 1 ? 's' : '' }} passé{{ done > 1 ? 's' : '' }} en revue, {{ named }} nommé{{ named > 1 ? 's' : '' }}{{ bestStreak >= 3 ? ` — meilleure série : ${bestStreak}` : '' }}.</template>
-            <template v-else>Tous les visages {{ album ? 'de cet album' : 'de ce cercle' }} ont déjà un nom ou ont été mis de côté.</template>
+            <template v-if="done">{{ summary }}</template>
+            <template v-else>{{ album ? $t('Tous les visages de cet album ont déjà un nom ou ont été mis de côté.') : $t('Tous les visages de ce cercle ont déjà un nom ou ont été mis de côté.') }}</template>
           </p>
-          <Link :href="album ? `/tv/ecran/albums/${album.id}` : '/tv/ecran/accueil'" data-tv data-tv-autofocus class="tv-btn tv-btn-primary mt-4">Terminer</Link>
+          <Link :href="album ? `/tv/ecran/albums/${album.id}` : '/tv/ecran/accueil'" data-tv data-tv-autofocus class="tv-btn tv-btn-primary mt-4">{{ $t('Terminer') }}</Link>
         </div>
       </div>
     </div>
@@ -91,6 +91,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import TvLayout from '@/Layouts/TvLayout.vue';
 import { focusInitial } from '@/Tv/remote';
+import { t, tc } from '@/i18n';
 
 const props = defineProps({
   tab: String,
@@ -116,6 +117,14 @@ const suggestions = computed(() => (card.value?.face?.suggestions || []).slice(0
 const totalLabel = computed(() => (total.value >= 200 ? '200+' : Math.max(total.value, done.value + 1)));
 const firstName = (name) => (name || '').split(/\s+/)[0];
 
+// Bilan de fin de partie : « 12 visages passés en revue, 5 nommés — meilleure série : 4. »
+const summary = computed(() => {
+  const namedLabel = tc(':count nommé|:count nommés', named.value);
+  return bestStreak.value >= 3
+    ? tc(':count visage passé en revue, :named — meilleure série : :best.|:count visages passés en revue, :named — meilleure série : :best.', done.value, { named: namedLabel, best: bestStreak.value })
+    : tc(':count visage passé en revue, :named.|:count visages passés en revue, :named.', done.value, { named: namedLabel });
+});
+
 const whereLabel = computed(() => {
   const o = card.value?.face?.origin;
   if (!o) return '';
@@ -123,9 +132,14 @@ const whereLabel = computed(() => {
 });
 const hint = computed(() => {
   const w = card.value?.face?.with || [];
-  if (w.length === 1) return `Sur une photo avec ${firstName(w[0])}. Qui reconnaissez-vous ?`;
-  if (w.length > 1) return `Sur une photo avec ${w.slice(0, -1).map(firstName).join(', ')} et ${firstName(w[w.length - 1])}. Qui reconnaissez-vous ?`;
-  return 'Qui reconnaissez-vous ?';
+  if (w.length === 1) return t('Sur une photo avec :name. Qui reconnaissez-vous ?', { name: firstName(w[0]) });
+  if (w.length > 1) {
+    return t('Sur une photo avec :first et :last. Qui reconnaissez-vous ?', {
+      first: w.slice(0, -1).map(firstName).join(', '),
+      last: firstName(w[w.length - 1]),
+    });
+  }
+  return t('Qui reconnaissez-vous ?');
 });
 const boxStyle = computed(() => {
   const b = card.value?.face?.bounding_box;
@@ -154,7 +168,7 @@ const fill = () => {
       // Le visage suivant, préchargé.
       if (queue.value[1]) new Image().src = queue.value[1].face.image_url;
     } catch (e) {
-      say('Impossible de charger les visages.');
+      say(t('Impossible de charger les visages.'));
     } finally {
       loading.value = false;
       filling = null;
@@ -191,17 +205,17 @@ const send = async (kind, payload, text, good) => {
     if (kind === 'answered') named.value++;
     advance(text, good);
   } catch (e) {
-    if (e.response?.status === 409) advance('Déjà identifié par quelqu\'un', false);
-    else say(e.response?.data?.message || 'Réponse non enregistrée.');
+    if (e.response?.status === 409) advance(t('Déjà identifié par quelqu\'un'), false);
+    else say(e.response?.data?.message || t('Réponse non enregistrée.'));
   } finally {
     busy.value = false;
   }
 };
 
-const confirmPerson = (p) => send('answered', { person_id: p.id }, `C'est ${firstName(p.name)} ! +1`, true);
-const reject = () => send('no', { reason: 'stranger' }, 'Marqué inconnu', true);
-const notAFace = () => send('no', { reason: 'not_face' }, 'Pas un visage', true);
-const skip = () => send('skipped', null, 'On y reviendra', false);
+const confirmPerson = (p) => send('answered', { person_id: p.id }, t('C\'est :name ! +1', { name: firstName(p.name) }), true);
+const reject = () => send('no', { reason: 'stranger' }, t('Marqué inconnu'), true);
+const notAFace = () => send('no', { reason: 'not_face' }, t('Pas un visage'), true);
+const skip = () => send('skipped', null, t('On y reviendra'), false);
 
 // Nouveau visage : le focus revient sur la première proposition.
 watch(() => card.value?.subject_id, async () => {

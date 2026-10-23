@@ -1,5 +1,5 @@
 <template>
-  <BaseModal title="Comment ajouter vos photos" max-width="2xl" @close="$emit('close')">
+  <BaseModal :title="$t('Comment ajouter vos photos')" max-width="2xl" @close="$emit('close')">
     <div class="px-5 sm:px-6 pt-4 pb-6">
       <!-- Appareil -->
       <div class="flex rounded-lg bg-surface-100 p-1 text-sm font-medium mb-5">
@@ -21,12 +21,12 @@
           <div class="shrink-0 w-28 sm:w-full h-28 rounded-xl bg-white border border-surface-200 flex items-center justify-center overflow-hidden">
             <!-- Bouton -->
             <div v-if="step.art === 'button'" class="px-3 py-2 rounded-lg bg-brand-600 text-white text-[11px] font-semibold shadow-warm-sm flex items-center gap-1">
-              <span class="text-sm leading-none">+</span>{{ current === 'desktop' ? 'Choisir des photos' : 'Choisir dans mes photos' }}
+              <span class="text-sm leading-none">+</span>{{ current === 'desktop' ? $t('Choisir des photos') : $t('Choisir dans mes photos') }}
             </div>
             <!-- Sélecteur de photos -->
             <div v-else-if="step.art === 'picker'" class="w-[88%]">
               <div class="flex justify-between text-[9px] font-semibold text-blue-600 mb-1 px-0.5">
-                <span>Annuler</span><span>{{ current === 'android' ? 'OK' : 'Ajouter' }}</span>
+                <span>{{ $t('Annuler') }}</span><span>{{ current === 'android' ? 'OK' : $t('Ajouter') }}</span>
               </div>
               <div class="grid grid-cols-4 gap-0.5">
                 <div v-for="n in 8" :key="n" class="relative aspect-square rounded-[3px]" :class="tileColors[n % tileColors.length]">
@@ -46,12 +46,12 @@
                 <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
               </div>
               <div class="h-1.5 rounded-full bg-surface-200 overflow-hidden"><div class="h-1.5 w-full bg-brand-600"></div></div>
-              <p class="mt-1 text-[10px] font-semibold text-surface-600">12 photos ajoutées !</p>
+              <p class="mt-1 text-[10px] font-semibold text-surface-600">{{ $t(':count photos ajoutées !', { count: 12 }) }}</p>
             </div>
           </div>
 
           <div>
-            <p class="text-xs font-semibold uppercase tracking-wider text-brand-700">Étape {{ i + 1 }}</p>
+            <p class="text-xs font-semibold uppercase tracking-wider text-brand-700">{{ $t('Étape :n', { n: i + 1 }) }}</p>
             <p class="mt-1 text-sm text-surface-800 leading-relaxed" v-html="step.text"></p>
           </div>
         </li>
@@ -61,7 +61,7 @@
     </div>
 
     <template #footer>
-      <button type="button" class="btn-primary" @click="$emit('close')">J'ai compris</button>
+      <button type="button" class="btn-primary" @click="$emit('close')">{{ $t("J'ai compris") }}</button>
     </template>
   </BaseModal>
 </template>
@@ -69,6 +69,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import BaseModal from '@/Components/BaseModal.vue';
+import { t } from '@/i18n';
 
 const props = defineProps({
   // 'ios' | 'android' | 'desktop' : onglet ouvert par défaut.
@@ -79,7 +80,7 @@ defineEmits(['close']);
 const tabs = [
   { value: 'ios', label: 'iPhone / iPad' },
   { value: 'android', label: 'Android' },
-  { value: 'desktop', label: 'Ordinateur' },
+  { value: 'desktop', label: t('Ordinateur') },
 ];
 const current = ref(props.device);
 
@@ -88,26 +89,26 @@ const tileColors = ['bg-amber-200', 'bg-sky-200', 'bg-rose-200', 'bg-emerald-200
 // Textes statiques (aucune donnée utilisateur) : v-html sert juste au gras.
 const STEPS = {
   ios: [
-    { art: 'button', text: 'Touchez <strong>« Choisir dans mes photos »</strong>, puis <strong>« Photothèque »</strong>.' },
-    { art: 'picker', text: 'Touchez les photos à envoyer : elles se cochent. Astuce : <strong>glissez le doigt</strong> pour en cocher plusieurs d\'un coup. Puis <strong>« Ajouter »</strong>.' },
-    { art: 'done', text: 'Touchez <strong>« Envoyer »</strong> et <strong>gardez la page ouverte</strong> jusqu\'à la coche verte.' },
+    { art: 'button', text: t('Touchez <strong>« Choisir dans mes photos »</strong>, puis <strong>« Photothèque »</strong>.') },
+    { art: 'picker', text: t('Touchez les photos à envoyer : elles se cochent. Astuce : <strong>glissez le doigt</strong> pour en cocher plusieurs d\'un coup. Puis <strong>« Ajouter »</strong>.') },
+    { art: 'done', text: t('Touchez <strong>« Envoyer »</strong> et <strong>gardez la page ouverte</strong> jusqu\'à la coche verte.') },
   ],
   android: [
-    { art: 'button', text: 'Touchez <strong>« Choisir dans mes photos »</strong>, puis votre galerie (<strong>Photos</strong>).' },
-    { art: 'picker', text: '<strong>Appui long</strong> sur une première photo, puis touchez les autres pour les cocher. Validez avec <strong>« OK »</strong>.' },
-    { art: 'done', text: 'Touchez <strong>« Envoyer »</strong> et <strong>gardez la page ouverte</strong> jusqu\'à la coche verte.' },
+    { art: 'button', text: t('Touchez <strong>« Choisir dans mes photos »</strong>, puis votre galerie (<strong>Photos</strong>).') },
+    { art: 'picker', text: t('<strong>Appui long</strong> sur une première photo, puis touchez les autres pour les cocher. Validez avec <strong>« OK »</strong>.') },
+    { art: 'done', text: t('Touchez <strong>« Envoyer »</strong> et <strong>gardez la page ouverte</strong> jusqu\'à la coche verte.') },
   ],
   desktop: [
-    { art: 'drop', text: '<strong>Glissez</strong> vos photos (ou tout un dossier sélectionné) dans le cadre, ou cliquez sur <strong>« Choisir des photos »</strong>.' },
-    { art: 'picker', text: 'Pour en prendre plusieurs : <strong>Ctrl</strong> (ou <strong>⌘</strong> sur Mac) + clic, ou <strong>Ctrl + A</strong> pour tout le dossier.' },
-    { art: 'done', text: 'Cliquez sur <strong>« Envoyer »</strong> et <strong>laissez l\'onglet ouvert</strong> jusqu\'à la fin (même pour des centaines de photos).' },
+    { art: 'drop', text: t('<strong>Glissez</strong> vos photos (ou tout un dossier sélectionné) dans le cadre, ou cliquez sur <strong>« Choisir des photos »</strong>.') },
+    { art: 'picker', text: t('Pour en prendre plusieurs : <strong>Ctrl</strong> (ou <strong>⌘</strong> sur Mac) + clic, ou <strong>Ctrl + A</strong> pour tout le dossier.') },
+    { art: 'done', text: t('Cliquez sur <strong>« Envoyer »</strong> et <strong>laissez l\'onglet ouvert</strong> jusqu\'à la fin (même pour des centaines de photos).') },
   ],
 };
 
 const TIPS = {
-  ios: 'Les photos sont partagées avec votre cercle par défaut : décochez la case avant d\'envoyer pour les garder pour vous.',
-  android: 'Encore plus simple après avoir installé l\'appli : depuis la Galerie, <strong>Partager › MemoryLane</strong>.',
-  desktop: 'Vos photos sont chez Google Photos ? Utilisez plutôt « Autres façons d\'importer » en bas de la page.',
+  ios: t('Les photos sont partagées avec votre cercle par défaut : décochez la case avant d\'envoyer pour les garder pour vous.'),
+  android: t('Encore plus simple après avoir installé l\'appli : depuis la Galerie, <strong>Partager › MemoryLane</strong>.'),
+  desktop: t('Vos photos sont chez Google Photos ? Utilisez plutôt « Autres façons d\'importer » en bas de la page.'),
 };
 
 const steps = computed(() => STEPS[current.value] ?? STEPS.desktop);

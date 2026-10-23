@@ -1,36 +1,36 @@
 <template>
   <div class="bg-white rounded-xl border border-surface-200 shadow-xs p-6">
-    <h3 class="text-lg font-semibold mb-4">Géolocalisation</h3>
+    <h3 class="text-lg font-semibold mb-4">{{ $t('Géolocalisation') }}</h3>
 
     <!-- Current location display -->
     <div v-if="hasLocation" class="mb-4 p-4 bg-green-50 dark:bg-green-500/10 rounded-lg">
       <div class="text-sm text-surface-700 mb-2">
-        <strong>Latitude:</strong> {{ currentLatitude }}
+        <strong>{{ $t('Latitude:') }}</strong> {{ currentLatitude }}
       </div>
       <div class="text-sm text-surface-700 mb-2">
-        <strong>Longitude:</strong> {{ currentLongitude }}
+        <strong>{{ $t('Longitude:') }}</strong> {{ currentLongitude }}
       </div>
       <div v-if="currentAltitude" class="text-sm text-surface-700">
-        <strong>Altitude:</strong> {{ currentAltitude }}m
+        <strong>{{ $t('Altitude:') }}</strong> {{ currentAltitude }}m
       </div>
       <div class="mt-3 flex gap-2">
         <button
           @click="viewOnMap"
           class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 text-sm"
         >
-          Voir sur la carte
+          {{ $t('Voir sur la carte') }}
         </button>
         <button
           @click="showEditForm = true"
           class="px-4 py-2 bg-surface-200 text-surface-700 rounded-lg hover:bg-surface-300 text-sm"
         >
-          Modifier
+          {{ $t('Modifier') }}
         </button>
         <button
           @click="removeLocation"
           class="px-4 py-2 bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-500/25 text-sm"
         >
-          Supprimer
+          {{ $t('Supprimer') }}
         </button>
       </div>
     </div>
@@ -38,24 +38,24 @@
     <!-- No location message -->
     <div v-else class="mb-4 p-4 bg-surface-50 rounded-lg">
       <p class="text-sm text-surface-600 mb-3">
-        Aucune géolocalisation disponible pour ce média.
+        {{ $t('Aucune géolocalisation disponible pour ce média.') }}
       </p>
       <button
         @click="showEditForm = true"
         class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 text-sm"
       >
-        Ajouter une localisation
+        {{ $t('Ajouter une localisation') }}
       </button>
     </div>
 
     <!-- Edit form -->
     <div v-if="showEditForm" class="border-t pt-4">
-      <h4 class="font-medium mb-3">{{ hasLocation ? 'Modifier' : 'Ajouter' }} la localisation</h4>
+      <h4 class="font-medium mb-3">{{ hasLocation ? $t('Modifier la localisation') : $t('Ajouter la localisation') }}</h4>
 
       <!-- Location search -->
       <div class="mb-4">
         <label class="block text-sm font-medium text-surface-700 mb-2">
-          Rechercher un lieu
+          {{ $t('Rechercher un lieu') }}
         </label>
         <input
           v-model="locationSearch"
@@ -82,7 +82,7 @@
       <div class="space-y-3">
         <div>
           <label class="block text-sm font-medium text-surface-700 mb-1">
-            Latitude (-90 à 90)
+            {{ $t('Latitude (-90 à 90)') }}
           </label>
           <input
             v-model.number="editForm.latitude"
@@ -96,7 +96,7 @@
 
         <div>
           <label class="block text-sm font-medium text-surface-700 mb-1">
-            Longitude (-180 à 180)
+            {{ $t('Longitude (-180 à 180)') }}
           </label>
           <input
             v-model.number="editForm.longitude"
@@ -110,7 +110,7 @@
 
         <div>
           <label class="block text-sm font-medium text-surface-700 mb-1">
-            Altitude (optionnel, en mètres)
+            {{ $t('Altitude (optionnel, en mètres)') }}
           </label>
           <input
             v-model.number="editForm.altitude"
@@ -128,13 +128,13 @@
           :disabled="!isFormValid"
           class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:bg-surface-300 disabled:cursor-not-allowed"
         >
-          Enregistrer
+          {{ $t('Enregistrer') }}
         </button>
         <button
           @click="cancelEdit"
           class="px-4 py-2 bg-surface-200 text-surface-700 rounded-lg hover:bg-surface-300"
         >
-          Annuler
+          {{ $t('Annuler') }}
         </button>
       </div>
 
@@ -152,6 +152,7 @@ import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useToast } from '@/Composables/useToast';
 import { useConfirm } from '@/Composables/useConfirm';
+import { t } from '@/i18n';
 
 const toast = useToast();
 const { confirm } = useConfirm();
@@ -271,17 +272,17 @@ async function saveLocation() {
 
     emit('updated', response.data.metadata);
 
-    toast.success('Géolocalisation mise à jour avec succès !');
+    toast.success(t('Géolocalisation mise à jour avec succès !'));
   } catch (error) {
-    errorMessage.value = error.response?.data?.message || 'Erreur lors de la sauvegarde';
+    errorMessage.value = error.response?.data?.message || t('Erreur lors de la sauvegarde');
   }
 }
 
 async function removeLocation() {
   const ok = await confirm({
-    title: 'Supprimer la géolocalisation',
-    message: 'Êtes-vous sûr de vouloir supprimer la géolocalisation de ce média ?',
-    confirmLabel: 'Supprimer',
+    title: t('Supprimer la géolocalisation'),
+    message: t('Êtes-vous sûr de vouloir supprimer la géolocalisation de ce média ?'),
+    confirmLabel: t('Supprimer'),
     danger: true,
   });
   if (!ok) return;
@@ -295,9 +296,9 @@ async function removeLocation() {
 
     emit('removed');
 
-    toast.success('Géolocalisation supprimée avec succès !');
+    toast.success(t('Géolocalisation supprimée avec succès !'));
   } catch (error) {
-    errorMessage.value = error.response?.data?.message || 'Erreur lors de la suppression';
+    errorMessage.value = error.response?.data?.message || t('Erreur lors de la suppression');
   }
 }
 

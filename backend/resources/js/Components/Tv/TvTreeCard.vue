@@ -25,7 +25,7 @@
     <span v-if="badge" class="px-3.5 py-1 rounded-full bg-[#3a2f1e] text-[#fcd34d] font-bold" :class="big ? 'text-[1.375rem]' : 'text-[1.125rem]'">{{ badge }}</span>
     <span v-else-if="person.relation" class="text-[#fcd34d] font-semibold line-clamp-1" :class="big ? 'text-[1.625rem]' : 'text-[1.25rem]'">{{ person.relation }}</span>
     <span v-if="person.life" class="text-[#b9ad9c] line-clamp-1" :class="big ? 'text-[1.5rem]' : 'text-[1.125rem]'">{{ person.life }}</span>
-    <span v-if="big && person.photos" class="text-[1.375rem] text-[#c9bfb1]">{{ person.photos }} photo{{ person.photos > 1 ? 's' : '' }}</span>
+    <span v-if="big && person.photos" class="text-[1.375rem] text-[#c9bfb1]">{{ $tc(':count photo|:count photos', person.photos) }}</span>
   </button>
 </template>
 

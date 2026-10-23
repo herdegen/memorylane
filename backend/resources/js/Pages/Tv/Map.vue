@@ -4,7 +4,7 @@
        album lointain (Islande) n'est montré qu'une fois choisi. ◀ ▶ passent
        d'un album à l'autre (du plus récent au plus ancien), son repère
        s'allume ; OK ouvre l'album. -->
-  <Head title="Carte — Télévision" />
+  <Head :title="$t('Carte — Télévision')" />
   <TvLayout
     :tab="tab" :circle="circle" :circles="circles" :account="account"
     back="/tv/ecran/accueil" fill nav-class="relative z-10"
@@ -15,7 +15,7 @@
     <div class="fixed inset-x-0 bottom-0 h-[26rem] z-[1] pointer-events-none" style="background: linear-gradient(to top, rgba(18,16,12,.96) 40%, rgba(18,16,12,0))"></div>
 
     <div class="relative z-10 flex-1 flex flex-col justify-end px-24 pb-10">
-      <p v-if="!places.length" class="text-[2rem] text-[#c9bfb1] mb-10">Aucun album avec des photos géolocalisées dans ce cercle pour l'instant.</p>
+      <p v-if="!places.length" class="text-[2rem] text-[#c9bfb1] mb-10">{{ $t('Aucun album avec des photos géolocalisées dans ce cercle pour l\'instant.') }}</p>
       <button
         v-else
         type="button"
@@ -26,11 +26,11 @@
       >
         <span class="flex flex-col gap-2 min-w-0 w-[34rem] shrink-0">
           <span class="text-[1.375rem] font-bold text-[#fcd34d] tracking-[.06em] uppercase">
-            {{ index < 0 ? 'Vue d\'ensemble' : `Album ${index + 1} sur ${places.length}` }}
+            {{ index < 0 ? $t('Vue d\'ensemble') : $t('Album :current sur :total', { current: index + 1, total: places.length }) }}
           </span>
-          <span class="font-display text-[3.5rem] font-bold leading-[1.05] line-clamp-2">{{ index < 0 ? `${places.length} album${places.length > 1 ? 's' : ''} sur la carte` : place.name }}</span>
+          <span class="font-display text-[3.5rem] font-bold leading-[1.05] line-clamp-2">{{ index < 0 ? $tc(':count album sur la carte|:count albums sur la carte', places.length) : place.name }}</span>
           <span class="text-[1.75rem] text-[#e7e0d6]">
-            <template v-if="index < 0">◀ ▶ pour passer d'un album à l'autre</template>
+            <template v-if="index < 0">{{ $t('◀ ▶ pour passer d\'un album à l\'autre') }}</template>
             <template v-else>{{ place.meta }}</template>
           </span>
           <span v-if="index >= 0 && place.place" class="text-[1.625rem] text-[#fcd34d] line-clamp-1">📍 {{ place.place }}</span>
@@ -40,9 +40,9 @@
         </span>
       </button>
       <div class="mt-6 flex gap-10 text-[1.375rem] text-[#a89c8b]">
-        <span class="flex items-center gap-2.5"><span class="px-3 py-0.5 border-2 border-[#6b6155] rounded-lg font-extrabold">◀ ▶</span> Album précédent / suivant</span>
-        <span class="flex items-center gap-2.5"><span class="px-3 py-0.5 border-2 border-[#6b6155] rounded-lg font-extrabold">OK</span> {{ index < 0 ? 'Commencer' : 'Ouvrir l\'album' }}</span>
-        <span class="flex items-center gap-2.5"><span class="px-3 py-0.5 border-2 border-[#6b6155] rounded-lg font-extrabold">▲</span> Menu</span>
+        <span class="flex items-center gap-2.5"><span class="px-3 py-0.5 border-2 border-[#6b6155] rounded-lg font-extrabold">◀ ▶</span> {{ $t('Album précédent / suivant') }}</span>
+        <span class="flex items-center gap-2.5"><span class="px-3 py-0.5 border-2 border-[#6b6155] rounded-lg font-extrabold">OK</span> {{ index < 0 ? $t('Commencer') : $t('Ouvrir l\'album') }}</span>
+        <span class="flex items-center gap-2.5"><span class="px-3 py-0.5 border-2 border-[#6b6155] rounded-lg font-extrabold">▲</span> {{ $t('Menu') }}</span>
       </div>
     </div>
   </TvLayout>

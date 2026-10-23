@@ -17,6 +17,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Traits\Localizable;
 
 /**
  * Newsletter hebdomadaire de la famille, composée pour UN destinataire.
@@ -36,6 +37,8 @@ use Illuminate\Support\Facades\Storage;
  */
 class FamilyNewsletterBuilder
 {
+    use Localizable;
+
     public const EDITION = 'family';
 
     private const IMAGE_TTL_MINUTES = 60 * 24 * 7;
@@ -71,6 +74,12 @@ class FamilyNewsletterBuilder
      * @return array{subject: string, preheader: string, sections: list<array>, log: list<array{key: string, ref: ?string}>}|null
      */
     public function build(User $user, ?Carbon $now = null): ?array
+    {
+        // Rédigée dans la langue du destinataire (textes et dates).
+        return $this->withLocale($user->preferredLocale(), fn () => $this->compose($user, $now));
+    }
+
+    private function compose(User $user, ?Carbon $now): ?array
     {
         $this->user = $user;
         $this->now = ($now ?? now())->copy();
@@ -174,7 +183,7 @@ class FamilyNewsletterBuilder
 
         foreach ($this->celebrations->upcomingBirthdays($today, 7, $circle()) as $b) {
             $items[] = ['kind' => 'birthday', 'days' => $b['days_until'], 'name' => $this->shortName($b['person']),
-                'text' => "{$b['age']} ans", 'url' => url("/people/{$b['person']->id}")];
+                'text' => __(':age ans', ['age' => $b['age']]), 'url' => url("/people/{$b['person']->id}")];
         }
 
         $names = app(NameDayService::class);
@@ -188,14 +197,15 @@ class FamilyNewsletterBuilder
                 $first = strtok((string) ($p->first_name ?: $p->name), ' ');
                 if ($first && in_array(NameDayService::normalize($first), $wanted, true)) {
                     $items[] = ['kind' => 'nameday', 'days' => $d, 'name' => $this->shortName($p),
-                        'text' => 'bonne fête', 'url' => url("/people/{$p->id}")];
+                        'text' => __('bonne fête'), 'url' => url("/people/{$p->id}")];
                 }
             }
         }
 
         foreach ($this->celebrations->upcomingMemorials($today, 7, $circle()) as $m) {
             $items[] = ['kind' => 'memorial', 'days' => $m['days_until'], 'name' => $this->shortName($m['person']),
-                'text' => 'en mémoire, '.($m['years'] === 1 ? 'un an' : "{$m['years']} ans"), 'url' => url("/people/{$m['person']->id}")];
+                'text' => $m['years'] === 1 ? __('en mémoire, un an') : __('en mémoire, :years ans', ['years' => $m['years']]),
+                'url' => url("/people/{$m['person']->id}")];
         }
 
         if ($items === []) {
@@ -229,12 +239,12 @@ class FamilyNewsletterBuilder
         $lines = array_values(array_filter([
             $voice->isNotEmpty() ? [
                 'count' => $voice->count(),
-                'label' => $voice->count() === 1 ? 'souvenir raconté à voix haute' : 'souvenirs racontés à voix haute',
-                'detail' => 'par '.$this->joinNames($voice->map(fn ($v) => $v->person ? $this->shortName($v->person) : null)->filter()->unique()->values()->all()),
+                'label' => $voice->count() === 1 ? __('souvenir raconté à voix haute') : __('souvenirs racontés à voix haute'),
+                'detail' => __('par :names', ['names' => $this->joinNames($voice->map(fn ($v) => $v->person ? $this->shortName($v->person) : null)->filter()->unique()->values()->all())]),
             ] : null,
-            $identified > 0 ? ['count' => $identified, 'label' => $identified === 1 ? 'visage identifié' : 'visages identifiés', 'detail' => null] : null,
-            $newPeople > 0 ? ['count' => $newPeople, 'label' => $newPeople === 1 ? 'nouvelle fiche dans l\'arbre' : 'nouvelles fiches dans l\'arbre', 'detail' => null] : null,
-            $answers > 0 ? ['count' => $answers, 'label' => $answers === 1 ? 'petite question résolue' : 'petites questions résolues', 'detail' => null] : null,
+            $identified > 0 ? ['count' => $identified, 'label' => $identified === 1 ? __('visage identifié') : __('visages identifiés'), 'detail' => null] : null,
+            $newPeople > 0 ? ['count' => $newPeople, 'label' => $newPeople === 1 ? __('nouvelle fiche dans l\'arbre') : __('nouvelles fiches dans l\'arbre'), 'detail' => null] : null,
+            $answers > 0 ? ['count' => $answers, 'label' => $answers === 1 ? __('petite question résolue') : __('petites questions résolues'), 'detail' => null] : null,
         ]));
 
         return $lines === [] ? null : ['key' => 'family_activity', 'lines' => $lines];
@@ -319,19 +329,25 @@ class FamilyNewsletterBuilder
             'relation' => $self ? null : $this->relation($person),
             'portrait' => $this->portraitUrl($person),
             'prompts' => $self
-                ? ['vos écoles et diplômes', 'vos métiers', 'les maisons où vous avez vécu']
-                : ['un métier', 'une école', 'une maison où '.($person->gender === 'F' ? 'elle' : 'il').' a vécu', 'une anecdote'],
+                ? [__('vos écoles et diplômes'), __('vos métiers'), __('les maisons où vous avez vécu')]
+                : [
+                    __('un métier'),
+                    __('une école'),
+                    $person->gender === 'F' ? __('une maison où elle a vécu') : __('une maison où il a vécu'),
+                    __('une anecdote'),
+                ],
             'url' => url("/people/{$person->id}"),
         ];
     }
 
     private function spotlight(): array
     {
-        $shown = $this->recentRefs('spotlight', count(FeatureSpotlights::ALL));
+        $all = FeatureSpotlights::all();
+        $shown = $this->recentRefs('spotlight', count($all));
         $key = FeatureSpotlights::next($shown, crc32($this->user->id));
 
-        return ['key' => 'spotlight', 'ref' => $key] + FeatureSpotlights::ALL[$key]
-            + ['url_abs' => url(FeatureSpotlights::ALL[$key]['url'])];
+        return ['key' => 'spotlight', 'ref' => $key] + $all[$key]
+            + ['url_abs' => url($all[$key]['url'])];
     }
 
     /** Une rubrique bonus éligible, différente de celle de la semaine dernière. */
@@ -419,7 +435,7 @@ class FamilyNewsletterBuilder
             'key' => 'years_ago',
             'ref' => $media->id,
             'years' => $years,
-            'date' => $media->taken_at->locale('fr')->translatedFormat('F Y'),
+            'date' => $media->taken_at->locale(app()->getLocale())->translatedFormat('F Y'),
             'who' => $this->joinNames($media->people->take(4)->map(fn ($p) => $this->shortName($p))->all()),
             'image' => $this->media->thumbnailUrl($media, ['medium', 'small'], self::IMAGE_TTL_MINUTES, presigned: true),
             'url' => url("/media/{$media->id}"),
@@ -497,9 +513,13 @@ class FamilyNewsletterBuilder
         if ($person->death_date) {
             return $person->birth_date->year.' – '.$person->death_date->year;
         }
-        $e = $person->gender === 'F' ? 'e' : '';
+        $year = $person->birth_date->year;
+        if (! $person->birth_place) {
+            return $person->gender === 'F' ? __('née en :year', ['year' => $year]) : __('né en :year', ['year' => $year]);
+        }
+        $values = ['year' => $year, 'place' => (string) strtok($person->birth_place, ',')];
 
-        return "né{$e} en {$person->birth_date->year}".($person->birth_place ? ' à '.strtok($person->birth_place, ',') : '');
+        return $person->gender === 'F' ? __('née en :year à :place', $values) : __('né en :year à :place', $values);
     }
 
     private function shortName(Person $person): string
@@ -511,15 +531,17 @@ class FamilyNewsletterBuilder
     {
         $names = array_values(array_filter($names));
 
-        return count($names) < 2 ? implode('', $names) : implode(', ', array_slice($names, 0, -1)).' et '.end($names);
+        return count($names) < 2
+            ? implode('', $names)
+            : __(':names et :last', ['names' => implode(', ', array_slice($names, 0, -1)), 'last' => end($names)]);
     }
 
     private function dayLabel(Carbon $day, int $days): string
     {
         return match ($days) {
-            0 => 'aujourd\'hui',
-            1 => 'demain',
-            default => $day->locale('fr')->translatedFormat('l j'),
+            0 => __('aujourd\'hui'),
+            1 => __('demain'),
+            default => $day->locale(app()->getLocale())->translatedFormat('l j'),
         };
     }
 
@@ -528,32 +550,36 @@ class FamilyNewsletterBuilder
         $by = collect($sections)->keyBy('key');
         $parts = [];
         if ($p = $by->get('new_photos')) {
-            $parts[] = $p['count'] === 1 ? '1 nouvelle photo' : "{$p['count']} nouvelles photos";
+            $parts[] = $p['count'] === 1 ? __('1 nouvelle photo') : __(':count nouvelles photos', ['count' => $p['count']]);
         }
         if ($b = collect($by->get('upcoming')['items'] ?? [])->firstWhere('kind', 'birthday')) {
-            $parts[] = "l'anniversaire de {$b['name']}";
+            $parts[] = __('l\'anniversaire de :name', ['name' => $b['name']]);
         }
         if ($p = $by->get('person_of_week')) {
-            $parts[] = $p['first_name'].' à l\'honneur';
+            $parts[] = __(':name à l\'honneur', ['name' => $p['first_name']]);
         }
 
         return $parts === []
-            ? 'Cette semaine en famille'
-            : 'Cette semaine en famille : '.$this->joinNames(array_slice($parts, 0, 2));
+            ? __('Cette semaine en famille')
+            : __('Cette semaine en famille : :topics', ['topics' => $this->joinNames(array_slice($parts, 0, 2))]);
     }
 
     private function preheader(array $sections): string
     {
         $by = collect($sections)->keyBy('key');
         if ($t = $by->get('tagged_you')) {
-            return $t['count'] === 1 ? 'Vous apparaissez sur une nouvelle photo.' : "Vous apparaissez sur {$t['count']} nouvelles photos.";
+            return $t['count'] === 1
+                ? __('Vous apparaissez sur une nouvelle photo.')
+                : __('Vous apparaissez sur :count nouvelles photos.', ['count' => $t['count']]);
         }
         if ($s = $by->get('spotlight')) {
             $title = mb_strtolower(mb_substr($s['title'], 0, 1)).mb_substr($s['title'], 1);
 
-            return 'À découvrir : '.$title.(preg_match('/[?!.]$/u', $title) ? '' : '.');
+            return preg_match('/[?!.]$/u', $title)
+                ? __('À découvrir : :title', ['title' => $title])
+                : __('À découvrir : :title.', ['title' => $title]);
         }
 
-        return 'Les nouvelles de la famille sur MemoryLane.';
+        return __('Les nouvelles de la famille sur MemoryLane.');
     }
 }

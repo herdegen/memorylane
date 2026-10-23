@@ -74,14 +74,14 @@ class GooglePhotosController extends Controller
             || $state !== $request->session()->pull('google_photos.oauth_state')
         ) {
             return redirect()->route('google-photos.index')
-                ->withErrors(['google' => 'La connexion à Google Photos a échoué. Réessayez.']);
+                ->withErrors(['google' => __('La connexion à Google Photos a échoué. Réessayez.')]);
         }
 
         $token = $oauth->exchangeCode($request->input('code'));
 
         if (! $token) {
             return redirect()->route('google-photos.index')
-                ->withErrors(['google' => 'Google a refusé la connexion. Réessayez.']);
+                ->withErrors(['google' => __('Google a refusé la connexion. Réessayez.')]);
         }
 
         $request->session()->put('google_photos.access_token', $token['access_token']);
@@ -95,7 +95,7 @@ class GooglePhotosController extends Controller
     public function createSession(Request $request)
     {
         $token = $request->session()->get('google_photos.access_token');
-        abort_unless($token, 409, 'Google Photos n\'est pas connecté.');
+        abort_unless($token, 409, __('Google Photos n\'est pas connecté.'));
 
         // Google exige un objet JSON explicite ({}), un corps vide est rejeté
         $response = Http::withToken($token)
@@ -124,7 +124,7 @@ class GooglePhotosController extends Controller
     {
         $token = $request->session()->get('google_photos.access_token');
         $session = $request->session()->get('google_photos.picker_session');
-        abort_unless($token && $session, 409, 'Aucune session de sélection en cours.');
+        abort_unless($token && $session, 409, __('Aucune session de sélection en cours.'));
 
         $response = Http::withToken($token)->get(self::PICKER_BASE_URL . '/sessions/' . $session['id']);
 
@@ -179,7 +179,7 @@ class GooglePhotosController extends Controller
         return response()->json([
             'error' => 'google_error',
             'google_status' => $response->status(),
-            'message' => $response->json('error.message') ?? 'Erreur Google inconnue.',
+            'message' => $response->json('error.message') ?? __('Erreur Google inconnue.'),
         ], 502);
     }
 
@@ -202,7 +202,7 @@ class GooglePhotosController extends Controller
 
         $token = $request->session()->get('google_photos.access_token');
         $session = $request->session()->get('google_photos.picker_session');
-        abort_unless($token && $session, 409, 'Aucune sélection à importer.');
+        abort_unless($token && $session, 409, __('Aucune sélection à importer.'));
 
         // Album cible : soit un existant, soit un nouveau créé à la volée.
         $albumId = $validated['album_id'] ?? null;
@@ -230,13 +230,13 @@ class GooglePhotosController extends Controller
         if ($request->wantsJson()) {
             return response()->json([
                 'started_at' => now()->toIso8601String(),
-                'message' => 'Import lancé.',
+                'message' => __('Import lancé.'),
             ]);
         }
 
         return redirect()->route('media.index')->with(
             'success',
-            'Import lancé : vos photos Google arrivent dans la galerie d\'ici quelques minutes.'
+            __('Import lancé : vos photos Google arrivent dans la galerie d\'ici quelques minutes.')
         );
     }
 

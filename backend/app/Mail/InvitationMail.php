@@ -52,22 +52,30 @@ class InvitationMail extends Mailable
     {
         $inviter = $this->invitation->inviter;
         $inviterFirst = self::firstName($inviter?->name ?? config('mail.invitations.admin_from_name'));
-        $verb = $this->invitation->formal ? 'vous invite' : "t'invite";
+        $formal = $this->invitation->formal;
         // Invitation dans un cercle d'amis : on parle du cercle, pas de la famille.
         $circle = $this->friendsCircle();
-        $subjectEnd = $circle ? "dans « {$circle->name} » sur MemoryLane" : null;
+        $circleSubject = $circle
+            ? ($formal
+                ? __(':name vous invite dans « :circle » sur MemoryLane', ['name' => $inviterFirst, 'circle' => $circle->name])
+                : __(':name t\'invite dans « :circle » sur MemoryLane', ['name' => $inviterFirst, 'circle' => $circle->name]))
+            : null;
 
         if (self::sentFromAdminGmail($this->invitation)) {
             return new Envelope(
                 from: new Address(config('mail.invitations.admin_from_address'), config('mail.invitations.admin_from_name')),
-                subject: $subjectEnd ? "{$inviterFirst} {$verb} {$subjectEnd}" : "{$inviterFirst} {$verb} sur MemoryLane, notre album de famille",
+                subject: $circleSubject ?? ($formal
+                    ? __(':name vous invite sur MemoryLane, notre album de famille', ['name' => $inviterFirst])
+                    : __(':name t\'invite sur MemoryLane, notre album de famille', ['name' => $inviterFirst])),
             );
         }
 
         return new Envelope(
             from: new Address(config('mail.from.address'), "{$inviterFirst} via MemoryLane"),
             replyTo: $inviter ? [new Address($inviter->email, $inviter->name)] : [],
-            subject: $subjectEnd ? "{$inviterFirst} {$verb} {$subjectEnd}" : "{$inviterFirst} {$verb} sur MemoryLane, l'album de notre famille",
+            subject: $circleSubject ?? ($formal
+                ? __(':name vous invite sur MemoryLane, l\'album de notre famille', ['name' => $inviterFirst])
+                : __(':name t\'invite sur MemoryLane, l\'album de notre famille', ['name' => $inviterFirst])),
         );
     }
 
@@ -110,7 +118,7 @@ class InvitationMail extends Mailable
             'tv' => fn (string $tu, string $vous) => $formal ? $vous : $tu,
             'formal' => $formal,
             'url' => $this->url,
-            'expiresAt' => $invitation->expires_at?->copy()->locale('fr')->translatedFormat('j F Y'),
+            'expiresAt' => $invitation->expires_at?->copy()->locale(app()->getLocale())->translatedFormat('j F Y'),
             'firstName' => self::firstName($person->first_name ?: $person->name),
             'personName' => self::prettyName($person),
             'birthLine' => $this->birthLine($person),
@@ -171,20 +179,31 @@ class InvitationMail extends Mailable
             return null;
         }
 
-        $born = match ($person->gender) {
-            'F' => 'Née',
-            'M' => 'Né',
-            default => 'Né·e',
-        };
-        $line = $born;
-        if ($person->birth_date) {
-            $line .= ' le '.$person->birth_date->copy()->locale('fr')->translatedFormat('j F Y');
+        $date = $person->birth_date?->copy()->locale(app()->getLocale())->translatedFormat('j F Y');
+        $place = $person->birth_place ? trim(explode(',', $person->birth_place)[0]) : null;
+        $values = array_filter(['date' => $date, 'place' => $place], fn ($v) => $v !== null);
+
+        // Une phrase complète par genre et par combinaison date / lieu.
+        if ($date !== null && $place !== null) {
+            return match ($person->gender) {
+                'F' => __('Née le :date à :place', $values),
+                'M' => __('Né le :date à :place', $values),
+                default => __('Né·e le :date à :place', $values),
+            };
         }
-        if ($person->birth_place) {
-            $line .= ' à '.trim(explode(',', $person->birth_place)[0]);
+        if ($date !== null) {
+            return match ($person->gender) {
+                'F' => __('Née le :date', $values),
+                'M' => __('Né le :date', $values),
+                default => __('Né·e le :date', $values),
+            };
         }
 
-        return $line;
+        return match ($person->gender) {
+            'F' => __('Née à :place', $values),
+            'M' => __('Né à :place', $values),
+            default => __('Né·e à :place', $values),
+        };
     }
 
     private function parentsLine(Person $person): ?string
@@ -197,13 +216,22 @@ class InvitationMail extends Mailable
             return null;
         }
 
-        $child = match ($person->gender) {
-            'F' => 'la fille',
-            'M' => 'le fils',
-            default => "l'enfant",
-        };
-        $verb = $this->invitation->formal ? 'vous êtes' : 'tu es';
+        $values = ['parents' => $parents->count() > 1
+            ? __(':first et de :second', ['first' => $parents->first(), 'second' => $parents->last()])
+            : $parents->first()];
 
-        return "Dans l'arbre, {$verb} {$child} de ".$parents->implode(' et de ').'.';
+        if ($this->invitation->formal) {
+            return match ($person->gender) {
+                'F' => __('Dans l\'arbre, vous êtes la fille de :parents.', $values),
+                'M' => __('Dans l\'arbre, vous êtes le fils de :parents.', $values),
+                default => __('Dans l\'arbre, vous êtes l\'enfant de :parents.', $values),
+            };
+        }
+
+        return match ($person->gender) {
+            'F' => __('Dans l\'arbre, tu es la fille de :parents.', $values),
+            'M' => __('Dans l\'arbre, tu es le fils de :parents.', $values),
+            default => __('Dans l\'arbre, tu es l\'enfant de :parents.', $values),
+        };
     }
 }

@@ -1,11 +1,11 @@
 <template>
-  <BaseModal :title="person ? 'Modifier la personne' : 'Nouvelle personne'" @close="$emit('close')">
+  <BaseModal :title="person ? $t('Modifier la personne') : $t('Nouvelle personne')" @close="$emit('close')">
     <!-- Formulaire -->
     <form @submit.prevent="submit" class="px-6 py-4 space-y-4">
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label for="first_name" class="block text-sm font-medium text-surface-700 mb-1">
-            Prénom(s) <span class="text-red-500 dark:text-red-400">*</span>
+            {{ $t('Prénom(s)') }} <span class="text-red-500 dark:text-red-400">*</span>
           </label>
           <input
             id="first_name"
@@ -13,20 +13,20 @@
             type="text"
             required
             class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-            placeholder="Jean-Marie"
+            :placeholder="$t('Jean-Marie')"
           />
           <p v-if="errors.first_name" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ errors.first_name }}</p>
         </div>
         <div>
           <label for="last_name" class="block text-sm font-medium text-surface-700 mb-1">
-            {{ isFriends ? 'Nom' : 'Nom de famille' }}
+            {{ isFriends ? $t('Nom') : $t('Nom de famille') }}
           </label>
           <input
             id="last_name"
             v-model="form.last_name"
             type="text"
             class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-            placeholder="Dupont"
+            :placeholder="$t('Dupont')"
           />
           <p v-if="errors.last_name" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ errors.last_name }}</p>
         </div>
@@ -35,37 +35,37 @@
       <!-- Généalogie : absent entre amis -->
       <div v-if="!isFriends">
         <label for="maiden_name" class="block text-sm font-medium text-surface-700 mb-1">
-          Nom de naissance
+          {{ $t('Nom de naissance') }}
         </label>
         <input
           id="maiden_name"
           v-model="form.maiden_name"
           type="text"
           class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-          placeholder="Nom de jeune fille (si différent)"
+          :placeholder="$t('Nom de jeune fille (si différent)')"
         />
         <p v-if="errors.maiden_name" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ errors.maiden_name }}</p>
       </div>
 
       <div>
         <label for="gender" class="block text-sm font-medium text-surface-700 mb-1">
-          Genre
+          {{ $t('Genre') }}
         </label>
         <select
           id="gender"
           v-model="form.gender"
           class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
         >
-          <option value="U">Non spécifié</option>
-          <option value="M">Masculin</option>
-          <option value="F">Féminin</option>
+          <option value="U">{{ $t('Non spécifié') }}</option>
+          <option value="M">{{ $t('Masculin') }}</option>
+          <option value="F">{{ $t('Féminin') }}</option>
         </select>
       </div>
 
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label for="birth_date" class="block text-sm font-medium text-surface-700 mb-1">
-            Date de naissance
+            {{ $t('Date de naissance') }}
           </label>
           <input
             id="birth_date"
@@ -77,7 +77,7 @@
 
         <div v-if="!isFriends || form.death_date">
           <label for="death_date" class="block text-sm font-medium text-surface-700 mb-1">
-            Date de décès
+            {{ $t('Date de décès') }}
           </label>
           <input
             id="death_date"
@@ -92,7 +92,7 @@
            approximative sur la carte « Où vivent mes amis » entre amis -->
       <div>
         <label for="address" class="block text-sm font-medium text-surface-700 mb-1">
-          Adresse
+          {{ $t('Adresse') }}
         </label>
         <input
           id="address"
@@ -102,22 +102,22 @@
           placeholder="12 rue des Lilas, 93100 Montreuil"
         />
         <p class="mt-1 text-xs text-surface-500">
-          <template v-if="isFriends">Visible uniquement par vous et les admins. Sur la carte « Où vivent mes amis », seule une zone approximative (~1 km) apparaît, sans nom.</template>
-          <template v-else>Visible uniquement par vous, les admins et votre famille (si le partage est activé dans le profil).</template>
+          <template v-if="isFriends">{{ $t('Visible uniquement par vous et les admins. Sur la carte « Où vivent mes amis », seule une zone approximative (~1 km) apparaît, sans nom.') }}</template>
+          <template v-else>{{ $t('Visible uniquement par vous, les admins et votre famille (si le partage est activé dans le profil).') }}</template>
         </p>
         <p v-if="errors.address" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ errors.address }}</p>
       </div>
 
       <div>
         <label for="notes" class="block text-sm font-medium text-surface-700 mb-1">
-          Notes
+          {{ $t('Notes') }}
         </label>
         <textarea
           id="notes"
           v-model="form.notes"
           rows="3"
           class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-          placeholder="Notes sur cette personne..."
+          :placeholder="$t('Notes sur cette personne...')"
         ></textarea>
       </div>
     </form>
@@ -125,7 +125,7 @@
     <!-- Pied de page -->
     <template #footer>
       <button type="button" class="btn-secondary" @click="$emit('close')">
-        Annuler
+        {{ $t('Annuler') }}
       </button>
       <button
         type="submit"
@@ -133,7 +133,7 @@
         class="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50"
         @click="submit"
       >
-        {{ submitting ? 'Enregistrement...' : (person ? 'Enregistrer' : 'Créer') }}
+        {{ submitting ? $t('Enregistrement...') : (person ? $t('Enregistrer') : $t('Créer')) }}
       </button>
     </template>
   </BaseModal>
@@ -145,6 +145,7 @@ import axios from 'axios';
 import BaseModal from '@/Components/BaseModal.vue';
 import { useToast } from '@/Composables/useToast';
 import { useCircle } from '@/Composables/useCircle';
+import { t } from '@/i18n';
 
 const { isFriends } = useCircle();
 
@@ -207,7 +208,7 @@ const submit = async () => {
     if (error.response?.status === 422) {
       errors.value = error.response.data.errors || {};
     } else {
-      toast.error(error.response?.data?.message || 'Erreur lors de l\'enregistrement.');
+      toast.error(error.response?.data?.message || t('Erreur lors de l\'enregistrement.'));
     }
   } finally {
     submitting.value = false;

@@ -1,6 +1,6 @@
 <template>
-  <Head title="Réseau" />
-  <AppLayout title="Réseau">
+  <Head :title="$t('Réseau')" />
+  <AppLayout :title="$t('Réseau')">
     <PeopleSegments />
     <div class="app-viewport flex relative">
       <!-- Zone graphe -->
@@ -9,7 +9,7 @@
           ref="svgRef"
           class="w-full h-full block select-none touch-none"
           role="img"
-          aria-label="Réseau des personnes reliées par les photos"
+          :aria-label="$t('Réseau des personnes reliées par les photos')"
           @click="onBackgroundClick"
         >
           <g :transform="transformAttr">
@@ -68,7 +68,7 @@
                 stroke-width="3"
                 stroke-linejoin="round"
                 :style="{ stroke: 'var(--color-page)' }"
-              >{{ n.is_self ? 'Moi' : shortName(n.name) }}</text>
+              >{{ n.is_self ? $t('Moi') : shortName(n.name) }}</text>
             </g>
           </g>
         </svg>
@@ -77,14 +77,14 @@
         <div class="absolute top-4 left-4 right-4 flex flex-wrap items-start justify-between gap-3 pointer-events-none">
           <div class="pointer-events-auto bg-white/90 backdrop-blur rounded-2xl border border-surface-200 shadow-warm-sm px-4 py-3 max-sm:py-2 max-w-md">
             <div class="flex items-center gap-3">
-              <h1 class="text-display text-2xl text-surface-900">{{ contextName ? `Réseau · ${contextName}` : 'Réseau' }}</h1>
+              <h1 class="text-display text-2xl text-surface-900">{{ contextName ? $t('Réseau · :name', { name: contextName }) : $t('Réseau') }}</h1>
               <div v-if="!isFriends && canSeeFamily" class="inline-flex rounded-full border border-surface-200 p-0.5 text-xs font-semibold">
-                <Link href="/family-tree" class="px-3 py-1 rounded-full text-surface-600 hover:text-surface-900">Arbre</Link>
-                <span class="px-3 py-1 rounded-full bg-brand-100 text-brand-800 dark:bg-brand-500/20 dark:text-brand-200">Réseau</span>
+                <Link href="/family-tree" class="px-3 py-1 rounded-full text-surface-600 hover:text-surface-900">{{ $t('Arbre') }}</Link>
+                <span class="px-3 py-1 rounded-full bg-brand-100 text-brand-800 dark:bg-brand-500/20 dark:text-brand-200">{{ $t('Réseau') }}</span>
               </div>
             </div>
             <p class="text-xs text-surface-500 mt-1 max-sm:hidden">
-              Tissé à partir de {{ totalPhotos }} photo{{ totalPhotos > 1 ? 's' : '' }} réunissant plusieurs personnes — seules les photos que vous pouvez voir comptent.
+              {{ $tc('Tissé à partir de :count photo réunissant plusieurs personnes — seules les photos que vous pouvez voir comptent.|Tissé à partir de :count photos réunissant plusieurs personnes — seules les photos que vous pouvez voir comptent.', totalPhotos) }}
             </p>
           </div>
 
@@ -93,8 +93,8 @@
               <input
                 v-model="searchQuery"
                 type="search"
-                placeholder="Rechercher…"
-                aria-label="Trouver une personne"
+                :placeholder="$t('Rechercher…')"
+                :aria-label="$t('Trouver une personne')"
                 class="form-input !rounded-full !py-2 w-56 max-sm:w-36"
               />
               <div
@@ -119,8 +119,8 @@
               <span class="relative w-9 h-5 rounded-full transition-colors" :class="showAlbumLinks ? 'bg-brand-600' : 'bg-surface-300'">
                 <span class="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all" :class="showAlbumLinks ? 'left-4.5' : 'left-0.5'"></span>
               </span>
-              <span class="max-sm:hidden">Liens par album</span>
-              <span class="sm:hidden">Albums</span>
+              <span class="max-sm:hidden">{{ $t('Liens par album') }}</span>
+              <span class="sm:hidden">{{ $t('Albums') }}</span>
             </button>
           </div>
         </div>
@@ -147,16 +147,16 @@
 
         <!-- Zoom -->
         <div class="absolute right-4 bottom-20 flex flex-col rounded-xl overflow-hidden border border-surface-200 bg-white shadow-warm-sm">
-          <button type="button" class="w-11 h-11 text-xl text-surface-700 hover:bg-surface-50" aria-label="Zoomer" @click="zoomBy(1.4)">+</button>
-          <button type="button" class="w-11 h-11 text-xl text-surface-700 hover:bg-surface-50 border-t border-surface-200" aria-label="Dézoomer" @click="zoomBy(1 / 1.4)">−</button>
-          <button type="button" class="w-11 h-11 text-surface-700 hover:bg-surface-50 border-t border-surface-200 flex items-center justify-center" aria-label="Tout afficher" @click="fitView(true)">
+          <button type="button" class="w-11 h-11 text-xl text-surface-700 hover:bg-surface-50" :aria-label="$t('Zoomer')" @click="zoomBy(1.4)">+</button>
+          <button type="button" class="w-11 h-11 text-xl text-surface-700 hover:bg-surface-50 border-t border-surface-200" :aria-label="$t('Dézoomer')" @click="zoomBy(1 / 1.4)">−</button>
+          <button type="button" class="w-11 h-11 text-surface-700 hover:bg-surface-50 border-t border-surface-200 flex items-center justify-center" :aria-label="$t('Tout afficher')" @click="fitView(true)">
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></svg>
           </button>
         </div>
 
         <!-- Frise des années -->
         <div v-if="yearSteps.length > 1" class="absolute left-4 right-4 bottom-4 flex items-center gap-3 bg-white/90 backdrop-blur border border-surface-200 rounded-2xl px-4 py-2 shadow-warm-sm">
-          <span class="text-xs font-semibold text-surface-600 whitespace-nowrap max-sm:hidden">Le réseau en</span>
+          <span class="text-xs font-semibold text-surface-600 whitespace-nowrap max-sm:hidden">{{ $t('Le réseau en') }}</span>
           <div class="flex-1 flex gap-1.5 overflow-x-auto">
             <button
               v-for="y in yearSteps"
@@ -173,13 +173,12 @@
         </div>
 
         <!-- États -->
-        <div v-if="loading" class="absolute inset-0 flex items-center justify-center text-surface-500">Chargement du réseau…</div>
+        <div v-if="loading" class="absolute inset-0 flex items-center justify-center text-surface-500">{{ $t('Chargement du réseau…') }}</div>
         <div v-else-if="!rawEdges.length" class="absolute inset-0 flex items-center justify-center p-8">
           <div class="max-w-md text-center bg-white border border-surface-200 rounded-2xl p-8 shadow-warm-sm">
-            <h2 class="text-display text-xl text-surface-900 mb-2">Pas encore de liens</h2>
+            <h2 class="text-display text-xl text-surface-900 mb-2">{{ $t('Pas encore de liens') }}</h2>
             <p class="text-sm text-surface-600">
-              Le réseau se dessine tout seul à partir des photos où plusieurs personnes sont identifiées.
-              Identifiez des visages sur vos photos pour le voir apparaître.
+              {{ $t('Le réseau se dessine tout seul à partir des photos où plusieurs personnes sont identifiées. Identifiez des visages sur vos photos pour le voir apparaître.') }}
             </p>
           </div>
         </div>
@@ -211,13 +210,13 @@
               :style="{ background: selected.color }"
             >{{ initials(selected.name) }}</div>
             <div class="min-w-0 flex-1">
-              <div class="text-display text-xl text-surface-900 truncate">{{ selected.is_self ? `${selected.name} (moi)` : selected.name }}</div>
+              <div class="text-display text-xl text-surface-900 truncate">{{ selected.is_self ? $t(':name (moi)', { name: selected.name }) : selected.name }}</div>
               <div class="flex items-center gap-1.5 text-xs text-surface-600">
                 <span class="w-2 h-2 rounded-full" :style="{ background: selected.color }"></span>
-                {{ selected.outside ? 'Autre cercle' : selected.groupLabel }}
+                {{ selected.outside ? $t('Autre cercle') : selected.groupLabel }}
               </div>
             </div>
-            <button type="button" class="md:hidden p-2 text-surface-500" aria-label="Fermer" @click="selectedId = null">
+            <button type="button" class="md:hidden p-2 text-surface-500" :aria-label="$t('Fermer')" @click="selectedId = null">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
@@ -225,16 +224,16 @@
           <div class="grid grid-cols-2 gap-2 mt-4">
             <div class="rounded-xl bg-surface-100 p-3">
               <div class="text-xl font-bold text-surface-900">{{ withSelfWeight ?? selected.photos }}</div>
-              <div class="text-xs text-surface-600">{{ withSelfWeight !== null ? 'photos avec vous' : 'photos' }}</div>
+              <div class="text-xs text-surface-600">{{ withSelfWeight !== null ? $t('photos avec vous') : $t('photos') }}</div>
             </div>
             <div class="rounded-xl bg-surface-100 p-3">
               <div class="text-xl font-bold text-surface-900">{{ metWithSelf ?? selected.first_year ?? '—' }}</div>
-              <div class="text-xs text-surface-600">{{ metWithSelf ? 'année de rencontre' : 'première photo' }}</div>
+              <div class="text-xs text-surface-600">{{ metWithSelf ? $t('année de rencontre') : $t('première photo') }}</div>
             </div>
           </div>
 
           <p v-if="selected.restricted" class="mt-4 text-xs text-surface-500 bg-surface-100 rounded-lg px-3 py-2">
-            Cette personne fait partie d'un autre cercle : vous voyez son nom parce que vous partagez des photos, mais pas sa fiche.
+            {{ $t("Cette personne fait partie d'un autre cercle : vous voyez son nom parce que vous partagez des photos, mais pas sa fiche.") }}
           </p>
 
           <HowWeMetPanel
@@ -245,7 +244,7 @@
           />
 
           <div v-if="topLinks.length" class="mt-5">
-            <div class="text-xs font-semibold text-surface-600 mb-1">Liens les plus forts</div>
+            <div class="text-xs font-semibold text-surface-600 mb-1">{{ $t('Liens les plus forts') }}</div>
             <button
               v-for="l in topLinks"
               :key="l.id"
@@ -255,14 +254,14 @@
             >
               <img v-if="l.avatar_url" :src="l.avatar_url" alt="" class="w-8 h-8 rounded-full object-cover" loading="lazy" decoding="async" />
               <span v-else class="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white" :style="{ background: l.color }">{{ initials(l.name) }}</span>
-              <span class="flex-1 text-sm font-semibold text-surface-800 truncate">{{ l.is_self ? 'Moi' : l.name }}</span>
-              <span class="text-xs text-surface-500">{{ l.weight }} photo{{ l.weight > 1 ? 's' : '' }}</span>
+              <span class="flex-1 text-sm font-semibold text-surface-800 truncate">{{ l.is_self ? $t('Moi') : l.name }}</span>
+              <span class="text-xs text-surface-500">{{ $tc(':count photo|:count photos', l.weight) }}</span>
             </button>
           </div>
 
           <div v-if="togetherFor" class="mt-5">
-            <div class="text-xs font-semibold text-surface-600 mb-2">Photos avec {{ togetherFor }}</div>
-            <div v-if="togetherLoading" class="text-xs text-surface-500">Chargement…</div>
+            <div class="text-xs font-semibold text-surface-600 mb-2">{{ $t('Photos avec vous') }}</div>
+            <div v-if="togetherLoading" class="text-xs text-surface-500">{{ $t('Chargement…') }}</div>
             <div v-else-if="together.length" class="grid grid-cols-3 gap-1 rounded-xl overflow-hidden">
               <Link
                 v-for="m in together"
@@ -273,7 +272,7 @@
                 <img :src="m.thumbnail_url" alt="" loading="lazy" class="w-full h-full object-cover" />
               </Link>
             </div>
-            <div v-else class="text-xs text-surface-500">Aucune photo visible ensemble.</div>
+            <div v-else class="text-xs text-surface-500">{{ $t('Aucune photo visible ensemble.') }}</div>
           </div>
 
           <!-- Hors du cercle mais fiche visible (ex. la femme d'un ami) : l'ajouter -->
@@ -282,14 +281,13 @@
           </div>
 
           <div class="flex gap-2 mt-5">
-            <Link v-if="!selected.restricted" :href="`/people/${selected.id}`" class="btn btn-primary flex-1">Voir la fiche</Link>
-            <button type="button" class="btn btn-secondary flex-1" @click="centerOn(selected.id)">Centrer</button>
+            <Link v-if="!selected.restricted" :href="`/people/${selected.id}`" class="btn btn-primary flex-1">{{ $t('Voir la fiche') }}</Link>
+            <button type="button" class="btn btn-secondary flex-1" @click="centerOn(selected.id)">{{ $t('Centrer') }}</button>
           </div>
         </template>
         <div v-else class="max-md:hidden text-sm text-surface-500">
-          <div class="text-display text-lg text-surface-900 mb-2">Une personne, ses liens</div>
-          Cliquez sur une personne pour voir avec qui elle apparaît le plus, et vos photos ensemble.
-          L'épaisseur d'un lien suit le nombre de photos communes ; les couleurs regroupent les personnes souvent photographiées ensemble.
+          <div class="text-display text-lg text-surface-900 mb-2">{{ $t('Une personne, ses liens') }}</div>
+          {{ $t("Cliquez sur une personne pour voir avec qui elle apparaît le plus, et vos photos ensemble. L'épaisseur d'un lien suit le nombre de photos communes ; les couleurs regroupent les personnes souvent photographiées ensemble.") }}
         </div>
       </aside>
     </div>
@@ -311,6 +309,7 @@ import { searchPeople } from '@/utils/personSearch';
 import { useCircle } from '@/Composables/useCircle';
 import HowWeMetPanel from '@/Components/HowWeMetPanel.vue';
 import PersonCircles from '@/Components/PersonCircles.vue';
+import { t } from '@/i18n';
 
 const { isFriends, canSeeFamily } = useCircle();
 
@@ -432,7 +431,7 @@ function layout(apiNodes, apiEdges) {
     const color = PALETTE[i] ?? NEUTRAL;
     const lead = ids.reduce((best, id) => ((strength[id] ?? 0) > (strength[best] ?? 0) ? id : best), ids[0]);
     groupColor[c] = color;
-    groupLabel[c] = `Autour de ${shortName(nameOf[lead])}`;
+    groupLabel[c] = t('Autour de :name', { name: shortName(nameOf[lead]) });
     return { id: c, color, label: groupLabel[c] };
   });
 
@@ -460,7 +459,7 @@ function layout(apiNodes, apiEdges) {
       group: c ?? null,
       anchor: other ? { x: other.x, y: other.y } : { x: 0, y: 0 },
       color: n.is_self ? SELF_COLOR : (other?.color ?? groupColor[c] ?? NEUTRAL),
-      groupLabel: n.is_self ? 'Au centre du réseau' : (n.outside ? (n.circle?.name ?? 'Autre cercle') : (groupLabel[c] ?? 'Hors groupe')),
+      groupLabel: n.is_self ? t('Au centre du réseau') : (n.outside ? (n.circle?.name ?? t('Autre cercle')) : (groupLabel[c] ?? t('Hors groupe'))),
       r: n.is_self ? 30 : Math.round(12 + 18 * Math.sqrt(n.photos / maxPhotos)),
       // « Moi » épinglé au centre : le réseau se lit depuis soi.
       ...(n.is_self ? { fx: 0, fy: 0 } : {}),
@@ -564,7 +563,7 @@ const yearSteps = computed(() => {
   const n = Math.min(5, years.length);
   for (let i = 0; i < n; i++) picks.add(years[Math.round((i * (years.length - 1)) / Math.max(1, n))]);
   return [...picks].sort((a, b) => a - b).map((y) => ({ value: y, label: String(y) }))
-    .concat([{ value: null, label: "Aujourd'hui" }]);
+    .concat([{ value: null, label: t("Aujourd'hui") }]);
 });
 
 const topLinks = computed(() => Object.entries(neighbors.value)

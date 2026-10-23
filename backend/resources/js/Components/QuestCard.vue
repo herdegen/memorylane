@@ -1,12 +1,12 @@
 <template>
   <div v-if="question || completedCount > 0" class="space-y-4">
     <div class="flex items-center justify-between">
-      <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400">{{ isFriends ? 'Complétez vos souvenirs communs' : 'Complétez la mémoire familiale' }}</h2>
+      <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400">{{ isFriends ? $t('Complétez vos souvenirs communs') : $t('Complétez la mémoire familiale') }}</h2>
       <span
         v-if="completedCount > 0"
         class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-400 text-xs font-semibold"
       >
-        ✦ {{ completedCount }} souvenir{{ completedCount > 1 ? 's' : '' }} complété{{ completedCount > 1 ? 's' : '' }}
+        ✦ {{ $tc(':count souvenir complété|:count souvenirs complétés', completedCount) }}
       </span>
     </div>
 
@@ -25,7 +25,7 @@
             :type="fullPhotoUrl ? 'button' : undefined"
             class="relative block rounded-xl overflow-hidden bg-surface-100 group"
             :class="[isMediaQuestion ? 'w-44 h-44' : 'w-24 h-24', fullPhotoUrl ? 'cursor-zoom-in' : '']"
-            :aria-label="fullPhotoUrl ? 'Voir la photo en grand' : undefined"
+            :aria-label="fullPhotoUrl ? $t('Voir la photo en grand') : undefined"
             @click="fullPhotoUrl && (showLightbox = true)"
           >
             <img :src="visualUrl" class="w-full h-full object-cover" />
@@ -50,19 +50,19 @@
         <!-- Question + saisie -->
         <div class="flex-1 min-w-0 flex flex-col gap-3">
           <div>
-            <div class="text-xs font-semibold uppercase tracking-widest text-brand-700">Le saviez-vous ?</div>
+            <div class="text-xs font-semibold uppercase tracking-widest text-brand-700">{{ $t('Le saviez-vous ?') }}</div>
             <div class="font-display text-xl font-semibold text-surface-900 mt-1">{{ question.prompt }}</div>
             <Link
               v-if="question.person"
               :href="`/people/${question.person.id}`"
               class="text-xs text-surface-400 hover:text-brand-700 hover:underline"
             >
-              Voir sa fiche<span v-if="question.person.birth_year"> — né·e en {{ question.person.birth_year }}</span>
+              {{ question.person.birth_year ? $t('Voir sa fiche — né·e en :year', { year: question.person.birth_year }) : $t('Voir sa fiche') }}
             </Link>
             <!-- D'où vient la photo : album(s), date, qui l'a envoyée -->
             <p v-if="originText" class="text-xs text-surface-500 mt-0.5">
               📁 <template v-for="(a, i) in origin.albums" :key="a.id"><Link :href="`/albums/${a.id}`" class="hover:text-brand-700 hover:underline">{{ a.name }}</Link><span v-if="i < origin.albums.length - 1">, </span></template>
-              <span v-if="!origin.albums.length">Hors album</span>
+              <span v-if="!origin.albums.length">{{ $t('Hors album') }}</span>
               <span v-if="originSuffix"> · {{ originSuffix }}</span>
             </p>
             <button
@@ -71,7 +71,7 @@
               class="text-xs text-surface-400 hover:text-brand-700 hover:underline"
               @click="showLightbox = true"
             >
-              Voir la photo entière pour mieux distinguer les détails
+              {{ $t('Voir la photo entière pour mieux distinguer les détails') }}
             </button>
           </div>
 
@@ -98,32 +98,32 @@
             <!-- Encore en vie ? -->
             <div v-else-if="uiKind === 'death_status'" class="space-y-3">
               <div class="flex flex-wrap gap-2">
-                <button type="button" class="btn-secondary" @click="answer('no')">Oui, toujours en vie</button>
+                <button type="button" class="btn-secondary" @click="answer('no')">{{ $t('Oui, toujours en vie') }}</button>
                 <button
                   type="button"
                   class="px-4 py-2 rounded-lg text-sm font-medium border transition"
                   :class="deceased ? 'bg-brand-600 text-white border-brand-600' : 'bg-white border-surface-300 text-surface-700 hover:bg-surface-50'"
                   @click="deceased = true"
                 >
-                  Non, décédé·e
+                  {{ $t('Non, décédé·e') }}
                 </button>
               </div>
               <div v-if="deceased" class="flex flex-wrap items-center gap-2">
                 <input v-model="form.death_date" type="date" class="form-input max-w-xs" />
-                <span class="text-xs text-surface-400">(date facultative si inconnue)</span>
+                <span class="text-xs text-surface-400">{{ $t('(date facultative si inconnue)') }}</span>
               </div>
             </div>
 
             <!-- Genre -->
             <div v-else-if="uiKind === 'gender'" class="flex gap-2">
-              <button type="button" class="btn-secondary" @click="answerValue('M')">Un homme</button>
-              <button type="button" class="btn-secondary" @click="answerValue('F')">Une femme</button>
+              <button type="button" class="btn-secondary" @click="answerValue('M')">{{ $t('Un homme') }}</button>
+              <button type="button" class="btn-secondary" @click="answerValue('F')">{{ $t('Une femme') }}</button>
             </div>
 
             <!-- Parent manquant -->
             <div v-else-if="uiKind === 'parent'" class="max-w-md">
               <RelationshipPicker
-                :label="question.type === 'parent_father' ? 'Père' : 'Mère'"
+                :label="question.type === 'parent_father' ? $t('Père') : $t('Mère')"
                 :current-person="pickedPerson"
                 :exclude-ids="[question.person?.id].filter(Boolean)"
                 allow-create
@@ -132,19 +132,19 @@
                 @remove="pickedPerson = null"
               />
               <p class="text-xs text-surface-400 mt-1.5">
-                Choisissez une personne existante, ou créez sa fiche directement depuis la recherche.
+                {{ $t('Choisissez une personne existante, ou créez sa fiche directement depuis la recherche.') }}
               </p>
             </div>
 
             <!-- Statut marital -->
             <div v-else-if="uiKind === 'marital'" class="space-y-3">
               <div v-if="!maritalYes" class="flex flex-wrap gap-2">
-                <button type="button" class="btn-secondary" @click="maritalYes = true">Oui</button>
-                <button type="button" class="btn-secondary" @click="answer('no')">Non, jamais</button>
+                <button type="button" class="btn-secondary" @click="maritalYes = true">{{ $t('Oui') }}</button>
+                <button type="button" class="btn-secondary" @click="answer('no')">{{ $t('Non, jamais') }}</button>
               </div>
               <div v-else class="max-w-md space-y-2.5">
                 <RelationshipPicker
-                  label="Avec qui ?"
+                  :label="$t('Avec qui ?')"
                   :current-person="pickedPerson"
                   :exclude-ids="[question.person?.id].filter(Boolean)"
                   allow-create
@@ -153,8 +153,8 @@
                 />
                 <div class="flex flex-wrap gap-2.5">
                   <select v-model="form.type" class="form-select w-auto">
-                    <option value="spouse">Mariage</option>
-                    <option value="partner">Union libre</option>
+                    <option value="spouse">{{ $t('Mariage') }}</option>
+                    <option value="partner">{{ $t('Union libre') }}</option>
                   </select>
                   <input
                     v-model="form.year"
@@ -162,7 +162,7 @@
                     class="form-input w-32"
                     :min="1500"
                     :max="currentYear"
-                    placeholder="Année"
+                    :placeholder="$t('Année')"
                   />
                 </div>
               </div>
@@ -182,14 +182,16 @@
                 class="form-input w-36"
                 :min="1500"
                 :max="currentYear"
-                placeholder="Vers quelle année ?"
+                :placeholder="$t('Vers quelle année ?')"
               />
             </div>
 
             <!-- Comment as-tu connu X ? (mode amis) -->
             <div v-else-if="uiKind === 'how_met'" class="space-y-3 max-w-xl">
               <p v-if="question.how_met.photos" class="text-sm text-surface-500">
-                {{ question.how_met.photos }} photo{{ question.how_met.photos > 1 ? 's' : '' }} ensemble<span v-if="question.how_met.since"> depuis {{ question.how_met.since }}</span>.
+                {{ question.how_met.since
+                  ? $tc(':count photo ensemble depuis :since.|:count photos ensemble depuis :since.', question.how_met.photos, { since: question.how_met.since })
+                  : $tc(':count photo ensemble.|:count photos ensemble.', question.how_met.photos) }}
               </p>
               <div class="flex flex-wrap gap-2">
                 <button
@@ -201,7 +203,7 @@
                     : 'border-surface-200 bg-white text-surface-700 hover:border-surface-300'"
                   @click="pickContext('friend', question.how_met.via.id)"
                 >
-                  Par {{ question.how_met.via.name }}
+                  {{ $t('Par :name', { name: question.how_met.via.name }) }}
                 </button>
                 <button
                   v-for="c in question.how_met.contexts"
@@ -222,8 +224,8 @@
                   type="text"
                   maxlength="500"
                   class="form-input flex-1 min-w-56"
-                  placeholder="Raconte en une phrase (facultatif)"
-                  aria-label="Raconte en une phrase (facultatif)"
+                  :placeholder="$t('Raconte en une phrase (facultatif)')"
+                  :aria-label="$t('Raconte en une phrase (facultatif)')"
                 />
                 <input
                   v-model="form.year"
@@ -231,8 +233,8 @@
                   class="form-input w-32"
                   :min="1900"
                   :max="currentYear"
-                  placeholder="Année ?"
-                  aria-label="Année de la rencontre (facultatif)"
+                  :placeholder="$t('Année ?')"
+                  :aria-label="$t('Année de la rencontre (facultatif)')"
                 />
               </div>
             </div>
@@ -240,12 +242,12 @@
             <!-- Qui est-ce ? (visage) -->
             <div v-else-if="uiKind === 'face'" class="space-y-3">
               <p v-if="question.face.with?.length" class="text-sm text-surface-500">
-                Sur cette photo avec {{ joinNames(question.face.with) }}.
+                {{ $t('Sur cette photo avec :names.', { names: joinNames(question.face.with) }) }}
               </p>
               <!-- Téléphone : le jeu plein écran enchaîne les visages -->
               <Link href="/quests/faces" class="sm:hidden flex items-center justify-center gap-2 h-11 rounded-xl bg-brand-600 text-white text-sm font-bold">
                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
-                Jouer à « Qui est-ce ? »
+                {{ $t('Jouer à « Qui est-ce ? »') }}
               </Link>
               <div v-if="question.face.suggestions.length" class="flex flex-wrap gap-2">
                 <button
@@ -261,7 +263,7 @@
               </div>
               <div class="max-w-md">
                 <RelationshipPicker
-                  label="Ou choisir quelqu'un d'autre"
+                  :label="$t('Ou choisir quelqu\'un d\'autre')"
                   :current-person="null"
                   allow-create
                   @select="answerPerson($event.id)"
@@ -276,7 +278,7 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                Choisir le lieu sur la carte
+                {{ $t('Choisir le lieu sur la carte') }}
               </button>
             </div>
           </div>
@@ -290,7 +292,7 @@
               :disabled="!canSubmit || sending"
               @click="submitAnswer"
             >
-              Valider
+              {{ $t('Valider') }}
             </button>
             <button
               v-if="noLabel"
@@ -311,7 +313,7 @@
                 :disabled="sending"
                 @click="answer('no', { reason: 'stranger' })"
               >
-                {{ isFriends ? 'Personne inconnue / pas du groupe' : 'Personne inconnue / hors famille' }}
+                {{ isFriends ? $t('Personne inconnue / pas du groupe') : $t('Personne inconnue / hors famille') }}
               </button>
               <button
                 type="button"
@@ -319,7 +321,7 @@
                 :disabled="sending"
                 @click="answer('no', { reason: 'not_face' })"
               >
-                Ce n’est pas un visage
+                {{ $t('Ce n’est pas un visage') }}
               </button>
             </template>
             <span class="flex-1"></span>
@@ -329,7 +331,7 @@
               :disabled="sending"
               @click="answer('dont_know')"
             >
-              Je ne sais pas
+              {{ $t('Je ne sais pas') }}
             </button>
             <button
               type="button"
@@ -337,7 +339,7 @@
               :disabled="sending"
               @click="answer('skipped')"
             >
-              Passer →
+              {{ $t('Passer →') }}
             </button>
           </div>
         </div>
@@ -349,7 +351,7 @@
         class="flex items-center gap-4 bg-white border border-dashed border-surface-300 rounded-2xl px-6 py-4 text-sm text-surface-500"
       >
         <span class="text-xl">🎉</span>
-        Toutes les questions du moment sont complétées — merci pour votre contribution !
+        {{ $t('Toutes les questions du moment sont complétées — merci pour votre contribution !') }}
       </div>
     </Transition>
 
@@ -364,7 +366,7 @@
         <button
           type="button"
           class="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition"
-          aria-label="Fermer"
+          :aria-label="$t('Fermer')"
           @click.stop="showLightbox = false"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -396,8 +398,8 @@
     <!-- Sélecteur de lieu (photo sans géolocalisation) -->
     <GeolocatePickerModal
       v-if="showGeoPicker"
-      title="Où cette photo a-t-elle été prise ?"
-      description="Recherchez une adresse ou cliquez sur la carte."
+      :title="$t('Où cette photo a-t-elle été prise ?')"
+      :description="$t('Recherchez une adresse ou cliquez sur la carte.')"
       @close="showGeoPicker = false"
       @apply="applyGeo"
     />
@@ -413,6 +415,7 @@ import PersonAvatar from '@/Components/PersonAvatar.vue';
 import { useToast } from '@/Composables/useToast';
 import { useCircle } from '@/Composables/useCircle';
 import { usePeopleDirectory } from '@/Composables/usePeopleDirectory';
+import { t, tc, intlLocale } from '@/i18n';
 
 // Chargé à l'ouverture seulement : la carte embarque Leaflet (~45 ko gzip).
 const GeolocatePickerModal = defineAsyncComponent(() => import('@/Components/GeolocatePickerModal.vue'));
@@ -421,7 +424,7 @@ const toast = useToast();
 const { isFriends } = useCircle();
 const peopleDirectory = usePeopleDirectory();
 
-const joinNames = (names) => (names.length > 1 ? `${names.slice(0, -1).join(', ')} et ${names[names.length - 1]}` : names[0]);
+const joinNames = (names) => (names.length > 1 ? t(':names et :last', { names: names.slice(0, -1).join(', '), last: names[names.length - 1] }) : names[0]);
 
 const pickContext = (context, viaId = null) => {
   form.value = { ...form.value, context, via_person_id: viaId };
@@ -485,14 +488,14 @@ const originSuffix = computed(() => {
   const o = origin.value;
   if (!o) return '';
   return [
-    o.date ? new Date(o.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : null,
-    o.owner ? `envoyée par ${o.owner}` : null,
+    o.date ? new Date(o.date).toLocaleDateString(intlLocale(), { day: 'numeric', month: 'long', year: 'numeric' }) : null,
+    o.owner ? t('envoyée par :name', { name: o.owner }) : null,
   ].filter(Boolean).join(' · ');
 });
 const originText = computed(() => {
   const o = origin.value;
   if (!o) return '';
-  const albums = o.albums.length ? `📁 ${o.albums.map((a) => a.name).join(', ')}` : '📁 Hors album';
+  const albums = o.albums.length ? `📁 ${o.albums.map((a) => a.name).join(', ')}` : `📁 ${t('Hors album')}`;
   return [albums, originSuffix.value].filter(Boolean).join(' · ');
 });
 
@@ -525,24 +528,24 @@ const onKeydown = (e) => {
 };
 
 const textPlaceholder = computed(() => (question.value?.self && question.value?.type === 'address'
-  ? 'Ta ville (ex. Montreuil)'
+  ? t('Ta ville (ex. Montreuil)')
   : {
-  birth_place: 'Ville, pays…',
-  death_place: 'Ville, pays…',
-  maiden_name: 'Nom de naissance',
+  birth_place: t('Ville, pays…'),
+  death_place: t('Ville, pays…'),
+  maiden_name: t('Nom de naissance'),
   address: '12 rue des Lilas, 93100 Montreuil',
-  job: 'Métier (ex. institutrice, menuisier…)',
-  education: 'École ou diplôme',
-  residence: 'Ville',
+  job: t('Métier (ex. institutrice, menuisier…)'),
+  education: t('École ou diplôme'),
+  residence: t('Ville'),
 }[question.value?.type]) || '');
 
 // Libellé du bouton « non » selon le type (marital et death_status l'ont déjà
 // dans leur propre UI).
 const noLabel = computed(() => ({
-  parent_father: 'Inconnu / pas de fiche',
-  parent_mother: 'Inconnue / pas de fiche',
-  maiden_name: 'Identique à son nom',
-  education: 'Pas d’études particulières',
+  parent_father: t('Inconnu / pas de fiche'),
+  parent_mother: t('Inconnue / pas de fiche'),
+  maiden_name: t('Identique à son nom'),
+  education: t('Pas d’études particulières'),
 }[question.value?.type] || null));
 
 // ---- Payload et validité de la saisie courante ----
@@ -614,18 +617,18 @@ const answer = async (kind, payload = null) => {
     if (kind === 'answered') {
       // Une réponse peut créer une fiche à la volée : annuaire partagé caduc.
       peopleDirectory.invalidate();
-      toast.success(`Merci ! ${data.completed_count} souvenir${data.completed_count > 1 ? 's' : ''} complété${data.completed_count > 1 ? 's' : ''}.`);
+      toast.success(tc('Merci ! :count souvenir complété.|Merci ! :count souvenirs complétés.', data.completed_count));
     }
     question.value = data.next;
     exhausted.value = data.next === null;
   } catch (error) {
     if (error.response?.status === 409) {
-      toast.info('Déjà complété par quelqu’un d’autre — question suivante !');
+      toast.info(t('Déjà complété par quelqu’un d’autre — question suivante !'));
       completedCount.value = error.response.data.completed_count;
       question.value = error.response.data.next;
       exhausted.value = error.response.data.next === null;
     } else {
-      toast.error(error.response?.data?.message || 'Impossible d’enregistrer la réponse.');
+      toast.error(error.response?.data?.message || t('Impossible d’enregistrer la réponse.'));
     }
   } finally {
     sending.value = false;

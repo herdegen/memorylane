@@ -1,13 +1,12 @@
 <template>
-  <Head title="Import Google Photos" />
+  <Head :title="$t('Import Google Photos')" />
   <AppLayout>
     <div class="py-12">
       <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
         <div class="mb-6">
-          <h1 class="text-display text-4xl text-surface-900">Importer depuis Google Photos</h1>
+          <h1 class="text-display text-4xl text-surface-900">{{ $t('Importer depuis Google Photos') }}</h1>
           <p class="mt-2 text-surface-600">
-            Choisissez vos photos dans Google Photos — vous pouvez y chercher par personne,
-            lieu ou date — puis rattachez-les à une personne ou un album MemoryLane.
+            {{ $t('Choisissez vos photos dans Google Photos — vous pouvez y chercher par personne, lieu ou date — puis rattachez-les à une personne ou un album MemoryLane.') }}
           </p>
         </div>
 
@@ -23,22 +22,21 @@
         <div class="card card--padded mb-6">
           <div class="flex items-center justify-between gap-4">
             <div>
-              <h2 class="card-title mb-1">1. Connecter Google Photos</h2>
+              <h2 class="card-title mb-1">{{ $t('1. Connecter Google Photos') }}</h2>
               <p class="text-sm text-surface-500">
-                {{ isConnected ? 'Compte Google connecté.' : 'Autorisez MemoryLane à recevoir les photos que vous choisirez. Rien d\'autre n\'est partagé.' }}
+                {{ isConnected ? $t('Compte Google connecté.') : $t('Autorisez MemoryLane à recevoir les photos que vous choisirez. Rien d\'autre n\'est partagé.') }}
               </p>
             </div>
-            <span v-if="isConnected" class="badge-teal shrink-0">Connecté</span>
-            <a v-else href="/google-photos/connect" class="btn-primary shrink-0">Se connecter</a>
+            <span v-if="isConnected" class="badge-teal shrink-0">{{ $t('Connecté') }}</span>
+            <a v-else href="/google-photos/connect" class="btn-primary shrink-0">{{ $t('Se connecter') }}</a>
           </div>
         </div>
 
         <!-- Étape 2 : sélection -->
         <div class="card card--padded mb-6" :class="{ 'opacity-50': !isConnected }">
-          <h2 class="card-title mb-1">2. Choisir les photos</h2>
+          <h2 class="card-title mb-1">{{ $t('2. Choisir les photos') }}</h2>
           <p class="text-sm text-surface-500 mb-4">
-            La sélection s'ouvre dans Google Photos. Astuce : cherchez-y un visage pour
-            retrouver toutes les photos d'une personne.
+            {{ $t("La sélection s'ouvre dans Google Photos. Astuce : cherchez-y un visage pour retrouver toutes les photos d'une personne.") }}
           </p>
 
           <button
@@ -47,7 +45,7 @@
             :disabled="!isConnected"
             class="btn-primary"
           >
-            Ouvrir Google Photos
+            {{ $t('Ouvrir Google Photos') }}
           </button>
 
           <div v-if="waitingForSelection">
@@ -57,7 +55,7 @@
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                En attente de votre sélection…
+                {{ $t('En attente de votre sélection…') }}
               </span>
               <a
                 v-if="pickerUri"
@@ -66,16 +64,14 @@
                 rel="noopener"
                 class="btn-secondary btn-sm"
               >
-                Rouvrir Google Photos
+                {{ $t('Rouvrir Google Photos') }}
               </a>
               <button @click="cancelSelection" type="button" class="btn-ghost btn-sm">
-                Annuler
+                {{ $t('Annuler') }}
               </button>
             </div>
             <p class="mt-3 text-sm text-surface-500">
-              Choisissez vos photos dans l'onglet Google Photos, validez, puis revenez ici —
-              la page détectera votre sélection automatiquement. Vous pouvez annuler si vous
-              avez fermé l'onglet ou changé d'avis.
+              {{ $t("Choisissez vos photos dans l'onglet Google Photos, validez, puis revenez ici — la page détectera votre sélection automatiquement. Vous pouvez annuler si vous avez fermé l'onglet ou changé d'avis.") }}
             </p>
           </div>
 
@@ -83,44 +79,43 @@
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
             </svg>
-            <span class="text-sm font-medium">Sélection terminée — prête à importer.</span>
+            <span class="text-sm font-medium">{{ $t('Sélection terminée — prête à importer.') }}</span>
           </div>
         </div>
 
         <!-- Étape 3 : rattachement + import -->
         <div class="card card--padded" :class="{ 'opacity-50': !selectionDone }">
-          <h2 class="card-title mb-1">3. Importer</h2>
+          <h2 class="card-title mb-1">{{ $t('3. Importer') }}</h2>
           <p class="text-sm text-surface-500 mb-4">
-            Optionnel : les photos importées seront directement rattachées à une personne
-            et/ou un album.
+            {{ $t('Optionnel : les photos importées seront directement rattachées à une personne et/ou un album.') }}
           </p>
 
           <form v-if="!importing" @submit.prevent="startImport" class="space-y-4">
             <div class="grid sm:grid-cols-2 gap-4">
               <div>
-                <label class="form-label" for="person">Personne</label>
+                <label class="form-label" for="person">{{ $t('Personne') }}</label>
                 <select id="person" v-model="importForm.person_id" class="form-select" :disabled="!selectionDone">
-                  <option :value="null">— Aucune —</option>
+                  <option :value="null">{{ $t('— Aucune —') }}</option>
                   <option v-for="person in people" :key="person.id" :value="person.id">
                     {{ person.name }}
                   </option>
                 </select>
               </div>
               <div>
-                <label class="form-label" for="album">Album</label>
+                <label class="form-label" for="album">{{ $t('Album') }}</label>
                 <select id="album" v-model="importForm.album_id" class="form-select" :disabled="!selectionDone">
-                  <option :value="null">— Aucun —</option>
+                  <option :value="null">{{ $t('— Aucun —') }}</option>
                   <option v-for="album in albums" :key="album.id" :value="album.id">
                     {{ album.name }}
                   </option>
-                  <option value="__new__">➕ Créer un nouvel album…</option>
+                  <option value="__new__">{{ $t('➕ Créer un nouvel album…') }}</option>
                 </select>
                 <input
                   v-if="importForm.album_id === '__new__'"
                   v-model="importForm.new_album_name"
                   type="text"
                   class="form-input mt-2"
-                  placeholder="Nom du nouvel album"
+                  :placeholder="$t('Nom du nouvel album')"
                   :disabled="!selectionDone"
                 />
               </div>
@@ -131,7 +126,7 @@
               :disabled="!selectionDone || launching"
               class="btn-primary"
             >
-              {{ launching ? 'Lancement…' : 'Importer ma sélection' }}
+              {{ launching ? $t('Lancement…') : $t('Importer ma sélection') }}
             </button>
           </form>
 
@@ -147,6 +142,7 @@
 import { ref, onBeforeUnmount } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import axios from 'axios';
+import { t } from '@/i18n';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import FormError from '@/Components/Forms/FormError.vue';
 import ImportProgress from '@/Components/ImportProgress.vue';
@@ -199,7 +195,7 @@ const startPolling = () => {
     if (++pollCount > MAX_POLLS) {
       stopPolling();
       waitingForSelection.value = false;
-      errorMessage.value = 'Aucune sélection détectée. Rouvrez Google Photos et validez votre choix, ou recommencez.';
+      errorMessage.value = t('Aucune sélection détectée. Rouvrez Google Photos et validez votre choix, ou recommencez.');
       return;
     }
     pollStatus();
@@ -228,16 +224,15 @@ const stopPolling = () => {
 
 const googleErrorText = (error) => {
   if (error.response?.status === 401) {
-    return 'La connexion Google a expiré. Reconnectez-vous (étape 1).';
+    return t('La connexion Google a expiré. Reconnectez-vous (étape 1).');
   }
   const data = error.response?.data;
   if (data?.error === 'google_error') {
-    return `Google répond (${data.google_status}) : ${data.message}` +
-      (data.google_status === 403
-        ? ' — vérifiez que le « Google Photos Picker API » est activé dans la console Google Cloud du projet.'
-        : '');
+    return data.google_status === 403
+      ? t('Google répond (:status) : :message — vérifiez que le « Google Photos Picker API » est activé dans la console Google Cloud du projet.', { status: data.google_status, message: data.message })
+      : t('Google répond (:status) : :message', { status: data.google_status, message: data.message });
   }
-  return 'Impossible d\'ouvrir la sélection Google Photos. Réessayez.';
+  return t('Impossible d\'ouvrir la sélection Google Photos. Réessayez.');
 };
 
 const openPicker = async () => {
@@ -270,7 +265,7 @@ const startImport = async () => {
     importStartedAt.value = data.started_at;
     importing.value = true;
   } catch (error) {
-    errorMessage.value = 'Le lancement de l\'import a échoué. Réessayez.';
+    errorMessage.value = t('Le lancement de l\'import a échoué. Réessayez.');
   } finally {
     launching.value = false;
   }

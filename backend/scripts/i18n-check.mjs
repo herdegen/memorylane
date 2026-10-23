@@ -53,8 +53,14 @@ const unescape = (s, php) => (php
 const CALL = /(?<![\w$.>:])(\$tc|\$t|tc|t|__|trans_choice)\(\s*(['"`])((?:\\.|(?!\2)[^\\])*)\2/gs;
 const TRANS = /<Trans\b[^>]*?\stext="([^"]*)"/gs;
 
+// Commentaires (lignes « // », « * », « /* », « # » et blocs <!-- -->) blanchis,
+// longueur et lignes gardées : les exemples de documentation ne comptent pas.
+const blankComments = (src) => src
+  .replace(/<!--[\s\S]*?-->/g, (c) => c.replace(/[^\n]/g, ' '))
+  .replace(/^[ \t]*(\/\/|\/\*|\*|#(?!\[)).*$/gm, (c) => c.replace(/./g, ' '));
+
 export function keysOf(file) {
-  const src = readFileSync(file, 'utf8');
+  const src = blankComments(readFileSync(file, 'utf8'));
   const php = file.endsWith('.php');
   const keys = [];
   for (const m of src.matchAll(CALL)) {
@@ -133,9 +139,12 @@ for (const { key, file, line } of all) {
     problems++;
     continue;
   }
+  // Mêmes paramètres des deux côtés ; « :decades » vaut « :decade » suivi
+  // de « s » (remplacement du plus long paramètre connu, comme Laravel).
   const a = placeholders(key).filter((p) => !(key.includes('|') && p === 'count'));
-  const b = placeholders(dict[key]).filter((p) => !(key.includes('|') && p === 'count'));
-  if (a.join() !== b.join()) {
+  const b = placeholders(dict[key]).map((p) => a.filter((k) => p.startsWith(k)).sort((x, y) => y.length - x.length)[0] ?? p)
+    .filter((p) => !(key.includes('|') && p === 'count'));
+  if (a.join() !== [...new Set(b)].sort().join()) {
     console.log(`paramètres ${relative(process.cwd(), file)}:${line}  ${JSON.stringify(key)} → ${JSON.stringify(dict[key])}`);
     problems++;
   }

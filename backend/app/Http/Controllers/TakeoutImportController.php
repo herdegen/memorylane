@@ -23,8 +23,8 @@ class TakeoutImportController extends Controller
             'archives' => ['required', 'array', 'min:1'],
             'archives.*' => ['file', 'mimes:zip', 'max:2097152'], // 2 Go
         ], [
-            'archives.*.mimes' => 'Seules les archives ZIP de Takeout sont acceptées.',
-            'archives.*.max' => 'Archive trop lourde : choisissez des ZIP de 2 Go maximum dans Takeout.',
+            'archives.*.mimes' => __('Seules les archives ZIP de Takeout sont acceptées.'),
+            'archives.*.max' => __('Archive trop lourde : choisissez des ZIP de 2 Go maximum dans Takeout.'),
         ]);
 
         $dir = storage_path('app/takeout');
@@ -44,8 +44,8 @@ class TakeoutImportController extends Controller
         return redirect()->route('media.index')->with(
             'success',
             $count === 1
-                ? 'Archive Takeout reçue : l\'import tourne en arrière-plan, vos photos arrivent avec leur géolocalisation.'
-                : "{$count} archives Takeout reçues : l'import tourne en arrière-plan."
+                ? __('Archive Takeout reçue : l\'import tourne en arrière-plan, vos photos arrivent avec leur géolocalisation.')
+                : __(':count archives Takeout reçues : l\'import tourne en arrière-plan.', ['count' => $count])
         );
     }
 }

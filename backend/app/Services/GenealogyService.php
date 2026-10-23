@@ -167,9 +167,14 @@ class GenealogyService
      * Nom français du lien pour les motifs courants (genré sur la cible),
      * « par alliance » quand un unique pas conjoint encadre un motif connu.
      * Null pour les chemins exotiques (le front affichera « lien en N pas »).
+     * En anglais : mêmes motifs, libellés construits par englishRelationLabel.
      */
     public static function relationLabel(array $edges, ?string $gender): ?string
     {
+        if (app()->getLocale() === 'en') {
+            return self::englishRelationLabel($edges, $gender);
+        }
+
         $f = $gender === 'F';
         $direct = [
             'parent' => $f ? 'votre mère' : 'votre père',
@@ -201,6 +206,73 @@ class GenealogyService
                 if ($edge === 'spouse' && isset($direct[implode('.', $rest)])) {
                     return $direct[implode('.', $rest)] . ' par alliance';
                 }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Libellé anglais du lien : mêmes motifs que relationLabel (et null pour
+     * les mêmes chemins), construit à partir de la structure — sens (on monte
+     * ou on descend), nombre de générations, genre de la cible ; genre
+     * inconnu → forme neutre (parent, child, sibling…). Par alliance :
+     * « step- » pour le conjoint d'un ascendant et les descendants du
+     * conjoint, « -in-law » pour les ascendants du conjoint et le conjoint
+     * d'un descendant, sinon « … by marriage ».
+     */
+    private static function englishRelationLabel(array $edges, ?string $gender): ?string
+    {
+        $g = fn (string $female, string $male, string $neutral) => match ($gender) {
+            'F' => $female,
+            'M' => $male,
+            default => $neutral,
+        };
+        // Ascendant ou descendant à $n générations : mother, grandmother, great-grandmother…
+        $line = fn (string $dir, int $n) => str_repeat('great-', max(0, $n - 2)).($n > 1 ? 'grand' : '')
+            .($dir === 'parent' ? $g('mother', 'father', 'parent') : $g('daughter', 'son', 'child'));
+
+        $direct = [
+            'parent' => $line('parent', 1),
+            'parent.parent' => $line('parent', 2),
+            'parent.parent.parent' => $line('parent', 3),
+            'child' => $line('child', 1),
+            'child.child' => $line('child', 2),
+            'child.child.child' => $line('child', 3),
+            'parent.child' => $g('sister', 'brother', 'sibling'),
+            'parent.child.child' => $g('niece', 'nephew', 'niece or nephew'),
+            'parent.parent.child' => $g('aunt', 'uncle', 'aunt or uncle'),
+            'parent.parent.child.child' => 'first cousin',
+            'spouse' => 'partner',
+            'spouse.parent' => $line('parent', 1).'-in-law',
+            'parent.child.spouse' => $g('sister', 'brother', 'sibling').'-in-law',
+            'spouse.parent.child' => $g('sister', 'brother', 'sibling').'-in-law',
+            'child.spouse' => $line('child', 1).'-in-law',
+        ];
+
+        $key = implode('.', $edges);
+        if (isset($direct[$key])) {
+            return 'your '.$direct[$key];
+        }
+
+        // Même règle qu'en français : un unique pas « conjoint » en tête ou en queue.
+        if (count($edges) > 1 && ! in_array('spouse', array_slice($edges, 1, -1), true)) {
+            foreach ([['start', array_slice($edges, 1)], ['end', array_slice($edges, 0, -1)]] as [$where, $rest]) {
+                $edge = $where === 'start' ? $edges[0] : end($edges);
+                if ($edge !== 'spouse' || ! isset($direct[implode('.', $rest)])) {
+                    continue;
+                }
+                // Lignée droite (que des montées ou que des descentes).
+                if (count(array_unique($rest)) === 1 && $rest[0] !== 'spouse') {
+                    $n = count($rest);
+                    $inLaw = ($where === 'start') === ($rest[0] === 'parent');
+
+                    return 'your '.($inLaw
+                        ? $line($rest[0], $n).'-in-law'
+                        : 'step'.($n > 1 ? '-' : '').$line($rest[0], $n));
+                }
+
+                return 'your '.$direct[implode('.', $rest)].' by marriage';
             }
         }
 

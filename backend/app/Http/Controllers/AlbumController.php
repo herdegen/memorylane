@@ -126,13 +126,13 @@ class AlbumController extends Controller
 
         if ($request->wantsJson()) {
             return response()->json([
-                'message' => 'Album cree avec succes',
+                'message' => __('Album cree avec succes'),
                 'album' => $album,
             ], 201);
         }
 
         return redirect()->route('albums.show', $album)
-            ->with('success', 'Album cree avec succes');
+            ->with('success', __('Album cree avec succes'));
     }
 
     public function show(Request $request, Album $album)
@@ -228,12 +228,12 @@ class AlbumController extends Controller
 
         if ($request->wantsJson()) {
             return response()->json([
-                'message' => 'Album modifie avec succes',
+                'message' => __('Album modifie avec succes'),
                 'album' => $album,
             ]);
         }
 
-        return redirect()->back()->with('success', 'Album modifie avec succes');
+        return redirect()->back()->with('success', __('Album modifie avec succes'));
     }
 
     public function destroy(Request $request, Album $album)
@@ -244,12 +244,12 @@ class AlbumController extends Controller
 
         if ($request->wantsJson()) {
             return response()->json([
-                'message' => 'Album supprime avec succes',
+                'message' => __('Album supprime avec succes'),
             ]);
         }
 
         return redirect()->route('albums.index')
-            ->with('success', 'Album supprime avec succes');
+            ->with('success', __('Album supprime avec succes'));
     }
 
     public function addMedia(Request $request, Album $album)
@@ -266,7 +266,7 @@ class AlbumController extends Controller
         $this->attachMediaToAlbum($album, $validated['media_ids']);
 
         return response()->json([
-            'message' => 'Medias ajoutes a l\'album',
+            'message' => __('Medias ajoutes a l\'album'),
         ]);
     }
 
@@ -285,7 +285,7 @@ class AlbumController extends Controller
             ->whereIn('id', $ids)
             ->count();
 
-        abort_unless($accessibleCount === count($ids), 403, 'Certains médias sélectionnés ne vous sont pas accessibles.');
+        abort_unless($accessibleCount === count($ids), 403, __('Certains médias sélectionnés ne vous sont pas accessibles.'));
     }
 
     /**
@@ -337,7 +337,7 @@ class AlbumController extends Controller
                 ->pluck('id')
                 ->all();
 
-            abort_if(empty($ids), 403, 'Vous ne pouvez retirer que les médias que vous avez ajoutés.');
+            abort_if(empty($ids), 403, __('Vous ne pouvez retirer que les médias que vous avez ajoutés.'));
         }
 
         $album->media()->detach($ids);
@@ -348,7 +348,7 @@ class AlbumController extends Controller
         }
 
         return response()->json([
-            'message' => 'Medias retires de l\'album',
+            'message' => __('Medias retires de l\'album'),
             'removed' => count($ids),
         ]);
     }
@@ -360,7 +360,7 @@ class AlbumController extends Controller
         $token = $album->generateShareToken();
 
         return response()->json([
-            'message' => 'Lien de partage genere',
+            'message' => __('Lien de partage genere'),
             'share_token' => $token,
             'share_url' => $album->getShareUrl(),
         ]);
@@ -373,7 +373,7 @@ class AlbumController extends Controller
         $album->revokeShareToken();
 
         return response()->json([
-            'message' => 'Lien de partage revoque',
+            'message' => __('Lien de partage revoque'),
         ]);
     }
 
@@ -539,13 +539,13 @@ class AlbumController extends Controller
         if (! ($validated['media_id'] ?? null)) {
             $album->forceFill(['hero_media_id' => null])->save();
 
-            return response()->json(['message' => 'Fond par défaut rétabli.']);
+            return response()->json(['message' => __('Fond par défaut rétabli.')]);
         }
 
         $media = $album->media()->whereKey($validated['media_id'])->whereIn('type', ['photo', 'video'])->first();
-        abort_unless($media, 422, 'Choisissez une photo ou une vidéo de l\'album.');
+        abort_unless($media, 422, __('Choisissez une photo ou une vidéo de l\'album.'));
         $start = (float) ($validated['start'] ?? 0);
-        abort_if($media->type === 'video' && $media->duration && $start >= $media->duration, 422, "La vidéo ne dure que {$media->duration} s.");
+        abort_if($media->type === 'video' && $media->duration && $start >= $media->duration, 422, __('La vidéo ne dure que :seconds s.', ['seconds' => $media->duration]));
 
         $album->forceFill(['hero_media_id' => $media->id])->save();
         if ($media->type === 'video') {
@@ -553,7 +553,7 @@ class AlbumController extends Controller
         }
 
         return response()->json([
-            'message' => $media->type === 'video' ? 'Fond vidéo en préparation (une minute environ).' : 'Fond du titre défini.',
+            'message' => $media->type === 'video' ? __('Fond vidéo en préparation (une minute environ).') : __('Fond du titre défini.'),
             'preparing' => $media->type === 'video',
         ]);
     }
@@ -592,7 +592,7 @@ class AlbumController extends Controller
             }
         });
 
-        return response()->json(['message' => $validated['pinned'] ? 'Mis à la une.' : 'Retiré de la une.']);
+        return response()->json(['message' => $validated['pinned'] ? __('Mis à la une.') : __('Retiré de la une.')]);
     }
 
     /**
@@ -609,16 +609,16 @@ class AlbumController extends Controller
         abort_unless(
             $album->media()->where('media.id', $validated['media_id'])->exists(),
             422,
-            'Ce média ne fait pas partie de l\'album.'
+            __('Ce média ne fait pas partie de l\'album.')
         );
 
         $album->update(['cover_media_id' => $validated['media_id']]);
 
         if ($request->wantsJson()) {
-            return response()->json(['message' => 'Photo de couverture définie.']);
+            return response()->json(['message' => __('Photo de couverture définie.')]);
         }
 
-        return redirect()->back()->with('success', 'Photo de couverture définie.');
+        return redirect()->back()->with('success', __('Photo de couverture définie.'));
     }
 
     /**
@@ -645,10 +645,10 @@ class AlbumController extends Controller
         $count = $mediaIds->count();
 
         if ($request->wantsJson()) {
-            return response()->json(['message' => "Localisation appliquée à {$count} média(s).", 'count' => $count]);
+            return response()->json(['message' => trans_choice('Localisation appliquée à :count média.|Localisation appliquée à :count médias.', $count), 'count' => $count]);
         }
 
-        return redirect()->back()->with('success', "Localisation appliquée à {$count} média(s).");
+        return redirect()->back()->with('success', trans_choice('Localisation appliquée à :count média.|Localisation appliquée à :count médias.', $count));
     }
 
     /**
@@ -720,7 +720,7 @@ class AlbumController extends Controller
 
         return response()->json([
             'granted' => $n,
-            'message' => $n ? "Accès accordé à {$n} personne".($n > 1 ? 's' : '').'.' : 'Tout le monde a déjà accès.',
+            'message' => $n ? trans_choice('Accès accordé à :count personne.|Accès accordé à :count personnes.', $n) : __('Tout le monde a déjà accès.'),
         ]);
     }
 
@@ -754,8 +754,8 @@ class AlbumController extends Controller
         return response()->json([
             'share_with_tagged' => $album->share_with_tagged,
             'message' => $enabled
-                ? 'Les personnes identifiées dans l\'album le voient en entier, y compris celles ajoutées plus tard.'
-                : 'Les personnes identifiées ne voient plus que leurs photos.',
+                ? __('Les personnes identifiées dans l\'album le voient en entier, y compris celles ajoutées plus tard.')
+                : __('Les personnes identifiées ne voient plus que leurs photos.'),
         ]);
     }
 
@@ -849,7 +849,7 @@ class AlbumController extends Controller
         ]);
 
         if ($validated['user_id'] === $album->user_id) {
-            return response()->json(['message' => 'Le propriétaire a déjà accès.'], 422);
+            return response()->json(['message' => __('Le propriétaire a déjà accès.')], 422);
         }
 
         $access = AlbumAccess::firstOrCreate(
@@ -866,7 +866,7 @@ class AlbumController extends Controller
             );
         }
 
-        return response()->json(['message' => 'Accès accordé.'], 201);
+        return response()->json(['message' => __('Accès accordé.')], 201);
     }
 
     /**
@@ -879,13 +879,13 @@ class AlbumController extends Controller
         ]);
 
         $access = $album->accesses()->where('user_id', $validated['user_id'])->first();
-        abort_unless($access, 404, 'Aucun accès accordé à révoquer pour ce compte.');
+        abort_unless($access, 404, __('Aucun accès accordé à révoquer pour ce compte.'));
 
         Gate::authorize('revokeAccess', [$album, $access]);
 
         $access->delete();
 
-        return response()->json(['message' => 'Accès révoqué.']);
+        return response()->json(['message' => __('Accès révoqué.')]);
     }
 
     /**
@@ -934,7 +934,7 @@ class AlbumController extends Controller
         abort_unless(
             $user->isAdmin() || in_array($validated['household_id'], $user->householdIds(), true),
             403,
-            'Vous ne pouvez partager qu\'avec vos propres cercles.'
+            __('Vous ne pouvez partager qu\'avec vos propres cercles.')
         );
 
         $album->households()->syncWithoutDetaching([

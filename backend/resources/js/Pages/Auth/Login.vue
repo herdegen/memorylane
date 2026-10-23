@@ -1,5 +1,5 @@
 <template>
-  <Head title="Connexion" />
+  <Head :title="$t('Connexion')" />
   <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-linear-to-br from-brand-50 via-white to-surface-50">
     <div class="w-full sm:max-w-md mt-6 px-8 py-8 bg-white shadow-xl rounded-2xl border border-surface-200">
       <!-- Logo / Branding -->
@@ -14,7 +14,7 @@
           </div>
         </div>
         <h1 class="font-display text-2xl font-bold text-surface-900 tracking-tight">MemoryLane</h1>
-        <p class="mt-1 text-sm text-surface-500">Connectez-vous à votre galerie de souvenirs</p>
+        <p class="mt-1 text-sm text-surface-500">{{ $t('Connectez-vous à votre galerie de souvenirs') }}</p>
       </div>
 
       <!-- Success message -->
@@ -36,8 +36,8 @@
           v-model="form.email"
           id="email"
           type="email"
-          label="Email"
-          placeholder="votre@email.com"
+          :label="$t('Email')"
+          :placeholder="$t('votre@email.com')"
           :error="form.errors.email"
           autocomplete="username"
           required
@@ -47,7 +47,7 @@
           v-model="form.password"
           id="password"
           type="password"
-          label="Mot de passe"
+          :label="$t('Mot de passe')"
           placeholder="••••••••"
           :error="form.errors.password"
           autocomplete="current-password"
@@ -61,14 +61,14 @@
               type="checkbox"
               class="rounded-sm border-surface-300 text-brand-600 shadow-xs focus:ring-brand-500"
             />
-            <span class="ml-2 text-sm text-surface-600">Se souvenir de moi</span>
+            <span class="ml-2 text-sm text-surface-600">{{ $t('Se souvenir de moi') }}</span>
           </label>
         </div>
 
         <FormButton
           type="submit"
-          text="Se connecter"
-          loading-text="Connexion en cours..."
+          :text="$t('Se connecter')"
+          :loading-text="$t('Connexion en cours...')"
           :loading="form.processing"
           full-width
         />
@@ -81,7 +81,7 @@
             <div class="w-full border-t border-surface-200"></div>
           </div>
           <div class="relative flex justify-center text-sm">
-            <span class="px-3 bg-white text-surface-400">ou</span>
+            <span class="px-3 bg-white text-surface-400">{{ $t('ou') }}</span>
           </div>
         </div>
 
@@ -94,16 +94,19 @@
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>
-          {{ magicForm.processing ? 'Envoi en cours…' : 'Recevoir un lien de connexion par e-mail' }}
+          {{ magicForm.processing ? $t('Envoi en cours…') : $t('Recevoir un lien de connexion par e-mail') }}
         </button>
         <p v-if="!form.email" class="mt-2 text-xs text-surface-400 text-center">
-          Saisissez votre e-mail ci-dessus, puis cliquez ici — pas besoin de mot de passe.
+          {{ $t('Saisissez votre e-mail ci-dessus, puis cliquez ici — pas besoin de mot de passe.') }}
         </p>
         <p v-if="magicForm.errors.email" class="mt-2 text-xs text-red-600 dark:text-red-400 text-center">
           {{ magicForm.errors.email }}
         </p>
       </div>
     </div>
+
+    <!-- Langue de l'interface -->
+    <LocaleSwitch class="mt-4 mb-6" />
   </div>
 </template>
 
@@ -113,6 +116,8 @@ import { Head, useForm, usePage } from '@inertiajs/vue3';
 import FormField from '@/Components/Forms/FormField.vue';
 import FormError from '@/Components/Forms/FormError.vue';
 import FormButton from '@/Components/Forms/FormButton.vue';
+import LocaleSwitch from '@/Components/LocaleSwitch.vue';
+import { t } from '@/i18n';
 
 defineProps({
   status: String,
@@ -142,9 +147,9 @@ const hasErrors = computed(() => {
 
 const globalErrorMessage = computed(() => {
   if (form.errors.email || form.errors.password) {
-    return 'Les identifiants fournis sont incorrects. Veuillez vérifier votre email et mot de passe.';
+    return t('Les identifiants fournis sont incorrects. Veuillez vérifier votre email et mot de passe.');
   }
-  return 'Une erreur est survenue lors de la connexion.';
+  return t('Une erreur est survenue lors de la connexion.');
 });
 
 const submit = () => {

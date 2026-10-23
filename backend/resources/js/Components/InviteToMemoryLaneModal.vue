@@ -1,20 +1,19 @@
 <template>
-  <BaseModal :title="`Inviter ${firstName} sur MemoryLane`" @close="$emit('close')">
+  <BaseModal :title="$t('Inviter :name sur MemoryLane', { name: firstName })" @close="$emit('close')">
     <form id="invite-form" class="px-6 py-5 space-y-4" @submit.prevent="submit">
       <p class="text-sm text-surface-600">
-        {{ firstName }} recevra un mail qui présente MemoryLane et l'invite à créer son accès
-        (un mot de passe à choisir). Son compte sera relié à cette fiche.
+        {{ $t(":name recevra un mail qui présente MemoryLane et l'invite à créer son accès (un mot de passe à choisir). Son compte sera relié à cette fiche.", { name: firstName }) }}
       </p>
 
       <div>
-        <label for="invite-email" class="block text-sm font-medium text-surface-700 mb-1">Son adresse e-mail</label>
+        <label for="invite-email" class="block text-sm font-medium text-surface-700 mb-1">{{ $t('Son adresse e-mail') }}</label>
         <input
           id="invite-email"
           v-model="form.email"
           type="email"
           required
           autocomplete="off"
-          placeholder="prenom@exemple.fr"
+          :placeholder="$t('prenom@exemple.fr')"
           class="form-input w-full"
         />
         <p v-if="errors.email" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ errors.email }}</p>
@@ -23,30 +22,30 @@
 
       <div>
         <label for="invite-message" class="block text-sm font-medium text-surface-700 mb-1">
-          Un petit mot <span class="font-normal text-surface-400">(facultatif)</span>
+          {{ $t('Un petit mot') }} <span class="font-normal text-surface-400">{{ $t('(facultatif)') }}</span>
         </label>
         <textarea
           id="invite-message"
           v-model="form.message"
           rows="3"
           maxlength="1000"
-          :placeholder="`Coucou ${firstName}, j'ai pensé à toi…`"
+          :placeholder="$t('Coucou :name, j\'ai pensé à toi…', { name: firstName })"
           class="form-input w-full"
         ></textarea>
       </div>
 
       <label class="flex items-center gap-2.5 text-sm text-surface-700 cursor-pointer">
         <input v-model="form.formal" type="checkbox" class="h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500" />
-        Vouvoyer dans le mail
+        {{ $t('Vouvoyer dans le mail') }}
       </label>
 
       <p v-if="errorMessage" class="text-sm text-red-600 dark:text-red-400">{{ errorMessage }}</p>
     </form>
 
     <template #footer>
-      <button type="button" class="btn-secondary" @click="$emit('close')">Annuler</button>
+      <button type="button" class="btn-secondary" @click="$emit('close')">{{ $t('Annuler') }}</button>
       <button type="submit" form="invite-form" class="btn-primary" :disabled="sending || !form.email">
-        {{ sending ? 'Envoi…' : 'Envoyer l\'invitation' }}
+        {{ sending ? $t('Envoi…') : $t('Envoyer l\'invitation') }}
       </button>
     </template>
   </BaseModal>
@@ -56,6 +55,7 @@
 import { computed, reactive, ref } from 'vue';
 import axios from 'axios';
 import BaseModal from '@/Components/BaseModal.vue';
+import { t } from '@/i18n';
 
 const props = defineProps({
   person: { type: Object, required: true },
@@ -83,7 +83,7 @@ const submit = async () => {
         Object.entries(error.response.data.errors || {}).map(([k, v]) => [k, v[0]])
       );
     } else {
-      errorMessage.value = error.response?.data?.message || "L'invitation n'a pas pu être envoyée. Réessayez plus tard.";
+      errorMessage.value = error.response?.data?.message || t("L'invitation n'a pas pu être envoyée. Réessayez plus tard.");
     }
   } finally {
     sending.value = false;

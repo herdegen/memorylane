@@ -32,12 +32,12 @@
         <div class="absolute inset-x-0 top-0 px-24 pt-[3.375rem] pb-28 flex items-start justify-between" style="background: linear-gradient(to bottom, rgba(0,0,0,.75), rgba(0,0,0,0))">
           <div class="flex flex-col gap-2">
             <span class="text-[1.625rem] text-[#e7e0d6]">{{ title }}</span>
-            <span class="text-[1.375rem] text-[#c9bfb1]">{{ pos + 1 }} / {{ order.length }}{{ shuffle ? ' · ordre aléatoire' : '' }}</span>
+            <span class="text-[1.375rem] text-[#c9bfb1]">{{ pos + 1 }} / {{ order.length }}{{ shuffle ? ' · ' + $t('ordre aléatoire') : '' }}</span>
           </div>
           <span class="flex items-center gap-3 px-5.5 py-3 rounded-full bg-white/15 text-[1.5rem] font-bold">
             <svg v-if="playing" class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
             <svg v-else class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" /><rect x="14" y="5" width="4" height="14" /></svg>
-            {{ playing ? 'Diaporama' : 'En pause' }}
+            {{ playing ? $t('Diaporama') : $t('En pause') }}
           </span>
         </div>
 
@@ -47,19 +47,19 @@
           <div v-if="item.when" class="text-[1.875rem] text-[#e7e0d6] first-letter:uppercase">{{ item.when }}</div>
           <div v-if="item.people.length || note" class="flex gap-3.5 flex-wrap items-center">
             <span v-for="name in item.people.slice(0, 8)" :key="name" class="px-5.5 py-2.5 rounded-full bg-white/15 text-[1.625rem] font-semibold">{{ name }}</span>
-            <span v-if="item.people.length > 8" class="text-[1.625rem] text-[#c9bfb1]">et {{ item.people.length - 8 }} autres</span>
+            <span v-if="item.people.length > 8" class="text-[1.625rem] text-[#c9bfb1]">{{ $tc('et :count autre|et :count autres', item.people.length - 8) }}</span>
             <span v-if="note" class="flex items-center gap-3 px-6.5 py-3.5 rounded-full text-[1.625rem] font-extrabold" :class="listening ? 'bg-[#f7f2ea] text-[#14110d]' : 'bg-[#f59e0b] text-[#14110d]'">
               <svg class="w-6.5 h-6.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0014 0M12 18v3" /></svg>
-              {{ listening ? 'Écoute en cours… ▼ pour arrêter' : `▼ Écouter le souvenir de ${note.by}${note.seconds ? ' · ' + duration(note.seconds) : ''}` }}
+              {{ listening ? $t('Écoute en cours… ▼ pour arrêter') : $t('▼ Écouter le souvenir de :name', { name: note.by }) + (note.seconds ? ' · ' + duration(note.seconds) : '') }}
             </span>
           </div>
           <div class="h-2 rounded-full bg-white/20 overflow-hidden mt-2">
             <div class="h-full bg-[#f7f2ea] transition-all duration-500" :style="{ width: ((pos + 1) / order.length) * 100 + '%' }"></div>
           </div>
           <div class="flex gap-10 text-[1.375rem] text-[#c9bfb1]">
-            <span>◀ ▶ Précédente / suivante</span>
-            <span>OK {{ playing ? 'Pause' : 'Lecture' }}</span>
-            <span>↩ Fermer</span>
+            <span>◀ ▶ {{ $t('Précédente / suivante') }}</span>
+            <span>OK {{ playing ? $t('Pause') : $t('Lecture') }}</span>
+            <span>↩ {{ $t('Fermer') }}</span>
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import { computed } from 'vue';
 import { usePage } from '@inertiajs/vue3';
+import { t } from '@/i18n';
 
 /**
  * Cercle courant et mode (famille / amis), partagés par HandleInertiaRequests.
@@ -22,8 +23,8 @@ export function useCircle() {
     canSeeFamily: computed(() => circle.value?.family ?? true),
     canManage: computed(() => !!circle.value?.can_manage),
     canCreate: computed(() => !!circle.value?.can_create),
-    peopleLabel: computed(() => (isFriends.value ? 'Amis' : 'Personnes')),
+    peopleLabel: computed(() => (isFriends.value ? t('Amis') : t('Personnes'))),
   };
 }
 
-export const KIND_LABELS = { family: 'Famille', friends: 'Amis' };
+export const KIND_LABELS = { family: t('Famille'), friends: t('Amis') };

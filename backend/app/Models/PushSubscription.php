@@ -29,7 +29,7 @@ class PushSubscription extends BasePushSubscription
     {
         $ua = (string) $this->user_agent;
         if ($ua === '') {
-            return 'Appareil inconnu';
+            return __('Appareil inconnu');
         }
 
         $device = match (true) {
@@ -39,7 +39,7 @@ class PushSubscription extends BasePushSubscription
             str_contains($ua, 'Windows') => 'Windows',
             str_contains($ua, 'Macintosh') => 'Mac',
             str_contains($ua, 'Linux') => 'Linux',
-            default => 'Appareil',
+            default => __('Appareil'),
         };
 
         // Ordre important : Edge et Chrome iOS se présentent aussi comme Chrome/Safari.

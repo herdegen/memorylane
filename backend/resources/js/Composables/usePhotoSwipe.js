@@ -3,6 +3,7 @@ import { router } from '@inertiajs/vue3';
 import PhotoSwipeLightbox from 'photoswipe/lightbox';
 import 'photoswipe/style.css';
 import { conversionUrl, findConversion, webVideoUrl } from '@/utils/media';
+import { t } from '@/i18n';
 
 /**
  * Visionneuse PhotoSwipe partagée (galerie, album, album partagé, fiche
@@ -139,8 +140,8 @@ export function usePhotoSwipe(getMedia, options = {}) {
       name: 'info',
       order: 8,
       isButton: true,
-      title: 'Ouvrir la fiche',
-      ariaLabel: 'Ouvrir la fiche du média',
+      title: t('Ouvrir la fiche'),
+      ariaLabel: t('Ouvrir la fiche du média'),
       html: {
         isCustomSVG: true,
         inner:
@@ -204,7 +205,7 @@ export function usePhotoSwipe(getMedia, options = {}) {
           const details = document.createElement('button');
           details.type = 'button';
           details.className = 'pswp__mobile-bar-details';
-          details.textContent = 'Détails';
+          details.textContent = t('Détails');
           details.addEventListener('click', () => openDetail(mediaId));
 
           el.append(text, details);
@@ -239,7 +240,7 @@ export function usePhotoSwipe(getMedia, options = {}) {
             const chip = document.createElement('button');
             chip.type = 'button';
             chip.className = 'pswp__mobile-bar-chip pswp__mobile-bar-chip--unknown';
-            chip.textContent = `${unknown} à identifier`;
+            chip.textContent = t(':count à identifier', { count: unknown });
             chip.addEventListener('click', () => openDetail(mediaId));
             chips.appendChild(chip);
           }
@@ -314,6 +315,12 @@ export function usePhotoSwipe(getMedia, options = {}) {
       clickToCloseNonZoomable: false,
       showHideAnimationType: 'zoom',
       appendToEl: document.body,
+      // Libellés des boutons intégrés (PhotoSwipe les met en anglais par défaut).
+      closeTitle: t('Fermer'),
+      zoomTitle: t('Zoom'),
+      arrowPrevTitle: t('Précédent'),
+      arrowNextTitle: t('Suivant'),
+      errorMsg: t('L’image n’a pas pu être chargée.'),
     });
 
     registerVideoHandlers(lightbox);

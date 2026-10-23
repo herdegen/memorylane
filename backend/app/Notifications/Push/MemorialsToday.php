@@ -33,7 +33,7 @@ class MemorialsToday extends PushNotification
         $url = count($this->memorials) === 1 ? "/people/{$this->memorials[0]['id']}" : '/dashboard';
 
         return $this->message(
-            'En mémoire',
+            __('En mémoire'),
             $this->sentence(),
             $url,
             "memorials-{$this->date}",
@@ -45,25 +45,23 @@ class MemorialsToday extends PushNotification
     public function sentence(): string
     {
         $shown = array_slice($this->memorials, 0, self::MAX_NAMES);
-        $parts = array_map(function (array $m) {
-            $years = $m['years'] === 1 ? '1 an' : "{$m['years']} ans";
-
-            return "{$m['name']} ({$years})";
-        }, $shown);
+        $parts = array_map(
+            fn (array $m) => trans_choice(':name (:count an)|:name (:count ans)', $m['years'], ['name' => $m['name']]),
+            $shown,
+        );
 
         if (count($shown) === 1) {
             $m = $shown[0];
-            $years = $m['years'] === 1 ? 'un an' : "{$m['years']} ans";
 
-            return "Il y a {$years} aujourd'hui, {$m['name']} nous quittait.";
+            return trans_choice('Il y a un an aujourd\'hui, :name nous quittait.|Il y a :count ans aujourd\'hui, :name nous quittait.', $m['years'], ['name' => $m['name']]);
         }
 
         $rest = count($this->memorials) - count($shown);
         if ($rest > 0) {
-            $parts[] = $rest === 1 ? '1 autre proche' : "{$rest} autres proches";
+            $parts[] = trans_choice(':count autre proche|:count autres proches', $rest);
         }
         $last = array_pop($parts);
 
-        return "Une pensée aujourd'hui pour " . implode(', ', $parts) . " et {$last}.";
+        return __('Une pensée aujourd\'hui pour :list et :last.', ['list' => implode(', ', $parts), 'last' => $last]);
     }
 }

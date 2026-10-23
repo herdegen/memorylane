@@ -52,7 +52,7 @@
           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
         ></path>
       </svg>
-      <span class="ml-3 text-surface-600">Chargement des médias...</span>
+      <span class="ml-3 text-surface-600">{{ $t('Chargement des médias...') }}</span>
     </div>
 
     <!-- Empty State -->
@@ -73,7 +73,7 @@
           d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
         />
       </svg>
-      <h3 class="mt-2 text-sm font-medium text-surface-900">Aucun média</h3>
+      <h3 class="mt-2 text-sm font-medium text-surface-900">{{ $t('Aucun média') }}</h3>
       <p class="mt-1 text-sm text-surface-500">
         {{ emptyStateMessage }}
       </p>
@@ -123,7 +123,7 @@
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
-        Chargement…
+        {{ $t('Chargement…') }}
       </div>
       <!-- Repli : accessible et utile si l'IntersectionObserver ne déclenche pas -->
       <button
@@ -131,7 +131,7 @@
         @click="$emit('load-more')"
         class="px-6 py-2 bg-white border border-surface-300 rounded-lg text-sm font-medium text-surface-700 hover:bg-surface-50 transition-colors duration-150"
       >
-        Charger plus
+        {{ $t('Charger plus') }}
       </button>
     </div>
 
@@ -140,7 +140,7 @@
       v-else-if="!loading && media && media.length > 0"
       class="mt-8 text-center text-sm text-surface-400"
     >
-      Fin de la galerie
+      {{ $t('Fin de la galerie') }}
     </div>
   </div>
 </template>
@@ -149,6 +149,7 @@
 import { ref, computed, watch } from 'vue';
 import { useIntersectionObserver } from '@vueuse/core';
 import MediaCard from '@/Components/MediaCard.vue';
+import { t, intlLocale } from '@/i18n';
 
 const props = defineProps({
   media: {
@@ -170,10 +171,10 @@ const props = defineProps({
   filterTabs: {
     type: Array,
     default: () => [
-      { value: 'all', label: 'Tous', count: undefined },
-      { value: 'photo', label: 'Photos', count: undefined },
-      { value: 'video', label: 'Vidéos', count: undefined },
-      { value: 'document', label: 'Documents', count: undefined },
+      { value: 'all', label: t('Tous'), count: undefined },
+      { value: 'photo', label: t('Photos'), count: undefined },
+      { value: 'video', label: t('Vidéos'), count: undefined },
+      { value: 'document', label: t('Documents'), count: undefined },
     ],
   },
   selectable: {
@@ -196,7 +197,7 @@ const props = defineProps({
   },
   emptyStateMessage: {
     type: String,
-    default: 'Commencez par ajouter vos premières photos.',
+    default: () => t('Commencez par ajouter vos premières photos.'),
   },
   // Sections : par année de prise de vue ('taken') ou par mois d'ajout
   // ('added', tri « Dernières ajoutées »).
@@ -222,10 +223,10 @@ const emit = defineEmits([
 const sectionOf = (item) => {
   const raw = props.groupBy === 'added' ? item.uploaded_at || item.created_at : item.taken_at;
   const date = raw ? new Date(raw) : null;
-  if (!date || Number.isNaN(date.getTime())) return { key: 'none', label: 'Sans date' };
+  if (!date || Number.isNaN(date.getTime())) return { key: 'none', label: t('Sans date') };
   if (props.groupBy === 'added') {
-    const label = date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-    return { key: `${date.getFullYear()}-${date.getMonth()}`, label: `Ajoutées en ${label}` };
+    const label = date.toLocaleDateString(intlLocale(), { month: 'long', year: 'numeric' });
+    return { key: `${date.getFullYear()}-${date.getMonth()}`, label: t('Ajoutées en :month', { month: label }) };
   }
   return { key: String(date.getFullYear()), label: String(date.getFullYear()) };
 };

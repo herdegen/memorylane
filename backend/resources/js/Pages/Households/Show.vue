@@ -7,7 +7,7 @@
           <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
           </svg>
-          Retour aux cercles
+          {{ $t('Retour aux cercles') }}
         </Link>
 
         <div class="bg-white rounded-lg shadow-md p-6 mb-6 flex items-start justify-between gap-4">
@@ -22,7 +22,7 @@
                 {{ KIND_LABELS[household.kind] }}
               </span>
             </div>
-            <p class="mt-1 text-sm text-surface-500">{{ members.length }} membre{{ members.length > 1 ? 's' : '' }}</p>
+            <p class="mt-1 text-sm text-surface-500">{{ $tc(':count membre|:count membres', members.length) }}</p>
           </div>
           <div class="flex items-center gap-1">
             <button
@@ -30,14 +30,14 @@
               @click="leaveHousehold"
               class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-surface-700 hover:text-surface-900"
             >
-              Quitter le cercle
+              {{ $t('Quitter le cercle') }}
             </button>
             <button
               v-if="household.can_manage"
               @click="destroyHousehold"
               class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
             >
-              Supprimer le cercle
+              {{ $t('Supprimer le cercle') }}
             </button>
           </div>
         </div>
@@ -45,12 +45,12 @@
         <!-- Réglage : qui peut faire entrer quelqu'un (administrateur) -->
         <div v-if="household.can_manage" class="bg-white rounded-lg shadow-xs p-4 mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div class="text-sm font-medium text-surface-800">Qui peut inviter dans ce cercle ?</div>
-            <div class="text-xs text-surface-500">Invitations par mail et ajout de comptes existants. Retirer un membre reste réservé au responsable du cercle.</div>
+            <div class="text-sm font-medium text-surface-800">{{ $t('Qui peut inviter dans ce cercle ?') }}</div>
+            <div class="text-xs text-surface-500">{{ $t('Invitations par mail et ajout de comptes existants. Retirer un membre reste réservé au responsable du cercle.') }}</div>
           </div>
-          <div class="inline-flex rounded-full border border-surface-200 p-0.5 text-sm font-semibold" role="radiogroup" aria-label="Qui peut inviter">
+          <div class="inline-flex rounded-full border border-surface-200 p-0.5 text-sm font-semibold" role="radiogroup" :aria-label="$t('Qui peut inviter')">
             <button
-              v-for="opt in [{ value: 'everyone', label: 'Tous les membres' }, { value: 'admin', label: 'Responsable seulement' }]"
+              v-for="opt in [{ value: 'everyone', label: $t('Tous les membres') }, { value: 'admin', label: $t('Responsable seulement') }]"
               :key="opt.value"
               type="button"
               role="radio"
@@ -64,12 +64,12 @@
 
         <!-- Ajouter un membre (admin, ou tout membre si le cercle est ouvert) -->
         <div v-if="household.can_invite" class="bg-white rounded-lg shadow-xs p-4 mb-6">
-          <label class="block text-sm font-medium text-surface-700 mb-2">Ajouter un compte au cercle</label>
+          <label class="block text-sm font-medium text-surface-700 mb-2">{{ $t('Ajouter un compte au cercle') }}</label>
           <div class="relative">
             <input
               v-model="search"
               type="text"
-              placeholder="Rechercher par nom ou e-mail…"
+              :placeholder="$t('Rechercher par nom ou e-mail…')"
               class="block w-full px-3 py-2 border border-surface-300 rounded-md focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
               @input="onSearch"
             />
@@ -87,7 +87,7 @@
                   <span class="font-medium text-surface-800">{{ c.name }}</span>
                   <span class="text-sm text-surface-500 ml-2">{{ c.email }}</span>
                 </span>
-                <span class="text-brand-600 text-sm font-medium">Ajouter</span>
+                <span class="text-brand-600 text-sm font-medium">{{ $t('Ajouter') }}</span>
               </li>
             </ul>
           </div>
@@ -107,7 +107,7 @@
                 v-if="m.is_creator"
                 class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-700"
               >
-                Créateur
+                {{ $t('Créateur') }}
               </span>
             </div>
             <button
@@ -115,7 +115,7 @@
               @click="removeMember(m)"
               class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
             >
-              Retirer
+              {{ $t('Retirer') }}
             </button>
           </div>
         </div>
@@ -123,17 +123,17 @@
         <!-- Fiches du cercle d'amis -->
         <div v-if="household.kind === 'friends'" class="mt-8">
           <h2 class="text-lg font-semibold text-surface-900 mb-1">
-            Fiches du cercle
+            {{ $t('Fiches du cercle') }}
             <span v-if="people.length" class="ml-1 text-sm font-normal text-surface-500">({{ people.length }})</span>
           </h2>
-          <p class="text-sm text-surface-500 mb-4">Visibles des seuls membres du cercle. Une fiche créée depuis ce cercle y est rattachée automatiquement.</p>
+          <p class="text-sm text-surface-500 mb-4">{{ $t('Visibles des seuls membres du cercle. Une fiche créée depuis ce cercle y est rattachée automatiquement.') }}</p>
 
           <div v-if="household.can_manage" class="relative mb-4 max-w-md">
             <input
               v-model="personSearch"
               type="text"
-              placeholder="Ajouter une fiche existante…"
-              aria-label="Ajouter une fiche existante"
+              :placeholder="$t('Ajouter une fiche existante…')"
+              :aria-label="$t('Ajouter une fiche existante')"
               class="form-input"
               @input="onPersonSearch"
             />
@@ -141,7 +141,7 @@
               <li v-for="p in personCandidates" :key="p.id">
                 <button type="button" class="w-full px-3 py-2 hover:bg-surface-50 flex items-center justify-between text-left" @click="addPerson(p)">
                   <span class="font-medium text-surface-800">{{ p.name }}</span>
-                  <span class="text-brand-600 text-sm font-medium">Ajouter</span>
+                  <span class="text-brand-600 text-sm font-medium">{{ $t('Ajouter') }}</span>
                 </button>
               </li>
             </ul>
@@ -158,18 +158,18 @@
                 v-if="household.can_manage"
                 type="button"
                 class="w-6 h-6 rounded-full text-surface-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10"
-                :aria-label="`Retirer ${p.name} du cercle`"
+                :aria-label="$t('Retirer :name du cercle', { name: p.name })"
                 @click="removePerson(p)"
               >×</button>
             </span>
           </div>
-          <p v-else class="text-sm text-surface-500">Aucune fiche pour l'instant.</p>
+          <p v-else class="text-sm text-surface-500">{{ $t("Aucune fiche pour l'instant.") }}</p>
         </div>
 
         <!-- Galerie du cercle -->
         <div class="mt-8">
           <h2 class="text-lg font-semibold text-surface-900 mb-4">
-            Photos du cercle
+            {{ $t('Photos du cercle') }}
             <span v-if="media.length > 0" class="ml-1 text-sm font-normal text-surface-500">({{ media.length }})</span>
           </h2>
 
@@ -187,10 +187,11 @@
             <svg class="mx-auto h-12 w-12 text-surface-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <h3 class="mt-3 text-sm font-medium text-surface-900">Aucune photo partagée</h3>
+            <h3 class="mt-3 text-sm font-medium text-surface-900">{{ $t('Aucune photo partagée') }}</h3>
             <p class="mt-1 text-sm text-surface-500">
-              Depuis <Link href="/media" class="text-brand-600 dark:text-brand-400 font-medium hover:underline">Mes photos</Link>,
-              sélectionnez des médias puis « Cercle » pour les partager ici.
+              <Trans text="Depuis :link, sélectionnez des médias puis « Cercle » pour les partager ici.">
+                <template #link><Link href="/media" class="text-brand-600 dark:text-brand-400 font-medium hover:underline">{{ $t('Mes photos') }}</Link></template>
+              </Trans>
             </p>
           </div>
         </div>
@@ -213,6 +214,8 @@ import MediaCard from '@/Components/MediaCard.vue';
 import { useToast } from '@/Composables/useToast';
 import { useConfirm } from '@/Composables/useConfirm';
 import { usePhotoSwipe } from '@/Composables/usePhotoSwipe';
+import Trans from '@/Components/Trans.vue';
+import { t } from '@/i18n';
 
 const toast = useToast();
 const { confirm } = useConfirm();
@@ -267,7 +270,7 @@ const invite = async (candidate) => {
     candidates.value = [];
     router.reload();
   } catch (error) {
-    toast.error(error.response?.data?.message || "Erreur lors de l'invitation.");
+    toast.error(error.response?.data?.message || t("Erreur lors de l'invitation."));
   }
 };
 
@@ -275,7 +278,7 @@ const invite = async (candidate) => {
 const removing = ref(null);
 const removeMember = (member) => { removing.value = member; };
 const onRemoved = () => {
-  toast.success(`${removing.value.name} a été retiré·e du cercle.`);
+  toast.success(t(':name a été retiré·e du cercle.', { name: removing.value.name }));
   removing.value = null;
   router.reload();
 };
@@ -291,7 +294,7 @@ const setInvitePolicy = async (value) => {
     await axios.patch(`/households/${props.household.id}`, { invite_policy: value });
   } catch (error) {
     invitePolicy.value = previous;
-    toast.error(error.response?.data?.message || 'Impossible de modifier le réglage.');
+    toast.error(error.response?.data?.message || t('Impossible de modifier le réglage.'));
   }
 };
 
@@ -325,15 +328,15 @@ const addPerson = async (p) => {
     personCandidates.value = [];
     router.reload({ only: ['people'] });
   } catch (error) {
-    toast.error(error.response?.data?.message || "Erreur lors de l'ajout.");
+    toast.error(error.response?.data?.message || t("Erreur lors de l'ajout."));
   }
 };
 
 const removePerson = async (p) => {
   const ok = await confirm({
-    title: 'Retirer cette fiche',
-    message: `Retirer la fiche ${p.name} du cercle ? Ses membres ne la verront plus.`,
-    confirmLabel: 'Retirer',
+    title: t('Retirer cette fiche'),
+    message: t('Retirer la fiche :name du cercle ? Ses membres ne la verront plus.', { name: p.name }),
+    confirmLabel: t('Retirer'),
     danger: true,
   });
   if (!ok) return;
@@ -341,7 +344,7 @@ const removePerson = async (p) => {
     await axios.delete(`/households/${props.household.id}/people/${p.id}`);
     router.reload({ only: ['people'] });
   } catch (error) {
-    toast.error(error.response?.data?.message || 'Erreur lors du retrait.');
+    toast.error(error.response?.data?.message || t('Erreur lors du retrait.'));
   }
 };
 
@@ -350,15 +353,15 @@ const showLeave = ref(false);
 const leaveHousehold = () => { showLeave.value = true; };
 const onLeft = () => {
   showLeave.value = false;
-  toast.success('Vous avez quitté le cercle.');
+  toast.success(t('Vous avez quitté le cercle.'));
   router.visit('/households');
 };
 
 const destroyHousehold = async () => {
   const ok = await confirm({
-    title: 'Supprimer ce cercle',
-    message: 'Supprimer ce cercle ? Cette action est irréversible.',
-    confirmLabel: 'Supprimer',
+    title: t('Supprimer ce cercle'),
+    message: t('Supprimer ce cercle ? Cette action est irréversible.'),
+    confirmLabel: t('Supprimer'),
     danger: true,
   });
   if (!ok) return;
@@ -366,7 +369,7 @@ const destroyHousehold = async () => {
     await axios.delete(`/households/${props.household.id}`);
     router.visit('/households');
   } catch (error) {
-    toast.error(error.response?.data?.message || 'Erreur lors de la suppression du cercle.');
+    toast.error(error.response?.data?.message || t('Erreur lors de la suppression du cercle.'));
   }
 };
 </script>

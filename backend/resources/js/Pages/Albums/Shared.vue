@@ -13,7 +13,7 @@
               href="/login"
               class="inline-flex items-center px-4 py-2 text-sm font-medium text-brand-600 hover:text-brand-800"
             >
-              Connexion
+              {{ $t('Connexion') }}
             </a>
           </div>
         </div>
@@ -27,8 +27,8 @@
           <h1 class="font-display text-2xl font-semibold text-surface-900">{{ album.name }}</h1>
           <p v-if="album.description" class="mt-2 text-surface-600">{{ album.description }}</p>
           <div class="mt-3 flex items-center gap-4 text-sm text-surface-500">
-            <span>{{ album.media_count || 0 }} médias</span>
-            <span v-if="album.user">Partagé par {{ album.user.name }}</span>
+            <span>{{ $tc(':count média|:count médias', album.media_count || 0) }}</span>
+            <span v-if="album.user">{{ $t('Partagé par :name', { name: album.user.name }) }}</span>
           </div>
         </div>
 
@@ -120,7 +120,7 @@
               d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
             />
           </svg>
-          <h3 class="mt-4 text-lg font-medium text-surface-900">Cet album est vide</h3>
+          <h3 class="mt-4 text-lg font-medium text-surface-900">{{ $t('Cet album est vide') }}</h3>
         </div>
       </div>
     </main>
