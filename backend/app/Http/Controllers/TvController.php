@@ -311,7 +311,8 @@ class TvController extends Controller
             ->get()
             ->filter(fn (Person $p) => $p->tv_photos > 0);
 
-        $distance = $user->person_id ? $this->genealogy->proximity($user->person_id)['distance'] : [];
+        // Proximité ressentie (tante, neveux, cousins avant les arrière-grands-parents).
+        $distance = $this->genealogy->closeness($user->person_id);
         $paths = $user->person_id ? $this->genealogy->pathsFrom($user->person_id, 4) : [];
 
         $card = function (Person $p) use ($paths, $user) {
@@ -326,14 +327,14 @@ class TvController extends Controller
             ];
         };
         $sorted = $people->sortBy([
-            fn ($a, $b) => ($distance[$a->id] ?? PHP_INT_MAX) <=> ($distance[$b->id] ?? PHP_INT_MAX),
+            fn ($a, $b) => ($distance[$a->id] ?? PHP_FLOAT_MAX) <=> ($distance[$b->id] ?? PHP_FLOAT_MAX),
             fn ($a, $b) => $b->tv_photos <=> $a->tv_photos,
             fn ($a, $b) => strcmp($a->name, $b->name),
         ]);
 
         $rows = collect([
-            ['key' => 'close', 'title' => __('Les plus proches'), 'people' => $sorted->filter(fn ($p) => ($distance[$p->id] ?? 99) <= 2)],
-            ['key' => 'family', 'title' => __('La famille'), 'people' => $sorted->filter(fn ($p) => isset($distance[$p->id]) && $distance[$p->id] > 2)],
+            ['key' => 'close', 'title' => __('Les plus proches'), 'people' => $sorted->filter(fn ($p) => ($distance[$p->id] ?? 99) <= 2.2)],
+            ['key' => 'family', 'title' => __('La famille'), 'people' => $sorted->filter(fn ($p) => isset($distance[$p->id]) && $distance[$p->id] > 2.2)],
             ['key' => 'others', 'title' => $distance ? __('Et aussi') : __('Proches'), 'people' => $sorted->filter(fn ($p) => ! isset($distance[$p->id]))
                 ->sortByDesc('tv_photos')],
         ])->filter(fn ($r) => $r['people']->isNotEmpty())

@@ -43,6 +43,126 @@ class GenealogyService
     }
 
     /**
+     * Proximité ressentie depuis « moi » (plus petit = plus proche), pour
+     * ranger la liste des personnes. Contrairement au nombre de liens,
+     * remonter vers les ancêtres coûte vite cher au-delà des grands-parents,
+     * alors que les branches latérales restent proches : ma tante, mes
+     * neveux, mes cousins passent devant mes arrière-grands-parents, et les
+     * petits-enfants des cousins de mes grands-parents les égalent à peine.
+     *
+     * Parenté par le sang via l'ancêtre commun le plus proche (u générations
+     * en remontant, d en redescendant) ; conjoints et belle-famille ensuite ;
+     * le reste du graphe après toute la famille.
+     *
+     * @return array<string, float> id → score
+     */
+    public function closeness(?string $selfPersonId): array
+    {
+        if (! $selfPersonId) {
+            return [];
+        }
+
+        $parents = [];
+        $children = [];
+        foreach (DB::table('people')->whereNull('deleted_at')->get(['id', 'father_id', 'mother_id']) as $p) {
+            foreach ([$p->father_id, $p->mother_id] as $parentId) {
+                if ($parentId) {
+                    $parents[$p->id][] = $parentId;
+                    $children[$parentId][] = $p->id;
+                }
+            }
+        }
+        $spouses = [];
+        foreach (DB::table('person_relationships')->get(['person1_id', 'person2_id']) as $rel) {
+            $spouses[$rel->person1_id][] = $rel->person2_id;
+            $spouses[$rel->person2_id][] = $rel->person1_id;
+        }
+
+        $score = [];
+        $keep = function (string $id, float $value) use (&$score) {
+            if (! isset($score[$id]) || $value < $score[$id]) {
+                $score[$id] = $value;
+            }
+        };
+
+        // Parenté par le sang depuis une personne, décalée de $offset.
+        $blood = function (string $from, float $offset) use ($parents, $children, $keep) {
+            $ancestors = [$from => 0];
+            $queue = [$from];
+            while ($queue) {
+                $id = array_shift($queue);
+                foreach ($parents[$id] ?? [] as $parent) {
+                    if (! isset($ancestors[$parent]) && $ancestors[$id] < 12) {
+                        $ancestors[$parent] = $ancestors[$id] + 1;
+                        $queue[] = $parent;
+                    }
+                }
+            }
+            foreach ($ancestors as $ancestor => $up) {
+                $keep($ancestor, $offset + self::kinshipCost($up, 0));
+                $depth = [$ancestor => 0];
+                $queue = [$ancestor];
+                while ($queue) {
+                    $id = array_shift($queue);
+                    foreach ($children[$id] ?? [] as $child) {
+                        if (! isset($depth[$child])) {
+                            $depth[$child] = $depth[$id] + 1;
+                            // Un ancêtre direct reste noté comme ancêtre (pas
+                            // comme « latéral » vu depuis un aïeul plus haut).
+                            if (! isset($ancestors[$child])) {
+                                $keep($child, $offset + self::kinshipCost($up, $depth[$child]));
+                            }
+                            $queue[] = $child;
+                        }
+                    }
+                }
+            }
+        };
+
+        $blood($selfPersonId, 0.0);
+        // Mon conjoint et sa famille (ma belle-famille).
+        foreach ($spouses[$selfPersonId] ?? [] as $spouse) {
+            $blood($spouse, 0.5);
+        }
+        // Conjoints de mes proches (gendre, belle-sœur, oncle par alliance…).
+        foreach ($score as $id => $value) {
+            foreach ($spouses[$id] ?? [] as $spouse) {
+                $keep($spouse, $value + 0.8);
+            }
+        }
+        $score[$selfPersonId] = 0.0;
+
+        // Le reste du graphe (familles alliées plus lointaines) : après toute
+        // la famille, dans l'ordre du nombre de liens.
+        foreach ($this->proximity($selfPersonId)['distance'] as $id => $links) {
+            if (! isset($score[$id])) {
+                $score[$id] = 20.0 + $links;
+            }
+        }
+
+        return $score;
+    }
+
+    /**
+     * Coût d'une parenté par le sang : u générations jusqu'à l'ancêtre commun,
+     * d pour redescendre. Ancêtres directs (d = 0) : parents et grands-parents
+     * proches, puis forte pente au-delà.
+     */
+    public static function kinshipCost(int $up, int $down): float
+    {
+        if ($down === 0) {
+            return match (true) {
+                $up === 0 => 0.0,
+                $up === 1 => 1.0,
+                $up === 2 => 2.2,
+                default => 6.5 + 2.0 * ($up - 3),
+            };
+        }
+
+        return $up * 1.0 + $down * 0.6;
+    }
+
+    /**
      * « Sa famille » vue depuis une personne : ses parents par le sang (tous
      * les descendants de tous ses ancêtres — frères et sœurs, cousins,
      * cousins de sa mère, de sa grand-mère…) et leurs conjoints ; plus, pour

@@ -110,7 +110,7 @@ class SearchController extends Controller
             return collect();
         }
 
-        $distance = $this->genealogy->proximity(auth()->user()->person_id)['distance'];
+        $distance = $this->genealogy->closeness(auth()->user()->person_id);
         $normalizedQuery = $this->normalize($query);
 
         return $people
@@ -121,8 +121,8 @@ class SearchController extends Controller
                     return $ta <=> $tb;
                 }
 
-                $pa = $distance[$a->id] ?? PHP_INT_MAX;
-                $pb = $distance[$b->id] ?? PHP_INT_MAX;
+                $pa = $distance[$a->id] ?? PHP_FLOAT_MAX;
+                $pb = $distance[$b->id] ?? PHP_FLOAT_MAX;
                 if ($pa !== $pb) {
                     return $pa <=> $pb;
                 }

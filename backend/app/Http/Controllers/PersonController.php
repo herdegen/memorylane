@@ -52,10 +52,12 @@ class PersonController extends Controller
             ->orderBy('name')
             ->get();
 
-        // Proximité généalogique : distance (BFS) depuis la fiche « moi » de
-        // l'utilisateur, sur le graphe parents/enfants/conjoints. Sert au tri.
+        // Proximité depuis la fiche « moi » : ressentie (tante, neveux et
+        // cousins avant les arrière-grands-parents), pour le tri ; le nombre
+        // de liens sert au compte des proches.
         $selfPersonId = auth()->user()->person_id;
         $proximity = $this->genealogy->proximity($selfPersonId);
+        $closeness = $this->genealogy->closeness($selfPersonId);
         // Libellé de parenté (« votre fils », « votre tante ») pour les proches
         // à 4 liens au plus — liste téléphone. Jamais entre amis.
         $paths = ($selfPersonId && $request->user()->mode() !== 'friends' && ! $request->wantsJson())
@@ -70,7 +72,7 @@ class PersonController extends Controller
                 'birth_date', 'death_date', 'media_count', 'matched_faces_count',
             ]),
             'avatar_url' => $this->resolveAvatarUrl($person),
-            'proximity' => $proximity['distance'][$person->id] ?? null,
+            'proximity' => isset($closeness[$person->id]) ? round($closeness[$person->id], 2) : null,
             'relatives_count' => $proximity['degree'][$person->id] ?? 0,
             'is_self' => $person->id === $selfPersonId,
             'relation_label' => isset($paths[$person->id])
