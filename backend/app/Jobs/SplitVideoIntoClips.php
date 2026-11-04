@@ -134,6 +134,7 @@ class SplitVideoIntoClips implements ShouldQueue
                         'uploaded_at'     => now(),
                         // Hérite de la date de la source (défaut éditable ensuite).
                         'taken_at'        => $this->media->taken_at,
+                        'taken_at_album_id' => $this->media->taken_at_album_id,
                     ]);
 
                     // Hérite de la géolocalisation de la source si elle existe.
@@ -207,6 +208,7 @@ class SplitVideoIntoClips implements ShouldQueue
                 collect($clips)->mapWithKeys(fn (Media $c) => [$c->id => ['order' => $album->pivot->order]])->all()
             );
             $album->media()->detach($this->media->id);
+            app(\App\Services\AlbumDating::class)->syncMedia([...collect($clips)->pluck('id'), $this->media->id]);
 
             $changes = [];
             if ($album->cover_media_id === $this->media->id) {

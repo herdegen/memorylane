@@ -83,6 +83,7 @@ trait ImportsDownloadedMedia
             if ($album) {
                 $nextOrder = ($album->media()->max('album_media.order') ?? 0) + 1;
                 $album->media()->syncWithoutDetaching([$media->id => ['order' => $nextOrder]]);
+                app(\App\Services\AlbumDating::class)->syncMedia([$media->id]);
 
                 // Première photo de l'album → devient la couverture par défaut.
                 if (! $album->cover_media_id) {

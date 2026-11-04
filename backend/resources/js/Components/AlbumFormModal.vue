@@ -26,6 +26,22 @@
         </p>
       </div>
 
+      <div>
+        <label for="album-date" class="block text-sm font-medium text-surface-700 mb-2">
+          {{ $t('Date') }} <span class="font-normal text-surface-400">{{ $t('(facultatif)') }}</span>
+        </label>
+        <input
+          id="album-date"
+          v-model="form.date"
+          type="date"
+          class="form-input sm:!w-56"
+        />
+        <p class="mt-1 text-xs text-surface-500">
+          {{ $t('Les photos et vidéos de l\'album sans date la prennent, même celles ajoutées plus tard. Une date de l\'appareil photo ou saisie à la main est gardée.') }}
+        </p>
+        <p v-if="form.errors.date" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.errors.date }}</p>
+      </div>
+
       <p class="text-xs text-surface-500">
         {{ $t('L\'album est privé à sa création ; partagez-le ensuite avec un cercle ou des personnes depuis sa page.') }}
       </p>
@@ -138,6 +154,7 @@ const tags = ref([]);
 const form = useForm({
   name: props.album?.name || '',
   description: props.album?.description || '',
+  date: props.album?.date ? String(props.album.date).slice(0, 10) : '',
   cover_media_id: props.album?.cover_media_id || null,
   is_smart: props.album?.is_smart || false,
   smart_rules: {
@@ -175,6 +192,7 @@ onMounted(() => {
 const submit = () => {
   // Année vide → null (l'input number renvoie '' quand on efface)
   if (!form.smart_rules.year) form.smart_rules.year = null;
+  if (!form.date) form.date = null;
 
   const options = {
     onSuccess: () => {

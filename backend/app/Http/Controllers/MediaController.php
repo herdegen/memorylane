@@ -339,7 +339,7 @@ class MediaController extends Controller
 
         $updated = Media::whereIn('id', $validated['media_ids'])
             ->where('user_id', $request->user()->id)
-            ->update(['taken_at' => $validated['taken_at']]);
+            ->update(['taken_at' => $validated['taken_at'], 'taken_at_album_id' => null]);
 
         return response()->json([
             'message' => trans_choice('Date appliquée à :count média|Date appliquée à :count médias', $updated),

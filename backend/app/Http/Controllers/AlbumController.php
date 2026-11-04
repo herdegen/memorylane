@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\AlbumDating;
 use App\Rules\VisiblePerson;
 use App\Jobs\GenerateHeroClip;
 use App\Models\Album;
@@ -41,6 +42,8 @@ class AlbumController extends Controller
         return [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
+            // Date de l'album : héritée par ses photos et vidéos sans date.
+            'date' => 'nullable|date',
             'cover_media_id' => 'nullable|uuid|exists:media,id',
             'is_smart' => 'boolean',
             'smart_rules' => 'nullable|required_if:is_smart,true|array',
@@ -226,14 +229,25 @@ class AlbumController extends Controller
         // Les règles ont pu changer : on recalcule le contenu
         $this->smartAlbumService->refresh($album->fresh());
 
+        // Date de l'album changée : ses photos sans date suivent.
+        $message = __('Album modifie avec succes');
+        if ($album->wasChanged('date')) {
+            $dated = app(AlbumDating::class)->applyAlbum($album->fresh());
+            if ($dated > 0) {
+                $message = $album->date
+                    ? trans_choice('Album mis à jour : :count photo sans date a pris la date de l’album.|Album mis à jour : :count photos sans date ont pris la date de l’album.', $dated)
+                    : trans_choice('Album mis à jour : :count photo n’a plus de date.|Album mis à jour : :count photos n’ont plus de date.', $dated);
+            }
+        }
+
         if ($request->wantsJson()) {
             return response()->json([
-                'message' => __('Album modifie avec succes'),
+                'message' => $message,
                 'album' => $album,
             ]);
         }
 
-        return redirect()->back()->with('success', __('Album modifie avec succes'));
+        return redirect()->back()->with('success', $message);
     }
 
     public function destroy(Request $request, Album $album)
@@ -241,6 +255,8 @@ class AlbumController extends Controller
         Gate::authorize('delete', $album);
 
         $album->delete();
+        // Ses photos ne gardent pas une date héritée d'un album supprimé.
+        app(AlbumDating::class)->applyAlbum($album);
 
         if ($request->wantsJson()) {
             return response()->json([
@@ -311,6 +327,7 @@ class AlbumController extends Controller
 
         if ($toAttach !== []) {
             $album->media()->attach($toAttach);
+            app(AlbumDating::class)->syncMedia(array_keys($toAttach));
         }
 
         if (!$album->cover_media_id && count($mediaIds) > 0) {
@@ -341,6 +358,7 @@ class AlbumController extends Controller
         }
 
         $album->media()->detach($ids);
+        app(AlbumDating::class)->syncMedia($ids);
 
         if (in_array($album->cover_media_id, $ids, true)) {
             $firstMedia = $album->media()->first();

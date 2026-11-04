@@ -33,6 +33,15 @@ class Media extends Model
         };
         static::deleted($portraits);
         static::restored($portraits);
+
+        // Date posée autrement que par un album (appareil photo, saisie à la
+        // main, quête, import) : c'est désormais la date propre du média, il
+        // ne suit plus la date d'un album (voir AlbumDating).
+        static::saving(function (Media $media) {
+            if ($media->isDirty('taken_at') && ! $media->isDirty('taken_at_album_id')) {
+                $media->taken_at_album_id = null;
+            }
+        });
     }
 
     /**
@@ -89,6 +98,7 @@ class Media extends Model
         'bitrate',
         'uploaded_at',
         'taken_at',
+        'taken_at_album_id',
     ];
 
     /**

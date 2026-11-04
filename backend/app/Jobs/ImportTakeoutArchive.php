@@ -189,6 +189,7 @@ class ImportTakeoutArchive implements ShouldQueue
                 $attach[$id] = ['order' => ++$order];
             }
             $album->media()->syncWithoutDetaching($attach);
+            app(\App\Services\AlbumDating::class)->syncMedia(array_keys($attach));
 
             if (! $album->cover_media_id) {
                 $album->update(['cover_media_id' => $mediaIds->first()]);

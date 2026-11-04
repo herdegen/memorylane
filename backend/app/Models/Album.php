@@ -26,6 +26,7 @@ class Album extends Model
         'name',
         'slug',
         'description',
+        'date',
         'cover_media_id',
         'is_public',
         'is_smart',
@@ -55,6 +56,7 @@ class Album extends Model
             'is_smart' => 'boolean',
             'smart_rules' => 'array',
             'share_with_tagged' => 'boolean',
+            'date' => 'date:Y-m-d',
         ];
     }
 

@@ -29,9 +29,10 @@ class SmartAlbumService
             ->pluck('id');
 
         // sync avec ordre chronologique — remplace tout le contenu
-        $album->media()->sync(
+        $changes = $album->media()->sync(
             $mediaIds->values()->mapWithKeys(fn ($id, $index) => [$id => ['order' => $index + 1]])->all()
         );
+        app(AlbumDating::class)->syncMedia([...$changes['attached'], ...$changes['detached']]);
 
         // Couverture automatique : le premier média si aucune définie
         if (! $album->cover_media_id && $mediaIds->isNotEmpty()) {
