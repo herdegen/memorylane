@@ -334,15 +334,24 @@ class MediaController extends Controller
         $validated = $request->validate([
             'media_ids' => 'required|array|min:1|max:500',
             'media_ids.*' => 'uuid',
-            'taken_at' => 'required|date',
+            // null : retirer la date (ex. date du scan d'une photo papier).
+            'taken_at' => 'present|nullable|date',
         ]);
 
-        $updated = Media::whereIn('id', $validated['media_ids'])
+        $ids = Media::whereIn('id', $validated['media_ids'])
             ->where('user_id', $request->user()->id)
+            ->pluck('id');
+        $updated = Media::whereIn('id', $ids)
             ->update(['taken_at' => $validated['taken_at'], 'taken_at_album_id' => null]);
+        // Sans date : celle de leur album daté, s'il y en a un.
+        if ($validated['taken_at'] === null) {
+            app(\App\Services\AlbumDating::class)->syncMedia($ids);
+        }
 
         return response()->json([
-            'message' => trans_choice('Date appliquée à :count média|Date appliquée à :count médias', $updated),
+            'message' => $validated['taken_at'] === null
+                ? trans_choice('Date retirée de :count média|Date retirée de :count médias', $updated)
+                : trans_choice('Date appliquée à :count média|Date appliquée à :count médias', $updated),
             'updated' => $updated,
             'skipped' => count($validated['media_ids']) - $updated,
         ]);

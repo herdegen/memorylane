@@ -14,6 +14,21 @@
         :max="today"
       />
 
+      <!-- Photo papier numérisée : la date est celle du scan, pas la vraie. -->
+      <div class="mt-5 border-t border-surface-200 pt-4">
+        <button
+          type="button"
+          class="text-sm font-medium text-brand-700 hover:text-brand-800 disabled:opacity-50"
+          :disabled="saving"
+          @click="$emit('apply', null)"
+        >
+          {{ $t('Retirer la date') }}
+        </button>
+        <p class="mt-1 text-xs text-surface-500">
+          {{ $t('Par exemple pour des photos papier datées du jour où on les a scannées : elles redeviennent « sans date » (et prennent la date de leur album s’il en a une).') }}
+        </p>
+      </div>
+
       <p v-if="errorMessage" class="mt-3 text-sm text-red-600 dark:text-red-400">{{ errorMessage }}</p>
     </div>
 

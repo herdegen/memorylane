@@ -62,8 +62,54 @@ class ExifExtractor
             'latitude' => $this->getLatitude($exifData),
             'longitude' => $this->getLongitude($exifData),
             'altitude' => $this->getAltitude($exifData),
-            'taken_at' => $this->getDateTaken($exifData),
+            // Photo papier numérisée : la date EXIF est celle du scan, pas de
+            // la prise de vue → traitée comme sans date (date d'album, quêtes).
+            'taken_at' => self::isScan($exifData) ? null : $this->getDateTaken($exifData),
         ];
+    }
+
+    /** Appareils et logiciels de numérisation (scanners, applis de scan). */
+    private const SCAN_PATTERN = '/scan|perfection|canoscan|scanjet|scansnap|plustek|opticfilm|coolscan|reflecta|dsmobile|silverfast|mp navigator|epson\\s+(gt|v)\\d/i';
+
+    /**
+     * Le fichier vient-il d'un scanner ou d'une appli de numérisation ?
+     * (modèle « CanoScan LiDE 210 », « Perfection V600 », logiciel « VueScan »,
+     * « Epson Scan », appli « PhotoScan »…)
+     */
+    public static function isScan(array $exifData, ?string $make = null, ?string $model = null): bool
+    {
+        $fields = [
+            $make, $model,
+            $exifData['IFD0']['Make'] ?? null, $exifData['IFD0']['Model'] ?? null, $exifData['IFD0']['Software'] ?? null,
+            $exifData['EXIF']['Make'] ?? null, $exifData['EXIF']['Model'] ?? null, $exifData['EXIF']['Software'] ?? null,
+            $exifData['Make'] ?? null, $exifData['Model'] ?? null, $exifData['Software'] ?? null,
+        ];
+        foreach ($fields as $value) {
+            if (is_string($value) && preg_match(self::SCAN_PATTERN, $value)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** Date EXIF brute (jour « Y-m-d ») d'après les données enregistrées. */
+    public static function storedExifDay(array $exifData): ?string
+    {
+        foreach ([
+            $exifData['EXIF']['DateTimeOriginal'] ?? null,
+            $exifData['EXIF']['DateTime'] ?? null,
+            $exifData['IFD0']['DateTime'] ?? null,
+            $exifData['EXIF']['DateTimeDigitized'] ?? null,
+            $exifData['DateTimeOriginal'] ?? null,
+            $exifData['DateTime'] ?? null,
+        ] as $value) {
+            if ($date = self::plausibleDate($value)) {
+                return substr($date, 0, 10);
+            }
+        }
+
+        return null;
     }
 
     /**
