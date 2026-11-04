@@ -42,17 +42,40 @@ class QuestService
     /** Limite de candidats par détecteur média/visage. */
     private const DETECTOR_LIMIT = 10;
 
-    /** Poids relatifs des types (les plus gratifiants d'abord). */
+    /**
+     * Poids des types À L'INTÉRIEUR de leur catégorie (les plus gratifiants
+     * d'abord, 2 par défaut). Les visages, photos et amis sont seuls dans la
+     * leur : leur place vient du rythme de l'accueil (cf. order).
+     */
     private const WEIGHTS = [
-        'face_identify' => 5,
-        'how_met' => 5,
         'birth_date' => 4,
         'gender' => 4,
-        'media_date' => 3,
-        'media_geo' => 3,
         'death_status' => 3,
         'marital_status' => 3,
         'address' => 3,
+    ];
+
+    /**
+     * Pénalité par degré de parenté, volontairement faible : un parent ou un
+     * grand-parent passe encore devant (poids / (1 + 0,3 × distance)).
+     */
+    private const DISTANCE_PENALTY = 0.3;
+
+    /** Rythme de l'accueil : 4 visages, puis 1 question d'une autre catégorie. */
+    private const FACES_PER_BLOCK = 4;
+
+    /** Questions hors visages retenues pour la rotation (réponses récentes comprises). */
+    private const RECENT_OTHERS = 6;
+
+    /**
+     * Préférence entre catégories « autres » à fatigue égale : la famille
+     * d'abord (les amis en mode amis), les photos en dernier.
+     */
+    private const CATEGORY_WEIGHTS = [
+        'friends' => 1.0,
+        'family' => 0.95,
+        'life' => 0.9,
+        'photos' => 0.7,
     ];
 
     public function __construct(
@@ -130,7 +153,7 @@ class QuestService
      * Lot ordonné de candidats [{type, subject_id, distance}], en cache court
      * par utilisateur. Seuls des ids y sont stockés — l'hydratation et la
      * re-vérification du manque se font à la présentation. Public : les tests
-     * de génération s'appuient sur le CONTENU du lot (l'ordre est mélangé).
+     * s'appuient sur le contenu du lot et sur son rythme (cf. order).
      */
     public function candidates(User $user): array
     {
@@ -173,7 +196,7 @@ class QuestService
             ));
 
             // Les questions sur soi d'abord : rapides, et utiles à tout le cercle.
-            return array_merge($self, $this->order($user, $candidates));
+            return array_merge($self, $this->order($user, $candidates, $self));
         });
     }
 
@@ -647,45 +670,158 @@ class QuestService
     }
 
     /**
-     * Mélange pondéré, stable sur la journée (même graine que la « personne
-     * du jour ») : poids du type / (1 + distance de parenté) + bruit, puis
-     * passe de diversité — jamais deux questions de suite sur la même
-     * personne, jamais trois de suite du même type.
+     * Rythme de l'accueil, par blocs de 5 : 4 visages, puis 1 question d'une
+     * autre catégorie (photos, famille, vie ; amis en mode amis) qui tourne
+     * d'un bloc à l'autre. Sans visage, les autres catégories se succèdent.
+     *
+     * Seule la tête du lot est présentée, et le lot est recalculé après
+     * chaque réponse : la suite reprend donc où en est l'utilisateur (ses
+     * réponses récentes, puis les questions sur soi placées en tête). Stable
+     * sur la journée (graine jour + compte), comme la « personne du jour ».
      */
-    private function order(User $user, array $candidates): array
+    private function order(User $user, array $candidates, array $self): array
     {
-        mt_srand(crc32(now()->toDateString().$user->id));
+        $buckets = $this->buckets($candidates, now()->toDateString().$user->id);
+        $sequence = array_merge($this->recentSequence($user), array_map(fn ($c) => $this->step($c), $self));
 
-        foreach ($candidates as &$c) {
-            $weight = self::WEIGHTS[$c['type']] ?? 2;
-            $c['score'] = ($weight / (1 + $c['distance'])) * (0.75 + mt_rand(0, 1000) / 2000);
-        }
-        unset($c);
-
-        usort($candidates, fn ($a, $b) => $b['score'] <=> $a['score']);
-
-        // Réordonnancement glouton pour la variété.
         $ordered = [];
-        while ($candidates !== []) {
-            $prev = end($ordered) ?: null;
-            $prev2 = count($ordered) > 1 ? $ordered[count($ordered) - 2] : null;
-
-            $pickedIndex = 0;
-            foreach ($candidates as $i => $c) {
-                $samePerson = $prev && $prev['subject_id'] === $c['subject_id'];
-                $sameTypeRun = $prev && $prev2
-                    && $prev['type'] === $c['type'] && $prev2['type'] === $c['type'];
-                if (! $samePerson && ! $sameTypeRun) {
-                    $pickedIndex = $i;
-                    break;
-                }
+        while ($buckets !== []) {
+            $category = $this->nextCategory(array_keys($buckets), $sequence);
+            $picked = $this->pickFrom($buckets[$category], $sequence[array_key_last($sequence)]['subject_id'] ?? null);
+            if ($buckets[$category] === []) {
+                unset($buckets[$category]);
             }
-
-            $picked = array_splice($candidates, $pickedIndex, 1)[0];
-            $ordered[] = ['type' => $picked['type'], 'subject_id' => $picked['subject_id'], 'distance' => $picked['distance']];
+            $ordered[] = $picked;
+            $sequence[] = $this->step($picked);
         }
 
         return $ordered;
+    }
+
+    /**
+     * Candidats rangés par catégorie, chacune triée par intérêt : poids du
+     * type / (1 + 0,3 × distance de parenté), avec un bruit du jour (± 25 %)
+     * propre à chaque question.
+     *
+     * @return array<string, list<array>>
+     */
+    private function buckets(array $candidates, string $seed): array
+    {
+        $scored = [];
+        foreach ($candidates as $c) {
+            $key = $c['type'].':'.$c['subject_id'];
+            $score = (self::WEIGHTS[$c['type']] ?? 2) / (1 + self::DISTANCE_PENALTY * $c['distance'])
+                * (0.75 + (crc32($seed.$key) % 1001) / 2000);
+            $scored[QuestType::from($c['type'])->category()][] = [$score, $c];
+        }
+
+        return array_map(function ($bucket) {
+            usort($bucket, fn ($a, $b) => $b[0] <=> $a[0]);
+
+            return array_column($bucket, 1);
+        }, $scored);
+    }
+
+    /**
+     * Visage tant que le bloc en cours n'en compte pas 4 (ou s'il ne reste
+     * qu'eux), sinon une question d'une autre catégorie.
+     */
+    private function nextCategory(array $available, array $sequence): string
+    {
+        $others = array_values(array_diff($available, ['faces']));
+        $facesDue = in_array('faces', $available, true)
+            && ($others === [] || $this->faceRun($sequence) < self::FACES_PER_BLOCK);
+
+        return $facesDue ? 'faces' : $this->nextOtherCategory($others, $sequence);
+    }
+
+    /** Nombre de visages enchaînés en fin de séquence. */
+    private function faceRun(array $sequence): int
+    {
+        $run = 0;
+        for ($i = count($sequence) - 1; $i >= 0 && $sequence[$i]['category'] === 'faces'; $i--) {
+            $run++;
+        }
+
+        return $run;
+    }
+
+    /**
+     * Catégorie de la prochaine question « autre » : jamais celle de la
+     * précédente s'il en reste une autre, puis la moins présente parmi les
+     * dernières questions hors visages (réponses récentes comprises) ; à
+     * égalité, la préférée (CATEGORY_WEIGHTS).
+     */
+    private function nextOtherCategory(array $others, array $sequence): string
+    {
+        $recent = array_slice(array_values(array_filter(
+            array_column($sequence, 'category'),
+            fn ($category) => $category !== 'faces',
+        )), -self::RECENT_OTHERS);
+
+        if (count($others) > 1 && $recent !== []) {
+            $others = array_values(array_diff($others, [$recent[array_key_last($recent)]]));
+        }
+
+        $fatigue = array_count_values($recent);
+        $priority = fn ($category) => self::CATEGORY_WEIGHTS[$category] / (1 + ($fatigue[$category] ?? 0));
+        usort($others, fn ($a, $b) => $priority($b) <=> $priority($a));
+
+        return $others[0];
+    }
+
+    /**
+     * Retire et renvoie la meilleure question de la catégorie — pas sur le
+     * même sujet que la précédente quand c'est possible.
+     */
+    private function pickFrom(array &$bucket, ?string $previousSubject): array
+    {
+        $index = 0;
+        foreach ($bucket as $i => $c) {
+            if ($c['subject_id'] !== $previousSubject) {
+                $index = $i;
+                break;
+            }
+        }
+
+        return array_splice($bucket, $index, 1)[0];
+    }
+
+    /**
+     * Où en est l'utilisateur, d'après son journal : ses dernières réponses
+     * hors visages (rotation des catégories), puis les visages enchaînés
+     * depuis (rythme 4 + 1, y compris ceux du jeu « Qui est-ce ? »). Les
+     * visages ne sont jamais repoussés par la mémoire, seulement comptés.
+     *
+     * @return list<array{category: string, subject_id: ?string}>
+     */
+    private function recentSequence(User $user): array
+    {
+        $face = QuestType::FaceIdentify->value;
+        $others = QuestAnswer::where('user_id', $user->id)
+            ->where('question_type', '!=', $face)
+            ->latest()
+            ->limit(self::RECENT_OTHERS)
+            ->get(['question_type', 'subject_id', 'created_at']);
+
+        $facesSince = QuestAnswer::where('user_id', $user->id)
+            ->where('question_type', $face)
+            ->when($others->first(), fn ($q, $last) => $q->where('created_at', '>', $last->created_at))
+            ->count();
+
+        return array_merge(
+            $others->reverse()
+                ->map(fn ($a) => ['category' => QuestType::from($a->question_type)->category(), 'subject_id' => $a->subject_id])
+                ->values()
+                ->all(),
+            array_fill(0, min($facesSince, self::FACES_PER_BLOCK), ['category' => 'faces', 'subject_id' => null]),
+        );
+    }
+
+    /** Trace d'une question dans la séquence (catégorie, sujet). */
+    private function step(array $candidate): array
+    {
+        return ['category' => QuestType::from($candidate['type'])->category(), 'subject_id' => $candidate['subject_id']];
     }
 
     /** Hydrate la question pour le front (libellé, sujet, données d'UI). */

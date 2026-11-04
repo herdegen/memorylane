@@ -53,6 +53,22 @@ enum QuestType: string
         return $this === self::HowMet;
     }
 
+    /**
+     * Catégorie de la question, pour le rythme de l'accueil (cf.
+     * QuestService::order) : visages, photos, famille, vie (métier, études,
+     * logements) ou amis.
+     */
+    public function category(): string
+    {
+        return match ($this) {
+            self::FaceIdentify => 'faces',
+            self::MediaDate, self::MediaGeo => 'photos',
+            self::Job, self::Education, self::Residence => 'life',
+            self::HowMet => 'friends',
+            default => 'family',
+        };
+    }
+
     /** Questions de généalogie, absentes du mode amis. */
     public function genealogical(): bool
     {
