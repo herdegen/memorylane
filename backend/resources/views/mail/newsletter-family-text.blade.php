@@ -41,7 +41,14 @@
 @endif
 {!! $s['url'] !!}
 @elseif ($s['key'] === 'timeline')
-{!! $s['self'] ? __('Et si vous racontiez votre propre parcours ?') : __('Que savez-vous de la vie de :name ?', ['name' => $s['name']]) !!} {!! $s['url'] !!}
+{!! $s['title'] !!}
+{!! $s['url'] !!}
+@elseif ($s['key'] === 'faces_album')
+{!! trans_choice('Il y a :count visage non identifié dans l’album « :album », où tu apparais.|Il y a :count visages non identifiés dans l’album « :album », où tu apparais.', $s['count'], ['album' => $s['album']]) !!} {!! __('Aide-nous à les identifier :') !!}
+{!! $s['url'] !!}
+@elseif ($s['key'] === 'fact_check')
+{!! $s['text'] !!} {!! __('Vérifier sur ma fiche :') !!}
+{!! $s['url'] !!}
 @elseif ($s['key'] === 'tree_links')
 {!! __('Votre place dans l\'arbre : :url', ['url' => e($s['url'])]) !!}
 @elseif ($s['key'] === 'own_circle')

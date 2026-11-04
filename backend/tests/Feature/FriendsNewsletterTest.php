@@ -101,6 +101,30 @@ class FriendsNewsletterTest extends TestCase
         return $media;
     }
 
+    /**
+     * Album $name de $owner partagé avec $circle il y a trois mois (pas une
+     * nouveauté), $tagged identifiés sur la 1re photo, $faces visages sans nom.
+     */
+    private function album(string $name, User $owner, Household $circle, array $tagged, int $faces, array $attributes = []): Album
+    {
+        $now = now();
+        Carbon::setTestNow($now->copy()->subMonths(3));
+        $album = Album::create($attributes + ['user_id' => $owner->id, 'name' => $name]);
+        $album->households()->attach($circle->id, ['granted_by' => $owner->id]);
+        $photos = collect([0, 1])->map(function ($i) use ($album, $owner, $tagged) {
+            $media = $this->photo($owner, null, $i === 0 ? $tagged : [], ['uploaded_at' => now()]);
+            $album->media()->attach($media->id);
+
+            return $media;
+        });
+        for ($i = 0; $i < $faces; $i++) {
+            DetectedFace::create(['media_id' => $photos[$i % 2]->id, 'status' => 'unmatched', 'bounding_box' => ['x' => 10, 'y' => 10, 'width' => 20, 'height' => 20]]);
+        }
+        Carbon::setTestNow($now);
+
+        return $album;
+    }
+
     private function build(User $user): ?array
     {
         return app(FriendsNewsletterBuilder::class)->build($user->fresh());
@@ -214,6 +238,91 @@ class FriendsNewsletterTest extends TestCase
         Mail::assertNotQueued(FriendsNewsletterMail::class);
         $this->assertSame(0, NewsletterSend::whereIn('user_id', [$this->sarah->id, $this->paul->id])->count());
         Notification::assertNotSentTo($this->sarah, WeeklyDigest::class);
+    }
+
+    // ── Visages d'un album du cercle ───────────────────────────────────
+
+    public function test_encart_visages_d_un_album_du_cercle_ou_l_on_apparait(): void
+    {
+        $album = $this->album('Week-end à Milou', $this->paul, $this->friends, [$this->sarah->person], 3);
+
+        // Des visages à nommer ne suffisent pas à envoyer la lettre.
+        $this->assertNull($this->build($this->sarah));
+
+        $this->photo($this->paul, $this->friends);
+        $issue = $this->build($this->sarah);
+        $by = $this->sections($issue);
+
+        $this->assertSame($album->id, $by['faces_album']['ref']);
+        $this->assertSame(3, $by['faces_album']['count']);
+        $this->assertSame('Week-end à Milou', $by['faces_album']['album']);
+        $this->assertStringEndsWith('/quests/faces?album='.$album->id, $by['faces_album']['url']);
+        $this->assertArrayNotHasKey('faces', $by->all(), 'un seul encart « Qui est-ce ? »');
+        $this->assertNotSame('qui_est_ce', $by['spotlight']['ref']);
+        $all = $this->rendered(new FriendsNewsletterMail($this->sarah, $issue));
+        $this->assertStringContainsString('Il y a 3 visages non identifiés dans l’album « Week-end à Milou », où tu apparais.', $all);
+        $this->assertStringContainsString('/quests/faces?album='.$album->id, $all);
+        NewsletterSend::create(['user_id' => $this->sarah->id, 'edition' => 'friends', 'sections' => $issue['log'], 'subject' => $issue['subject'], 'sent_at' => now()]);
+
+        // Semaine suivante : pas de visages deux lettres de suite.
+        Carbon::setTestNow(now()->addWeek());
+        $this->photo($this->paul, $this->friends);
+        $second = $this->build($this->sarah);
+        $this->assertArrayNotHasKey('faces_album', $this->sections($second)->all());
+        $this->assertArrayNotHasKey('faces', $this->sections($second)->all());
+        NewsletterSend::create(['user_id' => $this->sarah->id, 'edition' => 'friends', 'sections' => $second['log'], 'subject' => $second['subject'], 'sent_at' => now()]);
+
+        // La suivante : l'album est au repos, les visages du cercle reviennent en général.
+        Carbon::setTestNow(now()->addWeek());
+        $this->photo($this->paul, $this->friends);
+        $third = $this->sections($this->build($this->sarah));
+        $this->assertArrayNotHasKey('faces_album', $third->all());
+        $this->assertSame(3, $third['faces']['count']);
+    }
+
+    public function test_pas_d_encart_album_sous_le_seuil_ou_sans_y_figurer(): void
+    {
+        $this->album('Soirée', $this->paul, $this->friends, [$this->sarah->person], 2);
+        $this->album('Sans Sarah', $this->paul, $this->friends, [$this->paul->person], 5);
+        $this->photo($this->paul, $this->friends);
+
+        $by = $this->sections($this->build($this->sarah));
+
+        $this->assertArrayNotHasKey('faces_album', $by->all());
+        // Le rappel général reste possible.
+        $this->assertSame(7, $by['faces']['count']);
+    }
+
+    public function test_pas_d_album_de_la_famille_dans_la_lettre_amis(): void
+    {
+        // Album de la famille ouvert à ceux qui y figurent : Sarah y est
+        // identifiée et peut le voir, mais il n'est pas du monde des amis.
+        $this->album('Noël en famille', $this->julien, $this->family, [$this->sarah->person], 4, ['share_with_tagged' => true]);
+        $this->photo($this->paul, $this->friends);
+
+        $issue = $this->build($this->sarah);
+
+        $this->assertArrayNotHasKey('faces_album', $this->sections($issue)->all());
+        $all = json_encode($issue, JSON_UNESCAPED_UNICODE).$this->rendered(new FriendsNewsletterMail($this->sarah, $issue));
+        $this->assertStringNotContainsString('Noël en famille', $all);
+    }
+
+    public function test_encart_visages_traduit(): void
+    {
+        $this->album('Week-end à Milou', $this->paul, $this->friends, [$this->sarah->person], 3);
+        $this->photo($this->paul, $this->friends);
+
+        $this->sarah->setPreference('locale', 'es');
+        $mail = (new FriendsNewsletterMail($this->sarah, $this->build($this->sarah)))->locale('es');
+        $mail->assertSeeInHtml('Hay 3 caras sin identificar en el álbum «Week-end à Milou», donde apareces.');
+        $mail->assertSeeInHtml('Identificar las caras');
+        $mail->assertSeeInText('Ayúdanos a identificarlas:');
+
+        $this->sarah->setPreference('locale', 'en');
+        $mail = (new FriendsNewsletterMail($this->sarah, $this->build($this->sarah)))->locale('en');
+        $mail->assertSeeInHtml('There are 3 unidentified faces in “Week-end à Milou”, an album you appear in.');
+        $mail->assertSeeInText('There are 3 unidentified faces in “Week-end à Milou”, an album you appear in. Help us identify them:');
+        $mail->assertDontSeeInText('&#039;');
     }
 
     // ── Destinataires ──────────────────────────────────────────────────

@@ -19,6 +19,9 @@
 {!! __('Comment avez-vous connu :name ? Racontez votre rencontre : :url', ['name' => $s['name'], 'url' => $s['url']]) !!}
 @elseif ($s['key'] === 'faces')
 {!! trans_choice(':count visage attend un nom sur les photos du cercle : :url|:count visages attendent un nom sur les photos du cercle : :url', $s['count'], array_filter(['url' => $s['url'], 'count' => $s['more'] ? $s['count'].'+' : null])) !!}
+@elseif ($s['key'] === 'faces_album')
+{!! trans_choice('Il y a :count visage non identifié dans l’album « :album », où tu apparais.|Il y a :count visages non identifiés dans l’album « :album », où tu apparais.', $s['count'], ['album' => $s['album']]) !!} {!! __('Aide-nous à les identifier :') !!}
+{!! $s['url'] !!}
 @elseif ($s['key'] === 'spotlight')
 {!! __('À découvrir — :title : :text', ['title' => $s['title'], 'text' => $s['text']]) !!} {!! $s['url_abs'] !!}
 @endif

@@ -27,11 +27,15 @@ use Illuminate\Support\Traits\Localizable;
  *    photos, photos où l'on a été identifié, fêtes et anniversaires à venir,
  *    activité de la famille) ;
  *  - rubriques toujours là mais au contenu tournant (personne de la
- *    semaine, coup de pouce pour une frise de vie, fonctionnalité à
- *    découvrir), qui évitent ce que le destinataire a déjà reçu ;
+ *    semaine, fonctionnalité à découvrir), qui évitent ce que le
+ *    destinataire a déjà reçu ;
  *  - une rubrique « bonus » tirée parmi d'autres (liens de famille à
  *    compléter, créer son cercle, souvenir d'il y a N ans, questions en
- *    attente, chiffres de la famille), jamais la même deux semaines de suite.
+ *    attente, chiffres de la famille), jamais la même deux semaines de suite ;
+ *  - des relances personnelles, deux au plus, en alternance d'une semaine à
+ *    l'autre (cf. nudges()) : un fait de sa fiche saisi par un autre à
+ *    vérifier, les visages à nommer d'un album où il apparaît, la frise de
+ *    vie d'un proche (ou la sienne) à raconter.
  *
  * Les membres aussi dans un cercle d'amis y trouvent un encart « Côté amis »
  * quand leurs cercles d'amis ont du nouveau (FriendsNewsletterBuilder::corner) ;
@@ -51,9 +55,25 @@ class FamilyNewsletterBuilder
     /** Une personne de la semaine ne revient pas avant ce nombre d'envois. */
     private const PERSON_COOLDOWN = 26;
 
+    /** La même fiche ne revient pas dans « raconte-nous sa vie » avant ce nombre d'envois. */
     private const NUDGE_COOLDOWN = 8;
 
+    /** Le même fait à vérifier ne revient pas avant ce nombre d'envois. */
+    private const FACT_COOLDOWN = 8;
+
     private const BONUS_POOL = ['tree_links', 'own_circle', 'years_ago', 'quests', 'numbers'];
+
+    /** Rubriques bonus qui sont elles-mêmes des relances (une action demandée). */
+    private const BONUS_NUDGES = ['tree_links', 'own_circle', 'quests'];
+
+    /** Relances personnelles, par ordre de priorité (celles de la dernière lettre passent après). */
+    private const NUDGES = ['fact_check', 'faces_album', 'timeline'];
+
+    /** Au plus tant de relances personnelles par lettre… */
+    private const MAX_NUDGES = 2;
+
+    /** … et tant de relances en tout, rubrique bonus comprise quand elle en est une. */
+    private const MAX_CALLS = 3;
 
     private User $user;
 
@@ -72,6 +92,8 @@ class FamilyNewsletterBuilder
         private GenealogyService $genealogy,
         private QuestService $quests,
         private FriendsNewsletterBuilder $friends,
+        private AlbumFacesFinder $facesAlbums,
+        private OwnFactsFinder $facts,
     ) {}
 
     /**
@@ -108,23 +130,24 @@ class FamilyNewsletterBuilder
         $hasNews = $sections !== [];
 
         $person = $this->personOfTheWeek();
-        if ($person) {
-            $sections[] = $person;
-        }
-        if ($bonus = $this->bonus()) {
-            $sections[] = $bonus;
-        }
-        if ($nudge = $this->timelineNudge($person['person_id'] ?? null)) {
-            $sections[] = $nudge;
-        }
-
         // Rien de neuf ni personne à mettre à l'honneur : on n'écrit pas
-        // pour ne rien dire (la fonctionnalité seule ne vaut pas un mail).
+        // pour ne rien dire (ni la fonctionnalité ni les relances ne valent
+        // un mail à elles seules).
         if (! $hasNews && ! $person) {
             return null;
         }
+        if ($person) {
+            $sections[] = $person;
+        }
 
-        $sections[] = $this->spotlight();
+        // En alternance : une relance personnelle, la rubrique bonus, l'autre relance.
+        $bonus = $this->bonus();
+        $nudges = $this->nudges($person['person_id'] ?? null, $bonus);
+        foreach (array_filter([array_shift($nudges), $bonus, ...$nudges]) as $section) {
+            $sections[] = $section;
+        }
+
+        $sections[] = $this->spotlight($sections);
 
         return [
             'subject' => $this->subject($sections),
@@ -303,57 +326,205 @@ class FamilyNewsletterBuilder
         ];
     }
 
-    /** « Que savez-vous de la vie de X ? » : une fiche proche à la frise presque vide. */
+    /**
+     * Relances personnelles de la semaine : au plus MAX_NUDGES, et MAX_CALLS
+     * relances en tout avec une rubrique bonus qui en est une. Celles parues
+     * dans la dernière lettre passent après les autres : d'une semaine à
+     * l'autre, elles alternent. Ne justifient jamais à elles seules un envoi.
+     *
+     * @return list<array>
+     */
+    private function nudges(?string $exclude, ?array $bonus): array
+    {
+        $limit = min(self::MAX_NUDGES, self::MAX_CALLS - (in_array($bonus['key'] ?? null, self::BONUS_NUDGES, true) ? 1 : 0));
+        $last = collect($this->history->first()?->sections ?? [])->pluck('key')->all();
+        $order = collect(self::NUDGES)
+            ->sortBy(fn ($key, $i) => (in_array($key, $last, true) ? 10 : 0) + $i)
+            ->values();
+
+        $picked = [];
+        foreach ($order as $key) {
+            if (count($picked) >= $limit) {
+                break;
+            }
+            $section = match ($key) {
+                'fact_check' => $this->factCheck(),
+                'faces_album' => $this->facesAlbum(),
+                'timeline' => $this->timelineNudge($exclude),
+            };
+            if ($section) {
+                $picked[] = $section;
+            }
+        }
+
+        return $picked;
+    }
+
+    /**
+     * « Yves a indiqué que tu es né à Lyon le 3 mars 1958 : c'est bien ça ? »
+     * Un seul fait par lettre, saisi par quelqu'un d'autre sur sa fiche
+     * (OwnFactsFinder), le plus récent qui n'a pas été montré ces dernières
+     * semaines. Le lien mène à sa fiche : il corrige lui-même s'il le faut.
+     */
+    private function factCheck(): ?array
+    {
+        $recent = $this->recentRefs('fact_check', self::FACT_COOLDOWN);
+        foreach ($this->facts->for($this->user) as $fact) {
+            if (! in_array($fact['key'], $recent, true)) {
+                return ['key' => 'fact_check', 'ref' => $fact['key'], 'text' => $fact['text'], 'url' => $fact['url']];
+            }
+        }
+
+        return null;
+    }
+
+    /** « Il y a 7 visages non identifiés dans l'album Y, où tu apparais » (album du monde famille). */
+    private function facesAlbum(): ?array
+    {
+        $family = $this->user->circles()->firstWhere('kind', \App\Models\Household::KIND_FAMILY);
+        if (! $family) {
+            return null;
+        }
+        $viewer = $this->user->inCircle($family->id);
+
+        return $this->facesAlbumSection($this->facesAlbums->find(
+            $viewer,
+            // Albums de la famille (partagés avec un cercle familial, ou privés), comme la liste des albums.
+            fn ($albums) => $albums->inContext($viewer),
+            $this->recentRefs('faces_album', AlbumFacesFinder::COOLDOWN),
+            $this->seed,
+        ));
+    }
+
+    /**
+     * « Parle-nous un peu de toi », « Raconte-nous la vie de ton père » :
+     * une fiche à la frise presque vide, soi d'abord, puis parents, enfants,
+     * frères et sœurs, puis grands-parents, puis le reste du cercle proche
+     * (≤ 3 liens). Rotation : une fiche ne revient pas avant NUDGE_COOLDOWN
+     * envois. Le lien mène à la frise de la fiche.
+     */
     private function timelineNudge(?string $exclude): ?array
     {
-        $distance = $this->genealogy->proximity($this->user->person_id)['distance'];
-        $ids = array_keys(array_filter($distance, fn ($d) => $d <= 3));
-        if ($ids === []) {
+        $me = $this->user->person_id ? Person::find($this->user->person_id) : null;
+        if (! $me) {
             return null;
         }
 
+        $relations = $this->closeRelatives($me);
         $recent = $this->recentRefs('timeline', self::NUDGE_COOLDOWN);
-        $people = Person::whereIn('id', $ids)
-            ->where('in_family_directory', true)
+        $people = Person::whereIn('id', array_keys($relations))
+            ->where(fn ($q) => $q->where('in_family_directory', true)->orWhere('id', $me->id))
             ->whereNotIn('id', array_filter([...$recent, $exclude]))
             ->withCount('lifeEvents')
             ->get()
             // Une vie à raconter : adulte (ou âge inconnu), frise presque vide.
             ->filter(fn ($p) => $p->life_events_count <= 1
-                && ($p->birth_date === null || $p->birth_date->diffInYears($this->now) >= 16))
-            ->sortBy(fn ($p) => ($distance[$p->id] ?? 9).'-'.$p->id)
-            ->values();
+                && ($p->birth_date === null || $p->birth_date->diffInYears($this->now) >= 16));
         if ($people->isEmpty()) {
             return null;
         }
 
-        $person = $people[$this->seed % min(5, $people->count())];
-        $self = $person->id === $this->user->person_id;
+        // Le cercle le plus proche qui a un candidat, tirage stable sur la semaine.
+        $tier = $people->min(fn ($p) => $relations[$p->id][0]);
+        $pool = $people->filter(fn ($p) => $relations[$p->id][0] === $tier)->sortBy('id')->values();
+        $person = $pool[$this->seed % $pool->count()];
+        $relation = $relations[$person->id][1];
+        $self = $relation === 'self';
+        $name = ['name' => $this->shortName($person)];
 
         return [
             'key' => 'timeline',
             'ref' => $person->id,
             'self' => $self,
-            'name' => $this->shortName($person),
-            'relation' => $self ? null : $this->relation($person),
+            'relation' => $relation,
+            'name' => $name['name'],
+            'title' => match ($relation) {
+                'self' => __('Parle-nous un peu de toi'),
+                'father' => __('Raconte-nous la vie de ton père'),
+                'mother' => __('Raconte-nous la vie de ta mère'),
+                'child' => match ($person->gender) {
+                    'F' => __('Raconte-nous la vie de ta fille :name', $name),
+                    'M' => __('Raconte-nous la vie de ton fils :name', $name),
+                    default => __('Raconte-nous la vie de ton enfant :name', $name),
+                },
+                'sibling' => match ($person->gender) {
+                    'F' => __('Raconte-nous la vie de ta sœur :name', $name),
+                    'M' => __('Raconte-nous la vie de ton frère :name', $name),
+                    default => __('Raconte-nous la vie de :name', $name),
+                },
+                'grandfather' => __('Raconte-nous la vie de ton grand-père :name', $name),
+                'grandmother' => __('Raconte-nous la vie de ta grand-mère :name', $name),
+                default => __('Raconte-nous la vie de :name', $name),
+            },
             'portrait' => $this->portraitUrl($person),
             'prompts' => $self
-                ? [__('vos écoles et diplômes'), __('vos métiers'), __('les maisons où vous avez vécu')]
-                : [
-                    __('un métier'),
+                ? $this->joinNames([__('tes écoles et diplômes'), __('tes métiers'), __('les maisons où tu as vécu')])
+                : implode(', ', [
+                    ucfirst(__('un métier')),
                     __('une école'),
                     $person->gender === 'F' ? __('une maison où elle a vécu') : __('une maison où il a vécu'),
                     __('une anecdote'),
-                ],
-            'url' => url("/people/{$person->id}"),
+                ]),
+            'url' => url("/people/{$person->id}").'#frise',
         ];
     }
 
-    private function spotlight(): array
+    /**
+     * Proches du destinataire avec leur rang de priorité et leur lien :
+     * 0 soi, 1 parents / enfants / frères et sœurs, 2 grands-parents,
+     * 3 le reste du cercle proche (≤ 3 liens dans l'arbre).
+     *
+     * @return array<string, array{0: int, 1: string}>
+     */
+    private function closeRelatives(Person $me): array
+    {
+        $relations = [];
+        $add = function (?string $id, int $tier, string $relation) use (&$relations) {
+            if ($id && ! isset($relations[$id])) {
+                $relations[$id] = [$tier, $relation];
+            }
+        };
+
+        $add($me->id, 0, 'self');
+        $add($me->father_id, 1, 'father');
+        $add($me->mother_id, 1, 'mother');
+        foreach (Person::where('father_id', $me->id)->orWhere('mother_id', $me->id)->pluck('id') as $id) {
+            $add($id, 1, 'child');
+        }
+        if ($me->father_id || $me->mother_id) {
+            $siblings = Person::where('id', '!=', $me->id)
+                ->where(fn ($q) => $q->when($me->father_id, fn ($w) => $w->orWhere('father_id', $me->father_id))
+                    ->when($me->mother_id, fn ($w) => $w->orWhere('mother_id', $me->mother_id)))
+                ->pluck('id');
+            foreach ($siblings as $id) {
+                $add($id, 1, 'sibling');
+            }
+            foreach (Person::whereIn('id', array_filter([$me->father_id, $me->mother_id]))->get(['father_id', 'mother_id']) as $parent) {
+                $add($parent->father_id, 2, 'grandfather');
+                $add($parent->mother_id, 2, 'grandmother');
+            }
+        }
+        foreach ($this->genealogy->proximity($me->id)['distance'] as $id => $distance) {
+            if ($distance <= 3) {
+                $add((string) $id, 3, 'other');
+            }
+        }
+
+        return $relations;
+    }
+
+    /**
+     * Découverte du site, jamais sur une page déjà proposée par une relance
+     * de la lettre (ex. le jeu « Qui est-ce ? » quand un album est relancé).
+     */
+    private function spotlight(array $sections): array
     {
         $all = FeatureSpotlights::all();
+        $taken = collect($sections)->whereIn('key', self::NUDGES)->pluck('url')->filter()
+            ->map(fn ($u) => parse_url($u, PHP_URL_PATH))->all();
+        $keys = array_keys(array_filter($all, fn ($f) => ! in_array($f['url'], $taken, true))) ?: array_keys($all);
         $shown = $this->recentRefs('spotlight', count($all));
-        $key = FeatureSpotlights::next($shown, crc32($this->user->id));
+        $key = FeatureSpotlights::next($shown, crc32($this->user->id), $keys);
 
         return ['key' => 'spotlight', 'ref' => $key] + $all[$key]
             + ['url_abs' => url($all[$key]['url'])];

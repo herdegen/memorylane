@@ -24,6 +24,26 @@ trait NewsletterHelpers
             ->filter()->values()->all();
     }
 
+    /**
+     * Encart « Il y a X visages non identifiés dans l'album Y, où tu
+     * apparais » à partir d'un album trouvé par AlbumFacesFinder.
+     */
+    private function facesAlbumSection(?array $found): ?array
+    {
+        if (! $found) {
+            return null;
+        }
+
+        return [
+            'key' => 'faces_album',
+            'ref' => $found['album']->id,
+            'album' => $found['album']->name,
+            'count' => $found['count'],
+            'thumbs' => $this->thumbs(Media::whereIn('media.id', $found['media_ids'])->where('media.type', 'photo'), 3),
+            'url' => url('/quests/faces').'?album='.$found['album']->id,
+        ];
+    }
+
     private function thumbs($query, int $n): array
     {
         return $query->with('conversions')->limit($n)->get()

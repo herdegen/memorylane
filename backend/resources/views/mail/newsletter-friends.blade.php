@@ -85,6 +85,13 @@
             <p style="{{ $p }}">{{ __('Une carte à la fois, au téléphone comme sur ordinateur : chaque nom retrouvé aide tout le groupe.') }}</p>
             <a href="{{ $s['url'] }}" style="{{ $link }}">{{ __('Jouer') }} →</a>
 
+        @elseif ($s['key'] === 'faces_album')
+            <p style="{{ $kicker }}">{{ __('Qui est-ce ?') }}</p>
+            <p style="{{ $h2 }}">{{ trans_choice('Il y a :count visage non identifié dans l’album « :album », où tu apparais.|Il y a :count visages non identifiés dans l’album « :album », où tu apparais.', $s['count'], ['album' => $s['album']]) }}</p>
+            @include('mail.partials.thumbs', ['thumbs' => $s['thumbs']])
+            <p style="{{ $p }}">{{ __('Aide-nous à les identifier : une carte à la fois, quelques secondes par visage.') }}</p>
+            <a href="{{ $s['url'] }}" style="{{ $btn }}">{{ __('Identifier les visages') }}</a>
+
         @elseif ($s['key'] === 'spotlight')
             <p style="{{ $kicker }}">{{ __('À découvrir') }}</p>
             <p style="{{ $h2 }}">{{ $s['title'] }}</p>

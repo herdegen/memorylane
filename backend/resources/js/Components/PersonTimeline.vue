@@ -1,5 +1,5 @@
 <template>
-  <div class="pt-9 pb-2">
+  <div id="frise" class="pt-9 pb-2 scroll-mt-16">
     <div class="flex items-center justify-between mb-4 px-4 sm:px-8">
       <h2 class="font-display text-xl sm:text-2xl font-semibold text-surface-900">{{ $t('Sa vie') }}</h2>
       <div class="flex items-center gap-2">

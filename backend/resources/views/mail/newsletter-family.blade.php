@@ -118,15 +118,27 @@
             @if ($s['thumbs'])<div style="margin-top:16px;">@include('mail.partials.thumbs', ['thumbs' => $s['thumbs']])</div>@endif
 
         @elseif ($s['key'] === 'timeline')
-            <p style="{{ $kicker }}">{{ __('Un coup de pouce pour sa frise') }}</p>
+            <p style="{{ $kicker }}">{{ $s['self'] ? __('Ta frise de vie') : __('Un coup de pouce pour sa frise') }}</p>
+            <p style="{{ $h2 }}">{{ $s['title'] }}</p>
             @if ($s['self'])
-                <p style="{{ $h2 }}">{{ __('Et si vous racontiez votre propre parcours ?') }}</p>
-                <p style="{{ $p }}">{{ __('Votre frise de vie est encore presque vide. Ajoutez :prompts : vos proches le découvriront sur votre fiche.', ['prompts' => implode(', ', $s['prompts'])]) }}</p>
+                <p style="{{ $p }}">{{ __('Ta frise de vie est encore presque vide. Ajoute :prompts : tes proches les découvriront sur ta fiche.', ['prompts' => $s['prompts']]) }}</p>
             @else
-                <p style="{{ $h2 }}">{{ __('Que savez-vous de la vie de :name ?', ['name' => $s['name']]) }}</p>
-                <p style="{{ $p }}">{{ $s['relation'] ? __(':relation : sa frise de vie est presque vide.', ['relation' => ucfirst($s['relation'])]) : __('Sa frise de vie est presque vide.') }} {{ __(':prompts… chaque détail compte.', ['prompts' => implode(', ', [ucfirst($s['prompts'][0]), $s['prompts'][1], $s['prompts'][2], $s['prompts'][3]])]) }}</p>
+                <p style="{{ $p }}">{{ __('Sa frise de vie est presque vide.') }} {{ __(':prompts… chaque détail compte.', ['prompts' => $s['prompts']]) }}</p>
             @endif
             <a href="{{ $s['url'] }}" style="{{ $btn }}">{{ __('Compléter la frise') }}</a>
+
+        @elseif ($s['key'] === 'faces_album')
+            <p style="{{ $kicker }}">{{ __('Qui est-ce ?') }}</p>
+            <p style="{{ $h2 }}">{{ trans_choice('Il y a :count visage non identifié dans l’album « :album », où tu apparais.|Il y a :count visages non identifiés dans l’album « :album », où tu apparais.', $s['count'], ['album' => $s['album']]) }}</p>
+            @include('mail.partials.thumbs', ['thumbs' => $s['thumbs']])
+            <p style="{{ $p }}">{{ __('Aide-nous à les identifier : une carte à la fois, quelques secondes par visage.') }}</p>
+            <a href="{{ $s['url'] }}" style="{{ $btn }}">{{ __('Identifier les visages') }}</a>
+
+        @elseif ($s['key'] === 'fact_check')
+            <p style="{{ $kicker }}">{{ __('Petite vérification') }}</p>
+            <p style="{{ $h2 }} font-size:20px;">{{ $s['text'] }}</p>
+            <p style="{{ $p }}">{{ __('Si quelque chose cloche, tu peux le corriger toi-même sur ta fiche.') }}</p>
+            <a href="{{ $s['url'] }}" style="{{ $link }}">{{ __('Vérifier sur ma fiche') }} →</a>
 
         @elseif ($s['key'] === 'tree_links')
             <p style="{{ $kicker }}">{{ __('Votre place dans l\'arbre') }}</p>

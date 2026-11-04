@@ -28,7 +28,8 @@ use Illuminate\Support\Traits\Localizable;
  * où l'on a été identifié, anniversaires des 7 prochains jours ou souvenir
  * d'il y a N ans. S'y ajoutent, sans suffire à justifier un envoi : la
  * question « comment vous êtes-vous connus ? », les visages « Qui est-ce ? »
- * en attente et une fonctionnalité à découvrir (sans arbre ni généalogie).
+ * en attente (de préférence ceux d'un album du cercle où il apparaît) et
+ * une fonctionnalité à découvrir (sans arbre ni généalogie).
  *
  * Photos du cercle : partagées au cercle (directement ou dans un album
  * partagé au cercle) ou montrant un ami du cercle hors famille, toujours
@@ -86,6 +87,7 @@ class FriendsNewsletterBuilder
         private CelebrationService $celebrations,
         private QuestService $quests,
         private NetworkService $network,
+        private AlbumFacesFinder $facesAlbums,
     ) {}
 
     /**
@@ -348,14 +350,43 @@ class FriendsNewsletterBuilder
         return null;
     }
 
-    /** Visages « Qui est-ce ? » en attente sur les photos du cercle. */
+    /**
+     * Visages « Qui est-ce ? » en attente : ceux d'un album du cercle où le
+     * destinataire apparaît s'il y en a assez, sinon tous ceux des photos du
+     * cercle. Une lettre sur deux au plus : un rappel, pas une rengaine.
+     */
     private function faces(): ?array
     {
-        // Une semaine sur deux au plus : un rappel, pas une rengaine.
-        if (collect($this->history->first()?->sections ?? [])->contains('key', 'faces')) {
+        $last = collect($this->history->first()?->sections ?? [])->pluck('key');
+        if ($last->contains('faces') || $last->contains('faces_album')) {
             return null;
         }
 
+        return $this->facesAlbum() ?? $this->circleFaces();
+    }
+
+    /** « Il y a 5 visages non identifiés dans l'album Y, où tu apparais » : un album partagé avec l'un de ses cercles d'amis. */
+    private function facesAlbum(): ?array
+    {
+        $recent = $this->recentRefs('faces_album', AlbumFacesFinder::COOLDOWN);
+        foreach ($this->circles as $circle) {
+            $found = $this->facesAlbums->find(
+                $this->user->inCircle($circle->id),
+                fn ($albums) => $albums->whereHas('households', fn ($h) => $h->whereKey($circle->id)),
+                $recent,
+                $this->seed,
+            );
+            if ($found) {
+                return $this->facesAlbumSection($found);
+            }
+        }
+
+        return null;
+    }
+
+    /** Tous les visages en attente sur les photos de ses cercles. */
+    private function circleFaces(): ?array
+    {
         $count = 0;
         foreach ($this->circles as $circle) {
             $count = max($count, $this->quests->faceQuestions($this->user->inCircle($circle->id), null, [], 0)['total']);
