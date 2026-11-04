@@ -114,6 +114,9 @@ class GoogleDriveController extends Controller
         $validated = $request->validate([
             'file_ids' => ['required', 'array', 'min:1', 'max:2000'],
             'file_ids.*' => ['required', 'string', 'max:200', 'regex:/^[A-Za-z0-9_-]+$/'],
+            // Clés de ressource des fichiers partagés par lien (identifiant → clé).
+            'resource_keys' => ['nullable', 'array'],
+            'resource_keys.*' => ['string', 'max:200', 'regex:/^[A-Za-z0-9_-]+$/'],
             'person_id' => ['nullable', 'uuid', new VisiblePerson],
             // L'album cible doit appartenir à l'importateur.
             'album_id' => [
@@ -152,6 +155,7 @@ class GoogleDriveController extends Controller
             personId: $validated['person_id'] ?? null,
             albumId: $albumId,
             householdId: $householdId,
+            resourceKeys: array_intersect_key($validated['resource_keys'] ?? [], array_flip($validated['file_ids'])),
         );
 
         return response()->json([

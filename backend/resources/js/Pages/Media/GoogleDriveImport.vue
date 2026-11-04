@@ -223,7 +223,9 @@ const onPicked = (data) => {
   const known = new Set(selected.value.map((d) => d.id));
   const added = (data[picker.Response.DOCUMENTS] || [])
     .filter((doc) => doc.mimeType !== FOLDER_MIME && !known.has(doc.id))
-    .map((doc) => ({ id: doc.id, name: doc.name, mimeType: doc.mimeType, sizeBytes: doc.sizeBytes }));
+    // resourceKey : exigée par Google pour les fichiers partagés par lien
+    // (dossier d'un proche dans « Partagés avec moi ») — sans elle, 404.
+    .map((doc) => ({ id: doc.id, name: doc.name, mimeType: doc.mimeType, sizeBytes: doc.sizeBytes, resourceKey: doc.resourceKey || null }));
   selected.value = [...selected.value, ...added];
 };
 
@@ -287,6 +289,7 @@ const startImport = async () => {
   try {
     const { data } = await axios.post('/google-drive/import', {
       file_ids: selected.value.map((d) => d.id),
+      resource_keys: Object.fromEntries(selected.value.filter((d) => d.resourceKey).map((d) => [d.id, d.resourceKey])),
       person_id: importForm.person_id,
       album_id: isNew ? null : importForm.album_id,
       new_album_name: isNew ? importForm.new_album_name : null,

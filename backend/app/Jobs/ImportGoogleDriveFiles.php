@@ -50,6 +50,8 @@ class ImportGoogleDriveFiles implements ShouldQueue, ShouldBeEncrypted
         public ?string $personId = null,
         public ?string $albumId = null,
         public ?string $householdId = null,
+        // Identifiant → clé de ressource (fichiers partagés par lien).
+        public array $resourceKeys = [],
     ) {}
 
     public function handle(MediaService $mediaService, GoogleOAuth $oauth): void
@@ -159,7 +161,10 @@ class ImportGoogleDriveFiles implements ShouldQueue, ShouldBeEncrypted
      */
     protected function driveGet(GoogleOAuth $oauth, string $fileId, array $query, ?string $sink = null): Response
     {
+        // Fichier partagé par lien : Google exige sa clé de ressource, sinon 404.
+        $key = $this->resourceKeys[$fileId] ?? null;
         $send = fn () => Http::withToken($this->accessToken)
+            ->when($key, fn ($http) => $http->withHeaders(['X-Goog-Drive-Resource-Keys' => "{$fileId}/{$key}"]))
             ->timeout($sink ? 900 : 30)
             ->when($sink, fn ($http) => $http->sink($sink))
             ->get(self::FILES_URL . rawurlencode($fileId), $query + ['supportsAllDrives' => 'true']);

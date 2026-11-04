@@ -229,6 +229,32 @@ class GoogleDriveImportTest extends TestCase
     }
 
     /**
+     * Fichier d'un dossier partagé par lien : la clé de ressource donnée par
+     * le sélecteur part avec chaque requête (sinon Google répond 404).
+     */
+    public function test_resource_keys_are_passed_to_google(): void
+    {
+        Bus::fake();
+        $this->actingAs($this->user)->withSession($this->driveToken())
+            ->postJson('/google-drive/import', [
+                'file_ids' => ['p1', 'p2'],
+                'resource_keys' => ['p1' => '0-AbCd_9', 'autre' => '0-zzz'],
+            ])
+            ->assertOk();
+        Bus::assertDispatched(ImportGoogleDriveFiles::class, fn ($job) => $job->resourceKeys === ['p1' => '0-AbCd_9']);
+
+        Http::fake(fn (HttpRequest $request) => str_contains($request->url(), 'alt=media')
+            ? Http::response($this->jpeg, 200, ['Content-Type' => 'image/jpeg'])
+            : Http::response(['id' => 'p1', 'name' => 'partage.jpg', 'mimeType' => 'image/jpeg', 'size' => '123']));
+        (new ImportGoogleDriveFiles($this->user->id, 'ya29.valid', null, ['p1'], resourceKeys: ['p1' => '0-AbCd_9']))
+            ->handle(app(MediaService::class), app(GoogleOAuth::class));
+
+        Http::assertSentCount(2);
+        Http::assertSent(fn (HttpRequest $r) => $r->hasHeader('X-Goog-Drive-Resource-Keys', 'p1/0-AbCd_9'));
+        $this->assertSame(1, Media::where('original_name', 'partage.jpg')->count());
+    }
+
+    /**
      * Jeton expiré en cours d'import : renouvelé une fois puis requête rejouée.
      */
     public function test_job_refreshes_expired_token(): void
