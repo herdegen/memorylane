@@ -73,6 +73,16 @@
             type="date"
             class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
           />
+          <label for="birth_place" class="block text-sm font-medium text-surface-700 mt-3 mb-1">
+            {{ $t('Lieu de naissance') }}
+          </label>
+          <input
+            id="birth_place"
+            v-model="form.birth_place"
+            type="text"
+            :placeholder="$t('Ville, pays')"
+            class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+          />
         </div>
 
         <div v-if="!isFriends || form.death_date">
@@ -83,6 +93,16 @@
             id="death_date"
             v-model="form.death_date"
             type="date"
+            class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+          />
+          <label for="death_place" class="block text-sm font-medium text-surface-700 mt-3 mb-1">
+            {{ $t('Lieu de décès') }}
+          </label>
+          <input
+            id="death_place"
+            v-model="form.death_place"
+            type="text"
+            :placeholder="$t('Ville, pays')"
             class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
           />
         </div>
@@ -178,13 +198,20 @@ const splitInitialName = (full) => {
 
 const initial = splitInitialName(props.initialName);
 
+const dateInput = (value) => (value ? String(value).slice(0, 10) : '');
+
 const form = reactive({
   first_name: props.person?.first_name || initial.first,
   last_name: props.person?.last_name || initial.last,
   maiden_name: props.person?.maiden_name || '',
   gender: props.person?.gender || 'U',
-  birth_date: props.person?.birth_date || '',
-  death_date: props.person?.death_date || '',
+  // Le serveur envoie « 1958-04-01T00:00:00.000000Z » : le champ date du
+  // navigateur n'accepte que « 1958-04-01 » (sinon il s'affiche vide alors
+  // que la fiche et la frise montrent la date).
+  birth_date: dateInput(props.person?.birth_date),
+  birth_place: props.person?.birth_place || '',
+  death_date: dateInput(props.person?.death_date),
+  death_place: props.person?.death_place || '',
   // Absente des props pour un visiteur non autorisé, mais la modale n'est
   // atteignable que via canManage (adresse alors visible côté serveur).
   address: props.person?.address || '',
