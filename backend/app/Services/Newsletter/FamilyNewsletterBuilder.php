@@ -58,8 +58,11 @@ class FamilyNewsletterBuilder
     /** La même fiche ne revient pas dans « raconte-nous sa vie » avant ce nombre d'envois. */
     private const NUDGE_COOLDOWN = 8;
 
-    /** Le même fait à vérifier ne revient pas avant ce nombre d'envois. */
+    /** Le même fait à vérifier ne revient pas avant ce nombre d'envois… */
     private const FACT_COOLDOWN = 8;
+
+    /** … et n'est jamais proposé plus de tant de fois au même destinataire. */
+    private const FACT_MAX_SHOWS = 2;
 
     private const BONUS_POOL = ['tree_links', 'own_circle', 'years_ago', 'quests', 'numbers'];
 
@@ -363,14 +366,20 @@ class FamilyNewsletterBuilder
     /**
      * « Yves a indiqué que tu es né à Lyon le 3 mars 1958 : c'est bien ça ? »
      * Un seul fait par lettre, saisi par quelqu'un d'autre sur sa fiche
-     * (OwnFactsFinder), le plus récent qui n'a pas été montré ces dernières
-     * semaines. Le lien mène à sa fiche : il corrige lui-même s'il le faut.
+     * (OwnFactsFinder) : le plus récent qui n'a pas été montré ces dernières
+     * semaines, ni déjà FACT_MAX_SHOWS fois en tout (tout l'historique des
+     * envois). Le lien mène à sa fiche : il corrige lui-même s'il le faut.
      */
     private function factCheck(): ?array
     {
         $recent = $this->recentRefs('fact_check', self::FACT_COOLDOWN);
+        $shown = NewsletterSend::where('user_id', $this->user->id)
+            ->where('edition', self::EDITION)
+            ->pluck('sections')
+            ->flatMap(fn ($sections) => collect($sections)->where('key', 'fact_check')->pluck('ref'))
+            ->countBy();
         foreach ($this->facts->for($this->user) as $fact) {
-            if (! in_array($fact['key'], $recent, true)) {
+            if (! in_array($fact['key'], $recent, true) && ($shown[$fact['key']] ?? 0) < self::FACT_MAX_SHOWS) {
                 return ['key' => 'fact_check', 'ref' => $fact['key'], 'text' => $fact['text'], 'url' => $fact['url']];
             }
         }
@@ -675,7 +684,8 @@ class FamilyNewsletterBuilder
         }
         $path = $this->genealogy->pathBetween($this->user->person_id, $person->id);
 
-        return $path ? GenealogyService::relationLabel($path['edges'], $person->gender) : null;
+        // Les lettres tutoient : « ta grand-mère » plutôt que « votre grand-mère ».
+        return $path ? FamiliarRelation::label(GenealogyService::relationLabel($path['edges'], $person->gender), $person->gender) : null;
     }
 
     /** « née en 1958 à Mennecy » / « 1920 – 1998 ». */
@@ -725,8 +735,8 @@ class FamilyNewsletterBuilder
         $by = collect($sections)->keyBy('key');
         if ($t = $by->get('tagged_you')) {
             return $t['count'] === 1
-                ? __('Vous apparaissez sur une nouvelle photo.')
-                : __('Vous apparaissez sur :count nouvelles photos.', ['count' => $t['count']]);
+                ? __('Tu apparais sur une nouvelle photo.')
+                : __('Tu apparais sur :count nouvelles photos.', ['count' => $t['count']]);
         }
         if ($s = $by->get('spotlight')) {
             $title = mb_strtolower(mb_substr($s['title'], 0, 1)).mb_substr($s['title'], 1);

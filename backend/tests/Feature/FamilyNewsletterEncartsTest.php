@@ -15,6 +15,8 @@ use App\Models\PersonChange;
 use App\Models\PersonRelationship;
 use App\Models\QuestAnswer;
 use App\Models\User;
+use App\Services\GenealogyService;
+use App\Services\Newsletter\FamiliarRelation;
 use App\Services\Newsletter\FamilyNewsletterBuilder;
 use App\Services\Newsletter\OwnFactsFinder;
 use App\Services\PersonChangeReverter;
@@ -373,7 +375,7 @@ class FamilyNewsletterEncartsTest extends TestCase
         $this->assertStringNotContainsString('Zoé', implode(' ', $this->facts()));
     }
 
-    public function test_un_seul_fait_par_lettre_et_rotation(): void
+    public function test_un_seul_fait_par_lettre_rotation_et_deux_fois_au_plus(): void
     {
         $this->fullTimeline($this->me->person);
         $this->fullTimeline($this->yves->person);
@@ -383,7 +385,7 @@ class FamilyNewsletterEncartsTest extends TestCase
 
         $texts = [];
         $issues = [];
-        for ($week = 0; $week < 10; $week++) {
+        for ($week = 0; $week < 20; $week++) {
             $this->news();
             $issue = $this->build();
             $facts = collect($issue['sections'])->where('key', 'fact_check');
@@ -395,9 +397,15 @@ class FamilyNewsletterEncartsTest extends TestCase
         }
 
         // Le plus récent d'abord, puis l'autre ; ensuite les deux sont au
-        // repos pendant 8 envois, puis le premier revient.
+        // repos pendant 8 envois, reviennent chacun une fois, puis plus
+        // jamais (deux apparitions au plus).
         $julien = 'Julien a indiqué que ton nom de naissance est Dupont : c’est bien ça ?';
-        $this->assertSame([$julien, 'Yves a indiqué que tu es né à Lyon : c’est bien ça ?', null, null, null, null, null, null, null, $julien], $texts);
+        $yves = 'Yves a indiqué que tu es né à Lyon : c’est bien ça ?';
+        $this->assertSame([
+            $julien, $yves, null, null, null, null, null, null, null,
+            $julien, $yves, null, null, null, null, null, null, null, null, null,
+        ], $texts);
+        $this->assertSame(2, collect($texts)->filter(fn ($t) => $t === $julien)->count());
 
         // Le lien mène à sa fiche, rendu dans la lettre.
         $fact = $this->sections($issues[9])['fact_check'];
@@ -408,6 +416,61 @@ class FamilyNewsletterEncartsTest extends TestCase
         $mail->assertSeeInHtml('Si quelque chose cloche, tu peux le corriger toi-même sur ta fiche.');
         $mail->assertSeeInText($julien);
         $mail->assertSeeInText('Vérifier sur ma fiche :');
+    }
+
+    // ── Tutoiement ─────────────────────────────────────────────────────
+
+    public function test_lien_de_parente_tutoye_pour_les_lettres(): void
+    {
+        $label = fn (array $edges, ?string $gender) => FamiliarRelation::label(GenealogyService::relationLabel($edges, $gender), $gender);
+
+        $this->assertSame('ta mère', $label(['parent'], 'F'));
+        $this->assertSame('ton père', $label(['parent'], 'M'));
+        $this->assertSame('ta grand-mère', $label(['parent', 'parent'], 'F'));
+        $this->assertSame('ton arrière-grand-père', $label(['parent', 'parent', 'parent'], 'M'));
+        // « ton » devant une voyelle, même au féminin.
+        $this->assertSame('ton arrière-grand-mère', $label(['parent', 'parent', 'parent'], 'F'));
+        $this->assertSame('ta tante', $label(['parent', 'parent', 'child'], 'F'));
+        $this->assertSame('ton oncle par alliance', $label(['spouse', 'parent', 'parent', 'child'], 'M'));
+        $this->assertSame('ta belle-sœur', $label(['parent', 'child', 'spouse'], 'F'));
+        $this->assertSame('ta cousine germaine', $label(['parent', 'parent', 'child', 'child'], 'F'));
+        // Genre inconnu : masculin, comme le libellé.
+        $this->assertSame('ton frère', $label(['parent', 'child'], null));
+        $this->assertSame('tes cousins', FamiliarRelation::label('vos cousins', null));
+        $this->assertNull(FamiliarRelation::label(null, 'F'));
+        // Le reste du site garde le vouvoiement ; l'anglais et l'espagnol passent tels quels.
+        $this->assertSame('votre grand-mère', GenealogyService::relationLabel(['parent', 'parent'], 'F'));
+        $this->assertSame('your grandmother', $this->inLocale('en', fn () => $label(['parent', 'parent'], 'F')));
+        $this->assertSame('tu abuela', $this->inLocale('es', fn () => $label(['parent', 'parent'], 'F')));
+    }
+
+    public function test_la_lettre_tutoie(): void
+    {
+        // Grand-mère à l'honneur, photo où Matthieu est reconnu cette semaine.
+        $jeanne = Person::factory()->create(['first_name' => 'Jeanne', 'last_name' => 'Herdegen', 'gender' => 'F', 'birth_date' => '1931-01-01', 'portrait_path' => 'portraits/jeanne.jpg', 'user_id' => $this->me->id]);
+        $this->yves->person->update(['mother_id' => $jeanne->id]);
+        for ($i = 0; $i < 3; $i++) {
+            $media = Media::factory()->photo()->create(['user_id' => $this->julien->id, 'is_source' => false, 'uploaded_at' => now()->subMonth()]);
+            $media->people()->attach($i === 0 ? [$jeanne->id, $this->me->person_id] : [$jeanne->id]);
+            $this->family->media()->attach($media->id, ['added_by' => $this->julien->id]);
+        }
+
+        $issue = $this->build();
+        $by = $this->sections($issue);
+        $this->assertSame('ta grand-mère', $by['person_of_week']['relation']);
+        $this->assertSame('Tu apparais sur une nouvelle photo.', $issue['preheader']);
+
+        $mail = new FamilyNewsletterMail($this->me, $issue);
+        $mail->assertSeeInHtml('Ta grand-mère');
+        $mail->assertSeeInHtml('Tu es dessus');
+        $mail->assertSeeInHtml('Te voilà sur 1 photo');
+        $mail->assertSeeInHtml('3 photos dans tes souvenirs. Prends un moment');
+        $mail->assertSeeInHtml('Tu reçois ce message chaque dimanche parce que tu fais partie de la famille sur MemoryLane.');
+        $mail->assertSeeInText('La personne de la semaine : Jeanne Herdegen, ta grand-mère (née en 1931).');
+        $mail->assertSeeInText('Te voilà sur 1 photo : ');
+        // Plus aucun vouvoiement (« votre union » désigne le couple : il reste au pluriel).
+        $all = $mail->render()."\n".view($mail->content()->text, $mail->content()->with)->render();
+        $this->assertDoesNotMatchRegularExpression('/\b(vous|votre|vos)\b/iu', str_replace('votre union', '', $all));
     }
 
     // ── Plafond et alternance ──────────────────────────────────────────

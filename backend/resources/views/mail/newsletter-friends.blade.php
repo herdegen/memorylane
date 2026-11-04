@@ -33,7 +33,7 @@
 
     <tr><td style="padding:0 4px 16px;">
         <p style="font-family:{{ $serif }}; font-size:22px; color:#1c1917; margin:0 0 6px;">{{ __('Bonjour :name,', ['name' => $firstName]) }}</p>
-        <p style="font-size:15px; line-height:1.6; color:#78716c; margin:0;">{{ __('Voici votre semaine avec :circle.', ['circle' => $issue['circle']]) }}</p>
+        <p style="font-size:15px; line-height:1.6; color:#78716c; margin:0;">{{ __('Voici ta semaine avec :circle.', ['circle' => $issue['circle']]) }}</p>
     </td></tr>
 
 @foreach ($issue['sections'] as $s)
@@ -48,8 +48,8 @@
             <a href="{{ $s['url'] }}" style="{{ $btn }}">{{ __('Voir les nouveautés') }}</a>
 
         @elseif ($s['key'] === 'tagged_you')
-            <p style="{{ $kicker }}">{{ __('Vous êtes dessus') }}</p>
-            <p style="{{ $h2 }}">{{ trans_choice('On vous a identifié sur :count photo du cercle|On vous a identifié sur :count photos du cercle', $s['count']) }}</p>
+            <p style="{{ $kicker }}">{{ __('Tu es dessus') }}</p>
+            <p style="{{ $h2 }}">{{ trans_choice('Te voilà sur :count photo du cercle|Te voilà sur :count photos du cercle', $s['count']) }}</p>
             @include('mail.partials.thumbs', ['thumbs' => $s['thumbs']])
             <a href="{{ $s['url'] }}" style="{{ $link }}">{{ __('Voir mes photos') }} →</a>
 
@@ -75,8 +75,8 @@
 
         @elseif ($s['key'] === 'how_met')
             <p style="{{ $kicker }}">{{ __('Petite question') }}</p>
-            <p style="{{ $h2 }}">{{ __('Comment avez-vous connu :name ?', ['name' => $s['name']]) }}</p>
-            <p style="{{ $p }}">@if ($s['photos'] > 0){{ trans_choice('Vous apparaissez ensemble sur :count photo.|Vous apparaissez ensemble sur :count photos.', $s['photos']) }} @endif{{ __('Racontez votre rencontre en quelques mots : l’année, le lieu, les circonstances. Chacun garde sa propre version.') }}</p>
+            <p style="{{ $h2 }}">{{ __('Comment as-tu connu :name ?', ['name' => $s['name']]) }}</p>
+            <p style="{{ $p }}">@if ($s['photos'] > 0){{ trans_choice('Vous apparaissez ensemble sur :count photo.|Vous apparaissez ensemble sur :count photos.', $s['photos']) }} @endif{{ __('Raconte votre rencontre en quelques mots : l’année, le lieu, les circonstances. Chacun garde sa propre version.') }}</p>
             <a href="{{ $s['url'] }}" style="{{ $btn }}">{{ __('Raconter notre rencontre') }}</a>
 
         @elseif ($s['key'] === 'faces')
@@ -104,7 +104,7 @@
 
     {{-- Pied --}}
     <tr><td align="center" style="padding:14px 16px 0; font-size:12px; line-height:1.6; color:#a8a29e;">
-        {{ __('Vous recevez ce message le dimanche, quand il y a du nouveau dans vos cercles d’amis sur MemoryLane.') }}<br>
+        {{ __('Tu reçois ce message le dimanche, quand il y a du nouveau dans tes cercles d’amis sur MemoryLane.') }}<br>
         <a href="{{ $settingsUrl }}" style="color:#78716c;">{{ __('Mes préférences') }}</a> ·
         <a href="{{ $unsubscribeUrl }}" style="color:#78716c;">{{ __('Ne plus recevoir cette lettre') }}</a>
     </td></tr>

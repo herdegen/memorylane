@@ -188,7 +188,13 @@ class FriendsNewsletterTest extends TestCase
         // Entre amis, pas d'âge.
         $html = (new FriendsNewsletterMail($this->sarah, $this->build($this->sarah)))->render();
         $this->assertStringNotContainsString('36 ans', $html);
-        $this->assertStringContainsString('Comment avez-vous connu Paul ?', $html);
+        $this->assertStringContainsString('Comment as-tu connu Paul ?', $html);
+        // Lettre au tutoiement (le « vous » qui reste désigne les deux amis : « vous vous êtes connus »).
+        $all = $this->rendered(new FriendsNewsletterMail($this->sarah, $this->build($this->sarah)));
+        $this->assertStringContainsString('Tu reçois ce message le dimanche', $all);
+        $this->assertStringContainsString('Voici ta semaine avec La bande à Milou.', $all);
+        $plural = ['Vos souvenirs ensemble', 'vous êtes tous les deux', 'vous vous êtes connus', 'Vous apparaissez ensemble', 'votre rencontre'];
+        $this->assertDoesNotMatchRegularExpression('/\b(vous|votre|vos)\b/iu', str_replace($plural, '', $all));
     }
 
     public function test_aucun_contenu_famille_chez_un_ami(): void

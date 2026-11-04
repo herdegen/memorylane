@@ -8,10 +8,10 @@
     $btn = 'display:inline-block; background:#b45309; color:#ffffff; text-decoration:none; font-weight:bold; font-size:14px; padding:11px 20px; border-radius:10px;';
     $link = 'color:#b45309; font-weight:bold; text-decoration:none;';
     $treeTexts = [
-        'link_self' => [__('Reliez votre compte à votre fiche'), __('Trouvez-vous dans la liste des personnes et cliquez « C\'est moi » : l\'arbre, les liens de parenté et vos photos se mettent à votre nom.')],
-        'parents' => [__('Vos parents ne sont pas encore dans l\'arbre'), __('Ajoutez-les depuis votre fiche : c\'est le point de départ de toutes les branches.')],
-        'siblings' => [__('Et vos frères et sœurs ?'), __('Ils n\'apparaissent pas encore à côté de vous dans l\'arbre. Ajoutez-les depuis votre fiche, en quelques secondes.')],
-        'partner' => [__('Votre conjoint dans l\'arbre ?'), __('Ajoutez votre compagne ou votre compagnon depuis votre fiche, avec la date de votre union si vous le souhaitez.')],
+        'link_self' => [__('Relie ton compte à ta fiche'), __('Trouve-toi dans la liste des personnes et clique « C’est moi » : l’arbre, les liens de parenté et tes photos se mettent à ton nom.')],
+        'parents' => [__('Tes parents ne sont pas encore dans l’arbre'), __('Ajoute-les depuis ta fiche : c’est le point de départ de toutes les branches.')],
+        'siblings' => [__('Et tes frères et sœurs ?'), __('Ils n’apparaissent pas encore à côté de toi dans l’arbre. Ajoute-les depuis ta fiche, en quelques secondes.')],
+        'partner' => [__('Ton conjoint ou ta conjointe dans l’arbre ?'), __('Ajoute ta compagne ou ton compagnon depuis ta fiche, avec la date de votre union si tu le souhaites.')],
     ];
     // Nombres : séparateur des milliers selon la langue ; mis en gras dans les phrases traduites.
     $thousands = app()->getLocale() === 'fr' ? ' ' : ',';
@@ -57,8 +57,8 @@
             <a href="{{ $s['url'] }}" style="{{ $btn }}">{{ __('Voir les nouveautés') }}</a>
 
         @elseif ($s['key'] === 'tagged_you')
-            <p style="{{ $kicker }}">{{ __('Vous êtes dessus') }}</p>
-            <p style="{{ $h2 }}">{{ trans_choice('On vous a reconnu sur :count photo|On vous a reconnu sur :count photos', $s['count']) }}</p>
+            <p style="{{ $kicker }}">{{ __('Tu es dessus') }}</p>
+            <p style="{{ $h2 }}">{{ trans_choice('Te voilà sur :count photo|Te voilà sur :count photos', $s['count']) }}</p>
             @include('mail.partials.thumbs', ['thumbs' => $s['thumbs']])
             <a href="{{ $s['url'] }}" style="{{ $link }}">{{ __('Voir mes photos') }} →</a>
 
@@ -91,7 +91,7 @@
             <p style="{{ $h2 }} font-size:19px;">{{ \Illuminate\Support\Str::ucfirst($s['photos'] ? trans_choice(':circle : :count nouvelle photo|:circle : :count nouvelles photos', $s['photos'], ['circle' => $s['circle']]) : __('Du nouveau avec :circle', ['circle' => $s['circle']])) }}</p>
             @include('mail.partials.thumbs', ['thumbs' => $s['thumbs']])
             @if ($s['tagged'])
-                <p style="{{ $p }} margin-bottom:6px;">{{ trans_choice('On vous a identifié sur :count photo du cercle|On vous a identifié sur :count photos du cercle', $s['tagged']) }}.</p>
+                <p style="{{ $p }} margin-bottom:6px;">{{ trans_choice('Te voilà sur :count photo du cercle|Te voilà sur :count photos du cercle', $s['tagged']) }}.</p>
             @endif
             @if ($s['birthdays'])
                 <p style="{{ $p }} margin-bottom:6px;">🎂 {{ trans_choice('Anniversaire à venir : :list|Anniversaires à venir : :list', count($s['birthdays']), ['list' => implode(', ', array_map(fn ($b) => $b['name'].' ('.$b['when'].')', $s['birthdays']))]) }}</p>
@@ -111,7 +111,7 @@
                     <p style="{{ $h2 }} margin-bottom:4px;">{{ $s['name'] }}</p>
                     @if ($s['relation'])<p style="font-size:14px; color:#b45309; margin:0 0 6px;">{{ ucfirst($s['relation']) }}</p>@endif
                     @if ($s['life'])<p style="font-size:14px; color:#78716c; margin:0 0 10px;">{{ ucfirst($s['life']) }}</p>@endif
-                    <p style="{{ $p }}">{{ trans_choice(':count photo dans vos souvenirs. Prenez un moment pour parcourir sa fiche, sa frise de vie et son récit en diaporama.|:count photos dans vos souvenirs. Prenez un moment pour parcourir sa fiche, sa frise de vie et son récit en diaporama.', $s['photos_count']) }}</p>
+                    <p style="{{ $p }}">{{ trans_choice(':count photo dans tes souvenirs. Prends un moment pour parcourir sa fiche, sa frise de vie et son récit en diaporama.|:count photos dans tes souvenirs. Prends un moment pour parcourir sa fiche, sa frise de vie et son récit en diaporama.', $s['photos_count']) }}</p>
                     <a href="{{ $s['url'] }}" style="{{ $btn }}">{{ __('Voir sa fiche') }}</a>
                 </td>
             </tr></table>
@@ -141,14 +141,14 @@
             <a href="{{ $s['url'] }}" style="{{ $link }}">{{ __('Vérifier sur ma fiche') }} →</a>
 
         @elseif ($s['key'] === 'tree_links')
-            <p style="{{ $kicker }}">{{ __('Votre place dans l\'arbre') }}</p>
+            <p style="{{ $kicker }}">{{ __('Ta place dans l’arbre') }}</p>
             <p style="{{ $h2 }}">{{ $treeTexts[$s['missing']][0] }}</p>
             <p style="{{ $p }}">{{ $treeTexts[$s['missing']][1] }}</p>
             <a href="{{ $s['url'] }}" style="{{ $link }}">{{ __('Ouvrir ma fiche') }} →</a>
 
         @elseif ($s['key'] === 'own_circle')
-            <p style="{{ $kicker }}">{{ __('Vos amis aussi') }}</p>
-            <p style="{{ $h2 }}">{{ __('Créez votre propre cercle') }}</p>
+            <p style="{{ $kicker }}">{{ __('Tes amis aussi') }}</p>
+            <p style="{{ $h2 }}">{{ __('Crée ton propre cercle') }}</p>
             <p style="{{ $p }}">{{ __('Une bande d\'amis, des collègues, un club : un cercle partage ses photos et ses souvenirs entre ses seuls membres, à part de la famille.') }}</p>
             <a href="{{ $s['url'] }}" style="{{ $link }}">{{ __('Créer un cercle') }} →</a>
 
@@ -160,7 +160,7 @@
 
         @elseif ($s['key'] === 'quests')
             <p style="{{ $kicker }}">{{ __('Petites questions') }}</p>
-            <p style="{{ $h2 }}">{{ trans_choice(':count question attend votre réponse|:count questions attendent votre réponse', $s['count']) }}</p>
+            <p style="{{ $h2 }}">{{ trans_choice(':count question attend ta réponse|:count questions attendent ta réponse', $s['count']) }}</p>
             <p style="{{ $p }}">{{ __('Une date, un lieu, un visage : une minute suffit, et chaque réponse complète la mémoire de toute la famille.') }}</p>
             <a href="{{ $s['url'] }}" style="{{ $link }}">{{ __('Répondre') }} →</a>
 
@@ -183,7 +183,7 @@
 
     {{-- Pied --}}
     <tr><td align="center" style="padding:14px 16px 0; font-size:12px; line-height:1.6; color:#a8a29e;">
-        {{ __('Vous recevez ce message chaque dimanche parce que vous faites partie de la famille sur MemoryLane.') }}<br>
+        {{ __('Tu reçois ce message chaque dimanche parce que tu fais partie de la famille sur MemoryLane.') }}<br>
         <a href="{{ $settingsUrl }}" style="color:#78716c;">{{ __('Mes préférences') }}</a> ·
         <a href="{{ $unsubscribeUrl }}" style="color:#78716c;">{{ __('Ne plus recevoir cette lettre') }}</a>
     </td></tr>

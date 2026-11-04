@@ -27,7 +27,7 @@ use Illuminate\Support\Traits\Localizable;
  * Elle ne part que s'il y a du nouveau : nouvelles photos du cercle, photos
  * où l'on a été identifié, anniversaires des 7 prochains jours ou souvenir
  * d'il y a N ans. S'y ajoutent, sans suffire à justifier un envoi : la
- * question « comment vous êtes-vous connus ? », les visages « Qui est-ce ? »
+ * question « comment as-tu connu X ? », les visages « Qui est-ce ? »
  * en attente (de préférence ceux d'un album du cercle où il apparaît) et
  * une fonctionnalité à découvrir (sans arbre ni généalogie).
  *
@@ -51,7 +51,7 @@ class FriendsNewsletterBuilder
     /** Envois relus pour varier (souvenirs, découvertes, objets). */
     private const HISTORY_SIZE = 26;
 
-    /** Le même ami ne revient pas dans « comment vous êtes-vous connus ? » avant N envois. */
+    /** Le même ami ne revient pas dans « comment as-tu connu X ? » avant N envois. */
     private const HOW_MET_COOLDOWN = 4;
 
     /** Formulations de l'objet, jamais la même deux envois de suite. */
@@ -314,7 +314,7 @@ class FriendsNewsletterBuilder
 
     // ── Relances et découverte (ne justifient pas un envoi) ───────────
 
-    /** « Comment avez-vous connu X ? » : la quête how_met du cercle, s'il en reste une. */
+    /** « Comment as-tu connu X ? » : la quête how_met du cercle, s'il en reste une. */
     private function howMet(): ?array
     {
         if (! $this->user->person_id) {
@@ -485,12 +485,12 @@ class FriendsNewsletterBuilder
         })();
     }
 
-    /** « La bande à Milou », « Les Lyonnais et Le judo », ou « vos amis » au-delà. */
+    /** « La bande à Milou », « Les Lyonnais et Le judo », ou « tes amis » au-delà. */
     private function circleLabel(): string
     {
         $names = $this->activeCircles()->pluck('name')->all();
 
-        return count($names) <= 2 ? $this->joinNames($names) : __('vos amis');
+        return count($names) <= 2 ? $this->joinNames($names) : __('tes amis');
     }
 
     /** La galerie si le cercle est déjà le cercle courant du compte, sinon la page du cercle. */
@@ -533,7 +533,7 @@ class FriendsNewsletterBuilder
             $topics[] = $p['count'] === 1 ? __('1 nouvelle photo') : __(':count nouvelles photos', ['count' => $p['count']]);
         }
         if ($t = $by->get('tagged_you')) {
-            $topics[] = trans_choice(':count photo de vous|:count photos de vous', $t['count']);
+            $topics[] = trans_choice(':count photo de toi|:count photos de toi', $t['count']);
         }
         if ($b = $by->get('birthdays')) {
             $topics[] = __('l\'anniversaire de :name', ['name' => $b['items'][0]['first_name']]);
@@ -550,16 +550,16 @@ class FriendsNewsletterBuilder
         $by = collect($sections)->keyBy('key');
         if ($t = $by->get('tagged_you')) {
             return $t['count'] === 1
-                ? __('Vous apparaissez sur une nouvelle photo.')
-                : __('Vous apparaissez sur :count nouvelles photos.', ['count' => $t['count']]);
+                ? __('Tu apparais sur une nouvelle photo.')
+                : __('Tu apparais sur :count nouvelles photos.', ['count' => $t['count']]);
         }
         if ($b = $by->get('birthdays')) {
-            return __('N’oubliez pas l’anniversaire de :name.', ['name' => $b['items'][0]['first_name']]);
+            return __('N’oublie pas l’anniversaire de :name.', ['name' => $b['items'][0]['first_name']]);
         }
         if (($p = $by->get('new_photos')) && $p['uploaders']) {
-            return __('Les photos de :names vous attendent.', ['names' => $this->joinNames($p['uploaders'])]);
+            return __('Les photos de :names t’attendent.', ['names' => $this->joinNames($p['uploaders'])]);
         }
 
-        return __('Les nouvelles de vos amis sur MemoryLane.');
+        return __('Les nouvelles de tes amis sur MemoryLane.');
     }
 }

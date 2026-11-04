@@ -5,7 +5,7 @@
 {!! $s['uploaders'] ? trans_choice(':count nouvelle photo cette semaine (ajoutées par :names).|:count nouvelles photos cette semaine (ajoutées par :names).', $s['count'], ['names' => implode(', ', $s['uploaders'])]) : trans_choice(':count nouvelle photo cette semaine.|:count nouvelles photos cette semaine.', $s['count']) !!}
 {!! $s['url'] !!}
 @elseif ($s['key'] === 'tagged_you')
-{!! trans_choice('On vous a reconnu sur :count photo : :url|On vous a reconnu sur :count photos : :url', $s['count'], ['url' => $s['url']]) !!}
+{!! trans_choice('Te voilà sur :count photo : :url|Te voilà sur :count photos : :url', $s['count'], ['url' => $s['url']]) !!}
 @elseif ($s['key'] === 'upcoming')
 {!! __('Fêtes et anniversaires des 7 prochains jours :') !!}
 @foreach ($s['items'] as $item)
@@ -19,7 +19,7 @@
 @elseif ($s['key'] === 'friends')
 {{-- Noms de cercles et de personnes : {!! !!} (texte brut, une apostrophe ne doit pas devenir « &#039; »). --}}{!! __('Côté amis — :title', ['title' => \Illuminate\Support\Str::ucfirst($s['photos'] ? trans_choice(':circle : :count nouvelle photo|:circle : :count nouvelles photos', $s['photos'], ['circle' => $s['circle']]) : __('Du nouveau avec :circle', ['circle' => $s['circle']]))]) !!}
 @if ($s['tagged'])
-- {!! trans_choice('On vous a identifié sur :count photo du cercle|On vous a identifié sur :count photos du cercle', $s['tagged']) !!}
+- {!! trans_choice('Te voilà sur :count photo du cercle|Te voilà sur :count photos du cercle', $s['tagged']) !!}
 @endif
 @if ($s['birthdays'])
 - {!! trans_choice('Anniversaire à venir : :list|Anniversaires à venir : :list', count($s['birthdays']), ['list' => implode(', ', array_map(fn ($b) => $b['name'].' ('.$b['when'].')', $s['birthdays']))]) !!}
@@ -50,13 +50,13 @@
 {!! $s['text'] !!} {!! __('Vérifier sur ma fiche :') !!}
 {!! $s['url'] !!}
 @elseif ($s['key'] === 'tree_links')
-{!! __('Votre place dans l\'arbre : :url', ['url' => e($s['url'])]) !!}
+{!! __('Ta place dans l’arbre : :url', ['url' => e($s['url'])]) !!}
 @elseif ($s['key'] === 'own_circle')
-{!! __('Créez votre propre cercle d\'amis : :url', ['url' => e($s['url'])]) !!}
+{!! __('Crée ton propre cercle d’amis : :url', ['url' => e($s['url'])]) !!}
 @elseif ($s['key'] === 'years_ago')
 {!! trans_choice('Il y a :count an cette semaine : :url|Il y a :count ans cette semaine : :url', $s['years'], ['url' => $s['url']]) !!}
 @elseif ($s['key'] === 'quests')
-{!! trans_choice(':count petite question attend votre réponse : :url|:count petites questions attendent votre réponse : :url', $s['count'], ['url' => $s['url']]) !!}
+{!! trans_choice(':count petite question attend ta réponse : :url|:count petites questions attendent ta réponse : :url', $s['count'], ['url' => $s['url']]) !!}
 @elseif ($s['key'] === 'numbers')
 {!! __('Les chiffres de la famille : :photos photos, :people personnes dans l\'arbre.', ['photos' => e($s['photos']), 'people' => e($s['people'])]) !!}
 @elseif ($s['key'] === 'spotlight')
