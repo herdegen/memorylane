@@ -21,6 +21,7 @@ class ProfileController extends Controller
             'user' => Auth::user(),
             'pushSubscriptions' => PushController::subscriptionList(Auth::user()),
             'newsletter' => Auth::user()->wantsNewsletter(),
+            'newsletterFriends' => Auth::user()->newsletterEdition() === \App\Models\Household::KIND_FRIENDS,
         ]);
     }
 

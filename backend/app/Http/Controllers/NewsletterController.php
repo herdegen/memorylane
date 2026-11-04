@@ -47,6 +47,8 @@ class NewsletterController extends Controller
         return [
             'firstName' => strtok($user->name, ' '),
             'subscribed' => $user->wantsNewsletter(),
+            // Édition amis : pas un mot sur la famille.
+            'friends' => $user->newsletterEdition() === \App\Models\Household::KIND_FRIENDS,
             'unsubscribeUrl' => URL::signedRoute('newsletter.unsubscribe', ['user' => $user->id]),
             'resubscribeUrl' => URL::signedRoute('newsletter.resubscribe', ['user' => $user->id]),
             'done' => null,

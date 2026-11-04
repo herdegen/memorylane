@@ -80,7 +80,7 @@
         <PushSettingsCard :initial-subscriptions="pushSubscriptions" />
 
         <!-- Lettre du dimanche -->
-        <NewsletterSettingsCard :initial="newsletter" />
+        <NewsletterSettingsCard :initial="newsletter" :friends="newsletterFriends" />
 
         <!-- Langue de l'interface -->
         <LanguageSettingsCard />
@@ -186,6 +186,7 @@ import { formatLongDate } from '@/utils/format';
 // couple Mon profil / Paramètres — une seule entrée dans le menu avatar).
 const props = defineProps({
   newsletter: { type: Boolean, default: true },
+  newsletterFriends: { type: Boolean, default: false },
   user: Object,
   pushSubscriptions: { type: Array, default: () => [] },
 });

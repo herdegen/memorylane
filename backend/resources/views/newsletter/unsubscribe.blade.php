@@ -23,7 +23,7 @@
     <div class="card">
         @if ($done === 'unsubscribed')
             <h1>{{ __('C\'est noté, :name.', ['name' => $firstName]) }}</h1>
-            <p>{{ __('Vous ne recevrez plus la lettre du dimanche. Les souvenirs de la famille restent bien sûr accessibles sur MemoryLane.') }}</p>
+            <p>{{ $friends ? __('Vous ne recevrez plus la lettre du dimanche. Les souvenirs de vos cercles restent bien sûr accessibles sur MemoryLane.') : __('Vous ne recevrez plus la lettre du dimanche. Les souvenirs de la famille restent bien sûr accessibles sur MemoryLane.') }}</p>
             <form method="post" action="{{ $resubscribeUrl }}">@csrf<button type="submit" class="secondary">{{ __('Finalement, je veux la recevoir') }}</button></form>
         @elseif ($done === 'resubscribed' || ($subscribed && ! $done))
             @if ($done === 'resubscribed')
@@ -31,7 +31,7 @@
                 <p>{{ __('La lettre du dimanche reprend dès cette semaine.') }}</p>
             @else
                 <h1>{{ __('Ne plus recevoir la lettre du dimanche ?') }}</h1>
-                <p>{{ __('Chaque dimanche, elle vous donne les nouvelles photos, les anniversaires à venir et un petit coup de projecteur sur la famille.') }}</p>
+                <p>{{ $friends ? __('Le dimanche, quand vos cercles d’amis ont du nouveau, elle vous donne les nouvelles photos, les anniversaires à venir et un souvenir.') : __('Chaque dimanche, elle vous donne les nouvelles photos, les anniversaires à venir et un petit coup de projecteur sur la famille.') }}</p>
                 <form method="post" action="{{ $unsubscribeUrl }}">@csrf<button type="submit">{{ __('Me désabonner') }}</button></form>
             @endif
         @else

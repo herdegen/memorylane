@@ -33,11 +33,16 @@ use Illuminate\Support\Traits\Localizable;
  *    compléter, créer son cercle, souvenir d'il y a N ans, questions en
  *    attente, chiffres de la famille), jamais la même deux semaines de suite.
  *
+ * Les membres aussi dans un cercle d'amis y trouvent un encart « Côté amis »
+ * quand leurs cercles d'amis ont du nouveau (FriendsNewsletterBuilder::corner) ;
+ * le reste de la lettre ignore ce qui n'est partagé qu'entre amis (les deux
+ * mondes restent séparés, comme dans la galerie).
+ *
  * Images en URL présignées 7 jours (un client mail n'a pas de session).
  */
 class FamilyNewsletterBuilder
 {
-    use Localizable;
+    use Localizable, NewsletterHelpers;
 
     public const EDITION = 'family';
 
@@ -66,6 +71,7 @@ class FamilyNewsletterBuilder
         private CelebrationService $celebrations,
         private GenealogyService $genealogy,
         private QuestService $quests,
+        private FriendsNewsletterBuilder $friends,
     ) {}
 
     /**
@@ -96,6 +102,8 @@ class FamilyNewsletterBuilder
             $this->taggedYou(),
             $this->upcoming(),
             $this->familyActivity(),
+            // Encart « Côté amis » (null sans cercle d'amis ou sans nouveauté).
+            $this->friends->corner($user, $this->now),
         ]));
         $hasNews = $sections !== [];
 
@@ -130,7 +138,7 @@ class FamilyNewsletterBuilder
 
     private function newPhotos(): ?array
     {
-        $query = Media::accessibleBy($this->user)
+        $query = $this->familyMedia()
             ->where('is_source', false)
             ->where('uploaded_at', '>=', $this->since)
             ->where('media.user_id', '!=', $this->user->id);
@@ -158,7 +166,7 @@ class FamilyNewsletterBuilder
             return null;
         }
 
-        $query = Media::accessibleBy($this->user)
+        $query = $this->familyMedia()
             ->whereHas('people', fn ($p) => $p->where('people.id', $this->user->person_id)
                 ->where('media_person.created_at', '>=', $this->since));
         $count = (clone $query)->count();
@@ -178,7 +186,8 @@ class FamilyNewsletterBuilder
     private function upcoming(): ?array
     {
         $today = $this->now->copy()->startOfDay();
-        $circle = fn () => $this->celebrations->closeCircleQuery($this->user);
+        // Fiches de la famille seulement : celles des amis sont dans l'encart « Côté amis ».
+        $circle = fn () => $this->celebrations->closeCircleQuery($this->user)->where('people.in_family_directory', true);
         $items = [];
 
         foreach ($this->celebrations->upcomingBirthdays($today, 7, $circle()) as $b) {
@@ -223,7 +232,7 @@ class FamilyNewsletterBuilder
     private function familyActivity(): ?array
     {
         $voice = VoiceNote::where('created_at', '>=', $this->since)
-            ->whereIn('media_id', Media::accessibleBy($this->user)->select('media.id'))
+            ->whereIn('media_id', $this->familyMedia()->select('media.id'))
             ->with('person')
             ->get();
         $newPeople = Person::where('in_family_directory', true)->where('created_at', '>=', $this->since)->count();
@@ -234,7 +243,7 @@ class FamilyNewsletterBuilder
         $answers = QuestAnswer::where('answer_kind', 'answered')->where('created_at', '>=', $this->since)
             ->whereIn('user_id', $members)->count();
         $identified = DB::table('media_person')->where('created_at', '>=', $this->since)
-            ->whereIn('media_id', Media::accessibleBy($this->user)->select('media.id'))->count();
+            ->whereIn('media_id', $this->familyMedia()->select('media.id'))->count();
 
         $lines = array_values(array_filter([
             $voice->isNotEmpty() ? [
@@ -260,7 +269,7 @@ class FamilyNewsletterBuilder
             ->whereNotNull('portrait_path')
             ->when($this->user->person_id, fn ($q) => $q->where('people.id', '!=', $this->user->person_id))
             ->whereNotIn('people.id', $recent)
-            ->withCount(['media as photos_count' => fn ($q) => $q->accessibleBy($this->user)])
+            ->withCount(['media as photos_count' => fn ($q) => $q->accessibleBy($this->user)->exceptFriendsOnly()])
             ->get()
             ->filter(fn ($p) => $p->photos_count >= 3)
             ->values();
@@ -285,7 +294,7 @@ class FamilyNewsletterBuilder
             'photos_count' => $person->photos_count,
             'portrait' => $this->portraitUrl($person),
             'thumbs' => $this->thumbs(
-                Media::accessibleBy($this->user)->where('type', 'photo')
+                $this->familyMedia()->where('type', 'photo')
                     ->whereHas('people', fn ($p) => $p->where('people.id', $person->id))
                     ->orderByRaw('md5(media.id::text || ?)', [(string) $this->seed]),
                 3,
@@ -417,7 +426,7 @@ class FamilyNewsletterBuilder
     /** Une photo prise cette même semaine, une autre année. */
     private function yearsAgo(): ?array
     {
-        $media = Media::accessibleBy($this->user)
+        $media = $this->familyMedia()
             ->where('type', 'photo')
             ->whereNotNull('taken_at')
             ->whereRaw('EXTRACT(WEEK FROM taken_at) = ?', [(int) $this->now->format('W')])
@@ -444,14 +453,17 @@ class FamilyNewsletterBuilder
 
     private function pendingQuests(): ?array
     {
-        $count = count($this->quests->candidates($this->user));
+        // Questions du monde famille, quel que soit le cercle choisi dans l'en-tête.
+        $family = $this->user->circles()->firstWhere('kind', \App\Models\Household::KIND_FAMILY);
+        $viewer = $family ? $this->user->inCircle($family->id) : $this->user;
+        $count = count($this->quests->candidates($viewer));
 
         return $count > 0 ? ['key' => 'quests', 'count' => $count, 'url' => url('/dashboard')] : null;
     }
 
     private function numbers(): ?array
     {
-        $photos = Media::accessibleBy($this->user)->where('type', 'photo')->count();
+        $photos = $this->familyMedia()->where('type', 'photo')->count();
         if ($photos === 0) {
             return null;
         }
@@ -461,25 +473,16 @@ class FamilyNewsletterBuilder
             'photos' => $photos,
             'people' => Person::where('in_family_directory', true)->count(),
             'with_photos' => Person::where('in_family_directory', true)->whereNotNull('portrait_path')->count(),
-            'oldest' => Media::accessibleBy($this->user)->where('type', 'photo')->whereNotNull('taken_at')->min('taken_at'),
+            'oldest' => $this->familyMedia()->where('type', 'photo')->whereNotNull('taken_at')->min('taken_at'),
         ];
     }
 
     // ── Outils ─────────────────────────────────────────────────────────
 
-    /** @return list<string> réfs d'une rubrique dans les $n derniers envois */
-    private function recentRefs(string $key, int $n): array
+    /** Médias du monde famille que le destinataire peut voir (hors partages réservés aux amis). */
+    private function familyMedia()
     {
-        return $this->history->take($n)
-            ->flatMap(fn ($send) => collect($send->sections)->where('key', $key)->pluck('ref'))
-            ->filter()->values()->all();
-    }
-
-    private function thumbs($query, int $n): array
-    {
-        return $query->with('conversions')->limit($n)->get()
-            ->map(fn (Media $m) => $this->media->thumbnailUrl($m, ['small', 'thumbnail'], self::IMAGE_TTL_MINUTES, presigned: true))
-            ->values()->all();
+        return Media::accessibleBy($this->user)->exceptFriendsOnly();
     }
 
     private function portraitUrl(Person $person): ?string
@@ -522,29 +525,6 @@ class FamilyNewsletterBuilder
         return $person->gender === 'F' ? __('née en :year à :place', $values) : __('né en :year à :place', $values);
     }
 
-    private function shortName(Person $person): string
-    {
-        return strtok(trim($person->first_name ?: $person->name), ' ') ?: $person->name;
-    }
-
-    private function joinNames(array $names): string
-    {
-        $names = array_values(array_filter($names));
-
-        return count($names) < 2
-            ? implode('', $names)
-            : __(':names et :last', ['names' => implode(', ', array_slice($names, 0, -1)), 'last' => end($names)]);
-    }
-
-    private function dayLabel(Carbon $day, int $days): string
-    {
-        return match ($days) {
-            0 => __('aujourd\'hui'),
-            1 => __('demain'),
-            default => $day->locale(app()->getLocale())->translatedFormat('l j'),
-        };
-    }
-
     private function subject(array $sections): string
     {
         $by = collect($sections)->keyBy('key');
@@ -557,6 +537,11 @@ class FamilyNewsletterBuilder
         }
         if ($p = $by->get('person_of_week')) {
             $parts[] = __(':name à l\'honneur', ['name' => $p['first_name']]);
+        }
+
+        if ($parts === [] && ($f = $by->get('friends'))) {
+            // Seuls les amis ont du nouveau : l'objet le dit.
+            return \Illuminate\Support\Str::ucfirst(__('Cette semaine avec :circle : :topics', ['circle' => $f['circle'], 'topics' => $f['topic']]));
         }
 
         return $parts === []

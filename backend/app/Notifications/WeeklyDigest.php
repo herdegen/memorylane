@@ -23,8 +23,8 @@ class WeeklyDigest extends Notification implements ShouldQueue
         public int $mediaCount,
         public array $uploaderNames = [],
         public array $samples = [],
-        // Membres de la famille : la lettre du dimanche remplace l'e-mail, ce
-        // résumé ne part plus qu'en push.
+        // Membres d'un cercle (famille ou amis) : la lettre du dimanche
+        // remplace l'e-mail, ce résumé ne part plus qu'en push.
         public bool $mail = true,
     ) {}
 

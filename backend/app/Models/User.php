@@ -244,6 +244,19 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference
             ?? $circles->first();
     }
 
+    /**
+     * Copie du compte « placée » dans ce cercle (cercle courant changé en
+     * mémoire, rien n'est enregistré) : pour calculer ce qu'il y verrait
+     * (quêtes, photos du contexte) depuis une tâche de fond.
+     */
+    public function inCircle(string $householdId): static
+    {
+        $copy = clone $this;
+        $copy->setAttribute('current_household_id', $householdId);
+
+        return $copy;
+    }
+
     /** Mode d'affichage courant : celui du cercle courant, sinon de l'installation. */
     public function mode(): string
     {
@@ -302,6 +315,22 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference
     public function wantsNewsletter(): bool
     {
         return ($this->preferences['newsletter'] ?? true) !== false;
+    }
+
+    /**
+     * Édition de la lettre du dimanche reçue : « family » dès qu'il est dans
+     * un cercle familial (avec l'encart « Côté amis » s'il a aussi des amis),
+     * « friends » s'il n'est que dans des cercles d'amis, null sans cercle.
+     */
+    public function newsletterEdition(): ?string
+    {
+        $circles = $this->circles();
+
+        return match (true) {
+            $circles->contains('kind', Household::KIND_FAMILY) => Household::KIND_FAMILY,
+            $circles->contains('kind', Household::KIND_FRIENDS) => Household::KIND_FRIENDS,
+            default => null,
+        };
     }
 
     public function setPreference(string $key, mixed $value): void

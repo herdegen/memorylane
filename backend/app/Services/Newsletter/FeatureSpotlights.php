@@ -93,14 +93,67 @@ class FeatureSpotlights
     }
 
     /**
+     * Fonctionnalités mises en avant dans la lettre AMIS : ni arbre, ni
+     * généalogie, ni « famille » dans les textes — ce que vit un cercle
+     * d'amis (photos du cercle, souvenirs ensemble, réseau, carte…).
+     *
+     * @return array<string, array{title: string, text: string, url: string, cta: string}>
+     */
+    public static function friends(): array
+    {
+        // Textes déjà neutres de la liste famille, repris tels quels.
+        $neutral = array_intersect_key(self::all(), array_flip(['albums_identifies', 'import_drive', 'telephone', 'recherche']));
+
+        return [
+            'souvenirs_ensemble' => [
+                'title' => __('Vos souvenirs ensemble'),
+                'text' => __('Sur la fiche d’un ami, retrouvez toutes les photos où vous êtes tous les deux, de la première à la dernière, et racontez comment vous vous êtes connus.'),
+                'url' => '/people',
+                'cta' => __('Voir mes amis'),
+            ],
+            'qui_est_ce' => [
+                'title' => __('Le jeu « Qui est-ce ? »'),
+                'text' => __('Des visages attendent un nom sur les photos du cercle. Une carte à la fois, au téléphone comme sur ordinateur : chaque réponse aide tout le groupe.'),
+                'url' => '/quests/faces',
+                'cta' => __('Jouer'),
+            ],
+            'partage_cercle' => [
+                'title' => __('Partager vos photos avec le cercle'),
+                'text' => __('Dans la galerie, sélectionnez quelques photos et partagez-les avec le cercle : tous ses membres les voient aussitôt, et elles figureront dans la prochaine lettre.'),
+                'url' => '/media',
+                'cta' => __('Choisir des photos'),
+            ],
+            'memos_vocaux' => [
+                'title' => __('Racontez une photo à voix haute'),
+                'text' => __('Sur n’importe quelle photo, « Raconter cette photo » enregistre votre voix : qui était là, ce qui s’est passé. Vos amis pourront l’écouter.'),
+                'url' => '/media',
+                'cta' => __('Choisir une photo'),
+            ],
+            'reseau' => [
+                'title' => __('Le réseau de vos amis'),
+                'text' => __('Qui apparaît le plus souvent avec qui ? Le réseau dessine les liens tissés par les photos du cercle, et sa frise montre comment ils sont nés au fil des années.'),
+                'url' => '/network',
+                'cta' => __('Voir le réseau'),
+            ],
+            'carte' => [
+                'title' => __('Vos souvenirs sur la carte'),
+                'text' => __('Voyages, week-ends, soirées : les photos géolocalisées du cercle sur une carte. Survolez un endroit pour revoir tout ce qui s’y est passé.'),
+                'url' => '/map',
+                'cta' => __('Ouvrir la carte'),
+            ],
+        ] + $neutral;
+    }
+
+    /**
      * Prochaine fonctionnalité pour ce destinataire : la première jamais
      * montrée (ordre mélangé par $seed), sinon la plus anciennement montrée.
      *
      * @param  list<string>  $shownRecentFirst  clés déjà montrées, la plus récente d'abord
+     * @param  list<string>|null  $keys  liste à parcourir (défaut : celle de la lettre famille)
      */
-    public static function next(array $shownRecentFirst, int $seed): string
+    public static function next(array $shownRecentFirst, int $seed, ?array $keys = null): string
     {
-        $keys = array_keys(self::all());
+        $keys ??= array_keys(self::all());
         mt_srand($seed);
         shuffle($keys);
         mt_srand();

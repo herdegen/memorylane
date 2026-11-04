@@ -43,11 +43,13 @@ class WeeklyDigestTest extends TestCase
     }
 
     /**
-     * Un média partagé via un album public apparaît dans le digest des autres.
+     * Un média partagé via un album de cercle d'amis apparaît dans la lettre
+     * amis des autres membres (qui remplace pour eux l'ancien résumé).
      */
     public function test_digest_includes_media_shared_through_a_circle_album(): void
     {
         Notification::fake();
+        \Illuminate\Support\Facades\Mail::fake();
 
         $uploader = User::factory()->create(['name' => 'Paul Herdegen']);
         $grandma = User::factory()->create(['name' => 'Mamie Jeanne']);
@@ -62,18 +64,20 @@ class WeeklyDigestTest extends TestCase
             'name' => 'Vacances',
         ]);
         $album->media()->attach($media->id);
-        // Cercle d'amis : l'ancien résumé (la famille reçoit la lettre du dimanche,
-        // cf. FamilyNewsletterTest).
+        // Cercle d'amis : la lettre amis (cf. FriendsNewsletterTest ; la famille
+        // reçoit la lettre famille, cf. FamilyNewsletterTest).
         $circle = \App\Models\Household::factory()->create(['created_by' => $uploader->id, 'kind' => \App\Models\Household::KIND_FRIENDS]);
         $circle->members()->attach([$uploader->id, $grandma->id]);
         $album->households()->attach($circle->id, ['granted_by' => $uploader->id]);
 
         $this->artisan('memorylane:weekly-digest')->assertSuccessful();
 
-        Notification::assertSentTo($grandma, WeeklyDigest::class, function (WeeklyDigest $digest) {
-            return $digest->mediaCount === 1
-                && in_array('Paul', $digest->uploaderNames);
+        \Illuminate\Support\Facades\Mail::assertQueued(\App\Mail\FriendsNewsletterMail::class, function ($mail) use ($grandma) {
+            $photos = collect($mail->issue['sections'])->firstWhere('key', 'new_photos');
+
+            return $mail->hasTo($grandma->email) && $photos['count'] === 1 && $photos['uploaders'] === ['Paul'];
         });
+        Notification::assertNotSentTo($grandma, WeeklyDigest::class);
     }
 
     /**

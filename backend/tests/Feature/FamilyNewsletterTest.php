@@ -134,7 +134,7 @@ class FamilyNewsletterTest extends TestCase
         Notification::fake();
         $this->featuredPerson('Yves');
 
-        // Un compte des seuls cercles d'amis : l'ancien résumé, pas la lettre.
+        // Un compte des seuls cercles d'amis : la lettre amis, pas la lettre famille.
         $friendsCircle = Household::create(['name' => 'Amis', 'kind' => Household::KIND_FRIENDS, 'invite_policy' => 'admin', 'created_by' => $this->me->id]);
         $friend = User::factory()->create(['name' => 'Sarah']);
         $friendsCircle->addMember($friend, $this->me);
@@ -148,7 +148,9 @@ class FamilyNewsletterTest extends TestCase
         Mail::assertQueued(FamilyNewsletterMail::class, fn ($m) => $m->hasTo($this->me->email));
         Mail::assertNotQueued(FamilyNewsletterMail::class, fn ($m) => $m->hasTo($this->cousin->email));
         Mail::assertNotQueued(FamilyNewsletterMail::class, fn ($m) => $m->hasTo($friend->email));
-        Notification::assertSentTo($friend, WeeklyDigest::class);
+        Mail::assertQueued(\App\Mail\FriendsNewsletterMail::class, fn ($m) => $m->hasTo($friend->email));
+        // Plus d'ancien résumé par mail pour les amis (le push reste, s'il est activé).
+        Notification::assertNotSentTo($friend, WeeklyDigest::class);
         $this->assertSame(1, NewsletterSend::where('user_id', $this->me->id)->count());
     }
 

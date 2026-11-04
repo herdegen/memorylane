@@ -266,13 +266,7 @@ class Media extends Model
             // Famille : tout ce que le compte voit, SAUF ce qui n'est partagé
             // qu'avec des cercles d'amis (album ou partage direct) — les deux
             // mondes sont séparés dans les deux sens.
-            $friendsOnly = fn ($q) => $q->whereHas('households', fn ($h) => $h->where('kind', Household::KIND_FRIENDS))
-                ->whereDoesntHave('households', fn ($h) => $h->where('kind', Household::KIND_FAMILY));
-
-            return $query
-                ->whereNot(fn ($w) => $w->whereHas('albums', $friendsOnly)
-                    ->whereDoesntHave('albums', fn ($a) => $a->whereNot($friendsOnly)))
-                ->whereNot($friendsOnly);
+            return $query->exceptFriendsOnly();
         }
 
         $friendIds = $circle->people()
@@ -286,6 +280,22 @@ class Media extends Model
                     ->whereHas('households', fn ($h) => $h->whereKey($circle->id))
                     ->orWhereHas('media.people', fn ($p) => $p->whereIn('people.id', $friendIds))));
         });
+    }
+
+    /**
+     * Monde « famille » : écarte les médias partagés UNIQUEMENT avec des
+     * cercles d'amis (partage direct, ou seulement dans des albums réservés
+     * aux amis). À combiner avec accessibleBy (cf. inContext, lettre famille).
+     */
+    public function scopeExceptFriendsOnly($query)
+    {
+        $friendsOnly = fn ($q) => $q->whereHas('households', fn ($h) => $h->where('kind', Household::KIND_FRIENDS))
+            ->whereDoesntHave('households', fn ($h) => $h->where('kind', Household::KIND_FAMILY));
+
+        return $query
+            ->whereNot(fn ($w) => $w->whereHas('albums', $friendsOnly)
+                ->whereDoesntHave('albums', fn ($a) => $a->whereNot($friendsOnly)))
+            ->whereNot($friendsOnly);
     }
 
     /**

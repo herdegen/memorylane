@@ -1,12 +1,14 @@
 <template>
-  <!-- Lettre du dimanche (e-mail hebdomadaire de la famille) -->
+  <!-- Lettre du dimanche (e-mail hebdomadaire, édition famille ou amis) -->
   <div class="bg-white overflow-hidden shadow-xs sm:rounded-lg">
     <div class="p-6 space-y-4">
       <h3 class="text-lg font-semibold text-surface-900">{{ $t('E-mails') }}</h3>
       <ToggleSwitch
         v-model="enabled"
         :label="$t('La lettre du dimanche')"
-        :help="$t('Chaque dimanche soir : les nouvelles photos, les anniversaires de la semaine, la personne à l\'honneur et une découverte.')"
+        :help="friends
+          ? $t('Le dimanche soir, quand vos cercles d’amis ont du nouveau : les nouvelles photos, les anniversaires et les souvenirs de la semaine.')
+          : $t('Chaque dimanche soir : les nouvelles photos, les anniversaires de la semaine, la personne à l\'honneur et une découverte.')"
         :disabled="saving"
         @update:modelValue="save"
       />
@@ -23,6 +25,8 @@ import { t } from '@/i18n';
 
 const props = defineProps({
   initial: { type: Boolean, default: true },
+  // Édition amis (membre des seuls cercles d'amis) : pas de « personne à l'honneur ».
+  friends: { type: Boolean, default: false },
 });
 
 const toast = useToast();

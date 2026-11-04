@@ -45,7 +45,8 @@
     </td></tr>
 
 @foreach ($issue['sections'] as $s)
-    <tr><td style="padding:0 0 14px;"><div style="{{ $card }}">
+    {{-- L'encart « Côté amis » se distingue des rubriques de la famille par un fond plus doux. --}}
+    <tr><td style="padding:0 0 14px;"><div style="{{ $s['key'] === 'friends' ? $card.' background:#fbf6ee;' : $card }}">
     @if ($s['key'] === 'new_photos')
             <p style="{{ $kicker }}">{{ __('Nouveautés') }}</p>
             <p style="{{ $h2 }}">{{ trans_choice(':count nouvelle photo cette semaine|:count nouvelles photos cette semaine', $s['count']) }}</p>
@@ -84,6 +85,21 @@
                 </tr>
             @endforeach
             </table>
+
+        @elseif ($s['key'] === 'friends')
+            <p style="{{ $kicker }}">{{ __('Côté amis') }}</p>
+            <p style="{{ $h2 }} font-size:19px;">{{ \Illuminate\Support\Str::ucfirst($s['photos'] ? trans_choice(':circle : :count nouvelle photo|:circle : :count nouvelles photos', $s['photos'], ['circle' => $s['circle']]) : __('Du nouveau avec :circle', ['circle' => $s['circle']])) }}</p>
+            @include('mail.partials.thumbs', ['thumbs' => $s['thumbs']])
+            @if ($s['tagged'])
+                <p style="{{ $p }} margin-bottom:6px;">{{ trans_choice('On vous a identifié sur :count photo du cercle|On vous a identifié sur :count photos du cercle', $s['tagged']) }}.</p>
+            @endif
+            @if ($s['birthdays'])
+                <p style="{{ $p }} margin-bottom:6px;">🎂 {{ trans_choice('Anniversaire à venir : :list|Anniversaires à venir : :list', count($s['birthdays']), ['list' => implode(', ', array_map(fn ($b) => $b['name'].' ('.$b['when'].')', $s['birthdays']))]) }}</p>
+            @endif
+            @if ($s['memory_years'])
+                <p style="{{ $p }} margin-bottom:6px;">{{ trans_choice('Un souvenir d’il y a :count an, cette semaine.|Un souvenir d’il y a :count ans, cette semaine.', $s['memory_years']) }}</p>
+            @endif
+            <p style="margin:12px 0 0;"><a href="{{ $s['url'] }}" style="{{ $link }}">{{ __('Voir les photos du cercle') }} →</a></p>
 
         @elseif ($s['key'] === 'person_of_week')
             <p style="{{ $kicker }}">{{ __('La personne de la semaine') }}</p>

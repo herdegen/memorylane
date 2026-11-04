@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Mail\FamilyNewsletterMail;
+use App\Mail\FriendsNewsletterMail;
 use App\Models\Household;
 use App\Models\Media;
 use App\Models\NewsletterSend;
@@ -10,15 +11,21 @@ use App\Models\User;
 use App\Notifications\WeeklyDigest;
 use App\Services\MediaService;
 use App\Services\Newsletter\FamilyNewsletterBuilder;
+use App\Services\Newsletter\FriendsNewsletterBuilder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Mail;
 
 /**
- * Le dimanche soir :
- *  - membres de la famille → la lettre du dimanche (FamilyNewsletterBuilder),
- *    sauf s'ils s'en sont désabonnés ; push « résumé » en plus si activé ;
- *  - comptes des seuls cercles d'amis → l'ancien résumé des nouvelles photos
- *    (en attendant leur propre édition).
+ * Le dimanche soir, la lettre du dimanche (sauf désabonnement, une seule
+ * préférence pour les deux éditions) :
+ *  - membres d'un cercle familial → l'édition famille (FamilyNewsletterBuilder),
+ *    avec un encart « Côté amis » s'ils sont aussi dans un cercle d'amis qui
+ *    a du nouveau ;
+ *  - membres des seuls cercles d'amis → l'édition amis (FriendsNewsletterBuilder),
+ *    seulement s'il y a du nouveau dans leurs cercles ;
+ *  - push « résumé » en plus pour les membres de cercles qui l'ont activé ;
+ *  - comptes sans aucun cercle → l'ancien résumé des nouvelles photos.
+ * Rien de neuf : rien ne part, rien n'est enregistré.
  */
 class SendWeeklyDigest extends Command
 {
@@ -26,9 +33,9 @@ class SendWeeklyDigest extends Command
         {--dry-run : Affiche les sujets sans rien envoyer ni enregistrer}
         {--user= : N\'envoyer qu\'à ce compte (adresse e-mail)}';
 
-    protected $description = 'Envoie la lettre du dimanche (famille) et le résumé hebdomadaire (amis)';
+    protected $description = 'Envoie la lettre du dimanche (éditions famille et amis) et le résumé hebdomadaire';
 
-    public function handle(MediaService $mediaService, FamilyNewsletterBuilder $builder): int
+    public function handle(MediaService $mediaService, FamilyNewsletterBuilder $family, FriendsNewsletterBuilder $friends): int
     {
         $dry = (bool) $this->option('dry-run');
         $sent = 0;
@@ -36,37 +43,44 @@ class SendWeeklyDigest extends Command
         User::realPeople()
             ->where('email', 'not like', '%.invalid')
             ->when($this->option('user'), fn ($q, $email) => $q->where('email', $email))
-            ->each(function (User $user) use ($mediaService, $builder, $dry, &$sent) {
-                $family = $user->circles()->contains('kind', Household::KIND_FAMILY);
+            ->each(function (User $user) use ($mediaService, $family, $friends, $dry, &$sent) {
+                $edition = $user->newsletterEdition();
 
-                if ($family) {
-                    if ($user->wantsNewsletter()) {
-                        $issue = $builder->build($user);
-                        if ($issue) {
-                            $this->line(($dry ? '[aperçu] ' : '')."{$user->name} : {$issue['subject']}");
-                            if (! $dry) {
-                                Mail::to($user)->send(new FamilyNewsletterMail($user, $issue));
-                                NewsletterSend::create([
-                                    'user_id' => $user->id,
-                                    'edition' => FamilyNewsletterBuilder::EDITION,
-                                    'sections' => $issue['log'],
-                                    'subject' => $issue['subject'],
-                                    'sent_at' => now(),
-                                ]);
-                                $sent++;
-                            }
-                        }
-                    }
-                    // Push « résumé » (indépendant de l'e-mail) s'il y a du nouveau.
-                    if (! $dry && $user->wantsPush('digest')) {
-                        $this->digest($user, $mediaService, mail: false);
+                if ($edition === null) {
+                    // Sans cercle : l'ancien résumé (mail, et push s'il est activé).
+                    if (! $dry && $this->digest($user, $mediaService, mail: true)) {
+                        $sent++;
                     }
 
                     return;
                 }
 
-                if (! $dry && $this->digest($user, $mediaService, mail: true)) {
-                    $sent++;
+                if ($user->wantsNewsletter()) {
+                    $inFamily = $edition === Household::KIND_FAMILY;
+                    [$builder, $mail] = $inFamily
+                        ? [$family, FamilyNewsletterMail::class]
+                        : [$friends, FriendsNewsletterMail::class];
+                    $issue = $builder->build($user);
+                    if ($issue) {
+                        $label = $inFamily ? 'famille' : 'amis';
+                        $this->line(($dry ? '[aperçu] ' : '')."{$user->name} ({$label}) : {$issue['subject']}");
+                        if (! $dry) {
+                            Mail::to($user)->send(new $mail($user, $issue));
+                            NewsletterSend::create([
+                                'user_id' => $user->id,
+                                'edition' => $builder::EDITION,
+                                'sections' => $issue['log'],
+                                'subject' => $issue['subject'],
+                                'sent_at' => now(),
+                            ]);
+                            $sent++;
+                        }
+                    }
+                }
+
+                // Push « résumé » (indépendant de l'e-mail) s'il y a du nouveau.
+                if (! $dry && $user->wantsPush('digest')) {
+                    $this->digest($user, $mediaService, mail: false);
                 }
             });
 
