@@ -112,8 +112,9 @@
             type="button"
             role="switch"
             :aria-checked="heatmapEnabled"
+            :disabled="timeMode"
             @click="toggleHeatmap"
-            class="w-full flex items-center justify-between px-3 py-2 border border-surface-300 rounded-lg hover:bg-surface-50 transition-colors"
+            class="w-full flex items-center justify-between px-3 py-2 border border-surface-300 rounded-lg hover:bg-surface-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span class="text-sm text-surface-700">🔥 {{ isFriends ? $t('Où vivent mes amis') : $t('Où vit la famille') }}</span>
             <span
@@ -133,6 +134,36 @@
           <p v-if="heatmapEnabled" class="mt-1 text-xs text-surface-500">
             {{ $t('Positions approximatives (~1 km), jamais les adresses exactes.') }}
           </p>
+
+          <!-- « Dans le temps » (famille) : la heatmap remonte le temps, des
+               lieux de naissance aux lieux de vie et de décès. -->
+          <template v-if="!isFriends">
+            <button
+              type="button"
+              role="switch"
+              :aria-checked="timeMode"
+              @click="toggleTimeMode"
+              class="mt-2 w-full flex items-center justify-between px-3 py-2 border border-surface-300 rounded-lg hover:bg-surface-50 transition-colors"
+            >
+              <span class="text-sm text-surface-700">⏳ {{ $t('Dans le temps') }}</span>
+              <span
+                :class="[
+                  'relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors',
+                  timeMode ? 'bg-brand-600' : 'bg-surface-300'
+                ]"
+              >
+                <span
+                  :class="[
+                    'absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform',
+                    timeMode ? 'translate-x-4.5' : 'translate-x-0.5'
+                  ]"
+                ></span>
+              </span>
+            </button>
+            <p class="mt-1 text-xs text-surface-500">
+              {{ $t('Naissances, lieux de vie et décès : chacun change de lieu à mi-chemin entre deux dates connues.') }}
+            </p>
+          </template>
         </div>
 
         <!-- Media count -->
@@ -166,6 +197,9 @@
            pour que le tiroir et les menus restent au-dessus de la carte. -->
       <div class="flex-1 relative isolate">
         <div ref="mapContainer" class="w-full h-full"></div>
+
+        <!-- « Dans le temps » : frise, lecture et calques animés -->
+        <FamilyTimelinePlayer v-if="timeMode && leafletMap" :map="leafletMap" @close="exitTimeMode" />
 
         <!-- Ouverture du panneau des filtres (téléphone) — en haut à droite,
              le zoom Leaflet occupe le coin gauche. -->
@@ -220,11 +254,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, shallowRef, markRaw, computed, onMounted, onUnmounted } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PeopleSegments from '@/Components/PeopleSegments.vue';
 import BottomSheet from '@/Components/BottomSheet.vue';
+import FamilyTimelinePlayer from '@/Components/FamilyTimelinePlayer.vue';
 import { useCircle } from '@/Composables/useCircle';
 import { formatDate } from '@/utils/format';
 import { escapeHtml } from '@/utils/html';
@@ -263,6 +298,12 @@ let heatLayer = null;
 const heatmapEnabled = ref(false);
 let heatPoints = null; // cache : un seul fetch par visite
 
+// Mode « Dans le temps » : remplace la heatmap et les vignettes le temps de
+// la lecture ; en sortant, on retrouve la carte telle qu'on l'avait laissée.
+const timeMode = ref(false);
+const leafletMap = shallowRef(null); // la carte, pour le composant du mode
+let beforeTimeMode = null;
+
 // Data
 const geolocatedMedia = ref([]);
 const geolocatedAlbums = ref([]);
@@ -288,8 +329,8 @@ const activeFilterCount = computed(() =>
   + (filters.value.search ? 1 : 0)
   + selectedTags.value.length
   // Couche « où vit la famille » : active par défaut, la pastille signale
-  // seulement qu'on l'a coupée.
-  + (heatmapEnabled.value ? 0 : 1)
+  // seulement qu'on l'a coupée (ou remplacée par « Dans le temps »).
+  + (heatmapEnabled.value || timeMode.value ? 0 : 1)
   + (selectedLocation.value ? 1 : 0));
 
 // Compteur du panneau : médias (et albums) placés sur la carte.
@@ -313,6 +354,7 @@ onMounted(async () => {
 
   // Create markers layer
   markersLayer = L.layerGroup().addTo(map);
+  leafletMap.value = markRaw(map);
 
   // Tags (filtres) et médias géolocalisés : indépendants, chargés en parallèle.
   await Promise.all([loadTags(), loadGeolocatedMedia()]);
@@ -545,8 +587,8 @@ function updateMarkers() {
     bounds.push([group[0].lat, group[0].lng]);
   }
 
-  // Fit map to show all markers
-  if (bounds.length > 0) {
+  // Fit map to show all markers (pas pendant « Dans le temps », qui a son cadrage)
+  if (bounds.length > 0 && !timeMode.value) {
     map.fitBounds(bounds, { padding: [50, 50] });
   }
 }
@@ -556,6 +598,11 @@ function updateMarkers() {
 // Activée par défaut. Le calque est recréé à chaque affichage : leaflet.heat
 // ne se réaffiche pas correctement une fois retiré puis réajouté.
 async function showHeatmap() {
+  // Pendant « Dans le temps », la couche reviendra en quittant le mode.
+  if (timeMode.value) {
+    if (beforeTimeMode) beforeTimeMode.heat = true;
+    return;
+  }
   heatmapEnabled.value = true;
 
   if (!heatPoints) {
@@ -601,6 +648,30 @@ function hideHeatmap() {
 }
 
 const toggleHeatmap = () => (heatmapEnabled.value ? hideHeatmap() : showHeatmap());
+
+// « Dans le temps » : la couche actuelle et les vignettes s'effacent, le
+// composant prend la carte (cadrage, calques animés, frise).
+function enterTimeMode() {
+  if (timeMode.value || !map) return;
+  beforeTimeMode = { heat: heatmapEnabled.value, center: map.getCenter(), zoom: map.getZoom() };
+  hideHeatmap();
+  map.removeLayer(markersLayer);
+  timeMode.value = true;
+  // Téléphone : le tiroir se referme pour montrer la carte et la frise.
+  if (isMobile()) filtersOpen.value = false;
+}
+
+function exitTimeMode() {
+  if (!timeMode.value) return;
+  timeMode.value = false;
+  if (!map) return;
+  markersLayer.addTo(map);
+  if (beforeTimeMode?.heat) showHeatmap();
+  if (beforeTimeMode) map.setView(beforeTimeMode.center, beforeTimeMode.zoom);
+  beforeTimeMode = null;
+}
+
+const toggleTimeMode = () => (timeMode.value ? exitTimeMode() : enterTimeMode());
 
 // Toggle tag filter
 function toggleTag(tagId) {

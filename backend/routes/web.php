@@ -280,6 +280,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::get('/search', [MapController::class, 'searchLocation'])->name('searchLocation');
         Route::get('/nearby', [MapController::class, 'getNearbyMedia'])->name('nearby');
         Route::get('/heatmap', [MapController::class, 'heatmap'])->name('heatmap');
+        Route::get('/heatmap/timeline', [MapController::class, 'heatmapTimeline'])->name('heatmapTimeline');
     });
 
     // Album routes

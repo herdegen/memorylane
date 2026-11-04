@@ -9,7 +9,10 @@ use Illuminate\Support\Facades\Log;
 /**
  * Géocodage des lieux en texte libre (« Croix, Nord », « Église Saint-Pierre,
  * Lyon ») via Nominatim (OpenStreetMap), avec cache durable : un lieu donné
- * n'est résolu qu'une fois. Sert au récit de vie (déplacements sur carte).
+ * n'est résolu qu'une fois. Sert au récit de vie (déplacements sur carte) et
+ * à « la famille dans le temps » (carte), qui ne lisent que le cache : les
+ * appels réseau partent en tâche de fond (EnrichTimelinePlaces,
+ * people:geocode-places).
  */
 class GeocodeService
 {
@@ -24,8 +27,26 @@ class GeocodeService
     private const HIT_TTL_DAYS = 365;
     private const MISS_TTL_DAYS = 7;
 
+    /** Panne de Nominatim (réseau, 5xx, refus) : on réessaie dans l'heure. */
+    private const DOWN_TTL_HOURS = 1;
+
     /** Politesse Nominatim : au plus une requête réseau par seconde. */
     private static float $lastFetchAt = 0.0;
+
+    /** Clé de cache d'un lieu en texte (insensible à la casse). */
+    public static function placeKey(string $place): string
+    {
+        return 'geocode:' . md5(mb_strtolower(trim($place)));
+    }
+
+    /**
+     * Libellé de lieu nettoyé : les lieux GEDCOM du type « Croix, , , , »
+     * perdent leurs virgules vides. Même forme partout, donc même clé de cache.
+     */
+    public static function cleanPlace(?string $place): string
+    {
+        return trim(preg_replace('/(\s*,\s*)+/', ', ', (string) $place), " \t,");
+    }
 
     /**
      * Vrai si le lieu a déjà été résolu (hit ou raté) : coordinatesFor() ne
@@ -35,7 +56,46 @@ class GeocodeService
     {
         $place = trim((string) $place);
 
-        return mb_strlen($place) < 3 || Cache::has('geocode:' . md5(mb_strtolower($place)));
+        return mb_strlen($place) < 3 || Cache::has(self::placeKey($place));
+    }
+
+    /**
+     * Coordonnées de plusieurs lieux d'après le cache SEUL (aucun appel
+     * réseau) : [lieu => coordonnées]. Les lieux introuvables ou pas encore
+     * résolus sont absents ; ceux qui restent à résoudre sont ajoutés à
+     * $pending (les ratés connus n'y sont pas).
+     *
+     * @param  iterable<string>  $places
+     * @param  array<int, string>|null  $pending
+     * @return array<string, array{latitude: float, longitude: float}>
+     */
+    public function cachedCoordinatesMany(iterable $places, ?array &$pending = null): array
+    {
+        // Une clé peut servir à plusieurs saisies (« Paris » et « paris »).
+        $keys = [];
+        foreach ($places as $place) {
+            $place = trim((string) $place);
+            if (mb_strlen($place) >= 3) {
+                $keys[self::placeKey($place)][$place] = true;
+            }
+        }
+        $pending = [];
+        if ($keys === []) {
+            return [];
+        }
+
+        $found = [];
+        foreach (Cache::many(array_keys($keys)) as $key => $value) {
+            if (is_array($value)) {
+                foreach (array_keys($keys[$key]) as $place) {
+                    $found[$place] = $value;
+                }
+            } elseif ($value === null) {
+                $pending[] = (string) array_key_first($keys[$key]);
+            }
+        }
+
+        return $found;
     }
 
     /**
@@ -45,26 +105,126 @@ class GeocodeService
      */
     public function coordinatesFor(?string $place): ?array
     {
+        $result = $this->lookup($place);
+
+        return is_array($result) ? $result : null;
+    }
+
+    /**
+     * Comme coordinatesFor(), mais distingue « introuvable » (null, mémorisé
+     * MISS_TTL_DAYS jours : pas de nouvel essai à chaque passage) de
+     * « Nominatim injoignable » (false, mémorisé une heure seulement).
+     *
+     * Les saisies sont variées (« Gournay-sur-Marne, 93033, Seine-Saint-Denis,
+     * Ile-de-France, France », « Paris 10e arrondissement, France ») : un lieu
+     * introuvable tel quel est retenté sous des formes simplifiées (sans les
+     * codes, puis « ville, pays ») avant d'abandonner.
+     *
+     * @param  bool  $retryMiss  retenter aussi un lieu déjà noté introuvable
+     * @return array{latitude: float, longitude: float}|null|false
+     */
+    public function lookup(?string $place, bool $retryMiss = false): array|null|false
+    {
         $place = trim((string) $place);
-        if ($place === '' || mb_strlen($place) < 3) {
+        if (mb_strlen($place) < 3) {
             return null;
         }
 
-        $key = 'geocode:' . md5(mb_strtolower($place));
-
+        $key = self::placeKey($place);
         $cached = Cache::get($key);
-        if ($cached !== null) {
-            return $cached === 'miss' ? null : $cached;
+        if (is_array($cached)) {
+            return $cached;
+        }
+        if ($cached !== null && ! $retryMiss) {
+            return null;
         }
 
-        $result = $this->fetch($place);
-        Cache::put(
-            $key,
-            $result ?? 'miss',
-            now()->addDays($result ? self::HIT_TTL_DAYS : self::MISS_TTL_DAYS),
-        );
+        $result = null;
+        foreach (self::placeVariants($place) as $i => $variant) {
+            // Forme simplifiée déjà connue (autre saisie du même lieu) : pas d'appel.
+            $known = $i > 0 ? Cache::get(self::placeKey($variant)) : null;
+            if (is_array($known)) {
+                $result = $known;
+                break;
+            }
+            if ($known !== null && ! $retryMiss) {
+                continue;
+            }
+
+            $result = $this->fetch($variant);
+            if ($result === false) {
+                Cache::put($key, 'miss', now()->addHours(self::DOWN_TTL_HOURS));
+
+                return false;
+            }
+            if ($i > 0) {
+                $this->remember(self::placeKey($variant), $result);
+            }
+            if ($result) {
+                break;
+            }
+        }
+
+        $this->remember($key, $result);
 
         return $result;
+    }
+
+    /** Un vrai résultat est gardé un an, un raté une semaine. */
+    private function remember(string $key, ?array $result): void
+    {
+        Cache::put($key, $result ?? 'miss', now()->addDays($result ? self::HIT_TTL_DAYS : self::MISS_TTL_DAYS));
+    }
+
+    /**
+     * Formes d'un lieu à essayer, de la plus précise à la plus simple : tel
+     * quel ; sans les segments numériques (codes postaux, INSEE) ; puis la
+     * ville seule (sans code postal ni arrondissement) suivie du pays — le
+     * dernier segment. Sans doublon.
+     *
+     * @return list<string>
+     */
+    public static function placeVariants(string $place): array
+    {
+        $parts = array_values(array_filter(array_map('trim', explode(',', $place)), fn ($p) => $p !== ''));
+        $named = array_values(array_filter($parts, fn ($p) => ! preg_match('/^[\d\s]+$/u', $p)));
+
+        $variants = [trim($place), implode(', ', $named)];
+        if ($named !== []) {
+            $city = self::bareCity($named[0]);
+            $variants[] = count($named) > 1 ? $city . ', ' . end($named) : $city;
+        }
+
+        $unique = [];
+        foreach ($variants as $variant) {
+            $variant = trim($variant, " \t,");
+            if (mb_strlen($variant) >= 3) {
+                $unique[mb_strtolower($variant)] ??= $variant;
+            }
+        }
+
+        return array_values($unique);
+    }
+
+    /** « 75010 Paris » ou « Paris 10e arrondissement » → « Paris ». */
+    private static function bareCity(string $segment): string
+    {
+        $city = preg_replace('/\b\d{4,5}\b/u', '', $segment);
+        $city = preg_replace('/\s+\d{1,2}\s*(?:e|er|ème|eme|è)(?:\s.*)?$/iu', '', $city);
+        $city = preg_replace('/\s+(?:arrondissement|arr\.?)(?:\s.*)?$/iu', '', $city);
+
+        return trim(preg_replace('/\s+/u', ' ', $city), " \t-");
+    }
+
+    /** Pause entre deux appels Nominatim (1 req/s au plus, politique d'usage). */
+    private function throttle(): void
+    {
+        $interval = (float) config('memorylane.nominatim_interval', 1.1);
+        $elapsed = microtime(true) - self::$lastFetchAt;
+        if ($elapsed < $interval) {
+            usleep((int) (($interval - $elapsed) * 1_000_000));
+        }
+        self::$lastFetchAt = microtime(true);
     }
 
     /**
@@ -184,11 +344,7 @@ class GeocodeService
     private function fetchReverse(float $lat, float $lng): ?string
     {
         try {
-            $elapsed = microtime(true) - self::$lastFetchAt;
-            if ($elapsed < 1.1) {
-                usleep((int) ((1.1 - $elapsed) * 1_000_000));
-            }
-            self::$lastFetchAt = microtime(true);
+            $this->throttle();
 
             $response = Http::withHeaders([
                 'User-Agent' => 'MemoryLane/1.3.0 (family media hub)',
@@ -220,17 +376,14 @@ class GeocodeService
     }
 
     /**
-     * @return array{latitude: float, longitude: float}|null
+     * @return array{latitude: float, longitude: float}|null|false
+     *         null = introuvable ; false = service injoignable (réseau, 5xx, 429…)
      */
-    private function fetch(string $place): ?array
+    private function fetch(string $place): array|null|false
     {
         try {
             // Rythme max 1 req/s (politique d'usage Nominatim).
-            $elapsed = microtime(true) - self::$lastFetchAt;
-            if ($elapsed < 1.1) {
-                usleep((int) ((1.1 - $elapsed) * 1_000_000));
-            }
-            self::$lastFetchAt = microtime(true);
+            $this->throttle();
 
             $response = Http::withHeaders([
                 'User-Agent' => 'MemoryLane/1.3.0 (family media hub)',
@@ -240,8 +393,13 @@ class GeocodeService
                 'limit' => 1,
             ]);
 
-            $first = $response->ok() ? ($response->json()[0] ?? null) : null;
-            if (! $first || ! isset($first['lat'], $first['lon'])) {
+            if (! $response->ok()) {
+                Log::warning('GeocodeService: Nominatim indisponible', ['place' => $place, 'status' => $response->status()]);
+
+                return false;
+            }
+            $first = $response->json()[0] ?? null;
+            if (! is_array($first) || ! isset($first['lat'], $first['lon'])) {
                 return null;
             }
 
@@ -252,7 +410,7 @@ class GeocodeService
         } catch (\Throwable $e) {
             Log::warning('GeocodeService: échec Nominatim', ['place' => $place, 'error' => $e->getMessage()]);
 
-            return null;
+            return false;
         }
     }
 }

@@ -9,6 +9,10 @@ return [
     */
     'default_mode' => env('MEMORYLANE_MODE', 'family') === 'friends' ? 'friends' : 'family',
 
+    // Géocodage Nominatim (OpenStreetMap) : au plus une requête par seconde
+    // (politique d'usage). Intervalle minimal entre deux appels, en secondes.
+    'nominatim_interval' => 1.1,
+
     // Reconnaissance de visages.
     'faces' => [
         // Association automatique d'un visage à une personne (sans humain).

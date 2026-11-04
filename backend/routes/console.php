@@ -45,3 +45,9 @@ Schedule::command('queue:prune-failed --hours=720')->weeklyOn(1, '04:30');
 // Portraits stockés (avatars) : filet de sécurité nocturne, sans effet pour
 // les fiches dont la photo/visage source n'a pas changé.
 Schedule::command('people:refresh-portraits')->dailyAt('04:30')->timezone('Europe/Paris')->withoutOverlapping();
+
+// Lieux de naissance, de décès et de vie des fiches familiales : géocodés
+// en tâche de fond (Nominatim, 1 req/s) pour « la famille dans le temps »
+// sur la carte, qui ne lit que le cache. Les introuvables ne sont retentés
+// qu'au bout d'une semaine.
+Schedule::command('people:geocode-places')->dailyAt('05:10')->timezone('Europe/Paris')->withoutOverlapping();

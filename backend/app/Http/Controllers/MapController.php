@@ -3,8 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Album;
+use App\Models\Household;
 use App\Models\Media;
 use App\Models\Person;
+use App\Models\User;
+use App\Services\FamilyTimelineService;
+use App\Services\GenealogyService;
 use App\Services\MediaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -129,21 +133,12 @@ class MapController extends Controller
         // familial) ou « Où vivent mes amis » (fiches du cercle d'amis).
         // Toujours agrégé à ~1 km, sans nom ni identifiant.
         $user = auth()->user();
-        $friends = $user->mode() === \App\Models\Household::KIND_FRIENDS;
+        $friends = $user->mode() === Household::KIND_FRIENDS;
         if (! $friends && ! $user->canSeeFamilyDirectory()) {
             return response()->json(['points' => []]);
         }
 
-        // Famille : seulement SA famille (parents par le sang et leurs
-        // conjoints, plus sa propre belle-famille, cf. GenealogyService::
-        // familyOf) — pas la belle-famille des autres. Sans fiche « moi »,
-        // pas de famille définie.
-        $familyIds = ! $friends && $user->person_id
-            ? app(\App\Services\GenealogyService::class)->familyOf($user->person_id)
-            : [];
-
-        $points = Person::inContext($user)
-            ->when(! $friends, fn ($q) => $q->where('in_family_directory', true)->whereIn('people.id', $familyIds))
+        $points = ($friends ? Person::inContext($user) : $this->familyPeople($user))
             ->whereNotNull('address_latitude')
             ->whereNotNull('address_longitude')
             ->get(['address_latitude', 'address_longitude'])
@@ -158,6 +153,46 @@ class MapController extends Controller
             ->values();
 
         return response()->json(['points' => $points]);
+    }
+
+    /**
+     * « La famille dans le temps » : trajectoires anonymes (naissance, lieux
+     * de vie datés, décès, adresse actuelle) pour la heatmap animée de la
+     * carte — voir FamilyTimelineService. Même portée et mêmes droits que
+     * « Où vit la famille » : sa famille seulement, rien en mode amis ni
+     * sans fiche « moi ». Les lieux en texte ne sont lus que dans le cache
+     * du géocodage (people:geocode-places les résout chaque nuit).
+     */
+    public function heatmapTimeline(FamilyTimelineService $timeline)
+    {
+        $user = auth()->user();
+        if ($user->mode() === Household::KIND_FRIENDS || ! $user->canSeeFamilyDirectory() || ! $user->person_id) {
+            return response()->json(['tracks' => [], 'range' => null, 'pending_places' => 0]);
+        }
+
+        $people = $this->familyPeople($user)
+            ->with(['lifeEvents' => fn ($q) => $q->where('type', 'residence')
+                ->select(['id', 'person_id', 'type', 'place', 'latitude', 'longitude', 'event_date', 'end_date'])])
+            ->get(['people.id', 'birth_date', 'birth_place', 'death_date', 'death_place', 'address_latitude', 'address_longitude']);
+
+        return response()->json($timeline->build($people));
+    }
+
+    /**
+     * Fiches de SA famille (parents par le sang et leurs conjoints, plus sa
+     * propre belle-famille, cf. GenealogyService::familyOf — pas la
+     * belle-famille des autres), dans le répertoire familial. Sans fiche
+     * « moi », pas de famille définie : aucune fiche.
+     */
+    private function familyPeople(User $user)
+    {
+        $familyIds = $user->person_id
+            ? app(GenealogyService::class)->familyOf($user->person_id)
+            : [];
+
+        return Person::inContext($user)
+            ->where('in_family_directory', true)
+            ->whereIn('people.id', $familyIds);
     }
 
     /** Adresses à moins de cette distance : un même foyer (même adresse saisie avec ou sans numéro). */

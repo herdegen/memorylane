@@ -673,7 +673,7 @@ class PersonController extends Controller
             }
             // Lieux GEDCOM du type « Croix, , , , » : virgules vides nettoyées.
             if (! empty($item['place'])) {
-                $item['place'] = trim(preg_replace('/(\s*,\s*)+/', ', ', $item['place']), " \t,");
+                $item['place'] = \App\Services\GeocodeService::cleanPlace($item['place']);
             }
             if (empty($item['latitude']) && ! empty($item['place'])) {
                 if (! $geocoder->isResolved($item['place'])) {
