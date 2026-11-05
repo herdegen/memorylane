@@ -48,7 +48,7 @@
           v-if="timeUrl"
           :href="timeUrl"
           class="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur text-sm font-semibold text-surface-900 shadow-warm-md hover:bg-white transition"
-          :title="$t('Sur la carte, au fil des années : ses ancêtres, ses descendants, ses frères et sœurs et leurs enfants')"
+          :title="$t('Sur la carte, au fil des années : ses ancêtres et descendants, frères et sœurs, oncles, tantes, cousins et leurs enfants')"
         >
           <span aria-hidden="true">⏳</span>
           {{ isSelf ? $t('Mes proches dans le temps') : $t('Ses proches dans le temps') }}

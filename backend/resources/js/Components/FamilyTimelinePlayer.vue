@@ -260,14 +260,14 @@ const scopeLabel = computed(() => {
 const scopeOptions = computed(() => {
   const options = [
     { value: null, label: t('Toute ma famille'), hint: t('Tout le monde, toutes les branches') },
-    { value: 'moi', label: t('Mes proches'), hint: t('Mes ancêtres, mes descendants, mes frères et sœurs et leurs enfants') },
+    { value: 'moi', label: t('Mes proches'), hint: t('Mes ancêtres et descendants, frères et sœurs, oncles, tantes, cousins et leurs enfants') },
   ];
   // Les proches d'une autre fiche (ouverts depuis sa fiche).
   if (props.focus && props.focus !== 'moi' && focused.value && !focused.value.self) {
     options.push({
       value: props.focus,
       label: t('Les proches de :name', { name: focused.value.name }),
-      hint: t('Ses ancêtres, ses descendants, ses frères et sœurs et leurs enfants'),
+      hint: t('Ses ancêtres et descendants, frères et sœurs, oncles, tantes, cousins et leurs enfants'),
     });
   }
   return options;

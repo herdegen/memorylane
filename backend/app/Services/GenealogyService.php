@@ -226,10 +226,11 @@ class GenealogyService
     }
 
     /**
-     * « Ses proches », par le sang seulement : ses ancêtres, ses descendants,
-     * ses frères et sœurs et leurs descendants (neveux, petits-neveux). Ni
-     * conjoints, ni oncles, ni cousins : pour voir une branche plus large, on
-     * part de la fiche d'un ancêtre commun.
+     * « Ses proches », par le sang seulement : ses ancêtres, et tous les
+     * descendants de ses grands-parents — parents, oncles et tantes, cousins,
+     * frères et sœurs, neveux, ses propres descendants. Ni conjoints ni
+     * belle-famille ; les petits-cousins non plus : pour une branche plus
+     * large, on part de la fiche d'un ancêtre plus lointain.
      *
      * @return array<int, string> ids, la personne comprise
      */
@@ -250,10 +251,14 @@ class GenealogyService
             return $seen;
         };
 
-        // Les descendants de ses parents : elle, ses frères et sœurs, leurs
-        // enfants et les siens, sur toutes les générations.
+        $grandparents = [];
+        foreach ($parents[$personId] ?? [] as $parentId) {
+            array_push($grandparents, ...($parents[$parentId] ?? []));
+        }
+        // Les descendants de ses grands-parents (et d'elle-même, de ses
+        // parents si l'arbre s'arrête là), sur toutes les générations.
         $close = $walk([$personId], $parents)
-            + $walk([$personId, ...($parents[$personId] ?? [])], $children);
+            + $walk([$personId, ...($parents[$personId] ?? []), ...$grandparents], $children);
 
         return array_keys($close);
     }

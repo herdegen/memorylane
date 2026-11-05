@@ -343,12 +343,16 @@ class FamilyTimelineMapTest extends TestCase
 
     // ------------------------------------------------------------ proches, voyages
 
-    public function test_mes_proches_seulement_par_le_sang(): void
+    public function test_mes_proches_par_le_sang_jusqu_aux_cousins(): void
     {
         $born = fn (int $year, array $attrs = []) => Person::factory()->create([
             'user_id' => $this->viewer->id, 'birth_date' => "{$year}-01-01", 'birth_place' => 'Paris', 'in_family_directory' => true, ...$attrs,
         ]);
-        $grandfather = $born(1900);
+        $greatGrandfather = $born(1870);
+        $grandfather = $born(1900, ['father_id' => $greatGrandfather->id]);
+        $greatUncle = $born(1902, ['father_id' => $greatGrandfather->id]);
+        $greatUncleSon = $born(1935, ['father_id' => $greatUncle->id]);
+        $born(1962, ['father_id' => $greatUncleSon->id]); // petit-cousin
         $father = $born(1930, ['father_id' => $grandfather->id]);
         $uncle = $born(1932, ['father_id' => $grandfather->id]);
         $born(1960, ['father_id' => $uncle->id]); // cousin
@@ -359,21 +363,22 @@ class FamilyTimelineMapTest extends TestCase
         $wife = $born(1959);
         PersonRelationship::create(['person1_id' => $this->me->id, 'person2_id' => $wife->id, 'type' => 'spouse']);
 
-        // Toute ma famille : oncle, cousin et épouse compris.
+        // Toute ma famille : la branche du grand-oncle et l'épouse comprises.
         $all = $this->timeline();
-        $this->assertSame([1900.0, 1930.0, 1932.0, 1958.0, 1959.0, 1960.0, 1961.0, 1985.0, 1990.0], $this->starts($all));
+        $this->assertSame([1870.0, 1900.0, 1902.0, 1930.0, 1932.0, 1935.0, 1958.0, 1959.0, 1960.0, 1961.0, 1962.0, 1985.0, 1990.0], $this->starts($all));
         $this->assertNull($all['focus']);
 
-        // Mes proches : grand-père, père, moi, frère, enfant, neveu — ni
-        // oncle, ni cousin, ni épouse.
+        // Mes proches : mes ancêtres et les descendants de mes grands-parents
+        // (oncle, cousin, frère, neveu, enfant) — ni la branche du grand-oncle
+        // (petit-cousin), ni l'épouse.
         $mine = $this->timeline(query: ['proches' => 'moi']);
-        $this->assertSame([1900.0, 1930.0, 1958.0, 1961.0, 1985.0, 1990.0], $this->starts($mine));
+        $this->assertSame([1870.0, 1900.0, 1930.0, 1932.0, 1958.0, 1960.0, 1961.0, 1985.0, 1990.0], $this->starts($mine));
         $this->assertSame([$this->me->id, true], [$mine['focus']['id'], $mine['focus']['self']]);
 
-        // Les proches du grand-père (depuis sa fiche) : tous ses descendants,
-        // oncle et cousin compris ; toujours pas l'épouse.
+        // Les proches du grand-père (depuis sa fiche) : son frère et sa
+        // descendance (ses neveux), tous ses descendants ; toujours pas l'épouse.
         $his = $this->timeline(query: ['proches' => $grandfather->id]);
-        $this->assertSame([1900.0, 1930.0, 1932.0, 1958.0, 1960.0, 1961.0, 1985.0, 1990.0], $this->starts($his));
+        $this->assertSame([1870.0, 1900.0, 1902.0, 1930.0, 1932.0, 1935.0, 1958.0, 1960.0, 1961.0, 1962.0, 1985.0, 1990.0], $this->starts($his));
         $this->assertSame([$grandfather->id, $grandfather->first_name ?: $grandfather->name, false], [$his['focus']['id'], $his['focus']['name'], $his['focus']['self']]);
 
         // Une fiche hors de sa famille : rien ; un identifiant invalide : refusé.
