@@ -311,6 +311,10 @@ class FamilyTimelineMapTest extends TestCase
         $tracks = $this->timeline()['tracks'];
         $starts = array_map(fn ($t) => $t[0]['from'], $tracks);
         $this->assertGreaterThanOrEqual(2024.3, min(array_filter($starts, fn ($from) => $from > 2000)));
+
+        // Sa première trace est la photo : il y apparaît bien ce mois-là.
+        $track = collect($tracks)->first(fn ($t) => $t[0]['from'] > 2000);
+        $this->assertTrue(collect($track)->contains(fn ($s) => round($s['lat'], 1) === 45.2 && $s['from'] <= 2024.42 && $s['to'] >= 2024.4));
     }
 
     public function test_les_photos_de_voyage_sont_des_sorties_sans_effet_sur_les_medianes(): void
