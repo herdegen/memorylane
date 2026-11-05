@@ -123,7 +123,35 @@ class FamilyTimelineMapTest extends TestCase
         $this->assertContains('Montrenge, France', \App\Services\GeocodeService::placeVariants('Montrenge (Seinx), France'));
     }
 
-    public function test_un_lieu_de_vie_intermediaire_decoupe_aux_medianes(): void
+    public function test_un_seul_lieu_connu_emmenagement_n_apparait_qu_a_l_arrivee(): void
+    {
+        // Né en 1868 (lieu inconnu), installé à Agonac en 1940, mort en 1953 :
+        // pas à Agonac depuis 1868.
+        $this->place('Agonac (Chaberlin), Dordogne, France', 45.28, 0.75);
+        $grandfather = $this->parent(['birth_date' => '1868-06-01', 'birth_place' => null, 'death_date' => '1953-01-01', 'death_place' => null]);
+        LifeEvent::create(['person_id' => $grandfather->id, 'user_id' => $this->viewer->id, 'type' => 'residence', 'title' => 'Chaberlin',
+            'place' => 'Agonac (Chaberlin), Dordogne, France', 'event_date' => '1940-01-01', 'date_precision' => 'year']);
+
+        $this->assertSame([[1940.0, 1953.0, 45.28, 0.75]], $this->segments($this->timeline()['tracks'][0]));
+    }
+
+    public function test_la_maternite_ne_deplace_pas_des_parents_qui_ont_un_lieu_de_vie(): void
+    {
+        // Les parents vivent à Lambersart depuis 1985 ; l'enfant naît à Croix
+        // (la maternité) en 1988 : ils restent à Lambersart.
+        $this->place('Lambersart', 50.65, 3.02);
+        $this->place('Croix', 50.68, 3.15);
+        $father = $this->parent(['birth_date' => '1958-01-01', 'birth_place' => 'Paris']);
+        LifeEvent::create(['person_id' => $father->id, 'user_id' => $this->viewer->id, 'type' => 'residence', 'title' => 'Lambersart',
+            'place' => 'Lambersart', 'event_date' => '1985-01-01']);
+        $this->me->forceFill(['birth_date' => '1988-06-16', 'birth_place' => 'Croix'])->saveQuietly();
+
+        $tracks = $this->timeline()['tracks'];
+        $fatherTrack = collect($tracks)->first(fn ($t) => $t[0]['from'] === 1958.0);
+        $this->assertFalse(collect($fatherTrack)->contains(fn ($s) => round($s['lat'], 2) === 50.68), 'le père ne passe pas par Croix');
+    }
+
+    public function test_un_lieu_de_vie_date_change_de_lieu_le_jour_de_l_emmenagement(): void
     {
         $father = $this->parent([
             'birth_date' => '1900-01-01', 'birth_place' => 'Paris',
@@ -143,9 +171,9 @@ class FamilyTimelineMapTest extends TestCase
         $track = $this->timeline()['tracks'][0];
 
         $this->assertSame([
-            [1900.0, 1910.0, 48.86, 2.35],   // Paris → milieu de 1900-1920
-            [1910.0, 1945.0, 45.77, 4.83],   // Lyon, encore là en 1930 → milieu de 1930-1960
-            [1945.0, 1970.0, 44.84, -0.58],  // Bordeaux → milieu de 1960-1980
+            [1900.0, 1920.0, 48.86, 2.35],   // Paris jusqu'à l'emménagement à Lyon
+            [1920.0, 1945.0, 45.77, 4.83],   // parti de Lyon en 1930, à Bordeaux en 1960 : milieu
+            [1945.0, 1970.0, 44.84, -0.58],  // Bordeaux → milieu de 1960-1980 (décès, simple présence)
             [1970.0, 1980.0, 43.3, 5.37],    // Marseille jusqu'au décès
         ], $this->segments($track));
     }
@@ -468,9 +496,9 @@ class FamilyTimelineMapTest extends TestCase
         $track = $this->timeline()['tracks'][0];
 
         $this->assertSame([
-            [1900.0, 1915.0, 48.86, 2.35],   // Paris → milieu de 1900-1930
-            [1915.0, 1960.0, 45.76, 4.84],   // Lyon de 1930 à 1940 → milieu de 1940-1980
-            [1960.0, 1980.0, 43.3, 5.37],
+            [1900.0, 1930.0, 48.86, 2.35],   // Paris jusqu'à l'arrivée à Lyon
+            [1930.0, 1940.0, 45.76, 4.84],   // Lyon de 1930 à 1940 (départ daté)
+            [1940.0, 1980.0, 43.3, 5.37],
         ], $this->background($track));
         $this->assertSame([
             [self::year('1925-09-01'), self::year('1925-10-01'), 48.57, 7.75],

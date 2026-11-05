@@ -179,29 +179,41 @@ class FamilyTimelineService
             return $c ? [(float) $c['latitude'], (float) $c['longitude']] : null;
         };
 
-        // Étapes : [année, [lat, lng], ordre à date égale].
+        // Étapes : [année, [lat, lng], ordre à date égale, nature]. Nature :
+        // « arrival » / « departure » = emménagement / départ datés (lieu de
+        // vie, long séjour) : on change de lieu CE jour-là ; « point » = simple
+        // présence connue (naissance, décès, union…) : on change de lieu à la
+        // médiane entre deux présences.
         $stops = [];
-        $stop = function (?CarbonInterface $date, ?array $latLng, int $order) use (&$stops) {
+        $stop = function (?CarbonInterface $date, ?array $latLng, int $order, string $kind = 'point') use (&$stops) {
             if ($date && $latLng) {
-                $stops[] = ['t' => self::decimalYear($date), 'at' => $latLng, 'order' => $order];
+                $stops[] = ['t' => self::decimalYear($date), 'at' => $latLng, 'order' => $order, 'kind' => $kind];
             }
         };
 
         // Lieu de naissance inconnu mais lieu de décès connu : on suppose la
         // personne née au même endroit (choix de l'utilisateur, 2026-11-05).
         $stop($person->birth_date, $placeAt($person->birth_place) ?? ($person->birth_place ? null : $placeAt($person->death_place)), 0);
+        $stays = [];
         foreach ($person->lifeEvents as $event) {
             if ($event->type !== 'residence' && ! self::isStay($event)) {
                 continue;
             }
             $latLng = self::eventLatLng($event, $coords);
             // Arrivée, et départ s'il est connu (même lieu jusque-là).
-            $stop($event->event_date, $latLng, 1);
-            $stop($event->end_date, $latLng, 1);
+            $stop($event->event_date, $latLng, 1, 'arrival');
+            $stop($event->end_date, $latLng, 1, 'departure');
+            if ($event->event_date && $latLng) {
+                $stays[] = [self::decimalYear($event->event_date), $event->end_date ? self::decimalYear($event->end_date) : null];
+            }
         }
-        // Union, naissance d'un enfant : la personne vivait là à cette date.
+        // Union, naissance d'un enfant : la personne vivait là à cette date —
+        // sauf si un lieu de vie connu couvre déjà cette date (la naissance à
+        // la maternité de Croix ou de Jossigny, le mariage célébré ailleurs).
         foreach ($implied as [$date, $place]) {
-            $stop($date, $placeAt($place), 1);
+            if ($date && ! self::coveredByStay($stays, self::decimalYear($date))) {
+                $stop($date, $placeAt($place), 1);
+            }
         }
         $stop($person->death_date, $placeAt($person->death_place), 2);
 
@@ -213,7 +225,7 @@ class FamilyTimelineService
 
         // Aujourd'hui : l'adresse actuelle d'une personne vivante.
         if ($alive && $hasAddress) {
-            $stops[] = ['t' => $today, 'at' => [(float) $person->address_latitude, (float) $person->address_longitude], 'order' => 3];
+            $stops[] = ['t' => $today, 'at' => [(float) $person->address_latitude, (float) $person->address_longitude], 'order' => 3, 'kind' => 'point'];
         }
         if ($stops === []) {
             return null;
@@ -221,6 +233,12 @@ class FamilyTimelineService
         usort($stops, fn ($a, $b) => [$a['t'], $a['order']] <=> [$b['t'], $b['order']]);
         $first = $stops[0]['t'];
         $last = $stops[count($stops) - 1]['t'];
+        // Premier lieu connu = un emménagement : on ne sait pas où vivait la
+        // personne avant, elle n'apparaît qu'à son arrivée (et non à ce lieu
+        // depuis sa naissance). Dernier = un départ sans suite connue : elle
+        // disparaît à son départ.
+        $arrivesFirst = $stops[0]['kind'] === 'arrival';
+        $leavesLast = $stops[count($stops) - 1]['kind'] === 'departure';
 
         // Vivant sans date de naissance (un enfant dont la date n'est pas
         // saisie) : présent seulement à partir de sa première trace — étape ou
@@ -237,6 +255,12 @@ class FamilyTimelineService
             max($last + self::MARGIN_YEARS, $birth !== null ? $birth + self::TYPICAL_AGE : -INF),
             $birth !== null ? $birth + self::MAX_AGE : INF,
         ));
+        if ($arrivesFirst) {
+            $start = max($start, $first);
+        }
+        if ($leavesLast) {
+            $end = min($end, $last);
+        }
         if ($end <= $start) {
             return null;
         }
@@ -248,13 +272,29 @@ class FamilyTimelineService
         }
         unset($s);
 
-        // Chaque étape occupe sa place de la médiane précédente à la suivante ;
-        // deux étapes consécutives au même endroit ne font qu'un segment.
+        // Chaque étape occupe sa place de la frontière précédente à la suivante :
+        // le jour d'un emménagement ou d'un départ datés, sinon la médiane
+        // entre deux présences connues. Deux étapes consécutives au même
+        // endroit ne font qu'un segment.
+        $boundary = function (array $before, array $after): float {
+            $left = $before['kind'] === 'departure';
+            $arrives = $after['kind'] === 'arrival';
+            if ($arrives && ! $left) {
+                return $after['t'];
+            }
+            if ($left && ! $arrives) {
+                return $before['t'];
+            }
+
+            // Deux présences, ou un départ puis une arrivée plus tard (où
+            // était-on entre les deux ?) : la médiane.
+            return ($before['t'] + $after['t']) / 2;
+        };
         $segments = [];
         $n = count($stops);
         for ($i = 0; $i < $n; $i++) {
-            $from = round($i === 0 ? $start : ($stops[$i - 1]['t'] + $stops[$i]['t']) / 2, self::YEAR_DECIMALS);
-            $to = round($i === $n - 1 ? $end : ($stops[$i]['t'] + $stops[$i + 1]['t']) / 2, self::YEAR_DECIMALS);
+            $from = round($i === 0 ? $start : $boundary($stops[$i - 1], $stops[$i]), self::YEAR_DECIMALS);
+            $to = round($i === $n - 1 ? $end : $boundary($stops[$i], $stops[$i + 1]), self::YEAR_DECIMALS);
             $lat = round($stops[$i]['at'][0], self::COORD_DECIMALS);
             $lng = round($stops[$i]['at'][1], self::COORD_DECIMALS);
             if ($to <= $from) {
@@ -637,6 +677,25 @@ class FamilyTimelineService
     }
 
     /** 1er juillet 1940 → 1940,5 environ. */
+    /**
+     * Un lieu de vie connu couvre-t-il cette date ? Séjour sans date de fin :
+     * jusqu'au séjour suivant.
+     *
+     * @param  list<array{0: float, 1: ?float}>  $stays  [début, fin]
+     */
+    private static function coveredByStay(array $stays, float $t): bool
+    {
+        usort($stays, fn ($a, $b) => $a[0] <=> $b[0]);
+        foreach ($stays as $i => [$from, $to]) {
+            $until = $to ?? ($stays[$i + 1][0] ?? INF);
+            if ($from <= $t + 0.001 && $t <= $until + 0.001) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static function decimalYear(CarbonInterface $date): float
     {
         $days = $date->isLeapYear() ? 366 : 365;
