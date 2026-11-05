@@ -115,7 +115,9 @@ class FamilyTimelineService
             }
         };
 
-        $stop($person->birth_date, $placeAt($person->birth_place), 0);
+        // Lieu de naissance inconnu mais lieu de décès connu : on suppose la
+        // personne née au même endroit (choix de l'utilisateur, 2026-11-05).
+        $stop($person->birth_date, $placeAt($person->birth_place) ?? ($person->birth_place ? null : $placeAt($person->death_place)), 0);
         foreach ($person->lifeEvents as $event) {
             if ($event->type !== 'residence') {
                 continue;

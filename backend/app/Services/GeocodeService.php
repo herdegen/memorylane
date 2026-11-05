@@ -186,7 +186,9 @@ class GeocodeService
      */
     public static function placeVariants(string $place): array
     {
-        $parts = array_values(array_filter(array_map('trim', explode(',', $place)), fn ($p) => $p !== ''));
+        // Précisions saisies dans le lieu : « … à l'âge de 74 ans », « (Seinx) ».
+        $bare = preg_replace(["/\s+à\s+l['’]âge\s.*$/iu", '/\s*\([^)]*\)/u'], '', $place);
+        $parts = array_values(array_filter(array_map('trim', explode(',', $bare)), fn ($p) => $p !== ''));
         $named = array_values(array_filter($parts, fn ($p) => ! preg_match('/^[\d\s]+$/u', $p)));
 
         $variants = [trim($place), implode(', ', $named)];
@@ -210,7 +212,8 @@ class GeocodeService
     private static function bareCity(string $segment): string
     {
         $city = preg_replace('/\b\d{4,5}\b/u', '', $segment);
-        $city = preg_replace('/\s+\d{1,2}\s*(?:e|er|ème|eme|è)(?:\s.*)?$/iu', '', $city);
+        // Arrondissements : « Paris 10e », « Paris-Xème », « Lyon 3ème arr. ».
+        $city = preg_replace('/[\s-]+(?:\d{1,2}|[IVXL]+)\s*(?:e|er|ème|eme|è)(?:\s.*)?$/iu', '', $city);
         $city = preg_replace('/\s+(?:arrondissement|arr\.?)(?:\s.*)?$/iu', '', $city);
 
         return trim(preg_replace('/\s+/u', ' ', $city), " \t-");

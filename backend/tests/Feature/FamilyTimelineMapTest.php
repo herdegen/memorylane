@@ -98,6 +98,25 @@ class FamilyTimelineMapTest extends TestCase
         $this->assertEquals(['from' => 1900, 'to' => 1980], $data['range']);
     }
 
+    public function test_sans_lieu_de_naissance_on_le_suppose_au_lieu_de_deces(): void
+    {
+        $this->parent([
+            'birth_date' => '1900-01-01', 'birth_place' => null,
+            'death_date' => '1980-01-01', 'death_place' => 'Marseille',
+        ]);
+
+        // Présent de sa naissance à son décès, à Marseille.
+        $this->assertSame([[1900.0, 1980.0, 43.3, 5.37]], $this->segments($this->timeline()['tracks'][0]));
+    }
+
+    public function test_variantes_des_lieux_mal_saisis(): void
+    {
+        $this->assertContains('Paris, France', \App\Services\GeocodeService::placeVariants('Paris-Xème, 75110, Paris, Île-de-France, France'));
+        $this->assertContains('Paris, France', \App\Services\GeocodeService::placeVariants('Paris 10e arrondissement, France'));
+        $this->assertContains('Metz, France', \App\Services\GeocodeService::placeVariants('Metz, 57463, Moselle, Lorraine, France à l\'âge de 74 ans'));
+        $this->assertContains('Montrenge, France', \App\Services\GeocodeService::placeVariants('Montrenge (Seinx), France'));
+    }
+
     public function test_un_lieu_de_vie_intermediaire_decoupe_aux_medianes(): void
     {
         $father = $this->parent([
