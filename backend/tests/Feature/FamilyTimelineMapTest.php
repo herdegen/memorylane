@@ -73,9 +73,18 @@ class FamilyTimelineMapTest extends TestCase
         return $parent;
     }
 
-    private function timeline(?User $user = null): array
+    private function timeline(?User $user = null, array $query = []): array
     {
-        return $this->actingAs(($user ?? $this->viewer)->fresh())->getJson('/map/heatmap/timeline')->assertOk()->json();
+        return $this->actingAs(($user ?? $this->viewer)->fresh())->getJson('/map/heatmap/timeline?'.http_build_query($query))->assertOk()->json();
+    }
+
+    /** Années de naissance (début de piste) de toutes les pistes, triées. */
+    private function starts(array $data): array
+    {
+        $starts = array_map(fn ($t) => round($t[0]['from'], 1), $data['tracks']);
+        sort($starts);
+
+        return $starts;
     }
 
     /** Segments arrondis pour comparer sans se soucier des flottants. */
@@ -271,7 +280,7 @@ class FamilyTimelineMapTest extends TestCase
         $this->assertCount(1, $this->timeline()['tracks']);
 
         // Sans fiche « moi » : pas de famille définie.
-        $this->assertSame(['tracks' => [], 'range' => null, 'pending_places' => 0], $this->timeline(User::factory()->create()));
+        $this->assertSame(['tracks' => [], 'range' => null, 'pending_places' => 0, 'focus' => null], $this->timeline(User::factory()->create()));
 
         // Cercle d'amis sélectionné : rien.
         $band = Household::factory()->friends()->create(['created_by' => $this->viewer->id]);
@@ -330,6 +339,57 @@ class FamilyTimelineMapTest extends TestCase
             // L'enfant, vivant.
             [[1935.0, 2026.0, 44.84, -0.58]],
         ], $tracks);
+    }
+
+    // ------------------------------------------------------------ proches, voyages
+
+    public function test_mes_proches_seulement_par_le_sang(): void
+    {
+        $born = fn (int $year, array $attrs = []) => Person::factory()->create([
+            'user_id' => $this->viewer->id, 'birth_date' => "{$year}-01-01", 'birth_place' => 'Paris', 'in_family_directory' => true, ...$attrs,
+        ]);
+        $grandfather = $born(1900);
+        $father = $born(1930, ['father_id' => $grandfather->id]);
+        $uncle = $born(1932, ['father_id' => $grandfather->id]);
+        $born(1960, ['father_id' => $uncle->id]); // cousin
+        $this->me->forceFill(['father_id' => $father->id, 'birth_date' => '1958-01-01', 'birth_place' => 'Paris'])->saveQuietly();
+        $brother = $born(1961, ['father_id' => $father->id]);
+        $born(1990, ['father_id' => $brother->id]); // neveu
+        $born(1985, ['father_id' => $this->me->id]); // enfant
+        $wife = $born(1959);
+        PersonRelationship::create(['person1_id' => $this->me->id, 'person2_id' => $wife->id, 'type' => 'spouse']);
+
+        // Toute ma famille : oncle, cousin et épouse compris.
+        $all = $this->timeline();
+        $this->assertSame([1900.0, 1930.0, 1932.0, 1958.0, 1959.0, 1960.0, 1961.0, 1985.0, 1990.0], $this->starts($all));
+        $this->assertNull($all['focus']);
+
+        // Mes proches : grand-père, père, moi, frère, enfant, neveu — ni
+        // oncle, ni cousin, ni épouse.
+        $mine = $this->timeline(query: ['proches' => 'moi']);
+        $this->assertSame([1900.0, 1930.0, 1958.0, 1961.0, 1985.0, 1990.0], $this->starts($mine));
+        $this->assertSame([$this->me->id, true], [$mine['focus']['id'], $mine['focus']['self']]);
+
+        // Les proches du grand-père (depuis sa fiche) : tous ses descendants,
+        // oncle et cousin compris ; toujours pas l'épouse.
+        $his = $this->timeline(query: ['proches' => $grandfather->id]);
+        $this->assertSame([1900.0, 1930.0, 1932.0, 1958.0, 1960.0, 1961.0, 1985.0, 1990.0], $this->starts($his));
+        $this->assertSame([$grandfather->id, $grandfather->first_name ?: $grandfather->name, false], [$his['focus']['id'], $his['focus']['name'], $his['focus']['self']]);
+
+        // Une fiche hors de sa famille : rien ; un identifiant invalide : refusé.
+        $stranger = Person::factory()->create(['user_id' => $this->viewer->id, 'birth_date' => '1950-01-01', 'birth_place' => 'Paris', 'in_family_directory' => true]);
+        $this->assertSame([[], null], array_values(array_intersect_key($this->timeline(query: ['proches' => $stranger->id]), ['tracks' => 1, 'focus' => 1])));
+        $this->actingAs($this->viewer->fresh())->getJson('/map/heatmap/timeline?proches=abc')->assertUnprocessable();
+    }
+
+    public function test_sans_les_voyages_aucune_sortie(): void
+    {
+        $father = $this->parent(['birth_date' => '1950-01-01', 'birth_place' => 'Paris']);
+        $this->photo($father, '2012-06-10 12:00:00', 41.9028, 12.4964); // Rome
+        $trips = fn (array $data) => count(array_filter($data['tracks'][0], fn ($s) => ! empty($s['trip'])));
+
+        $this->assertSame(1, $trips($this->timeline()));
+        $this->assertSame(0, $trips($this->timeline(query: ['voyages' => 0])));
     }
 
     // ------------------------------------------------------------ sorties photo

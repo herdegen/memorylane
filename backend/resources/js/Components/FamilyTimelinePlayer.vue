@@ -15,10 +15,13 @@
       <div role="status" class="pointer-events-auto w-full max-w-md rounded-2xl border border-surface-200 bg-white/95 p-4 shadow-warm-lg backdrop-blur">
         <p class="font-semibold text-surface-900">⏳ {{ $t('Pas encore assez de données pour remonter le temps') }}</p>
         <p class="mt-1 text-sm text-surface-600">
-          {{ $t('Il faut au moins deux personnes de la famille avec une date et un lieu : naissance, lieu de vie ou décès.') }}
+          {{ focus ? $t('Il faut au moins deux de ces proches avec une date et un lieu : naissance, lieu de vie ou décès.') : $t('Il faut au moins deux personnes de la famille avec une date et un lieu : naissance, lieu de vie ou décès.') }}
         </p>
         <p v-if="pending" class="mt-1 text-sm text-surface-500">{{ pendingLabel }}</p>
-        <button type="button" class="btn-secondary btn-sm mt-3" @click="emit('close')">{{ $t('Revenir à la carte') }}</button>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button v-if="focus" type="button" class="btn-primary btn-sm" @click="emit('update:focus', null)">{{ $t('Voir toute ma famille') }}</button>
+          <button type="button" class="btn-secondary btn-sm" @click="emit('close')">{{ $t('Revenir à la carte') }}</button>
+        </div>
       </div>
     </div>
 
@@ -31,8 +34,59 @@
         </div>
         <div
           class="pointer-events-auto rounded-2xl border border-surface-200 bg-white/90 px-3 py-2.5 shadow-warm-lg backdrop-blur"
-          @keydown.esc="emit('close')"
+          @keydown.esc="menuOpen ? (menuOpen = false) : emit('close')"
         >
+          <!-- Qui regarder (toute la famille, mes proches, les proches d'une
+               fiche) et voyages oui / non. -->
+          <div class="mb-2 flex items-center gap-2">
+            <div ref="menuRoot" class="relative min-w-0">
+              <button
+                type="button"
+                class="ml-tt-chip max-w-full"
+                aria-haspopup="menu"
+                :aria-expanded="menuOpen"
+                @click="menuOpen = !menuOpen"
+              >
+                <span aria-hidden="true">👪</span>
+                <span class="truncate">{{ scopeLabel }}</span>
+                <svg class="h-3.5 w-3.5 shrink-0 transition-transform" :class="{ 'rotate-180': menuOpen }" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6" /></svg>
+              </button>
+              <div
+                v-if="menuOpen"
+                role="menu"
+                class="absolute bottom-full left-0 mb-2 w-72 max-w-[calc(100vw-2.5rem)] rounded-2xl border border-surface-200 bg-white p-1.5 shadow-warm-lg"
+              >
+                <button
+                  v-for="option in scopeOptions"
+                  :key="option.value ?? 'all'"
+                  type="button"
+                  role="menuitemradio"
+                  :aria-checked="option.value === focus"
+                  class="flex w-full items-start gap-2.5 rounded-xl px-3 py-2.5 text-left transition hover:bg-surface-100"
+                  @click="chooseScope(option.value)"
+                >
+                  <span class="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2" :class="option.value === focus ? 'border-brand-600' : 'border-surface-300'">
+                    <span v-if="option.value === focus" class="h-2 w-2 rounded-full bg-brand-600"></span>
+                  </span>
+                  <span class="min-w-0">
+                    <span class="block text-sm font-semibold text-surface-900">{{ option.label }}</span>
+                    <span class="block text-xs leading-snug text-surface-500">{{ option.hint }}</span>
+                  </span>
+                </button>
+              </div>
+            </div>
+            <button
+              type="button"
+              class="ml-tt-chip ml-auto shrink-0"
+              :class="{ 'ml-tt-chip-on': trips }"
+              :aria-pressed="trips"
+              :title="trips ? $t('Masquer les voyages (lecture plus rapide, année par année)') : $t('Afficher les voyages (au mois depuis 1990)')"
+              @click="emit('update:trips', !trips)"
+            >
+              <span aria-hidden="true">✈️</span>
+              {{ $t('Voyages') }}
+            </button>
+          </div>
           <div class="flex items-center gap-2">
             <button
               type="button"
@@ -121,8 +175,13 @@ import { createAnimator, createGlowLayer, createTimeScale, dataBounds, timeLabel
 const props = defineProps({
   // Instance Leaflet de la page (markRaw : jamais rendue réactive).
   map: { type: Object, required: true },
+  // Proches de qui : null = toute ma famille, « moi » ou l'id d'une fiche.
+  focus: { type: String, default: null },
+  // Voyages (sorties) : sans eux, frise à l'année du début à la fin.
+  trips: { type: Boolean, default: true },
 });
-const emit = defineEmits(['close']);
+// Changer de proches ou de voyages : la page recrée le lecteur.
+const emit = defineEmits(['close', 'update:focus', 'update:trips']);
 
 const toast = useToast();
 const { isDark } = useTheme();
@@ -173,7 +232,7 @@ let destroyed = false;
 const numberFormat = new Intl.NumberFormat(intlLocale());
 const yearOnly = (y) => timeLabelParts(y, intlLocale(), false)[0].value;
 
-const labelParts = computed(() => timeLabelParts(year.value, intlLocale(), !!scale?.monthly(year.value)));
+const labelParts = computed(() => timeLabelParts(year.value, intlLocale(), props.trips && !!scale?.monthly(year.value)));
 const timeLabel = computed(() => labelParts.value.map((part) => part.value).join(''));
 const fromLabel = computed(() => yearOnly(range.value.from));
 const toLabel = computed(() => yearOnly(range.value.to));
@@ -187,13 +246,54 @@ const pendingLabel = computed(() => tc(
   { count: numberFormat.format(pending.value) },
 ));
 
+// ---------------------------------------------------------------- qui, voyages
+
+const menuOpen = ref(false);
+const menuRoot = ref(null);
+const focused = ref(null); // { id, name, self } renvoyé par le serveur
+
+const scopeLabel = computed(() => {
+  if (!props.focus) return t('Toute ma famille');
+  if (!focused.value || focused.value.self) return t('Mes proches');
+  return t('Les proches de :name', { name: focused.value.name });
+});
+const scopeOptions = computed(() => {
+  const options = [
+    { value: null, label: t('Toute ma famille'), hint: t('Tout le monde, toutes les branches') },
+    { value: 'moi', label: t('Mes proches'), hint: t('Mes ancêtres, mes descendants, mes frères et sœurs et leurs enfants') },
+  ];
+  // Les proches d'une autre fiche (ouverts depuis sa fiche).
+  if (props.focus && props.focus !== 'moi' && focused.value && !focused.value.self) {
+    options.push({
+      value: props.focus,
+      label: t('Les proches de :name', { name: focused.value.name }),
+      hint: t('Ses ancêtres, ses descendants, ses frères et sœurs et leurs enfants'),
+    });
+  }
+  return options;
+});
+
+function chooseScope(value) {
+  menuOpen.value = false;
+  if (value !== props.focus) emit('update:focus', value);
+}
+
+const closeMenuOutside = (event) => {
+  if (menuOpen.value && menuRoot.value && !menuRoot.value.contains(event.target)) menuOpen.value = false;
+};
+onMounted(() => document.addEventListener('pointerdown', closeMenuOutside));
+
 // ---------------------------------------------------------------- données
 
 onMounted(async () => {
   props.map.getContainer().classList.add('ml-time-travel');
   try {
-    const { data } = await axios.get('/map/heatmap/timeline');
+    const params = {};
+    if (props.focus) params.proches = props.focus;
+    if (!props.trips) params.voyages = 0;
+    const { data } = await axios.get('/map/heatmap/timeline', { params });
     if (destroyed) return;
+    focused.value = data.focus ?? null;
     pending.value = Number(data.pending_places) || 0;
     const tracks = data.tracks || [];
     if (tracks.length < 2 || !data.range) {
@@ -213,9 +313,10 @@ onMounted(async () => {
 async function start(tracks) {
   const map = props.map;
   // Lecture : vite pour les siècles anciens, au mois depuis 1990, au
-  // ralenti sur les mois de voyage et de réunion de famille.
-  scale = createTimeScale(range.value, { slowSpans: tripSpans(tracks) });
-  monthlyTick.value = scale.monthlyAt;
+  // ralenti sur les mois de voyage et de réunion de famille. Sans voyages :
+  // à l'année jusqu'au bout, plus rapide.
+  scale = createTimeScale(range.value, props.trips ? { slowSpans: tripSpans(tracks) } : { secondsPerYear: 0.5 });
+  monthlyTick.value = props.trips ? scale.monthlyAt : null;
   animator = createAnimator(tracks, {
     rangeTo: range.value.to,
     moveMs: reduceMotion ? 0 : 900,
@@ -336,6 +437,7 @@ watch(isDark, (dark) => glow?.setDark(dark));
 
 onBeforeUnmount(() => {
   destroyed = true;
+  document.removeEventListener('pointerdown', closeMenuOutside);
   cancelAnimationFrame(raf);
   clearTimeout(autoplayTimer);
   const map = props.map;
@@ -353,6 +455,28 @@ onBeforeUnmount(() => {
 .ml-tt-dock { bottom: 1.6rem; }
 @media (max-width: 639px) {
   .ml-tt-dock { bottom: calc(1.75rem + 1.35rem); }
+}
+
+/* Pastilles « qui » et « voyages » au-dessus de la frise. */
+.ml-tt-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 2rem;
+  padding: 0 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-surface-200);
+  background: var(--color-surface-50);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-surface-700);
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+.ml-tt-chip:hover { background: var(--color-surface-100); }
+.ml-tt-chip-on {
+  border-color: var(--color-brand-300);
+  background: var(--color-brand-50);
+  color: var(--color-brand-800);
 }
 
 /* Grande année, façon filigrane : encre sur halo clair (ou l'inverse en

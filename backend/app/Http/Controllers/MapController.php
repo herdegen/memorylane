@@ -163,22 +163,45 @@ class MapController extends Controller
      * « Où vit la famille » : sa famille seulement, rien en mode amis ni
      * sans fiche « moi ». Les lieux en texte ne sont lus que dans le cache
      * du géocodage (people:geocode-places les résout chaque nuit).
+     *
+     * `proches` (« moi » ou une fiche de sa famille) : seulement les proches
+     * de sang de cette personne (GenealogyService::closeOf). `voyages=0` :
+     * sans les sorties (photos, voyages, photographe).
      */
-    public function heatmapTimeline(FamilyTimelineService $timeline)
+    public function heatmapTimeline(Request $request, FamilyTimelineService $timeline)
     {
+        $request->validate([
+            'proches' => ['nullable', 'regex:/^(moi|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i'],
+            'voyages' => ['nullable', 'in:0,1'],
+        ]);
         $user = auth()->user();
         if ($user->mode() === Household::KIND_FRIENDS || ! $user->canSeeFamilyDirectory() || ! $user->person_id) {
-            return response()->json(['tracks' => [], 'range' => null, 'pending_places' => 0]);
+            return response()->json(['tracks' => [], 'range' => null, 'pending_places' => 0, 'focus' => null]);
         }
 
-        $people = $this->familyPeople($user)
+        $people = $this->familyPeople($user);
+        $focus = null;
+        if ($request->filled('proches')) {
+            $focusId = $request->query('proches') === 'moi' ? $user->person_id : $request->query('proches');
+            // Une fiche de sa famille seulement ; sinon, personne à montrer.
+            $focus = (clone $people)->where('people.id', $focusId)->first(['people.id', 'people.name', 'people.first_name']);
+            $people->whereIn('people.id', $focus ? app(GenealogyService::class)->closeOf($focus->id) : []);
+        }
+
+        $people = $people
             // Tous les moments datés : lieux de vie, séjours (emploi, études)
             // et sorties (voyages, fiançailles, mariage…).
             ->with(['lifeEvents' => fn ($q) => $q->whereNotNull('event_date')
                 ->select(['id', 'person_id', 'type', 'place', 'latitude', 'longitude', 'event_date', 'end_date', 'date_precision', 'media_id'])])
             ->get(['people.id', 'father_id', 'mother_id', 'birth_date', 'birth_place', 'death_date', 'death_place', 'address_latitude', 'address_longitude']);
 
-        return response()->json($timeline->build($people, $user));
+        return response()->json($timeline->build($people, $request->query('voyages') === '0' ? null : $user) + [
+            'focus' => $focus ? [
+                'id' => $focus->id,
+                'name' => $focus->first_name ?: $focus->name,
+                'self' => $focus->id === $user->person_id,
+            ] : null,
+        ]);
     }
 
     /**

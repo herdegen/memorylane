@@ -199,7 +199,16 @@
         <div ref="mapContainer" class="w-full h-full"></div>
 
         <!-- « Dans le temps » : frise, lecture et calques animés -->
-        <FamilyTimelinePlayer v-if="timeMode && leafletMap" :map="leafletMap" @close="exitTimeMode" />
+        <FamilyTimelinePlayer
+          v-if="timeMode && leafletMap"
+          :key="`${timeFocus}|${timeTrips}`"
+          :map="leafletMap"
+          :focus="timeFocus"
+          :trips="timeTrips"
+          @update:focus="setTimeFocus"
+          @update:trips="setTimeTrips"
+          @close="exitTimeMode"
+        />
 
         <!-- Ouverture du panneau des filtres (téléphone) — en haut à droite,
              le zoom Leaflet occupe le coin gauche. -->
@@ -255,7 +264,7 @@
 
 <script setup>
 import { ref, shallowRef, markRaw, computed, onMounted, onUnmounted } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PeopleSegments from '@/Components/PeopleSegments.vue';
 import BottomSheet from '@/Components/BottomSheet.vue';
@@ -303,6 +312,21 @@ let heatPoints = null; // cache : un seul fetch par visite
 const timeMode = ref(false);
 const leafletMap = shallowRef(null); // la carte, pour le composant du mode
 let beforeTimeMode = null;
+// Proches de qui (null = toute ma famille, « moi », id d'une fiche) et
+// voyages : repris de l'adresse (/map?temps=1&proches=…&voyages=0, lien
+// partageable), les voyages aussi mémorisés sur l'appareil.
+const TRIPS_KEY = 'ml-timeline-trips';
+const urlParams = new URL(usePage().url, window.location.origin).searchParams;
+const timeFocus = ref(urlParams.get('proches') || null);
+const timeTrips = ref(urlParams.has('voyages') ? urlParams.get('voyages') !== '0' : readTripsPreference());
+
+function readTripsPreference() {
+  try {
+    return localStorage.getItem(TRIPS_KEY) !== '0';
+  } catch {
+    return true;
+  }
+}
 
 // Data
 const geolocatedMedia = ref([]);
@@ -360,8 +384,9 @@ onMounted(async () => {
   await Promise.all([loadTags(), loadGeolocatedMedia()]);
   // « Où vit la famille / où vivent mes amis » : affichée d'office.
   showHeatmap();
-  // Lien de la lettre du dimanche (/map?temps=1) : « Dans le temps » d'emblée.
-  if (!isFriends.value && new URLSearchParams(window.location.search).has('temps')) enterTimeMode();
+  // Lien de la lettre du dimanche ou d'une fiche (/map?temps=1…) : « Dans le
+  // temps » d'emblée.
+  if (!isFriends.value && urlParams.has('temps')) enterTimeMode();
 });
 
 onUnmounted(() => {
@@ -659,6 +684,7 @@ function enterTimeMode() {
   hideHeatmap();
   map.removeLayer(markersLayer);
   timeMode.value = true;
+  syncTimeUrl();
   // Téléphone : le tiroir se referme pour montrer la carte et la frise.
   if (isMobile()) filtersOpen.value = false;
 }
@@ -666,6 +692,7 @@ function enterTimeMode() {
 function exitTimeMode() {
   if (!timeMode.value) return;
   timeMode.value = false;
+  syncTimeUrl();
   if (!map) return;
   markersLayer.addTo(map);
   if (beforeTimeMode?.heat) showHeatmap();
@@ -674,6 +701,33 @@ function exitTimeMode() {
 }
 
 const toggleTimeMode = () => (timeMode.value ? exitTimeMode() : enterTimeMode());
+
+function setTimeFocus(value) {
+  timeFocus.value = value;
+  syncTimeUrl();
+}
+
+function setTimeTrips(value) {
+  timeTrips.value = value;
+  try {
+    localStorage.setItem(TRIPS_KEY, value ? '1' : '0');
+  } catch {
+    // Stockage indisponible (navigation privée) : le choix vaut pour la visite.
+  }
+  syncTimeUrl();
+}
+
+// L'adresse reflète ce qu'on regarde : copiée, elle rouvre la même vue.
+function syncTimeUrl() {
+  const url = new URL(window.location.href);
+  for (const key of ['temps', 'proches', 'voyages']) url.searchParams.delete(key);
+  if (timeMode.value) {
+    url.searchParams.set('temps', '1');
+    if (timeFocus.value) url.searchParams.set('proches', timeFocus.value);
+    if (!timeTrips.value) url.searchParams.set('voyages', '0');
+  }
+  window.history.replaceState(window.history.state, '', url);
+}
 
 // Toggle tag filter
 function toggleTag(tagId) {

@@ -175,16 +175,7 @@ class GenealogyService
      */
     public function familyOf(string $personId): array
     {
-        $parents = [];
-        $children = [];
-        foreach (DB::table('people')->whereNull('deleted_at')->get(['id', 'father_id', 'mother_id']) as $p) {
-            foreach ([$p->father_id, $p->mother_id] as $parentId) {
-                if ($parentId) {
-                    $parents[$p->id][] = $parentId;
-                    $children[$parentId][] = $p->id;
-                }
-            }
-        }
+        [$parents, $children] = $this->parentLinks();
         $spouses = [];
         $unions = DB::table('person_relationships')
             ->where(fn ($q) => $q->whereNull('end_date')->orWhere('end_date', '>', now()->toDateString()))
@@ -232,6 +223,60 @@ class GenealogyService
         }
 
         return array_keys($family);
+    }
+
+    /**
+     * « Ses proches », par le sang seulement : ses ancêtres, ses descendants,
+     * ses frères et sœurs et leurs descendants (neveux, petits-neveux). Ni
+     * conjoints, ni oncles, ni cousins : pour voir une branche plus large, on
+     * part de la fiche d'un ancêtre commun.
+     *
+     * @return array<int, string> ids, la personne comprise
+     */
+    public function closeOf(string $personId): array
+    {
+        [$parents, $children] = $this->parentLinks();
+        $walk = function (array $start, array $edges): array {
+            $seen = array_fill_keys($start, true);
+            for ($queue = $start; $queue !== [];) {
+                foreach ($edges[array_shift($queue)] ?? [] as $next) {
+                    if (! isset($seen[$next])) {
+                        $seen[$next] = true;
+                        $queue[] = $next;
+                    }
+                }
+            }
+
+            return $seen;
+        };
+
+        // Les descendants de ses parents : elle, ses frères et sœurs, leurs
+        // enfants et les siens, sur toutes les générations.
+        $close = $walk([$personId], $parents)
+            + $walk([$personId, ...($parents[$personId] ?? [])], $children);
+
+        return array_keys($close);
+    }
+
+    /**
+     * Liens de filiation : [parents de chaque fiche, enfants de chaque fiche].
+     *
+     * @return array{0: array<string, list<string>>, 1: array<string, list<string>>}
+     */
+    private function parentLinks(): array
+    {
+        $parents = [];
+        $children = [];
+        foreach (DB::table('people')->whereNull('deleted_at')->get(['id', 'father_id', 'mother_id']) as $p) {
+            foreach ([$p->father_id, $p->mother_id] as $parentId) {
+                if ($parentId) {
+                    $parents[$p->id][] = $parentId;
+                    $children[$parentId][] = $p->id;
+                }
+            }
+        }
+
+        return [$parents, $children];
     }
 
     /**

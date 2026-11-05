@@ -44,6 +44,15 @@
           <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
           {{ $t('Diaporama de sa vie') }}
         </button>
+        <Link
+          v-if="timeUrl"
+          :href="timeUrl"
+          class="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur text-sm font-semibold text-surface-900 shadow-warm-md hover:bg-white transition"
+          :title="$t('Sur la carte, au fil des années : ses ancêtres, ses descendants, ses frères et sœurs et leurs enfants')"
+        >
+          <span aria-hidden="true">⏳</span>
+          {{ isSelf ? $t('Mes proches dans le temps') : $t('Ses proches dans le temps') }}
+        </Link>
         <div class="relative" ref="actionsMenuRef">
           <button
             @click="showActionsMenu = !showActionsMenu"
@@ -175,7 +184,7 @@
     </div>
 
     <!-- Téléphone : actions sous le pouce — Sa vie (diaporama) · Parenté/Réseau · Photos -->
-    <div class="sm:hidden px-4 pt-3 grid gap-2" :class="mobileActions.length === 3 ? 'grid-cols-3' : mobileActions.length === 2 ? 'grid-cols-2' : 'grid-cols-1'">
+    <div class="sm:hidden px-4 pt-3 grid gap-2" :class="mobileActions.length === 3 ? 'grid-cols-3' : mobileActions.length >= 2 ? 'grid-cols-2' : 'grid-cols-1'">
       <component
         :is="a.href ? Link : 'button'"
         v-for="a in mobileActions"
@@ -188,6 +197,7 @@
       >
         <svg v-if="a.icon === 'play'" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
         <svg v-else-if="a.icon === 'tree'" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2.5" /><circle cx="6" cy="19" r="2.5" /><circle cx="18" cy="19" r="2.5" /><path d="M12 7.5V12M12 12l-6 4.5M12 12l6 4.5" /></svg>
+        <svg v-else-if="a.icon === 'time'" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12M6 21h12M7 3c0 4 5 5 5 9s-5 5-5 9M17 3c0 4-5 5-5 9s5 5 5 9" /></svg>
         <svg v-else-if="a.icon === 'network'" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><circle cx="5" cy="6" r="2" /><circle cx="19" cy="6" r="2" /><circle cx="5" cy="18" r="2" /><circle cx="19" cy="18" r="2" /><path d="M9.5 10.5L6.5 7.5M14.5 10.5l3-3M9.5 13.5l-3 3M14.5 13.5l3 3" /></svg>
         <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3" /><path d="M3 16l5-5 4 4 3-3 6 6" /></svg>
         {{ a.label }}
@@ -486,13 +496,20 @@ const showAvatarPicker = ref(false);
 const timelineRef = ref(null);
 const playLifeSlideshow = () => timelineRef.value?.play();
 
-// Barre d'actions téléphone : Sa vie (famille) · Parenté / Réseau · Photos.
+// « Ses proches dans le temps » : la carte animée, réduite à ses proches de
+// sang (famille seulement, et pour qui a une fiche « moi »).
+const timeUrl = computed(() => (!isFriends.value && viewerPersonId.value && props.person.in_family_directory !== false
+  ? `/map?temps=1&proches=${props.person.id}`
+  : null));
+
+// Barre d'actions téléphone : Sa vie (famille) · Parenté / Réseau · Dans le temps · Photos.
 const scrollToPhotos = () => document.getElementById('photos')?.scrollIntoView({ behavior: 'smooth' });
 const mobileActions = computed(() => {
   const list = [];
   if (!isFriends.value) list.push({ label: t('Sa vie'), icon: 'play', primary: true, onClick: playLifeSlideshow });
   if (isFriends.value) list.push({ label: t('Réseau'), icon: 'network', href: `/network?focus=${props.person.id}` });
   else if (viewerPersonId.value && viewerPersonId.value !== props.person.id) list.push({ label: t('Parenté'), icon: 'tree', href: `/family-tree?kinship=${props.person.id}` });
+  if (timeUrl.value) list.push({ label: t('Dans le temps'), icon: 'time', href: timeUrl.value });
   if (props.media.length > 0) list.push({ label: t('Photos'), icon: 'photos', primary: isFriends.value, onClick: scrollToPhotos });
   return list;
 });
