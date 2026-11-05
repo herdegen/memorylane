@@ -24,7 +24,9 @@ use Illuminate\Support\Facades\DB;
  * Règle de déplacement (demandée par la famille) : entre deux étapes
  * connues, la personne reste au premier lieu jusqu'au MILIEU de l'intervalle
  * (la médiane dans le temps), puis passe au suivant. Né à Paris en 1900,
- * mort à Marseille en 1980 : Paris jusqu'en 1940, Marseille ensuite.
+ * mort à Marseille en 1980 : Paris jusqu'en 1940, Marseille ensuite. Sauf
+ * un mariage : on quitte son lieu précédent le jour même (pas à la médiane),
+ * on ne se marie pas là où l'on vivait déjà depuis des années.
  *
  * Un emploi ou des études datés de plus de six mois (`job`, `education`
  * avec date de fin) sont aussi des lieux de vie.
@@ -102,12 +104,12 @@ class FamilyTimelineService
         $people = collect($people)->keyBy('id');
         $ids = $people->keys()->all();
 
-        // Lieux de vie déduits : [id de la fiche => [[date, lieu], …]].
+        // Lieux de vie déduits : [id de la fiche => [[date, lieu, nature], …]].
         $implied = [];
         foreach ($this->unions($ids) as $union) {
             foreach ([$union->person1_id, $union->person2_id] as $id) {
                 if ($people->has($id)) {
-                    $implied[$id][] = [$union->start_date, $union->start_place];
+                    $implied[$id][] = [$union->start_date, $union->start_place, 'union'];
                 }
             }
         }
@@ -115,7 +117,7 @@ class FamilyTimelineService
             if ($child->birth_date && filled($child->birth_place)) {
                 foreach (array_unique(array_filter([$child->father_id, $child->mother_id])) as $id) {
                     if ($people->has($id)) {
-                        $implied[$id][] = [$child->birth_date, $child->birth_place];
+                        $implied[$id][] = [$child->birth_date, $child->birth_place, 'point'];
                     }
                 }
             }
@@ -167,7 +169,7 @@ class FamilyTimelineService
      * Segments d'une personne, ou null sans aucune étape datée et localisée.
      *
      * @param  array<string, array{latitude: float, longitude: float}>  $coords
-     * @param  list<array{0: CarbonInterface, 1: string}>  $implied  unions, naissances des enfants
+     * @param  list<array{0: CarbonInterface, 1: string, 2: string}>  $implied  unions, naissances des enfants
      * @param  list<array{from: float, to: float, lat: float, lng: float}>  $trips  sorties photo, par mois
      * @return list<array{from: float, to: float, lat: float, lng: float, trip?: bool}>|null
      */
@@ -181,9 +183,10 @@ class FamilyTimelineService
 
         // Étapes : [année, [lat, lng], ordre à date égale, nature]. Nature :
         // « arrival » / « departure » = emménagement / départ datés (lieu de
-        // vie, long séjour) : on change de lieu CE jour-là ; « point » = simple
-        // présence connue (naissance, décès, union…) : on change de lieu à la
-        // médiane entre deux présences.
+        // vie, long séjour) : on change de lieu CE jour-là ; « union » = un
+        // mariage : on y arrive ce jour-là, puis médiane vers l'étape suivante ;
+        // « point » = simple présence connue (naissance, décès…) : on change de
+        // lieu à la médiane entre deux présences.
         $stops = [];
         $stop = function (?CarbonInterface $date, ?array $latLng, int $order, string $kind = 'point') use (&$stops) {
             if ($date && $latLng) {
@@ -210,9 +213,9 @@ class FamilyTimelineService
         // Union, naissance d'un enfant : la personne vivait là à cette date —
         // sauf si un lieu de vie connu couvre déjà cette date (la naissance à
         // la maternité de Croix ou de Jossigny, le mariage célébré ailleurs).
-        foreach ($implied as [$date, $place]) {
+        foreach ($implied as [$date, $place, $kind]) {
             if ($date && ! self::coveredByStay($stays, self::decimalYear($date))) {
-                $stop($date, $placeAt($place), 1);
+                $stop($date, $placeAt($place), 1, $kind);
             }
         }
         $stop($person->death_date, $placeAt($person->death_place), 2);
@@ -273,12 +276,12 @@ class FamilyTimelineService
         unset($s);
 
         // Chaque étape occupe sa place de la frontière précédente à la suivante :
-        // le jour d'un emménagement ou d'un départ datés, sinon la médiane
-        // entre deux présences connues. Deux étapes consécutives au même
-        // endroit ne font qu'un segment.
+        // le jour d'un emménagement, d'un départ ou d'un mariage datés, sinon
+        // la médiane entre deux présences connues. Deux étapes consécutives au
+        // même endroit ne font qu'un segment.
         $boundary = function (array $before, array $after): float {
             $left = $before['kind'] === 'departure';
-            $arrives = $after['kind'] === 'arrival';
+            $arrives = in_array($after['kind'], ['arrival', 'union'], true);
             if ($arrives && ! $left) {
                 return $after['t'];
             }

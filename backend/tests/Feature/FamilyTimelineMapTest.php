@@ -295,7 +295,7 @@ class FamilyTimelineMapTest extends TestCase
             'death_date' => '1980-01-01', 'death_place' => 'Marseille',
         ]);
         $mother = Person::factory()->create(['user_id' => $this->viewer->id, 'birth_date' => '1902-01-01', 'death_date' => '1990-01-01']);
-        // Mariés à Lyon en 1925 (les deux conjoints y vivaient)…
+        // Mariés à Lyon en 1925 (les deux conjoints y vivent ensuite)…
         PersonRelationship::create(['person1_id' => $father->id, 'person2_id' => $mother->id, 'type' => 'spouse',
             'start_date' => '1925-01-01', 'start_place' => 'Lyon']);
         // … un enfant né à Bordeaux en 1935 (ses deux parents y vivaient).
@@ -305,9 +305,10 @@ class FamilyTimelineMapTest extends TestCase
         $tracks = collect($this->timeline()['tracks'])->map(fn ($t) => $this->segments($t))->sortBy(fn ($t) => $t[0][0])->values()->all();
 
         $this->assertSame([
-            // Le père : Paris → Lyon (milieu de 1900-1925) → Bordeaux (milieu
-            // de 1925-1935) → Marseille (milieu de 1935-1980).
-            [[1900.0, 1912.5, 48.86, 2.35], [1912.5, 1930.0, 45.76, 4.84], [1930.0, 1957.5, 44.84, -0.58], [1957.5, 1980.0, 43.3, 5.37]],
+            // Le père : Paris → Lyon le jour du mariage (pas au milieu de
+            // 1900-1925 : on ne vit pas des années là où l'on se mariera) →
+            // Bordeaux (milieu de 1925-1935) → Marseille (milieu de 1935-1980).
+            [[1900.0, 1925.0, 48.86, 2.35], [1925.0, 1930.0, 45.76, 4.84], [1930.0, 1957.5, 44.84, -0.58], [1957.5, 1980.0, 43.3, 5.37]],
             // La mère, sans autre lieu connu : Lyon, puis Bordeaux jusqu'à son décès.
             [[1902.0, 1930.0, 45.76, 4.84], [1930.0, 1990.0, 44.84, -0.58]],
             // L'enfant, vivant.
