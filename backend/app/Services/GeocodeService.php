@@ -139,6 +139,19 @@ class GeocodeService
             return null;
         }
 
+        // Adresse française avec numéro et rue (« 66 rue de Paris, Montreuil ») :
+        // la BAN connaît les rues et départage les homonymes (Montreuil-sous-
+        // Bois et non Montreuil-sur-Mer, choisi par Nominatim) ; Nominatim
+        // reste le secours.
+        if (self::looksLikeFrenchStreet($place)) {
+            $ban = $this->fetchBan($place);
+            if (is_array($ban) && ($ban['score'] ?? 0) >= self::BAN_MIN_SCORE) {
+                $this->remember($key, $found = ['latitude' => $ban['latitude'], 'longitude' => $ban['longitude']]);
+
+                return $found;
+            }
+        }
+
         $result = null;
         foreach (self::placeVariants($place) as $i => $variant) {
             // Forme simplifiée déjà connue (autre saisie du même lieu) : pas d'appel.
@@ -261,6 +274,13 @@ class GeocodeService
 
     /** Pays (en français, langue locale ou anglais) qui ne sont pas la France. */
     private const FOREIGN_PATTERN = '/\\b(espagne|españa|espana|spain|majorque|mallorca|baléares|baleares|italie|italia|italy|belgique|belgië|belgie|belgium|allemagne|deutschland|germany|suisse|schweiz|svizzera|switzerland|luxembourg|royaume[- ]uni|united kingdom|angleterre|england|écosse|scotland|irlande|ireland|portugal|pays[- ]bas|nederland|netherlands|autriche|österreich|austria|pologne|polska|poland|grèce|greece|maroc|morocco|algérie|algerie|tunisie|tunisia|canada|états[- ]unis|etats[- ]unis|usa|united states|brésil|brasil|brazil|argentine|argentina|mexique|mexico|méxico|australie|australia|japon|japan|chine|china|inde|india)\\b/iu';
+
+    /** Numéro + voie (rue, avenue, boulevard…), en France. */
+    public static function looksLikeFrenchStreet(string $place): bool
+    {
+        return ! self::looksForeign($place)
+            && (bool) preg_match('/\\b\\d+\\s*(bis|ter)?\\s*,?\\s*(rue|avenue|av\\.?|boulevard|bd|chemin|place|allée|allee|impasse|quai|route|cours|square|villa|cité|cite|passage|sentier|résidence|residence)\\b/iu', $place);
+    }
 
     public static function looksForeign(string $address): bool
     {
