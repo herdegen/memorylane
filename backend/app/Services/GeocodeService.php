@@ -256,6 +256,39 @@ class GeocodeService
      *
      * @return array{latitude: float, longitude: float, city: ?string}|null
      */
+    /** Score BAN en dessous duquel la réponse n'est pas l'adresse saisie. */
+    private const BAN_MIN_SCORE = 0.5;
+
+    /** Pays (en français, langue locale ou anglais) qui ne sont pas la France. */
+    private const FOREIGN_PATTERN = '/\\b(espagne|españa|espana|spain|majorque|mallorca|baléares|baleares|italie|italia|italy|belgique|belgië|belgie|belgium|allemagne|deutschland|germany|suisse|schweiz|svizzera|switzerland|luxembourg|royaume[- ]uni|united kingdom|angleterre|england|écosse|scotland|irlande|ireland|portugal|pays[- ]bas|nederland|netherlands|autriche|österreich|austria|pologne|polska|poland|grèce|greece|maroc|morocco|algérie|algerie|tunisie|tunisia|canada|états[- ]unis|etats[- ]unis|usa|united states|brésil|brasil|brazil|argentine|argentina|mexique|mexico|méxico|australie|australia|japon|japan|chine|china|inde|india)\\b/iu';
+
+    public static function looksForeign(string $address): bool
+    {
+        return (bool) preg_match(self::FOREIGN_PATTERN, $address);
+    }
+
+    /**
+     * Adresse hors de France (ou mal reconnue par la BAN) : Nominatim, ville
+     * d'après le premier élément saisi.
+     *
+     * @return array{latitude: float, longitude: float, city: ?string}|null|false
+     */
+    private function worldAddress(string $address): array|null|false
+    {
+        // « Palma de Mallorca -España- » → « Palma de Mallorca, España ».
+        $found = $this->lookup(preg_replace('/\\s*-\\s*([^-]+?)\\s*-\\s*$/u', ', $1', $address));
+        if (! is_array($found)) {
+            return $found;
+        }
+        $first = trim(preg_split('/[,(]|\\s-/u', $address)[0] ?? '');
+
+        return [
+            'latitude' => (float) $found['latitude'],
+            'longitude' => (float) $found['longitude'],
+            'city' => $first !== '' ? $first : null,
+        ];
+    }
+
     public function addressFor(?string $address): ?array
     {
         $address = trim((string) $address);
@@ -270,7 +303,14 @@ class GeocodeService
             return $cached === 'miss' ? null : $cached;
         }
 
-        $result = $this->fetchBan($address);
+        // La BAN ne connaît que la France : une adresse à l'étranger (ou
+        // qu'elle ne reconnaît que vaguement) y tombe sur n'importe quelle
+        // commune — « Palma de Mallorca -España- » était devenue Castelnou.
+        // Ces adresses passent par Nominatim (monde entier).
+        $result = self::looksForeign($address) ? $this->worldAddress($address) : $this->fetchBan($address);
+        if (is_array($result) && ($result['score'] ?? 1.0) < self::BAN_MIN_SCORE) {
+            $result = $this->worldAddress($address);
+        }
 
         // Panne du service (réseau, 5xx) : on ne retient l'échec qu'une heure,
         // pour réessayer vite ; une adresse réellement introuvable, plus longtemps.
@@ -317,6 +357,7 @@ class GeocodeService
                 'latitude' => (float) $coords[1],
                 'longitude' => (float) $coords[0],
                 'city' => $feature['properties']['city'] ?? null,
+                'score' => (float) ($feature['properties']['score'] ?? 1.0),
             ];
         } catch (\Throwable $e) {
             Log::warning('GeocodeService: échec BAN', ['address' => $address, 'error' => $e->getMessage()]);
