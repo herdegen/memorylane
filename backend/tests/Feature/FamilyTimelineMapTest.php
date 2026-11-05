@@ -115,6 +115,22 @@ class FamilyTimelineMapTest extends TestCase
         $this->assertSame([[1900.0, 1980.0, 43.3, 5.37]], $this->segments($this->timeline()['tracks'][0]));
     }
 
+    public function test_sans_lieu_de_naissance_mais_avec_des_lieux_de_vie_pas_ne_au_lieu_de_deces(): void
+    {
+        // Né en 1927 (lieu inconnu), à Paris de 1958 à 1975, puis à Lyon
+        // jusqu'à son décès en 1993 : pas à Lyon depuis 1927.
+        $father = $this->parent([
+            'birth_date' => '1927-01-01', 'birth_place' => null,
+            'death_date' => '1993-01-01', 'death_place' => 'Lyon',
+        ]);
+        LifeEvent::create(['person_id' => $father->id, 'user_id' => $this->viewer->id, 'type' => 'residence', 'title' => 'Paris',
+            'place' => 'Paris', 'event_date' => '1958-01-01', 'end_date' => '1975-01-01', 'date_precision' => 'year']);
+        LifeEvent::create(['person_id' => $father->id, 'user_id' => $this->viewer->id, 'type' => 'residence', 'title' => 'Lyon',
+            'place' => 'Lyon', 'event_date' => '1975-01-01', 'date_precision' => 'year']);
+
+        $this->assertSame([[1958.0, 1975.0, 48.86, 2.35], [1975.0, 1993.0, 45.76, 4.84]], $this->segments($this->timeline()['tracks'][0]));
+    }
+
     public function test_variantes_des_lieux_mal_saisis(): void
     {
         $this->assertContains('Paris, France', \App\Services\GeocodeService::placeVariants('Paris-Xème, 75110, Paris, Île-de-France, France'));

@@ -194,9 +194,6 @@ class FamilyTimelineService
             }
         };
 
-        // Lieu de naissance inconnu mais lieu de décès connu : on suppose la
-        // personne née au même endroit (choix de l'utilisateur, 2026-11-05).
-        $stop($person->birth_date, $placeAt($person->birth_place) ?? ($person->birth_place ? null : $placeAt($person->death_place)), 0);
         $stays = [];
         foreach ($person->lifeEvents as $event) {
             if ($event->type !== 'residence' && ! self::isStay($event)) {
@@ -210,6 +207,12 @@ class FamilyTimelineService
                 $stays[] = [self::decimalYear($event->event_date), $event->end_date ? self::decimalYear($event->end_date) : null];
             }
         }
+        // Lieu de naissance inconnu mais lieu de décès connu : on suppose la
+        // personne née au même endroit (choix de l'utilisateur, 2026-11-05) —
+        // sauf si ses lieux de vie sont connus : mort là où il s'est installé
+        // à 48 ans, il n'y est pas né pour autant.
+        $assumedBirthplace = $person->birth_place || $stays !== [] ? null : $placeAt($person->death_place);
+        $stop($person->birth_date, $placeAt($person->birth_place) ?? $assumedBirthplace, 0);
         // Union, naissance d'un enfant : la personne vivait là à cette date —
         // sauf si un lieu de vie connu couvre déjà cette date (la naissance à
         // la maternité de Croix ou de Jossigny, le mariage célébré ailleurs).
