@@ -117,6 +117,36 @@ class FamilyNewsletterTest extends TestCase
         $this->assertNotSame($pick($first, 'spotlight'), $pick($second, 'spotlight'), 'autre fonctionnalité');
     }
 
+    public function test_une_nouveaute_ouvre_la_lettre_une_seule_fois(): void
+    {
+        $this->featuredPerson('Yves');
+        $this->featuredPerson('Anne');
+
+        // Jamais montrée : en tête de lettre, « Nouveau », lien vers la carte
+        // ouverte sur « Dans le temps ».
+        $first = $this->build($this->me);
+        $this->assertSame(['spotlight', 'carte_temps', true], [$first['sections'][0]['key'], $first['sections'][0]['ref'], $first['sections'][0]['new']]);
+        $this->assertSame('Nouveau sur MemoryLane : la famille dans le temps.', $first['preheader']);
+        $html = (new FamilyNewsletterMail($this->me, $first))->render();
+        $this->assertStringContainsString('Nouveau sur MemoryLane', $html);
+        $this->assertStringContainsString('/map?temps=1', $html);
+        NewsletterSend::create(['user_id' => $this->me->id, 'sections' => $first['log'], 'subject' => $first['subject'], 'sent_at' => now()]);
+
+        // La semaine suivante : la rotation ordinaire reprend, en fin de lettre.
+        Carbon::setTestNow(now()->addWeek());
+        $second = $this->build($this->me);
+        $last = end($second['sections']);
+        $this->assertSame('spotlight', $last['key']);
+        $this->assertNotSame('carte_temps', $last['ref']);
+        $this->assertFalse($last['new']);
+
+        // Passé la période de mise en avant, plus de priorité, même jamais montrée.
+        Carbon::setTestNow('2026-12-06 18:30');
+        $this->featuredPerson('Paul');
+        $late = $this->build($this->cousin);
+        $this->assertFalse(collect($late['sections'])->firstWhere('key', 'spotlight')['new']);
+    }
+
     public function test_pas_de_coup_de_pouce_frise_pour_un_enfant(): void
     {
         $baby = Person::factory()->create(['first_name' => 'Valentine', 'birth_date' => now()->subYear(), 'father_id' => $this->me->person_id, 'in_family_directory' => true]);

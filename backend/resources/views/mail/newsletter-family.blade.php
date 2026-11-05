@@ -172,7 +172,7 @@
             </p>
 
         @elseif ($s['key'] === 'spotlight')
-            <p style="{{ $kicker }}">{{ __('À découvrir') }}</p>
+            <p style="{{ $kicker }}">{{ ($s['new'] ?? false) ? __('Nouveau sur MemoryLane') : __('À découvrir') }}</p>
             <p style="{{ $h2 }}">{{ $s['title'] }}</p>
             <p style="{{ $p }}">{{ $s['text'] }}</p>
             <a href="{{ $s['url_abs'] }}" style="{{ $link }}">{{ $s['cta'] }} →</a>

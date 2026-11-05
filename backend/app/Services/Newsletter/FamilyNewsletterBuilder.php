@@ -150,7 +150,13 @@ class FamilyNewsletterBuilder
             $sections[] = $section;
         }
 
-        $sections[] = $this->spotlight($sections);
+        // Une nouveauté du site ouvre la lettre ; sinon la découverte la ferme.
+        $spotlight = $this->spotlight($sections);
+        if ($spotlight['new']) {
+            array_unshift($sections, $spotlight);
+        } else {
+            $sections[] = $spotlight;
+        }
 
         return [
             'subject' => $this->subject($sections),
@@ -533,9 +539,10 @@ class FamilyNewsletterBuilder
             ->map(fn ($u) => parse_url($u, PHP_URL_PATH))->all();
         $keys = array_keys(array_filter($all, fn ($f) => ! in_array($f['url'], $taken, true))) ?: array_keys($all);
         $shown = $this->recentRefs('spotlight', count($all));
-        $key = FeatureSpotlights::next($shown, crc32($this->user->id), $keys);
+        $new = FeatureSpotlights::newFor($shown, $this->now, $keys);
+        $key = $new ?? FeatureSpotlights::next($shown, crc32($this->user->id), $keys);
 
-        return ['key' => 'spotlight', 'ref' => $key] + $all[$key]
+        return ['key' => 'spotlight', 'ref' => $key, 'new' => $new !== null] + $all[$key]
             + ['url_abs' => url($all[$key]['url'])];
     }
 
@@ -740,6 +747,9 @@ class FamilyNewsletterBuilder
         }
         if ($s = $by->get('spotlight')) {
             $title = mb_strtolower(mb_substr($s['title'], 0, 1)).mb_substr($s['title'], 1);
+            if ($s['new']) {
+                return __('Nouveau sur MemoryLane : :title.', ['title' => $title]);
+            }
 
             return preg_match('/[?!.]$/u', $title)
                 ? __('À découvrir : :title', ['title' => $title])

@@ -2,6 +2,8 @@
 
 namespace App\Services\Newsletter;
 
+use Carbon\CarbonInterface;
+
 /**
  * Fonctionnalités mises en avant dans la newsletter, une par semaine, sans
  * répétition tant que toutes n'ont pas été montrées au destinataire.
@@ -10,6 +12,15 @@ namespace App\Services\Newsletter;
 class FeatureSpotlights
 {
     /**
+     * Nouveautés du site : jusqu'au jour indiqué, chacun la reçoit d'abord
+     * (une fois, en tête de lettre, « Nouveau »), puis elle rejoint la
+     * rotation ordinaire.
+     *
+     * @var array<string, string> clé => dernier jour de mise en avant
+     */
+    public const NEW = ['carte_temps' => '2026-11-30'];
+
+    /**
      * Les fonctionnalités, textes dans la langue courante.
      *
      * @return array<string, array{title: string, text: string, url: string, cta: string}>
@@ -17,6 +28,12 @@ class FeatureSpotlights
     public static function all(): array
     {
         return [
+            'carte_temps' => [
+                'title' => __('La famille dans le temps'),
+                'text' => __('Sur la carte, « Dans le temps » fait défiler les années : naissances, mariages, maisons successives et voyages. Lance la lecture et regarde la famille se déplacer, génération après génération.'),
+                'url' => '/map?temps=1',
+                'cta' => __('Voir la famille dans le temps'),
+            ],
             'recit_de_vie' => [
                 'title' => __('Le récit de vie'),
                 'text' => __('Sur la fiche de quelqu\'un, le bouton Diaporama fait voyager la carte de lieu en lieu et raconte sa vie en photos : naissance, maisons, mariage, métiers…'),
@@ -142,6 +159,23 @@ class FeatureSpotlights
                 'cta' => __('Ouvrir la carte'),
             ],
         ] + $neutral;
+    }
+
+    /**
+     * Nouveauté encore mise en avant et jamais montrée à ce destinataire.
+     *
+     * @param  list<string>  $shown  clés déjà montrées
+     * @param  list<string>  $keys  liste à parcourir
+     */
+    public static function newFor(array $shown, CarbonInterface $today, array $keys): ?string
+    {
+        foreach (self::NEW as $key => $until) {
+            if (in_array($key, $keys, true) && ! in_array($key, $shown, true) && $today->toDateString() <= $until) {
+                return $key;
+            }
+        }
+
+        return null;
     }
 
     /**

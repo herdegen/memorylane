@@ -60,7 +60,7 @@
 @elseif ($s['key'] === 'numbers')
 {!! __('Les chiffres de la famille : :photos photos, :people personnes dans l\'arbre.', ['photos' => e($s['photos']), 'people' => e($s['people'])]) !!}
 @elseif ($s['key'] === 'spotlight')
-{!! __('À découvrir — :title : :text', ['title' => $s['title'], 'text' => $s['text']]) !!} {!! $s['url_abs'] !!}
+{!! ($s['new'] ?? false) ? __('Nouveau sur MemoryLane — :title : :text', ['title' => $s['title'], 'text' => $s['text']]) : __('À découvrir — :title : :text', ['title' => $s['title'], 'text' => $s['text']]) !!} {!! $s['url_abs'] !!}
 @endif
 
 @endforeach

@@ -360,6 +360,8 @@ onMounted(async () => {
   await Promise.all([loadTags(), loadGeolocatedMedia()]);
   // « Où vit la famille / où vivent mes amis » : affichée d'office.
   showHeatmap();
+  // Lien de la lettre du dimanche (/map?temps=1) : « Dans le temps » d'emblée.
+  if (!isFriends.value && new URLSearchParams(window.location.search).has('temps')) enterTimeMode();
 });
 
 onUnmounted(() => {
