@@ -298,6 +298,21 @@ class FamilyTimelineMapTest extends TestCase
         return $media;
     }
 
+    public function test_vivant_sans_date_de_naissance_present_seulement_depuis_sa_premiere_trace(): void
+    {
+        // Un enfant sans date de naissance saisie, avec une adresse et une
+        // première photo en mai 2024 : rien avant.
+        $child = Person::factory()->create([
+            'user_id' => $this->viewer->id, 'father_id' => $this->me->id, 'birth_date' => null,
+            'address_latitude' => 47.22, 'address_longitude' => 2.33,
+        ]);
+        $this->photo($child, '2024-05-18 12:00:00', 45.18, 0.72);
+
+        $tracks = $this->timeline()['tracks'];
+        $starts = array_map(fn ($t) => $t[0]['from'], $tracks);
+        $this->assertGreaterThanOrEqual(2024.3, min(array_filter($starts, fn ($from) => $from > 2000)));
+    }
+
     public function test_les_photos_de_voyage_sont_des_sorties_sans_effet_sur_les_medianes(): void
     {
         $father = $this->parent([

@@ -201,10 +201,14 @@ class FamilyTimelineService
         $first = $stops[0]['t'];
         $last = $stops[count($stops) - 1]['t'];
 
-        $start = $birth ?? max(
+        // Vivant sans date de naissance (un enfant dont la date n'est pas
+        // saisie) : présent seulement à partir de sa première trace — étape ou
+        // photo —, jamais des années trop tôt.
+        $firstTrace = min($first, ...array_column($trips, 'from') ?: [INF]);
+        $start = $birth ?? ($alive ? $firstTrace : max(
             min($first - self::MARGIN_YEARS, $death !== null ? $death - self::TYPICAL_AGE : INF),
             $death !== null ? $death - self::MAX_AGE : -INF,
-        );
+        ));
         $end = $death ?? ($alive ? $today : min(
             $today,
             max($last + self::MARGIN_YEARS, $birth !== null ? $birth + self::TYPICAL_AGE : -INF),

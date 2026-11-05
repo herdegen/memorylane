@@ -26,9 +26,10 @@ return [
     'timeline' => [
         'monthly_from' => 1990,
         'trip_min_km' => 30,
-        // Mesuré sur les données réelles (2026-11-05) : 55 sorties, 7 réunions
-        // de famille ; une photo isolée (souvent mal datée) ne suffit pas.
-        'trip_min_photos' => 2,
+        // Une seule photo suffit (choix user : une invitée identifiée sur une
+        // seule photo du mariage doit y apparaître) ; mesuré le 2026-11-05 :
+        // 60 sorties au lieu de 55, toujours lisible.
+        'trip_min_photos' => 1,
     ],
 
     // Reconnaissance de visages.
