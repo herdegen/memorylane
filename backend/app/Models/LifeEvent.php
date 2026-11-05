@@ -25,6 +25,18 @@ class LifeEvent extends Model
         'album_id',
     ];
 
+    protected static function booted(): void
+    {
+        // Lieu de vie saisi sans coordonnées : géocodé en tâche de fond.
+        static::saved(function (self $event) {
+            $touched = $event->wasRecentlyCreated || $event->wasChanged(['place', 'type', 'latitude', 'longitude']);
+            if ($touched && $event->type === 'residence' && filled($event->place)
+                && ($event->latitude === null || $event->longitude === null)) {
+                \App\Jobs\GeocodePendingPlaces::enqueue([$event->place]);
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return [

@@ -2,10 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\GeocodePendingPlaces;
 use App\Models\Household;
 use App\Models\LifeEvent;
+use App\Models\Media;
 use App\Models\Person;
+use App\Models\PersonRelationship;
 use App\Models\User;
+use App\Services\FamilyTimelineService;
 use App\Services\GeocodeService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
@@ -13,6 +17,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 /**
@@ -164,7 +169,9 @@ class FamilyTimelineMapTest extends TestCase
 
     public function test_sans_date_de_deces_presence_bornee(): void
     {
-        // Née en 1880, rien d'autre : plus vivante, présente jusqu'à un âge typique.
+        // Née en 1880, sans date de décès : plus vivante ; ses enfants (plus
+        // bas) la situent à Marseille en 1930 et à Paris en 1950, elle reste
+        // présente jusqu'à sa dernière étape + 10 ans.
         $this->parent(['birth_date' => '1880-01-01', 'birth_place' => 'Lyon']);
         // Né en 1950, pas de décès : vivant, présent jusqu'à aujourd'hui (sans adresse).
         $uncle = Person::factory()->create(['user_id' => $this->viewer->id, 'birth_date' => '1950-01-01', 'birth_place' => 'Paris', 'father_id' => $this->me->father_id]);
@@ -176,7 +183,7 @@ class FamilyTimelineMapTest extends TestCase
         $tracks = collect($this->timeline()['tracks'])->map(fn ($t) => $this->segments($t))->sortBy(fn ($t) => $t[0][0])->values()->all();
 
         $this->assertSame([
-            [[1880.0, 1950.0, 45.76, 4.84]],
+            [[1880.0, 1905.0, 45.76, 4.84], [1905.0, 1940.0, 43.3, 5.37], [1940.0, 1960.0, 48.86, 2.35]],
             [[1930.0, 2000.0, 43.3, 5.37]],
             [[1950.0, 2026.0, 48.86, 2.35]],
         ], $tracks);
@@ -249,6 +256,178 @@ class FamilyTimelineMapTest extends TestCase
         }
     }
 
+    // ------------------------------------------------------------ unions, enfants
+
+    public function test_union_et_naissance_d_un_enfant_sont_des_lieux_de_vie(): void
+    {
+        $this->place('Bordeaux', 44.8378, -0.5792);
+        $father = $this->parent([
+            'birth_date' => '1900-01-01', 'birth_place' => 'Paris',
+            'death_date' => '1980-01-01', 'death_place' => 'Marseille',
+        ]);
+        $mother = Person::factory()->create(['user_id' => $this->viewer->id, 'birth_date' => '1902-01-01', 'death_date' => '1990-01-01']);
+        // Mariés à Lyon en 1925 (les deux conjoints y vivaient)…
+        PersonRelationship::create(['person1_id' => $father->id, 'person2_id' => $mother->id, 'type' => 'spouse',
+            'start_date' => '1925-01-01', 'start_place' => 'Lyon']);
+        // … un enfant né à Bordeaux en 1935 (ses deux parents y vivaient).
+        Person::factory()->create(['user_id' => $this->viewer->id, 'father_id' => $father->id, 'mother_id' => $mother->id,
+            'birth_date' => '1935-01-01', 'birth_place' => 'Bordeaux']);
+
+        $tracks = collect($this->timeline()['tracks'])->map(fn ($t) => $this->segments($t))->sortBy(fn ($t) => $t[0][0])->values()->all();
+
+        $this->assertSame([
+            // Le père : Paris → Lyon (milieu de 1900-1925) → Bordeaux (milieu
+            // de 1925-1935) → Marseille (milieu de 1935-1980).
+            [[1900.0, 1912.5, 48.86, 2.35], [1912.5, 1930.0, 45.76, 4.84], [1930.0, 1957.5, 44.84, -0.58], [1957.5, 1980.0, 43.3, 5.37]],
+            // La mère, sans autre lieu connu : Lyon, puis Bordeaux jusqu'à son décès.
+            [[1902.0, 1930.0, 45.76, 4.84], [1930.0, 1990.0, 44.84, -0.58]],
+            // L'enfant, vivant.
+            [[1935.0, 2026.0, 44.84, -0.58]],
+        ], $tracks);
+    }
+
+    // ------------------------------------------------------------ sorties photo
+
+    /** Photo du compte, prise là où la fiche est identifiée. */
+    private function photo(Person $person, string $takenAt, float $lat, float $lng, ?string $ficheStatus = null): Media
+    {
+        $media = Media::factory()->create(['user_id' => $this->viewer->id, 'type' => 'photo', 'taken_at' => $takenAt]);
+        $media->metadata()->create(['latitude' => $lat, 'longitude' => $lng]);
+        $media->people()->attach($person->id, ['fiche_status' => $ficheStatus]);
+
+        return $media;
+    }
+
+    public function test_les_photos_de_voyage_sont_des_sorties_sans_effet_sur_les_medianes(): void
+    {
+        $father = $this->parent([
+            'birth_date' => '1950-01-01', 'birth_place' => 'Paris',
+            'death_date' => '2020-01-01', 'death_place' => 'Marseille',
+        ]);
+        // Juin 2012 : deux photos à Rome, une à Florence → une seule sortie, à Rome.
+        $this->photo($father, '2012-06-10 12:00:00', 41.9028, 12.4964);
+        $this->photo($father, '2012-06-12 18:00:00', 41.8986, 12.4769);
+        $this->photo($father, '2012-06-20 10:00:00', 43.7696, 11.2558);
+        // Mars 2015, à 20 km de chez lui (Aix-en-Provence) : pas une sortie.
+        $this->photo($father, '2015-03-01 10:00:00', 43.5297, 5.4474);
+        // Août 2018 à Berlin, mais identification refusée sur la fiche : ignorée.
+        $this->photo($father, '2018-08-01 10:00:00', 52.52, 13.405, 'private');
+        // 1985 : avant la frise au mois, ignorée.
+        $this->photo($father, '1985-07-01 10:00:00', 52.52, 13.405);
+
+        $track = $this->timeline()['tracks'][0];
+
+        $june = FamilyTimelineService::decimalYear(Carbon::parse('2012-06-01'));
+        $july = FamilyTimelineService::decimalYear(Carbon::parse('2012-07-01'));
+        // Médiane naissance-décès inchangée (1985), la sortie est posée par-dessus.
+        $this->assertSame([
+            [1950.0, 1985.0, 48.86, 2.35],
+            [1985.0, round($june, 1), 43.3, 5.37],
+            [round($june, 1), round($july, 1), 41.9, 12.49],
+            [round($july, 1), 2020.0, 43.3, 5.37],
+        ], $this->segments($track));
+        $this->assertEqualsWithDelta($june, $track[2]['from'], 0.001);
+        $this->assertEqualsWithDelta($july, $track[2]['to'], 0.001);
+        $this->assertTrue($track[2]['trip']);
+        $this->assertCount(1, array_filter($track, fn ($s) => ! empty($s['trip'])));
+    }
+
+    public function test_sorties_photo_reglables_et_limitees_aux_photos_visibles(): void
+    {
+        $father = $this->parent(['birth_date' => '1950-01-01', 'birth_place' => 'Paris', 'death_date' => '2020-01-01', 'death_place' => 'Paris']);
+        $this->photo($father, '2012-06-10 12:00:00', 41.9028, 12.4964);
+        // Photo d'un autre compte, jamais partagée : invisible pour moi, donc ignorée.
+        $hidden = Media::factory()->create(['type' => 'photo', 'taken_at' => '2016-05-02 12:00:00']);
+        $hidden->metadata()->create(['latitude' => 40.4168, 'longitude' => -3.7038]);
+        $hidden->people()->attach($father->id);
+
+        $trips = fn () => count(array_filter($this->timeline()['tracks'][0], fn ($s) => ! empty($s['trip'])));
+        config(['memorylane.timeline.trip_min_photos' => 1]);
+        $this->assertSame(1, $trips());
+
+        // Deux photos minimum dans le mois (réglage par défaut) : la photo
+        // seule de Rome ne suffit plus.
+        config(['memorylane.timeline.trip_min_photos' => 2]);
+        $this->assertSame(0, $trips());
+        // Seuil de distance au-delà de Paris-Rome : plus de sortie non plus.
+        config(['memorylane.timeline.trip_min_photos' => 1, 'memorylane.timeline.trip_min_km' => 2000]);
+        $this->assertSame(0, $trips());
+    }
+
+    // ------------------------------------------------------------ géocodage automatique
+
+    public function test_un_lieu_saisi_ou_modifie_part_au_geocodage(): void
+    {
+        config(['memorylane.geocode_auto' => true]);
+        Queue::fake();
+
+        // Fiche : lieu de naissance saisi (Paris est déjà connu, pas Mannheim).
+        $person = Person::factory()->create(['user_id' => $this->viewer->id, 'birth_place' => 'Mannheim, Allemagne', 'death_place' => 'Paris']);
+        Queue::assertPushed(GeocodePendingPlaces::class);
+        $this->assertSame(['Mannheim, Allemagne'], array_values(GeocodePendingPlaces::pending()));
+
+        // Lieu de décès modifié ; un autre champ modifié ne déclenche rien.
+        $person->update(['death_place' => 'Mechelen, Belgique']);
+        $person->update(['notes' => 'Rien de géographique']);
+        // Union, lieu de vie sans coordonnées ; pas un lieu de vie déjà situé.
+        PersonRelationship::create(['person1_id' => $person->id, 'person2_id' => $this->me->id, 'type' => 'spouse', 'start_place' => 'Strasbourg, , ,']);
+        LifeEvent::create(['person_id' => $person->id, 'user_id' => $this->viewer->id, 'type' => 'residence', 'title' => 'Ys',
+            'place' => 'Quimper', 'event_date' => '1950-01-01']);
+        LifeEvent::create(['person_id' => $person->id, 'user_id' => $this->viewer->id, 'type' => 'residence', 'title' => 'Brest',
+            'place' => 'Brest', 'latitude' => 48.39, 'longitude' => -4.49, 'event_date' => '1960-01-01']);
+
+        $this->assertSame(['Mannheim, Allemagne', 'Mechelen, Belgique', 'Strasbourg', 'Quimper'], array_values(GeocodePendingPlaces::pending()));
+    }
+
+    public function test_le_job_geocode_au_rythme_de_nominatim_sans_reessayer_un_introuvable(): void
+    {
+        config(['memorylane.geocode_auto' => true]);
+        $this->fakeNominatim(['Mannheim, Allemagne' => [49.4875, 8.466]]);
+        Queue::fake();
+        GeocodePendingPlaces::enqueue(['Mannheim, Allemagne', 'Atlantide', 'Paris', '  ']);
+        $this->assertSame(['Mannheim, Allemagne', 'Atlantide'], array_values(GeocodePendingPlaces::pending()));
+
+        (new GeocodePendingPlaces)->handle(app(GeocodeService::class));
+
+        $this->assertSame([], GeocodePendingPlaces::pending());
+        $this->assertEqualsWithDelta(49.4875, Cache::get(GeocodeService::placeKey('Mannheim, Allemagne'))['latitude'], 0.0001);
+        $this->assertSame('miss', Cache::get(GeocodeService::placeKey('Atlantide')));
+        Http::assertSentCount(2);
+
+        // Introuvable mémorisé : une nouvelle saisie ne le remet pas en liste.
+        GeocodePendingPlaces::enqueue(['Atlantide']);
+        $this->assertSame([], GeocodePendingPlaces::pending());
+    }
+
+    public function test_une_requete_par_seconde_au_plus_entre_tous_les_appels(): void
+    {
+        config(['memorylane.nominatim_interval' => 0.4]);
+        $this->fakeNominatim([]);
+        $geocoder = app(GeocodeService::class);
+
+        $start = microtime(true);
+        $geocoder->lookup('Atlantide');
+        $geocoder->lookup('Lemurie');
+        $geocoder->lookup('Hyperborée');
+
+        // Trois appels : au moins deux intervalles entre eux.
+        Http::assertSentCount(3);
+        $this->assertGreaterThanOrEqual(0.8, microtime(true) - $start);
+    }
+
+    public function test_la_carte_met_en_attente_les_lieux_jamais_tentes(): void
+    {
+        $this->parent(['birth_date' => '1950-01-01', 'birth_place' => 'Atlantide', 'death_date' => '2000-01-01', 'death_place' => 'Paris']);
+        config(['memorylane.geocode_auto' => true]);
+        Queue::fake();
+
+        $this->assertSame(1, $this->timeline()['pending_places']);
+
+        Queue::assertPushed(GeocodePendingPlaces::class);
+        $this->assertSame(['Atlantide'], array_values(GeocodePendingPlaces::pending()));
+        Http::assertNothingSent();
+    }
+
     public function test_exige_l_authentification(): void
     {
         $this->getJson('/map/heatmap/timeline')->assertUnauthorized();
@@ -278,8 +457,11 @@ class FamilyTimelineMapTest extends TestCase
 
     public function test_la_commande_geocode_les_lieux_manquants_et_reutilise_le_cache(): void
     {
-        $this->fakeNominatim(['Mannheim, Allemagne' => [49.4875, 8.466]]);
-        $this->parent(['birth_place' => 'Mannheim, Allemagne', 'death_place' => 'Paris']);
+        $this->fakeNominatim(['Mannheim, Allemagne' => [49.4875, 8.466], 'Colmar' => [48.08, 7.36]]);
+        $father = $this->parent(['birth_place' => 'Mannheim, Allemagne', 'death_place' => 'Paris']);
+        // Lieu d'une union.
+        PersonRelationship::create(['person1_id' => $father->id, 'person2_id' => Person::factory()->create(['user_id' => $this->viewer->id])->id,
+            'type' => 'spouse', 'start_place' => 'Colmar']);
         // Lieu de vie sans coordonnées, lieu GEDCOM à virgules vides.
         LifeEvent::create(['person_id' => $this->me->father_id, 'user_id' => $this->viewer->id, 'type' => 'residence', 'title' => 'Lyon',
             'place' => 'Lyon, , ,', 'event_date' => '1950-01-01']);
@@ -288,13 +470,15 @@ class FamilyTimelineMapTest extends TestCase
 
         $this->artisan('people:geocode-places')->assertSuccessful();
 
-        // Paris et Lyon étaient en cache : un seul appel, pour Mannheim.
-        $this->assertSame(['Mannheim, Allemagne'], $this->sentQueries());
+        // Paris et Lyon étaient en cache : un appel pour Mannheim, un pour Colmar.
+        $queries = $this->sentQueries();
+        sort($queries);
+        $this->assertSame(['Colmar', 'Mannheim, Allemagne'], $queries);
         $this->assertEqualsWithDelta(49.4875, Cache::get(GeocodeService::placeKey('Mannheim, Allemagne'))['latitude'], 0.0001);
 
         // Second passage : tout est connu, aucun appel.
         $this->artisan('people:geocode-places')->assertSuccessful();
-        Http::assertSentCount(1);
+        Http::assertSentCount(2);
     }
 
     public function test_un_lieu_introuvable_n_est_pas_retente_a_chaque_passage(): void

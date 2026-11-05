@@ -2,12 +2,17 @@
 // Le serveur envoie des pistes anonymes, chacune une suite de segments
 // { from, to, lat, lng } en années décimales (déplacement déjà placé à la
 // médiane entre deux étapes, cf. FamilyTimelineService). Ici :
+//   - createTimeScale : la lecture ; les siècles anciens défilent vite,
+//     puis, depuis 1990, la frise passe au mois.
 //   - createAnimator : à chaque image, où est chaque point et avec quelle
 //     opacité. Au passage d'une médiane, le point glisse vers son nouveau
 //     lieu en suivant une courbe, avec easing, sur une courte durée (en
 //     temps réel, quelle que soit la vitesse de lecture) ; il apparaît en
-//     fondu à la naissance et s'efface au décès. À l'arrêt, tout est à sa
-//     place exacte (personne « en vol » sur un arrêt sur image).
+//     fondu à la naissance et s'efface au décès. Une sortie (segment
+//     `trip`, photos d'un voyage) est un aller-retour : pendant la lecture,
+//     le point reste au moins un instant sur place avant de rentrer. À
+//     l'arrêt, tout est à sa place exacte (personne « en vol » sur un arrêt
+//     sur image).
 //   - createGlowLayer : calque Leaflet (canvas) des petits points lumineux,
 //     avec traînée pendant les déplacements et onde à l'apparition.
 // Aucune dépendance (Leaflet est passé en paramètre) : la page d'aperçu
@@ -31,13 +36,139 @@ export function decimalYearNow(date = new Date()) {
   return y + (date.getTime() - start) / (Date.UTC(y + 1, 0, 1) - start);
 }
 
-/** Durée d'un parcours complet à vitesse 1 : ~0,12 s par an, entre 10 et 20 s. */
-export const playDuration = (span) => Math.min(20, Math.max(10, span * 0.12));
+/** Année à partir de laquelle la frise passe au mois (comme le serveur). */
+export const MONTHLY_FROM = 1990;
 
 /**
- * Cadre des données : tous les lieux, sans les plus excentrés quand il y
- * en a beaucoup (5 % de chaque côté) — un seul émigré au bout du monde ne
- * doit pas réduire la famille à un point.
+ * Mois des sorties photo (voyages, réunions de famille) : [début, fin] sans
+ * doublon, pour que la lecture y ralentisse.
+ * @returns {Array<[number, number]>}
+ */
+export function tripSpans(tracks) {
+  const spans = new Map();
+  for (const track of tracks) {
+    for (const s of track) {
+      if (s.trip) spans.set(`${s.from}|${s.to}`, [Number(s.from), Number(s.to)]);
+    }
+  }
+  return [...spans.values()].sort((a, b) => a[0] - b[0]);
+}
+
+/**
+ * Échelle de lecture, à vitesse 1 : les années anciennes défilent vite (8 à
+ * 16 s en tout), puis, depuis `monthlyFrom`, `secondsPerYear` secondes par
+ * an pour qu'on voie passer les mois — avec un ralentissement progressif
+ * sur les années qui précèdent. Les mois de sortie (`slowSpans`) passent au
+ * ralenti (`slowSeconds` chacun, retour compris) : on voit la famille se
+ * réunir sans que l'étiquette ne prenne de l'avance. La frise (curseur) suit
+ * le temps de lecture : progressAt(année) et yearAt(progrès) convertissent.
+ */
+export function createTimeScale(range, {
+  monthlyFrom = MONTHLY_FROM, secondsPerYear = 1.5, blendYears = 8, slowSpans = [], slowSeconds = 1.8,
+} = {}) {
+  const from = Number(range.from);
+  const to = Math.max(Number(range.to), from + 1e-6);
+  const oldSpan = Math.max(0, Math.min(to, monthlyFrom) - from);
+  const newRate = 1 / secondsPerYear; // années par seconde
+  const oldRate = Math.max(newRate, oldSpan / Math.min(16, Math.max(8, oldSpan * 0.1)));
+  const baseRate = (y) => {
+    if (y >= monthlyFrom) return newRate;
+    if (y <= monthlyFrom - blendYears) return oldRate;
+    const u = (y - (monthlyFrom - blendYears)) / blendYears;
+    return Math.exp(Math.log(oldRate) + (Math.log(newRate) - Math.log(oldRate)) * u * u * (3 - 2 * u));
+  };
+  // Ralentis : le mois, prolongé d'un peu (le temps du retour).
+  const slow = slowSpans
+    .map(([a, b]) => [Math.max(from, a), Math.min(to, b + (b - a) * 0.4)])
+    .filter(([a, b]) => b > a);
+  const rate = (y) => {
+    let r = baseRate(y);
+    for (const [a, b] of slow) if (y >= a && y < b) r = Math.min(r, (b - a) / slowSeconds);
+    return r;
+  };
+
+  // Grille : pas réguliers, plus les bornes des ralentis et le passage au
+  // mois (un mois est bien plus fin que le pas régulier).
+  const N = 2048;
+  const marks = [];
+  for (let i = 0; i <= N; i++) marks.push(from + ((to - from) * i) / N);
+  for (const [a, b] of slow) marks.push(a, b);
+  if (monthlyFrom > from && monthlyFrom < to) marks.push(monthlyFrom);
+  marks.sort((a, b) => a - b);
+  const years = [marks[0]];
+  for (const m of marks) if (m - years[years.length - 1] > 1e-9) years.push(m);
+  const secs = new Float64Array(years.length);
+  for (let i = 1; i < years.length; i++) secs[i] = secs[i - 1] + (years[i] - years[i - 1]) / rate((years[i] + years[i - 1]) / 2);
+  const duration = secs[secs.length - 1];
+
+  // Dernier indice i tel que arr[i] <= v.
+  const floorIndex = (arr, v) => {
+    let lo = 0;
+    let hi = arr.length - 1;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (arr[mid] <= v) lo = mid; else hi = mid;
+    }
+    return lo;
+  };
+  const progressAt = (year) => {
+    const y = Math.min(to, Math.max(from, year));
+    const i = floorIndex(years, y);
+    const span = years[i + 1] - years[i];
+    return (secs[i] + (span > 0 ? (secs[i + 1] - secs[i]) * ((y - years[i]) / span) : 0)) / duration;
+  };
+  const yearAt = (progress) => {
+    const target = Math.min(1, Math.max(0, progress)) * duration;
+    const i = floorIndex(secs, target);
+    const span = secs[i + 1] - secs[i];
+    return years[i] + (span > 0 ? (years[i + 1] - years[i]) * ((target - secs[i]) / span) : 0);
+  };
+
+  return {
+    duration,
+    progressAt,
+    yearAt,
+    monthly: (year) => year >= monthlyFrom,
+    // Repère de la frise (null si la frise ne passe jamais au mois).
+    monthlyAt: monthlyFrom > from && monthlyFrom < to ? progressAt(monthlyFrom) : null,
+  };
+}
+
+/** Date (UTC) d'une année décimale, comme FamilyTimelineService::decimalYear à l'envers. */
+export function dateOfYear(year) {
+  const y = Math.floor(year);
+  const start = Date.UTC(y, 0, 1);
+  return new Date(start + (year - y) * (Date.UTC(y + 1, 0, 1) - start));
+}
+
+const formatters = new Map();
+const formatter = (locale, monthly) => {
+  const key = `${locale}|${monthly}`;
+  if (!formatters.has(key)) {
+    formatters.set(key, monthly
+      ? new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' })
+      : new Intl.NumberFormat(locale, { useGrouping: false, maximumFractionDigits: 0 }));
+  }
+  return formatters.get(key);
+};
+
+/**
+ * Étiquette de l'instant, en morceaux (pour grossir l'année) : « 1942 »,
+ * ou au mois « juin 2012 » / « June 2012 » / « junio de 2012 ».
+ * @returns {Array<{type: string, value: string}>}
+ */
+export function timeLabelParts(year, locale, monthly) {
+  const y = year + 1e-6;
+  return monthly
+    ? formatter(locale, true).formatToParts(dateOfYear(y))
+    : [{ type: 'year', value: formatter(locale, false).format(Math.floor(y)) }];
+}
+
+/**
+ * Cadre des données : tous les lieux de vie, sans les plus excentrés quand
+ * il y en a beaucoup (2 % de chaque côté) — un seul émigré au bout du monde
+ * ne doit pas réduire la famille à un point. (5 % coupait, sur les données
+ * réelles, tout le sud de la France.)
  * @returns {[[number, number], [number, number]] | null} [[sud, ouest], [nord, est]]
  */
 export function dataBounds(tracks) {
@@ -45,6 +176,7 @@ export function dataBounds(tracks) {
   const lngs = [];
   for (const track of tracks) {
     for (const s of track) {
+      if (s.trip) continue; // un voyage ne déplace pas le cadre
       lats.push(Number(s.lat));
       lngs.push(Number(s.lng));
     }
@@ -52,7 +184,7 @@ export function dataBounds(tracks) {
   if (!lats.length) return null;
   lats.sort((a, b) => a - b);
   lngs.sort((a, b) => a - b);
-  const trim = lats.length >= 20 ? Math.floor(lats.length * 0.05) : 0;
+  const trim = lats.length >= 20 ? Math.max(1, Math.floor(lats.length * 0.02)) : 0;
   const lo = trim;
   const hi = lats.length - 1 - trim;
   return [[lats[lo], lngs[lo]], [lats[hi], lngs[hi]]];
@@ -61,10 +193,16 @@ export function dataBounds(tracks) {
 /**
  * Animateur : frame(année, maintenant en ms) renvoie les points à dessiner.
  *
- * @param {Array<Array<{from:number,to:number,lat:number,lng:number}>>} tracks
- * @param {{ rangeTo:number, moveMs?:number, fadeMs?:number, ringMs?:number, bend?:number }} options
+ * @param {Array<Array<{from:number,to:number,lat:number,lng:number,trip?:boolean}>>} tracks
+ * @param {{ rangeTo:number, moveMs?:number, fadeMs?:number, ringMs?:number, bend?:number,
+ *           tripMoveMs?:number, tripHoldMs?:number }} options
+ *   tripHoldMs : en lecture, durée minimale (temps réel) d'une sortie, aller
+ *   compris — utile aux vitesses rapides, la lecture ralentissant déjà sur
+ *   ces mois (createTimeScale).
  */
-export function createAnimator(tracks, { rangeTo, moveMs = 900, fadeMs = 700, ringMs = 1400, bend = 0.2 } = {}) {
+export function createAnimator(tracks, {
+  rangeTo, moveMs = 900, fadeMs = 700, ringMs = 1400, bend = 0.2, tripMoveMs = 550, tripHoldMs = 700,
+} = {}) {
   const items = tracks
     .filter((segs) => segs.length)
     .map((segs) => {
@@ -75,6 +213,7 @@ export function createAnimator(tracks, { rangeTo, moveMs = 900, fadeMs = 700, ri
         lng: Number(seg.lng),
         x: toX(Number(seg.lng)),
         y: toY(Number(seg.lat)),
+        trip: !!seg.trip,
       }));
       const end = s[s.length - 1].to;
       return {
@@ -85,7 +224,8 @@ export function createAnimator(tracks, { rangeTo, moveMs = 900, fadeMs = 700, ri
         open: end >= rangeTo - 0.05,
         k: -1, // segment visé
         x: s[0].x, y: s[0].y, lat: s[0].lat, lng: s[0].lng, // position affichée
-        fx: 0, fy: 0, cx: 0, cy: 0, tx: 0, ty: 0, t0: -Infinity, // déplacement en cours
+        fx: 0, fy: 0, cx: 0, cy: 0, tx: 0, ty: 0, t0: -Infinity, dur: moveMs, // déplacement en cours
+        holdUntil: 0, flash: -Infinity, // sortie : retour pas avant holdUntil, éclair à l'arrivée
         a: 0, a0: 0, aim: 0, at0: -Infinity, // opacité
         ring: -Infinity, // onde d'apparition
         u: 1,
@@ -113,7 +253,8 @@ export function createAnimator(tracks, { rangeTo, moveMs = 900, fadeMs = 700, ri
     ];
   };
 
-  const startMove = (it, seg, now) => {
+  const startMove = (it, seg, now, dur) => {
+    it.dur = dur;
     it.fx = it.x;
     it.fy = it.y;
     it.tx = seg.x;
@@ -136,10 +277,11 @@ export function createAnimator(tracks, { rangeTo, moveMs = 900, fadeMs = 700, ri
   };
 
   /**
+   * @param {boolean} playing en lecture, une sortie dure au moins tripHoldMs
    * @returns {{ heat: Array<[number, number, number]>, dots: Array<object>, present: number, busy: boolean }}
    *   busy : un déplacement, un fondu ou une onde est en cours (il faut d'autres images).
    */
-  function frame(year, now) {
+  function frame(year, now, playing = false) {
     let present = 0;
     let busy = false;
     heat.length = 0;
@@ -150,12 +292,20 @@ export function createAnimator(tracks, { rangeTo, moveMs = 900, fadeMs = 700, ri
       if (here) {
         present++;
         const k = segmentAt(it, year);
-        if (k !== it.k) {
+        const away = it.k >= 0 && it.segs[it.k].trip;
+        if (k !== it.k && !(away && playing && now < it.holdUntil)) {
           const seg = it.segs[k];
-          // (Ré)apparition : directement au bon endroit ; sinon il voyage.
+          // (Ré)apparition : directement au bon endroit ; sinon il voyage
+          // (aller-retour plus vif pour une sortie).
           if (it.k === -1 || it.a < 0.05 || moveMs <= 0) place(it, seg);
-          else startMove(it, seg, now);
+          else startMove(it, seg, now, seg.trip || away ? tripMoveMs : moveMs);
+          if (seg.trip) {
+            it.holdUntil = now + tripHoldMs;
+            it.flash = now + (moveMs > 0 ? tripMoveMs : 0);
+          }
           it.k = k;
+        } else if (k !== it.k) {
+          busy = true; // encore en voyage, le retour attend
         }
       }
 
@@ -175,7 +325,7 @@ export function createAnimator(tracks, { rangeTo, moveMs = 900, fadeMs = 700, ri
       // Position affichée.
       let moving = false;
       if (it.t0 > -Infinity) {
-        const u = (now - it.t0) / moveMs;
+        const u = (now - it.t0) / it.dur;
         if (u < 1) {
           const [x, y] = along(it, easeInOutCubic(Math.max(0, u)));
           it.x = x;
@@ -192,8 +342,13 @@ export function createAnimator(tracks, { rangeTo, moveMs = 900, fadeMs = 700, ri
 
       const ring = ringMs > 0 ? (now - it.ring) / ringMs : 1;
       if (ring < 1) busy = true;
+      // Éclair (appareil photo) à l'arrivée d'une sortie.
+      const flash = ringMs > 0 ? (now - it.flash) / 650 : 1;
+      if (flash < 1) busy = true;
+      const onTrip = it.k >= 0 && it.segs[it.k].trip;
 
-      heat.push([it.lat, it.lng, it.a]);
+      // En voyage, la personne pèse un peu moins dans la chaleur.
+      heat.push([it.lat, it.lng, it.a * (onTrip ? 0.7 : 1)]);
       dots.push({
         lat: it.lat,
         lng: it.lng,
@@ -201,6 +356,7 @@ export function createAnimator(tracks, { rangeTo, moveMs = 900, fadeMs = 700, ri
         // Traînée : positions un peu plus tôt sur la même courbe.
         trail: moving ? trailOf(it) : null,
         ring: ring >= 0 && ring < 1 ? ring : null,
+        flash: flash >= 0 && flash < 1 ? flash : null,
       });
     }
 
@@ -219,7 +375,7 @@ export function createAnimator(tracks, { rangeTo, moveMs = 900, fadeMs = 700, ri
     return out;
   }
 
-  /** Nombre de pistes présentes à une année (sans toucher à l'animation). */
+  /** Nombre de pistes présentes à un instant (sans toucher à l'animation). */
   function presentAt(year) {
     let n = 0;
     for (const it of items) if (year >= it.start && (year < it.end || (it.open && year <= it.end))) n++;
@@ -383,6 +539,15 @@ export function createGlowLayer(L) {
           stamp(p, 15, d.alpha);
         } else {
           stamp(p, 10, d.alpha * (this._dark ? 0.7 : 0.95));
+        }
+        if (d.flash !== null) {
+          // Éclair bref et net : une photo prise là.
+          ctx.globalAlpha = (1 - d.flash) * d.alpha;
+          ctx.strokeStyle = this._dark ? '#ffffff' : '#92400e';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 6 + 12 * easeOutCubic(d.flash), 0, Math.PI * 2);
+          ctx.stroke();
         }
         if (d.ring !== null) {
           // Onde qui s'élargit à l'apparition (naissance).

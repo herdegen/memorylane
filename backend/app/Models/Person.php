@@ -85,6 +85,12 @@ class Person extends Model
     {
         parent::boot();
 
+        // Lieux de naissance et de décès saisis ou modifiés : géocodés en
+        // tâche de fond (carte « Dans le temps », récit de vie).
+        static::saved(function ($person) {
+            \App\Jobs\GeocodePendingPlaces::enqueueChanged($person, ['birth_place', 'death_place']);
+        });
+
         // Nouvelle photo de profil → portrait stocké à refaire.
         static::saved(function ($person) {
             if ($person->wasChanged('avatar_media_id') || ($person->wasRecentlyCreated && $person->avatar_media_id)) {

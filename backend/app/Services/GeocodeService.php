@@ -219,15 +219,34 @@ class GeocodeService
         return trim(preg_replace('/\s+/u', ' ', $city), " \t-");
     }
 
-    /** Pause entre deux appels Nominatim (1 req/s au plus, politique d'usage). */
+    /**
+     * Pause entre deux appels Nominatim (1 req/s au plus, politique d'usage),
+     * ENTRE TOUS LES PROCESSUS : files d'attente, commande de nuit, frise —
+     * l'heure du dernier appel est partagée dans le cache, sous verrou.
+     */
     private function throttle(): void
     {
         $interval = (float) config('memorylane.nominatim_interval', 1.1);
-        $elapsed = microtime(true) - self::$lastFetchAt;
-        if ($elapsed < $interval) {
-            usleep((int) (($interval - $elapsed) * 1_000_000));
+        if ($interval <= 0) {
+            return;
         }
-        self::$lastFetchAt = microtime(true);
+
+        $wait = function () use ($interval) {
+            $last = max(self::$lastFetchAt, (float) Cache::get('nominatim:last-call', 0));
+            $delay = $last + $interval - microtime(true);
+            if ($delay > 0) {
+                usleep((int) ($delay * 1_000_000));
+            }
+            self::$lastFetchAt = microtime(true);
+            Cache::put('nominatim:last-call', self::$lastFetchAt, 60);
+        };
+
+        try {
+            Cache::lock('nominatim:throttle', 10)->block(30, $wait);
+        } catch (\Throwable) {
+            // Verrou indisponible : au moins la politesse de ce processus.
+            $wait();
+        }
     }
 
     /**

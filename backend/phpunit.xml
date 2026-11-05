@@ -31,6 +31,9 @@
         <!-- Moteur de visages des tests : indépendant du .env (InsightFaceTest le change lui-même) -->
         <env name="FACES_ENGINE" value="faceapi" force="true"/>
         <env name="FACES_AUTO_MATCH" value="false" force="true"/>
+        <!-- Pas de géocodage Nominatim à chaque fiche créée (les tests qui le
+             vérifient l'activent eux-mêmes) -->
+        <env name="GEOCODE_AUTO" value="false" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_STORE" value="array" force="true"/>

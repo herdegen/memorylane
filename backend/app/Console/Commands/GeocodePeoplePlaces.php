@@ -4,13 +4,16 @@ namespace App\Console\Commands;
 
 use App\Models\LifeEvent;
 use App\Models\Person;
+use App\Models\PersonRelationship;
 use App\Services\GeocodeService;
 use Illuminate\Console\Command;
 
 /**
  * Résout en tâche de fond les lieux en texte des fiches familiales (lieux de
- * naissance, de décès, lieux de vie sans coordonnées) pour « la famille dans
- * le temps » sur la carte, qui ne lit que le cache du géocodage.
+ * naissance, de décès, d'union, lieux de vie sans coordonnées) pour « la
+ * famille dans le temps » sur la carte, qui ne lit que le cache du
+ * géocodage. Filet de sécurité de nuit : d'ordinaire, chaque lieu est
+ * géocodé dès sa saisie (GeocodePendingPlaces).
  *
  * Politesse Nominatim : une requête par seconde au plus (GeocodeService),
  * User-Agent de l'appli, cache réutilisé. Un lieu introuvable reste noté
@@ -25,7 +28,7 @@ class GeocodePeoplePlaces extends Command
         {--retry-misses : Retente aussi les lieux déjà notés introuvables}
         {--limit=0 : Nombre maximum de lieux à résoudre (0 : tous)}';
 
-    protected $description = 'Géocode les lieux de naissance, de décès et de vie des fiches familiales (carte « dans le temps »)';
+    protected $description = 'Géocode les lieux de naissance, de décès, d\'union et de vie des fiches familiales (carte « dans le temps »)';
 
     /** Pannes consécutives de Nominatim avant d'abandonner le passage. */
     private const MAX_FAILURES = 3;
@@ -113,6 +116,16 @@ class GeocodePeoplePlaces extends Command
             ->where(fn ($q) => $q->whereNull('latitude')->orWhereNull('longitude'))
             ->whereHas('person', fn ($q) => $q->where('in_family_directory', true))
             ->pluck('place')
+            ->each(function ($place) use (&$raw) {
+                $raw[] = $place;
+            });
+
+        // Lieux des unions (au moins un conjoint dans le répertoire familial).
+        PersonRelationship::query()
+            ->whereNotNull('start_place')
+            ->where(fn ($q) => $q->whereHas('person1', fn ($p) => $p->where('in_family_directory', true))
+                ->orWhereHas('person2', fn ($p) => $p->where('in_family_directory', true)))
+            ->pluck('start_place')
             ->each(function ($place) use (&$raw) {
                 $raw[] = $place;
             });

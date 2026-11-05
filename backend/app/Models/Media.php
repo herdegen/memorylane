@@ -240,9 +240,15 @@ class Media extends Model
             });
         }
 
-        return $query->where(function ($q) use ($user) {
+        // Albums accessibles calculés à part (requête rapide, quelques ms) :
+        // combinée en OU dans la requête des médias, PostgreSQL recalculait
+        // la règle des albums pour toute la table album_media (≈ 1,5 s pour
+        // un compte non admin sur les données réelles). Même ensemble.
+        $albumIds = Album::query()->accessibleBy($user)->pluck('albums.id')->all();
+
+        return $query->where(function ($q) use ($user, $albumIds) {
             $q->where('user_id', $user->id)
-                ->orWhereHas('albums', fn ($a) => $a->accessibleBy($user))
+                ->orWhereHas('albums', fn ($a) => $a->whereIn('albums.id', $albumIds))
                 // Branche foyer : média partagé dans un foyer dont le viewer
                 // est membre (pivot household_media).
                 ->orWhereHas('households', fn ($h) => $h->whereIn('households.id', $user->householdIds()))

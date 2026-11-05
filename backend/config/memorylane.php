@@ -13,6 +13,24 @@ return [
     // (politique d'usage). Intervalle minimal entre deux appels, en secondes.
     'nominatim_interval' => 1.1,
 
+    // Géocodage automatique des lieux dès leur saisie (fiche, union, lieu de
+    // vie) ou dès que la carte en trouve un pas encore situé : job en file
+    // d'attente (GeocodePendingPlaces). Coupé dans les tests, sauf ceux qui
+    // le vérifient.
+    'geocode_auto' => (bool) env('GEOCODE_AUTO', true),
+
+    // « Dans le temps » (carte) : depuis cette année, la frise passe au mois
+    // et les photos géolocalisées où la personne est identifiée deviennent
+    // des sorties temporaires (voyages), si elles sont assez loin de chez
+    // elle et assez nombreuses dans le mois.
+    'timeline' => [
+        'monthly_from' => 1990,
+        'trip_min_km' => 30,
+        // Mesuré sur les données réelles (2026-11-05) : 55 sorties, 7 réunions
+        // de famille ; une photo isolée (souvent mal datée) ne suffit pas.
+        'trip_min_photos' => 2,
+    ],
+
     // Reconnaissance de visages.
     'faces' => [
         // Association automatique d'un visage à une personne (sans humain).

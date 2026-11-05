@@ -21,6 +21,12 @@ class PersonRelationship extends Model
         'start_place',
     ];
 
+    protected static function booted(): void
+    {
+        // Lieu de l'union saisi ou modifié : géocodé en tâche de fond.
+        static::saved(fn (self $union) => \App\Jobs\GeocodePendingPlaces::enqueueChanged($union, ['start_place']));
+    }
+
     protected function casts(): array
     {
         return [

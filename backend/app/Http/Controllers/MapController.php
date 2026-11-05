@@ -157,8 +157,9 @@ class MapController extends Controller
 
     /**
      * « La famille dans le temps » : trajectoires anonymes (naissance, lieux
-     * de vie datés, décès, adresse actuelle) pour la heatmap animée de la
-     * carte — voir FamilyTimelineService. Même portée et mêmes droits que
+     * de vie datés, unions, naissances des enfants, décès, adresse actuelle,
+     * sorties photo) pour la heatmap animée de la carte — voir
+     * FamilyTimelineService. Même portée et mêmes droits que
      * « Où vit la famille » : sa famille seulement, rien en mode amis ni
      * sans fiche « moi ». Les lieux en texte ne sont lus que dans le cache
      * du géocodage (people:geocode-places les résout chaque nuit).
@@ -173,9 +174,9 @@ class MapController extends Controller
         $people = $this->familyPeople($user)
             ->with(['lifeEvents' => fn ($q) => $q->where('type', 'residence')
                 ->select(['id', 'person_id', 'type', 'place', 'latitude', 'longitude', 'event_date', 'end_date'])])
-            ->get(['people.id', 'birth_date', 'birth_place', 'death_date', 'death_place', 'address_latitude', 'address_longitude']);
+            ->get(['people.id', 'father_id', 'mother_id', 'birth_date', 'birth_place', 'death_date', 'death_place', 'address_latitude', 'address_longitude']);
 
-        return response()->json($timeline->build($people));
+        return response()->json($timeline->build($people, $user));
     }
 
     /**

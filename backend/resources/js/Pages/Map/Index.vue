@@ -161,7 +161,7 @@
               </span>
             </button>
             <p class="mt-1 text-xs text-surface-500">
-              {{ $t('Naissances, lieux de vie et décès : chacun change de lieu à mi-chemin entre deux dates connues.') }}
+              {{ $t('Naissances, mariages, lieux de vie et décès : chacun change de lieu à mi-chemin entre deux dates connues. Depuis 1990, mois par mois, avec les voyages en photos.') }}
             </p>
           </template>
         </div>

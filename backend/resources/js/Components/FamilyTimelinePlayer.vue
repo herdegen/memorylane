@@ -25,7 +25,10 @@
     <!-- Lecteur : grande année + frise -->
     <div v-else-if="state === 'ready'" ref="dock" class="ml-tt-dock absolute inset-x-0 flex justify-center px-3">
       <div class="w-full max-w-xl">
-        <div class="ml-tt-year font-display" aria-hidden="true">{{ yearLabel }}</div>
+        <!-- « 1942 », puis au mois depuis 1990 : « juin 2012 » -->
+        <div class="ml-tt-year font-display" aria-hidden="true">
+          <span v-for="(part, i) in labelParts" :key="i" :class="{ 'ml-tt-month': part.type !== 'year' }">{{ part.value }}</span>
+        </div>
         <div
           class="pointer-events-auto rounded-2xl border border-surface-200 bg-white/90 px-3 py-2.5 shadow-warm-lg backdrop-blur"
           @keydown.esc="emit('close')"
@@ -46,18 +49,28 @@
             </button>
 
             <div class="min-w-0 flex-1">
-              <input
-                type="range"
-                class="ml-tt-range block w-full"
-                :min="range.from"
-                :max="range.to"
-                step="any"
-                :value="year"
-                :style="{ '--p': `${progress}%` }"
-                :aria-label="$t('Année')"
-                :aria-valuetext="yearLabel"
-                @input="onScrub"
-              />
+              <!-- La frise suit le temps de lecture : les années anciennes y
+                   sont serrées, les mois récents espacés (repère : 1990). -->
+              <div class="relative">
+                <input
+                  type="range"
+                  class="ml-tt-range block w-full"
+                  min="0"
+                  max="1000"
+                  step="any"
+                  :value="progress * 1000"
+                  :style="{ '--p': `${progress * 100}%` }"
+                  :aria-label="$t('Année')"
+                  :aria-valuetext="timeLabel"
+                  @input="onScrub"
+                />
+                <span
+                  v-if="monthlyTick !== null"
+                  class="ml-tt-tick"
+                  :style="{ left: `calc(10px + (100% - 20px) * ${monthlyTick})` }"
+                  aria-hidden="true"
+                ></span>
+              </div>
               <div class="-mt-0.5 flex justify-between gap-2 text-[11px] tabular-nums text-surface-500">
                 <span>{{ fromLabel }}</span>
                 <span class="truncate">{{ presentLabel }}</span>
@@ -103,7 +116,7 @@ import { t, tc, intlLocale } from '@/i18n';
 import { apiError } from '@/utils/apiError';
 import { useToast } from '@/Composables/useToast';
 import { useTheme } from '@/Composables/useTheme';
-import { createAnimator, createGlowLayer, dataBounds, playDuration } from '@/utils/familyTimeline';
+import { createAnimator, createGlowLayer, createTimeScale, dataBounds, timeLabelParts, tripSpans } from '@/utils/familyTimeline';
 
 const props = defineProps({
   // Instance Leaflet de la page (markRaw : jamais rendue réactive).
@@ -117,15 +130,19 @@ const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').mat
 
 const state = ref('loading'); // loading | empty | ready
 const range = ref({ from: 0, to: 1 });
-const year = ref(0);
+const progress = ref(0); // position dans la lecture, de 0 à 1
+const year = ref(0); // instant affiché (année décimale)
+const monthlyTick = ref(null); // repère « au mois » sur la frise
 const playing = ref(false);
 const speed = ref(1);
 const present = ref(0);
 const pending = ref(0);
 const dock = ref(null);
 
-// Vitesses proposées (le bouton les fait défiler) ; 1 = tout en 10 à 20 s.
-const SPEEDS = [1, 2, 0.5];
+// Vitesses proposées (le bouton les fait défiler). À 1 : les années
+// anciennes en 8 à 16 s, puis 1,5 s par an depuis 1990, et les mois de
+// réunion au ralenti (voir createTimeScale).
+const SPEEDS = [1, 2, 4, 0.5];
 
 // Heatmap des positions du moment : réglée pour de faibles densités (une
 // personne seule reste visible), sans atténuation au dézoom (maxZoom 0),
@@ -140,6 +157,7 @@ const HEAT_OPTIONS = {
 };
 
 let animator = null;
+let scale = null;
 let heat = null;
 let glow = null;
 let raf = 0;
@@ -152,23 +170,19 @@ let destroyed = false;
 
 // ---------------------------------------------------------------- libellés
 
-const yearFormat = new Intl.NumberFormat(intlLocale(), { useGrouping: false, maximumFractionDigits: 0 });
 const numberFormat = new Intl.NumberFormat(intlLocale());
-const fmtYear = (y) => yearFormat.format(Math.floor(y + 1e-6));
+const yearOnly = (y) => timeLabelParts(y, intlLocale(), false)[0].value;
 
-const yearLabel = computed(() => fmtYear(year.value));
-const fromLabel = computed(() => fmtYear(range.value.from));
-const toLabel = computed(() => fmtYear(range.value.to));
-const progress = computed(() => {
-  const span = range.value.to - range.value.from;
-  return span > 0 ? ((year.value - range.value.from) / span) * 100 : 0;
-});
+const labelParts = computed(() => timeLabelParts(year.value, intlLocale(), !!scale?.monthly(year.value)));
+const timeLabel = computed(() => labelParts.value.map((part) => part.value).join(''));
+const fromLabel = computed(() => yearOnly(range.value.from));
+const toLabel = computed(() => yearOnly(range.value.to));
 const speedLabel = computed(() => `${numberFormat.format(speed.value)}×`);
 const presentLabel = computed(() => tc(':count personne|:count personnes', present.value, {
   count: numberFormat.format(present.value),
 }));
 const pendingLabel = computed(() => tc(
-  ':count lieu attend encore d’être situé sur la carte : il apparaîtra après la mise à jour de la nuit.|:count lieux attendent encore d’être situés sur la carte : ils apparaîtront après la mise à jour de la nuit.',
+  ':count lieu est en cours de localisation : il apparaîtra sur la carte d’ici quelques minutes.|:count lieux sont en cours de localisation : ils apparaîtront sur la carte d’ici quelques minutes.',
   pending.value,
   { count: numberFormat.format(pending.value) },
 ));
@@ -198,6 +212,10 @@ onMounted(async () => {
 
 async function start(tracks) {
   const map = props.map;
+  // Lecture : vite pour les siècles anciens, au mois depuis 1990, au
+  // ralenti sur les mois de voyage et de réunion de famille.
+  scale = createTimeScale(range.value, { slowSpans: tripSpans(tracks) });
+  monthlyTick.value = scale.monthlyAt;
   animator = createAnimator(tracks, {
     rangeTo: range.value.to,
     moveMs: reduceMotion ? 0 : 900,
@@ -231,7 +249,7 @@ async function start(tracks) {
 
   // Lecture d'office depuis la première année (sauf mouvements réduits :
   // on montre aujourd'hui, à l'arrêt).
-  year.value = reduceMotion ? range.value.to : range.value.from;
+  seek(reduceMotion ? 1 : 0);
   render();
   if (!reduceMotion) autoplayTimer = setTimeout(play, 900);
 }
@@ -250,12 +268,11 @@ function tick(now) {
   lastTick = now;
 
   if (playing.value) {
-    const span = range.value.to - range.value.from;
-    year.value = Math.min(range.value.to, year.value + (dt * span * speed.value) / playDuration(span));
-    if (year.value >= range.value.to) playing.value = false;
+    seek(progress.value + (dt * speed.value) / scale.duration);
+    if (progress.value >= 1) playing.value = false;
   }
 
-  const frame = animator.frame(year.value, now);
+  const frame = animator.frame(year.value, now, playing.value);
   present.value = frame.present;
   glow.setDots(frame.dots);
 
@@ -285,9 +302,14 @@ function onMoveEnd() {
 
 // ---------------------------------------------------------------- commandes
 
+function seek(p) {
+  progress.value = Math.min(1, Math.max(0, p));
+  year.value = scale.yearAt(progress.value);
+}
+
 function play() {
   clearTimeout(autoplayTimer);
-  if (year.value >= range.value.to - 1e-6) year.value = range.value.from;
+  if (progress.value >= 1 - 1e-6) seek(0);
   playing.value = true;
   lastTick = 0;
   render();
@@ -302,7 +324,7 @@ const togglePlay = () => (playing.value ? pause() : play());
 
 function onScrub(event) {
   pause();
-  year.value = Number(event.target.value);
+  seek(Number(event.target.value) / 1000);
   render();
 }
 
@@ -346,8 +368,30 @@ onBeforeUnmount(() => {
   text-shadow: 0 0 2px var(--color-page), 0 0 14px var(--color-page), 0 0 28px var(--color-page);
 }
 
-/* Frise : piste fine remplie jusqu'à l'année courante, gros curseur. */
+/* Au mois : le nom du mois en petit, l'année en grand. */
+.ml-tt-month {
+  font-family: var(--font-sans);
+  font-size: 0.4em;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+/* Repère de la frise : à partir d'ici, mois par mois. */
+.ml-tt-tick {
+  position: absolute;
+  top: calc(50% - 8px);
+  width: 2px;
+  height: 16px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--color-surface-400);
+  pointer-events: none;
+}
+
+/* Frise : piste fine remplie jusqu'à l'instant courant, gros curseur. */
 .ml-tt-range {
+  position: relative;
+  z-index: 1;
   appearance: none;
   height: 26px;
   background: transparent;
