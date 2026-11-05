@@ -40,15 +40,20 @@ export function decimalYearNow(date = new Date()) {
 export const MONTHLY_FROM = 1990;
 
 /**
- * Mois des sorties photo (voyages, réunions de famille) : [début, fin] sans
- * doublon, pour que la lecture y ralentisse.
- * @returns {Array<[number, number]>}
+ * Sorties courtes (un voyage, une réunion de famille, un moment) : [début,
+ * fin, nombre de personnes] sans doublon, pour que la lecture y ralentisse.
+ * Les longues sorties (plus de 3 mois) se voient sans ralenti.
+ * @returns {Array<[number, number, number]>}
  */
 export function tripSpans(tracks) {
   const spans = new Map();
   for (const track of tracks) {
     for (const s of track) {
-      if (s.trip) spans.set(`${s.from}|${s.to}`, [Number(s.from), Number(s.to)]);
+      if (!s.trip || s.to - s.from > 0.25) continue;
+      const key = `${s.from}|${s.to}`;
+      const span = spans.get(key) ?? [Number(s.from), Number(s.to), 0];
+      span[2]++;
+      spans.set(key, span);
     }
   }
   return [...spans.values()].sort((a, b) => a[0] - b[0]);
@@ -58,13 +63,16 @@ export function tripSpans(tracks) {
  * Échelle de lecture, à vitesse 1 : les années anciennes défilent vite (8 à
  * 16 s en tout), puis, depuis `monthlyFrom`, `secondsPerYear` secondes par
  * an pour qu'on voie passer les mois — avec un ralentissement progressif
- * sur les années qui précèdent. Les mois de sortie (`slowSpans`) passent au
- * ralenti (`slowSeconds` chacun, retour compris) : on voit la famille se
- * réunir sans que l'étiquette ne prenne de l'avance. La frise (curseur) suit
- * le temps de lecture : progressAt(année) et yearAt(progrès) convertissent.
+ * sur les années qui précèdent. Les sorties courtes (`slowSpans`, voir
+ * tripSpans) passent au ralenti, retour compris : `gatherSeconds` pour une
+ * réunion (au moins 3 personnes le même mois), `soloSeconds` sinon. On voit
+ * la sortie sans que l'étiquette ne prenne de l'avance, même au XIXe siècle
+ * où la lecture file à vingt ans par seconde. La frise (curseur) suit le
+ * temps de lecture : progressAt(année) et yearAt(progrès) convertissent.
  */
 export function createTimeScale(range, {
-  monthlyFrom = MONTHLY_FROM, secondsPerYear = 1.5, blendYears = 8, slowSpans = [], slowSeconds = 1.8,
+  monthlyFrom = MONTHLY_FROM, secondsPerYear = 1.5, blendYears = 8,
+  slowSpans = [], soloSeconds = 1.2, gatherSeconds = 2,
 } = {}) {
   const from = Number(range.from);
   const to = Math.max(Number(range.to), from + 1e-6);
@@ -77,13 +85,13 @@ export function createTimeScale(range, {
     const u = (y - (monthlyFrom - blendYears)) / blendYears;
     return Math.exp(Math.log(oldRate) + (Math.log(newRate) - Math.log(oldRate)) * u * u * (3 - 2 * u));
   };
-  // Ralentis : le mois, prolongé d'un peu (le temps du retour).
+  // Ralentis : la sortie, puis autant de temps pour le retour.
   const slow = slowSpans
-    .map(([a, b]) => [Math.max(from, a), Math.min(to, b + (b - a) * 0.4)])
+    .map(([a, b, people = 1]) => [Math.max(from, a), Math.min(to, b + (b - a)), people >= 3 ? gatherSeconds : soloSeconds])
     .filter(([a, b]) => b > a);
   const rate = (y) => {
     let r = baseRate(y);
-    for (const [a, b] of slow) if (y >= a && y < b) r = Math.min(r, (b - a) / slowSeconds);
+    for (const [a, b, seconds] of slow) if (y >= a && y < b) r = Math.min(r, (b - a) / seconds);
     return r;
   };
 
@@ -201,7 +209,7 @@ export function dataBounds(tracks) {
  *   ces mois (createTimeScale).
  */
 export function createAnimator(tracks, {
-  rangeTo, moveMs = 900, fadeMs = 700, ringMs = 1400, bend = 0.2, tripMoveMs = 550, tripHoldMs = 700,
+  rangeTo, moveMs = 900, fadeMs = 700, ringMs = 1400, bend = 0.2, tripMoveMs = 400, tripHoldMs = 500,
 } = {}) {
   const items = tracks
     .filter((segs) => segs.length)

@@ -10,7 +10,7 @@ use Illuminate\Console\Command;
 
 /**
  * Résout en tâche de fond les lieux en texte des fiches familiales (lieux de
- * naissance, de décès, d'union, lieux de vie sans coordonnées) pour « la
+ * naissance, de décès, d'union, moments sans coordonnées) pour « la
  * famille dans le temps » sur la carte, qui ne lit que le cache du
  * géocodage. Filet de sécurité de nuit : d'ordinaire, chaque lieu est
  * géocodé dès sa saisie (GeocodePendingPlaces).
@@ -111,7 +111,6 @@ class GeocodePeoplePlaces extends Command
             });
 
         LifeEvent::query()
-            ->where('type', 'residence')
             ->whereNotNull('place')
             ->where(fn ($q) => $q->whereNull('latitude')->orWhereNull('longitude'))
             ->whereHas('person', fn ($q) => $q->where('in_family_directory', true))

@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Géocodage AUTOMATIQUE des lieux saisis (lieu de naissance ou de décès
- * d'une fiche, lieu d'une union, lieu de vie sans coordonnées), d'où qu'ils
+ * d'une fiche, lieu d'une union, moment de vie sans coordonnées), d'où qu'ils
  * viennent : fiche, arbre, quêtes, import GEDCOM, back-office — et des
  * lieux que la carte « Dans le temps » trouve sans coordonnées.
  *

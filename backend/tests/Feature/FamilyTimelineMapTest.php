@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Jobs\GeocodePendingPlaces;
+use App\Models\Album;
 use App\Models\Household;
 use App\Models\LifeEvent;
 use App\Models\Media;
@@ -373,6 +374,187 @@ class FamilyTimelineMapTest extends TestCase
         $this->assertSame(0, $trips());
     }
 
+    // ------------------------------------------------------------ sorties : moments, photographe
+
+    /** Moment de vie d'une fiche. */
+    private function moment(Person $person, string $type, string $date, array $attrs = []): LifeEvent
+    {
+        return LifeEvent::create(['person_id' => $person->id, 'user_id' => $this->viewer->id, 'type' => $type, 'title' => ucfirst($type),
+            'event_date' => $date, ...$attrs]);
+    }
+
+    /** Sorties d'une piste : [début, fin, lat, lng]. */
+    private function tripsOf(array $track): array
+    {
+        return array_values(array_map(fn ($s) => [$s['from'], $s['to'], round($s['lat'], 2), round($s['lng'], 2)],
+            array_filter($track, fn ($s) => ! empty($s['trip']))));
+    }
+
+    /** Trajectoire de fond (sans les sorties, segments recollés). */
+    private function background(array $track): array
+    {
+        $out = [];
+        foreach ($track as $s) {
+            if (! empty($s['trip'])) {
+                continue;
+            }
+            $k = array_key_last($out);
+            if ($k !== null && $out[$k]['lat'] === $s['lat'] && $out[$k]['lng'] === $s['lng']) {
+                $out[$k]['to'] = $s['to'];
+            } else {
+                $out[] = $s;
+            }
+        }
+
+        return $this->segments($out);
+    }
+
+    /** Piste qui commence à cette année (les pistes sont mélangées). */
+    private function trackFrom(float $start, ?User $viewer = null): array
+    {
+        return collect($this->timeline($viewer)['tracks'])->first(fn ($t) => abs($t[0]['from'] - $start) < 0.05) ?? [];
+    }
+
+    private static function year(string $date): float
+    {
+        return round(FamilyTimelineService::decimalYear(Carbon::parse($date)), 3);
+    }
+
+    public function test_les_moments_situes_sont_des_sorties_sans_effet_sur_les_medianes(): void
+    {
+        $father = $this->parent([
+            'birth_date' => '1950-01-01', 'birth_place' => 'Paris',
+            'death_date' => '2020-01-01', 'death_place' => 'Marseille',
+        ]);
+        $this->place('Kyoto, Japon', 35.0116, 135.7681);
+        // Fiançailles en Islande (coordonnées du moment) le 10 mai 2018 : mai 2018.
+        $this->moment($father, 'fiancailles', '2018-05-10', ['place' => 'Jökulsárlón', 'latitude' => 64.0784, 'longitude' => -16.2306]);
+        // Voyage de trois semaines au Japon (lieu géocodé) : toute sa durée.
+        $this->moment($father, 'voyage', '2012-04-02', ['end_date' => '2012-04-22', 'place' => 'Kyoto, Japon']);
+        // Connu à l'année seulement, saisi au 1er février : le mois saisi.
+        $this->moment($father, 'voyage', '1975-02-01', ['date_precision' => 'year', 'place' => 'Rio', 'latitude' => -22.9068, 'longitude' => -43.1729]);
+        // Lieu jamais géocodé, ou moment sans lieu : pas de sortie.
+        $this->moment($father, 'voyage', '2001-06-01', ['place' => 'Atlantide']);
+        $this->moment($father, 'distinction', '1990-06-01');
+        // Un mariage à Marseille même : trop près de chez lui.
+        $this->moment($father, 'mariage', '1995-06-10', ['place' => 'Marseille']);
+
+        $track = $this->timeline()['tracks'][0];
+
+        // Médiane naissance-décès inchangée (1985) : Paris puis Marseille.
+        $this->assertSame([[1950.0, 1985.0, 48.86, 2.35], [1985.0, 2020.0, 43.3, 5.37]], $this->background($track));
+        $this->assertSame([
+            [self::year('1975-02-01'), self::year('1975-03-01'), -22.91, -43.17],
+            [self::year('2012-04-02'), self::year('2012-04-23'), 35.01, 135.77],
+            [self::year('2018-05-01'), self::year('2018-06-01'), 64.08, -16.23],
+        ], $this->tripsOf($track));
+    }
+
+    public function test_un_emploi_long_est_un_lieu_de_vie_un_court_une_sortie(): void
+    {
+        $this->place('Bordeaux', 44.8378, -0.5792);
+        $this->place('Strasbourg', 48.5734, 7.7521);
+        $father = $this->parent([
+            'birth_date' => '1900-01-01', 'birth_place' => 'Paris',
+            'death_date' => '1980-01-01', 'death_place' => 'Marseille',
+        ]);
+        // Dix ans d'emploi à Lyon : un lieu de vie, qui compte dans les médianes.
+        $this->moment($father, 'job', '1930-01-01', ['end_date' => '1940-01-01', 'place' => 'Lyon']);
+        // Deux mois à Bordeaux : une sortie de toute sa durée.
+        $this->moment($father, 'job', '1950-03-01', ['end_date' => '1950-04-30', 'place' => 'Bordeaux']);
+        // Des études sans date de fin : une sortie du mois.
+        $this->moment($father, 'education', '1925-09-15', ['place' => 'Strasbourg']);
+
+        $track = $this->timeline()['tracks'][0];
+
+        $this->assertSame([
+            [1900.0, 1915.0, 48.86, 2.35],   // Paris → milieu de 1900-1930
+            [1915.0, 1960.0, 45.76, 4.84],   // Lyon de 1930 à 1940 → milieu de 1940-1980
+            [1960.0, 1980.0, 43.3, 5.37],
+        ], $this->background($track));
+        $this->assertSame([
+            [self::year('1925-09-01'), self::year('1925-10-01'), 48.57, 7.75],
+            [self::year('1950-03-01'), self::year('1950-05-01'), 44.84, -0.58],
+        ], $this->tripsOf($track));
+    }
+
+    public function test_les_personnes_identifiees_sur_les_photos_d_un_moment_en_etaient(): void
+    {
+        $father = $this->parent(['birth_date' => '1950-01-01', 'birth_place' => 'Paris', 'death_date' => '2025-01-01', 'death_place' => 'Paris']);
+        $mother = Person::factory()->create(['user_id' => $this->viewer->id, 'birth_date' => '1952-01-01', 'birth_place' => 'Paris']);
+        $this->me->forceFill(['mother_id' => $mother->id])->saveQuietly();
+        $uncle = Person::factory()->create(['user_id' => $this->viewer->id, 'birth_date' => '1954-01-01', 'birth_place' => 'Paris', 'father_id' => $father->id]);
+        // Le voyage du père au Japon ; sur la photo du moment, la mère aussi.
+        $trip = $this->moment($father, 'voyage', '2010-07-14', ['place' => 'Kyoto', 'latitude' => 35.0116, 'longitude' => 135.7681]);
+        $photo = Media::factory()->create(['user_id' => $this->viewer->id, 'type' => 'photo', 'taken_at' => null]);
+        $photo->people()->attach([$mother->id, $father->id]);
+        // L'oncle aussi, mais son identification est refusée sur sa fiche.
+        $photo->people()->attach($uncle->id, ['fiche_status' => 'private']);
+        $trip->photos()->attach($photo->id, ['order' => 0]);
+
+        $this->assertSame([[self::year('2010-07-01'), self::year('2010-08-01'), 35.01, 135.77]], $this->tripsOf($this->trackFrom(1952)));
+        $this->assertSame([], $this->tripsOf($this->trackFrom(1954)));
+    }
+
+    public function test_une_seule_sortie_par_mois_la_plus_fiable_l_emporte(): void
+    {
+        $father = $this->parent(['birth_date' => '1950-01-01', 'birth_place' => 'Paris', 'death_date' => '2025-01-01', 'death_place' => 'Paris']);
+        // Juillet 2015 : photos à Rome, mais le moment saisi dit Florence.
+        $this->photo($father, '2015-07-20 12:00:00', 41.9028, 12.4964);
+        $this->photo($father, '2015-07-21 12:00:00', 41.9028, 12.4964);
+        $this->moment($father, 'voyage', '2015-07-10', ['place' => 'Florence', 'latitude' => 43.7696, 'longitude' => 11.2558]);
+
+        $this->assertSame([[self::year('2015-07-01'), self::year('2015-08-01'), 43.77, 11.26]], $this->tripsOf($this->timeline()['tracks'][0]));
+    }
+
+    /** Photo prise par le compte (sans y être identifié). */
+    private function shot(User $owner, string $takenAt, float $lat, float $lng, ?string $make, ?string $model = null, array $attrs = []): Media
+    {
+        $media = Media::factory()->create(['user_id' => $owner->id, 'type' => 'photo', 'taken_at' => $takenAt, ...$attrs]);
+        $media->metadata()->create(['latitude' => $lat, 'longitude' => $lng, 'camera_make' => $make, 'camera_model' => $model]);
+
+        return $media;
+    }
+
+    public function test_le_photographe_etait_sur_place(): void
+    {
+        $this->me->forceFill(['birth_date' => '1980-01-01', 'birth_place' => 'Paris'])->saveQuietly();
+        $this->parent(['birth_date' => '1950-01-01', 'birth_place' => 'Paris']);
+        $shots = fn (int $n, string $month, float $lat, float $lng, ?string $make, ?string $model = null, array $attrs = []) => collect(range(1, $n))
+            ->map(fn ($day) => $this->shot($this->viewer, "{$month}-0{$day} 12:00:00", $lat + $day / 1000, $lng, $make, $model, $attrs));
+
+        // Octobre 2017 en Iran : trois photos au même endroit, sans y figurer.
+        $shots(3, '2017-10', 32.6546, 51.668, 'Apple', 'iPhone 7');
+        // Mars 2016 à Rome : deux photos seulement, pas assez.
+        $shots(2, '2016-03', 41.9028, 12.4964, 'Canon');
+        // Juin 2015 à Lisbonne : des scans (scanner Epson).
+        $shots(3, '2015-06', 38.7223, -9.1393, 'EPSON', 'Perfection V600');
+        // Mai 2014 à Berlin : aucune marque d'appareil.
+        $shots(3, '2014-05', 52.52, 13.405, null);
+        // Avril 2013 à Madrid : date reprise de l'album, pas celle de la prise de vue.
+        $album = Album::factory()->create(['user_id' => $this->viewer->id]);
+        $shots(3, '2013-04', 40.4168, -3.7038, 'Canon', null, ['taken_at_album_id' => $album->id]);
+
+        $this->assertSame([[self::year('2017-10-01'), self::year('2017-11-01'), 32.66, 51.67]], $this->tripsOf($this->trackFrom(1980)));
+    }
+
+    public function test_le_photographe_seulement_avec_des_photos_visibles(): void
+    {
+        $this->parent(['birth_date' => '1950-01-01', 'birth_place' => 'Paris']);
+        $father = Person::find($this->me->father_id);
+        // Le père a un compte ; ses photos d'Athènes ne sont pas partagées.
+        $fathersAccount = User::factory()->create(['person_id' => $father->id]);
+        $athens = collect(range(1, 3))->map(fn ($d) => $this->shot($fathersAccount, "2012-08-0{$d} 12:00:00", 37.9838, 23.7275, 'NIKON CORPORATION'));
+
+        $this->assertSame([], $this->tripsOf($this->trackFrom(1950)));
+        // Il les voit, lui ; et une fois partagées au foyer, moi aussi.
+        $this->assertCount(1, $this->tripsOf($this->trackFrom(1950, $fathersAccount)));
+        $family = Household::factory()->create(['created_by' => $fathersAccount->id, 'kind' => 'family']);
+        $family->members()->attach([$fathersAccount->id, $this->viewer->id]);
+        $athens->each(fn ($m) => $m->households()->attach($family->id));
+        $this->assertSame([[self::year('2012-08-01'), self::year('2012-09-01'), 37.98, 23.73]], $this->tripsOf($this->trackFrom(1950)));
+    }
+
     // ------------------------------------------------------------ géocodage automatique
 
     public function test_un_lieu_saisi_ou_modifie_part_au_geocodage(): void
@@ -394,8 +576,11 @@ class FamilyTimelineMapTest extends TestCase
             'place' => 'Quimper', 'event_date' => '1950-01-01']);
         LifeEvent::create(['person_id' => $person->id, 'user_id' => $this->viewer->id, 'type' => 'residence', 'title' => 'Brest',
             'place' => 'Brest', 'latitude' => 48.39, 'longitude' => -4.49, 'event_date' => '1960-01-01']);
+        // Les autres moments aussi (un voyage, des fiançailles…).
+        LifeEvent::create(['person_id' => $person->id, 'user_id' => $this->viewer->id, 'type' => 'voyage', 'title' => 'Japon',
+            'place' => 'Kyoto, Japon', 'event_date' => '1970-04-01']);
 
-        $this->assertSame(['Mannheim, Allemagne', 'Mechelen, Belgique', 'Strasbourg', 'Quimper'], array_values(GeocodePendingPlaces::pending()));
+        $this->assertSame(['Mannheim, Allemagne', 'Mechelen, Belgique', 'Strasbourg', 'Quimper', 'Kyoto, Japon'], array_values(GeocodePendingPlaces::pending()));
     }
 
     public function test_le_job_geocode_au_rythme_de_nominatim_sans_reessayer_un_introuvable(): void

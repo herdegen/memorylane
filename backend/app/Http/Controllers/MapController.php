@@ -172,8 +172,10 @@ class MapController extends Controller
         }
 
         $people = $this->familyPeople($user)
-            ->with(['lifeEvents' => fn ($q) => $q->where('type', 'residence')
-                ->select(['id', 'person_id', 'type', 'place', 'latitude', 'longitude', 'event_date', 'end_date'])])
+            // Tous les moments datés : lieux de vie, séjours (emploi, études)
+            // et sorties (voyages, fiançailles, mariage…).
+            ->with(['lifeEvents' => fn ($q) => $q->whereNotNull('event_date')
+                ->select(['id', 'person_id', 'type', 'place', 'latitude', 'longitude', 'event_date', 'end_date', 'date_precision', 'media_id'])])
             ->get(['people.id', 'father_id', 'mother_id', 'birth_date', 'birth_place', 'death_date', 'death_place', 'address_latitude', 'address_longitude']);
 
         return response()->json($timeline->build($people, $user));

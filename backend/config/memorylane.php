@@ -30,6 +30,12 @@ return [
         // seule photo du mariage doit y apparaître) ; mesuré le 2026-11-05 :
         // 60 sorties au lieu de 55, toujours lisible.
         'trip_min_photos' => 1,
+        // Sources des sorties : moments de vie datés et situés (et les
+        // personnes identifiées sur leurs photos), photos où la personne est
+        // identifiée, photographe (propriétaire des photos).
+        'trip_sources' => ['moments', 'photos', 'photographer'],
+        // Photographe : au moins autant de photos le même mois au même endroit.
+        'photographer_min_photos' => 3,
     ],
 
     // Reconnaissance de visages.

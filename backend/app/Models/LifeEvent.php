@@ -27,10 +27,11 @@ class LifeEvent extends Model
 
     protected static function booted(): void
     {
-        // Lieu de vie saisi sans coordonnées : géocodé en tâche de fond.
+        // Lieu d'un moment saisi sans coordonnées (lieu de vie, voyage,
+        // fiançailles…) : géocodé en tâche de fond pour la carte.
         static::saved(function (self $event) {
-            $touched = $event->wasRecentlyCreated || $event->wasChanged(['place', 'type', 'latitude', 'longitude']);
-            if ($touched && $event->type === 'residence' && filled($event->place)
+            $touched = $event->wasRecentlyCreated || $event->wasChanged(['place', 'latitude', 'longitude']);
+            if ($touched && filled($event->place)
                 && ($event->latitude === null || $event->longitude === null)) {
                 \App\Jobs\GeocodePendingPlaces::enqueue([$event->place]);
             }
