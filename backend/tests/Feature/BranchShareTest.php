@@ -109,6 +109,21 @@ class BranchShareTest extends TestCase
         $this->assertSame($this->B->id, $invitation->household_id);
     }
 
+    public function test_pour_bien_demarrer_cherche_les_personnes_de_ses_autres_familles(): void
+    {
+        $this->B->people()->attach($this->p['robert']->id);
+        $names = fn (User $u, string $q) => collect($this->actingAs($u)->getJson("/households/{$this->B->id}/branch-candidates?q={$q}")->assertOk()->json())->pluck('name')->all();
+
+        // Carla voit Claire et Camille (famille A), pas Robert (déjà dans B).
+        $this->assertSame(['Claire'], $names($this->carla, 'Cla'));
+        $this->assertSame(['Camille'], $names($this->carla, 'Cam'));
+        $this->assertSame([], $names($this->carla, 'Rob'));
+        // Bruno ne voit pas la famille A.
+        $this->assertSame([], $names($this->bruno, 'Cla'));
+        // Hors de la famille : refusé.
+        $this->actingAs(User::factory()->create())->getJson("/households/{$this->B->id}/branch-candidates?q=Cla")->assertForbidden();
+    }
+
     public function test_refus(): void
     {
         // Vers une famille dont on n'est pas membre, ou un cercle d'amis : non.

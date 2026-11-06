@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Household;
+use App\Models\Person;
 use App\Models\User;
 use App\Notifications\Push\HouseholdMemberAdded;
 use App\Notifications\Push\PushNotification;
@@ -145,6 +146,9 @@ class HouseholdController extends Controller
                 'is_member' => $household->isMember($request->user()),
                 'can_manage' => $canManage,
                 'is_manager' => $household->isManager($request->user()),
+                'is_current' => $request->user()->currentCircle()?->id === $household->id,
+                // Famille : nombre de fiches (« Pour bien démarrer » tant qu'elle est presque vide).
+                'family_people' => $household->isFamily() ? $household->people()->where('people.in_family_directory', true)->count() : null,
             ],
             'members' => $members,
             'media' => $media,
@@ -176,6 +180,33 @@ class HouseholdController extends Controller
         $household->setRole($user, $validated['role']);
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Personnes à reprendre dans une famille (« Pour bien démarrer » : partager
+     * une branche de ses autres familles) : fiches de famille qu'il voit, pas
+     * encore dans celle-ci, par nom.
+     */
+    public function branchCandidates(Request $request, Household $household)
+    {
+        abort_unless($household->isFamily() && $household->allowsInvitesFrom($request->user()), 403);
+        $q = trim((string) $request->query('q', ''));
+        if (mb_strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        return response()->json(Person::visibleTo($request->user())
+            ->where('people.in_family_directory', true)
+            ->whereDoesntHave('circles', fn ($c) => $c->whereKey($household->id))
+            ->whereUnaccentLike('people.name', $q)
+            ->orderBy('people.name')
+            ->limit(8)
+            ->get(['people.id', 'people.name', 'people.birth_date', 'people.death_date'])
+            ->map(fn (Person $p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'years' => trim(($p->birth_date?->year ?? '').($p->death_date ? '–'.$p->death_date->year : ''), '–'),
+            ]));
     }
 
     /**

@@ -42,6 +42,35 @@
           </div>
         </div>
 
+        <!-- Nouvelle famille presque vide : pour bien démarrer -->
+        <div v-if="household.kind === 'family' && household.is_member && household.family_people !== null && household.family_people < 10" class="mb-6 rounded-2xl border border-brand-200 bg-brand-50 p-5">
+          <h2 class="font-display text-lg font-semibold text-surface-900">{{ $t('Pour bien démarrer') }}</h2>
+          <p class="mt-1 text-sm text-surface-600">{{ tc('La famille compte :count fiche. Trois façons de la faire grandir :|La famille compte :count fiches. Trois façons de la faire grandir :', household.family_people, { count: household.family_people }) }}</p>
+          <div class="mt-4 grid gap-3 sm:grid-cols-3">
+            <button v-if="household.can_invite" type="button" class="rounded-xl border border-surface-200 bg-white p-4 text-left hover:border-brand-300" @click="showShareBranch = true">
+              <span class="block text-xl" aria-hidden="true">🌳</span>
+              <span class="mt-1 block font-semibold text-surface-900">{{ $t('Reprendre une branche') }}</span>
+              <span class="block text-sm text-surface-600">{{ $t('Des personnes de vos autres familles : une fiche, ses descendants ou ses ancêtres.') }}</span>
+            </button>
+            <a href="#membres" class="rounded-xl border border-surface-200 bg-white p-4 text-left hover:border-brand-300">
+              <span class="block text-xl" aria-hidden="true">✉️</span>
+              <span class="mt-1 block font-semibold text-surface-900">{{ $t('Inviter des proches') }}</span>
+              <span class="block text-sm text-surface-600">{{ $t('Un compte existant ci-dessous, ou par e-mail depuis la fiche de la personne.') }}</span>
+            </a>
+            <button type="button" class="rounded-xl border border-surface-200 bg-white p-4 text-left hover:border-brand-300" @click="openFamily">
+              <span class="block text-xl" aria-hidden="true">👪</span>
+              <span class="mt-1 block font-semibold text-surface-900">{{ household.is_current ? $t('Compléter l’arbre') : $t('Aller dans cette famille') }}</span>
+              <span class="block text-sm text-surface-600">{{ $t('Ajouter des personnes, des liens, des souvenirs.') }}</span>
+            </button>
+          </div>
+        </div>
+        <ShareBranchModal
+          v-if="showShareBranch"
+          :families="[{ id: household.id, name: household.name }]"
+          @close="showShareBranch = false"
+          @shared="router.reload({ preserveScroll: true })"
+        />
+
         <!-- Réglage : qui peut faire entrer quelqu'un (administrateur) -->
         <div v-if="household.can_manage" class="bg-white rounded-lg shadow-xs p-4 mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -94,6 +123,7 @@
         </div>
 
         <!-- Membres -->
+        <span id="membres" class="block -mt-2" aria-hidden="true"></span>
         <div class="bg-white rounded-lg shadow-xs divide-y divide-surface-100">
           <div
             v-for="m in members"
@@ -224,7 +254,8 @@ import { useToast } from '@/Composables/useToast';
 import { useConfirm } from '@/Composables/useConfirm';
 import { usePhotoSwipe } from '@/Composables/usePhotoSwipe';
 import Trans from '@/Components/Trans.vue';
-import { t } from '@/i18n';
+import ShareBranchModal from '@/Components/ShareBranchModal.vue';
+import { t, tc } from '@/i18n';
 
 const toast = useToast();
 const { confirm } = useConfirm();
@@ -286,6 +317,16 @@ const invite = async (candidate) => {
 // Retirer un membre : mêmes choix qu'un départ (ses photos, successeur).
 const removing = ref(null);
 const removeMember = (member) => { removing.value = member; };
+
+// « Pour bien démarrer » : reprendre une branche, ou entrer dans la famille.
+const showShareBranch = ref(false);
+function openFamily() {
+  if (props.household.is_current) {
+    router.visit('/family-tree');
+    return;
+  }
+  router.post('/circles/current', { household_id: props.household.id }, { onSuccess: () => router.visit('/family-tree') });
+}
 
 // Responsables : nommer un membre, ou lui retirer le rôle (il en reste
 // toujours au moins un — le serveur refuse sinon).

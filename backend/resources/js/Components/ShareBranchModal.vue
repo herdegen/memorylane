@@ -7,6 +7,25 @@
         {{ $t('Les fiches choisies deviennent communes aux deux familles. Chacune ne voit autour que ce qui est à elle : ses propres enfants, conjoints et photos.') }}
       </p>
 
+      <!-- Sans fiche de départ (« Pour bien démarrer ») : on la cherche. -->
+      <div v-if="!personId" class="space-y-2">
+        <label for="branch-root" class="block text-sm font-semibold text-surface-900">{{ $t('À partir de qui ?') }}</label>
+        <div v-if="chosen" class="flex items-center justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-sm">
+          <span class="font-semibold text-surface-900">{{ chosen.name }} <span v-if="chosen.years" class="font-normal text-surface-500">{{ chosen.years }}</span></span>
+          <button type="button" class="text-brand-700 hover:underline" @click="chosen = null; query = ''">{{ $t('Changer') }}</button>
+        </div>
+        <template v-else>
+          <input id="branch-root" v-model="query" type="search" class="form-input" :placeholder="$t('Nom d’une personne de vos autres familles…')" @input="search" />
+          <ul v-if="results.length" class="divide-y divide-surface-100 rounded-xl border border-surface-200">
+            <li v-for="r in results" :key="r.id">
+              <button type="button" class="w-full px-3 py-2 text-left text-sm hover:bg-surface-50" @click="chosen = r">
+                {{ r.name }} <span v-if="r.years" class="text-surface-500">{{ r.years }}</span>
+              </button>
+            </li>
+          </ul>
+        </template>
+      </div>
+
       <fieldset v-if="families.length > 1" class="space-y-2">
         <legend class="text-sm font-semibold text-surface-900 mb-1">{{ $t('Avec quelle famille ?') }}</legend>
         <label v-for="f in families" :key="f.id" class="flex items-center gap-2 text-sm text-surface-800">
@@ -64,8 +83,9 @@ import { useToast } from '@/Composables/useToast';
 import { apiError } from '@/utils/apiError';
 
 const props = defineProps({
-  personId: { type: String, required: true },
-  personName: { type: String, required: true },
+  // Fiche de départ ; absente : on la cherche dans ses autres familles.
+  personId: { type: String, default: null },
+  personName: { type: String, default: '' },
   // Ses autres familles : [{ id, name }].
   families: { type: Array, required: true },
 });
@@ -73,6 +93,18 @@ const emit = defineEmits(['close', 'shared']);
 const toast = useToast();
 
 const familyId = ref(props.families[0]?.id ?? null);
+const chosen = ref(props.personId ? { id: props.personId, name: props.personName } : null);
+const query = ref('');
+const results = ref([]);
+let searchTimer = 0;
+function search() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(async () => {
+    if (query.value.trim().length < 2) { results.value = []; return; }
+    const { data } = await axios.get(`/households/${familyId.value}/branch-candidates`, { params: { q: query.value.trim() } });
+    results.value = data;
+  }, 250);
+}
 const scope = ref('descendants');
 const living = ref(false);
 const photos = ref(false);
@@ -81,7 +113,7 @@ const loading = ref(false);
 const saving = ref(false);
 
 const scopes = computed(() => [
-  { value: 'person', label: t('Seulement la fiche de :name', { name: props.personName }) },
+  { value: 'person', label: t('Seulement la fiche de :name', { name: chosen.value?.name ?? '' }) },
   { value: 'descendants', label: t('Ses descendants : enfants, petits-enfants…') },
   { value: 'ancestors', label: t('Ses ancêtres : parents, grands-parents…') },
   { value: 'both', label: t('Ses ancêtres et ses descendants') },
@@ -91,11 +123,11 @@ const canShare = computed(() => preview.value && (preview.value.to_share > 0 || 
 
 let request = 0;
 async function refresh() {
-  if (!familyId.value) return;
+  if (!familyId.value || !chosen.value) { preview.value = null; return; }
   const mine = ++request;
   loading.value = true;
   try {
-    const { data } = await axios.get(`/people/${props.personId}/share-branch`, { params: params() });
+    const { data } = await axios.get(`/people/${chosen.value.id}/share-branch`, { params: params() });
     if (mine === request) preview.value = data;
   } catch (e) {
     if (mine === request) toast.error(apiError(e, t('Impossible de préparer le partage.')));
@@ -103,12 +135,12 @@ async function refresh() {
     if (mine === request) loading.value = false;
   }
 }
-watch([familyId, scope, living], refresh, { immediate: true });
+watch([familyId, scope, living, chosen], refresh, { immediate: true });
 
 async function share() {
   saving.value = true;
   try {
-    const { data } = await axios.post(`/people/${props.personId}/share-branch`, params());
+    const { data } = await axios.post(`/people/${chosen.value.id}/share-branch`, params());
     toast.success(tc(':count fiche partagée avec « :family ».|:count fiches partagées avec « :family ».', data.shared, { count: data.shared, family: data.family }));
     emit('shared');
     emit('close');
