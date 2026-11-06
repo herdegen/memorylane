@@ -92,8 +92,8 @@ class QuestAnswerApplier
             QuestType::MaidenName => $subject->update(['maiden_name' => $payload['value']]),
             // Le hook saving de Person géocode l'adresse (BAN) au passage.
             QuestType::Address => $subject->update(['address' => $payload['value']]),
-            QuestType::ParentFather => $this->applyParent($subject, $payload['parent_id'], 'father'),
-            QuestType::ParentMother => $this->applyParent($subject, $payload['parent_id'], 'mother'),
+            QuestType::ParentFather => $this->applyParent($user, $subject, $payload['parent_id'], 'father'),
+            QuestType::ParentMother => $this->applyParent($user, $subject, $payload['parent_id'], 'mother'),
             QuestType::MaritalStatus => $this->applyMarital($subject, $payload),
             QuestType::Job => $this->applyLifeEvent($user, $subject, 'job', $payload['title'], (int) $payload['year']),
             QuestType::Education => $this->applyLifeEvent($user, $subject, 'education', $payload['title'], (int) $payload['year']),
@@ -130,11 +130,20 @@ class QuestAnswerApplier
         }
     }
 
-    private function applyParent(Person $person, string $parentId, string $slot): void
+    private function applyParent(User $user, Person $person, string $parentId, string $slot): void
     {
         abort_if($parentId === $person->id, 422, __('Une personne ne peut pas être son propre parent.'));
 
-        $person->update([$slot.'_id' => $parentId]);
+        // Fiche commune à plusieurs familles : un parent se propose à la
+        // famille qui tranche (cf. SharedFiches).
+        $shared = app(SharedFiches::class);
+        [$direct, $proposed] = $shared->split($user, $person, [$slot.'_id' => $parentId]);
+        if ($proposed !== []) {
+            $shared->propose($user, $person, $proposed, __('Réponse à une quête'));
+
+            return;
+        }
+        $person->update($direct);
     }
 
     /**

@@ -86,6 +86,16 @@
             @endforeach
             </table>
 
+        @elseif ($s['key'] === 'shared_people')
+            <p style="{{ $kicker }}">{{ __('Fiches communes') }}</p>
+            @if ($s['to_decide'] > 0)
+                <p style="{{ $h2 }}">{{ trans_choice('Une proposition de correction attend ton avis.|:count propositions de correction attendent ton avis.', $s['to_decide']) }}</p>
+            @endif
+            @if ($s['changed'] > 0)
+                <p style="{{ $p }}">{{ trans_choice('Cette semaine, :count fiche que ta famille partage avec une autre a été complétée ou corrigée de leur côté.|Cette semaine, :count fiches que ta famille partage avec d’autres ont été complétées ou corrigées de leur côté.', $s['changed']) }}</p>
+            @endif
+            <a href="{{ $s['url'] }}" style="{{ $btn }}">{{ __('Voir les fiches communes') }}</a>
+
         @elseif ($s['key'] === 'friends')
             <p style="{{ $kicker }}">{{ __('Côté amis') }}</p>
             <p style="{{ $h2 }} font-size:19px;">{{ \Illuminate\Support\Str::ucfirst($s['photos'] ? trans_choice(':circle : :count nouvelle photo|:circle : :count nouvelles photos', $s['photos'], ['circle' => $s['circle']]) : __('Du nouveau avec :circle', ['circle' => $s['circle']])) }}</p>

@@ -18,6 +18,9 @@
         <!-- Médias ajoutés à SA fiche par d'autres, à valider -->
         <FichePendingCard :initial-items="fichePending" />
 
+        <!-- Corrections proposées par une autre famille sur une fiche commune -->
+        <SharedPeopleCard />
+
         <!-- ============ Souvenirs « Il y a N ans » ============ -->
         <div v-if="onThisDay.length > 0" class="space-y-4" data-tour="today">
           <div class="flex items-center justify-between">
@@ -262,6 +265,7 @@ import PersonAvatar from '@/Components/PersonAvatar.vue';
 import PushPromptCard from '@/Components/PushPromptCard.vue';
 import InstallAppBanner from '@/Components/InstallAppBanner.vue';
 import FichePendingCard from '@/Components/FichePendingCard.vue';
+import SharedPeopleCard from '@/Components/SharedPeopleCard.vue';
 import { useAuth } from '@/Composables/useAuth';
 import { useCircle } from '@/Composables/useCircle';
 import { conversionUrl, slideUrl, thumbnailUrl } from '@/utils/media';

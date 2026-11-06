@@ -339,14 +339,21 @@ const excludeChildIds = computed(() => {
   return ids;
 });
 
+// Fiche commune à plusieurs familles : le lien est proposé à la famille qui
+// tranche (202) au lieu d'être fait.
+function proposedNotice(response) {
+  if (response?.status === 202) toast.success(response.data.message);
+}
+
 async function addChild(child) {
   if (busy.value) return;
   busy.value = true;
   try {
-    await axios.post(`/people/${props.person.id}/child`, {
+    const response = await axios.post(`/people/${props.person.id}/child`, {
       child_id: child.id,
       other_parent_id: coParentId.value || null,
     });
+    proposedNotice(response);
     adding.value = null;
     router.reload();
   } catch (error) {
@@ -363,10 +370,11 @@ async function createAndAddChild() {
   try {
     const { data } = await axios.post('/people', { name });
     const created = data.person || data;
-    await axios.post(`/people/${props.person.id}/child`, {
+    const response = await axios.post(`/people/${props.person.id}/child`, {
       child_id: created.id,
       other_parent_id: coParentId.value || null,
     });
+    proposedNotice(response);
     adding.value = null;
     router.reload();
   } catch (error) {
@@ -378,10 +386,11 @@ async function createAndAddChild() {
 
 async function setParent(parent, type) {
   try {
-    await axios.post(`/people/${props.person.id}/parent`, {
+    const response = await axios.post(`/people/${props.person.id}/parent`, {
       parent_id: parent.id,
       parent_type: type,
     });
+    proposedNotice(response);
     adding.value = null;
     router.reload();
   } catch (error) {
@@ -391,9 +400,10 @@ async function setParent(parent, type) {
 
 async function removeParent(type) {
   try {
-    await axios.delete(`/people/${props.person.id}/parent`, {
+    const response = await axios.delete(`/people/${props.person.id}/parent`, {
       data: { parent_type: type },
     });
+    proposedNotice(response);
     router.reload();
   } catch (error) {
     toast.error(error.response?.data?.message || t('Impossible de retirer ce parent.'));
@@ -414,9 +424,10 @@ async function addSpouse(spouse) {
 
 async function removeSpouse(spouse) {
   try {
-    await axios.delete(`/people/${props.person.id}/spouse`, {
+    const response = await axios.delete(`/people/${props.person.id}/spouse`, {
       data: { spouse_id: spouse.id },
     });
+    proposedNotice(response);
     router.reload();
   } catch (error) {
     toast.error(error.response?.data?.message || t('Impossible de retirer ce conjoint.'));

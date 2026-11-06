@@ -52,6 +52,7 @@ class LifeEventController extends Controller
         // Le moment d'une fiche qu'on ne voit pas (cercle d'amis) n'existe pas.
         abort_unless($lifeEvent->person?->isVisibleTo($request->user()), 404);
         $this->authorizeManage($lifeEvent->person);
+        $this->authorizeSharedEvent($request->user(), $lifeEvent);
 
         $data = $this->validated($request);
         $photos = $data['photos'] ?? null;
@@ -84,10 +85,27 @@ class LifeEventController extends Controller
             $user !== null && ($user->isAdmin() || $lifeEvent->user_id === $user->id || $lifeEvent->person?->user_id === $user->id),
             403
         );
+        $this->authorizeSharedEvent($user, $lifeEvent);
 
         $lifeEvent->delete();
 
         return response()->json(['message' => __('Moment supprimé')]);
+    }
+
+    /**
+     * Fiche commune à plusieurs familles : un moment se modifie ou se
+     * supprime par son auteur ou par la famille référente de la fiche.
+     */
+    private function authorizeSharedEvent(\App\Models\User $user, LifeEvent $lifeEvent): void
+    {
+        $shared = app(\App\Services\SharedFiches::class);
+        $person = $lifeEvent->person;
+        if ($lifeEvent->user_id === $user->id || ! $shared->isShared($person) || $shared->isReferentMember($user, $person)) {
+            return;
+        }
+        abort(403, __('Fiche commune : ce moment a été saisi par une autre famille, seule :family peut le modifier.', [
+            'family' => $shared->referent($person)?->name ?? __('la famille référente'),
+        ]));
     }
 
     private function validated(Request $request): array

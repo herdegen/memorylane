@@ -599,19 +599,22 @@ async function saveEdit() {
   editErrors.value = {};
   try {
     const { data } = await axios.put(`/people/${person.id}`, { ...editForm });
-    // Mise à jour locale du nœud : nom recomposé par le serveur, dates gardées
-    // au format Y-m-d du formulaire (le serveur les renvoie en ISO complet).
+    // Mise à jour locale du nœud avec ce que le serveur a enregistré (une
+    // fiche commune peut garder une correction en proposition), dates
+    // ramenées au format Y-m-d (le serveur les renvoie en ISO complet).
+    const day = (value) => (value ? String(value).slice(0, 10) : null);
     Object.assign(person.data, {
       name: data.person.name,
       first_name: data.person.first_name,
       last_name: data.person.last_name,
       maiden_name: data.person.maiden_name,
       gender: data.person.gender,
-      birth_date: editForm.birth_date || null,
-      birth_place: editForm.birth_place || null,
-      death_date: editForm.death_date || null,
-      death_place: editForm.death_place || null,
+      birth_date: day(data.person.birth_date),
+      birth_place: data.person.birth_place || null,
+      death_date: day(data.person.death_date),
+      death_place: data.person.death_place || null,
     });
+    if (data.proposed) toast.success(data.proposed.message);
     // Répercute nom + années sur les cartes de l'arbre.
     if (chart) {
       chart.updateData(toChartData(treeNodes.value));

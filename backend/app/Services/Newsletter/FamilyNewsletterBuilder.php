@@ -127,6 +127,7 @@ class FamilyNewsletterBuilder
             $this->taggedYou(),
             $this->upcoming(),
             $this->familyActivity(),
+            $this->sharedPeople(),
             // Encart « Côté amis » (null sans cercle d'amis ou sans nouveauté).
             $this->friends->corner($user, $this->now),
         ]));
@@ -167,6 +168,28 @@ class FamilyNewsletterBuilder
     }
 
     // ── Chiffres récurrents ────────────────────────────────────────────
+
+    /**
+     * Fiches communes avec d'autres familles : propositions qui attendent
+     * l'avis du destinataire, fiches que les autres ont changées cette semaine.
+     */
+    private function sharedPeople(): ?array
+    {
+        $shared = app(\App\Services\SharedFiches::class);
+        $toDecide = $shared->toDecideFor($this->user)->count();
+        $sharedIds = $shared->sharedIdsFor($this->user);
+        $changed = $sharedIds === [] ? 0 : $shared->newsFor($this->user, $this->since, $sharedIds)->distinct()->count('person_id');
+        if ($toDecide === 0 && $changed === 0) {
+            return null;
+        }
+
+        return [
+            'key' => 'shared_people',
+            'to_decide' => $toDecide,
+            'changed' => $changed,
+            'url' => url('/shared-people'),
+        ];
+    }
 
     private function newPhotos(): ?array
     {

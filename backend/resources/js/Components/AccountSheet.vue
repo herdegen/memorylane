@@ -59,6 +59,11 @@
           <button type="button" :class="[ROW, 'w-full']" @click="toggleTheme">
             <IconTheme :dark="isDark" icon-class="w-5 h-5 text-surface-500" />{{ $t('Mode sombre') }}<span class="ml-auto text-sm font-medium text-surface-500">{{ isDark ? $t('Activé') : $t('Désactivé') }}</span>
           </button>
+          <Link v-if="sharedVisible" href="/shared-people" :class="ROW" @click="$emit('close')">
+            <CircleKindIcon kind="family" class="w-5 h-5 text-surface-500" />{{ $t('Fiches communes') }}
+            <span v-if="sharedBadge" class="ml-auto inline-flex items-center justify-center min-w-6 h-6 px-1.5 rounded-full bg-brand-600 text-white text-xs font-bold">{{ sharedBadge }}</span>
+            <span v-else class="ml-auto text-surface-400">›</span>
+          </Link>
           <Link href="/tags" :class="ROW" @click="$emit('close')">
             <svg class="w-5 h-5 text-surface-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12l9 9 9-9-9-9H5a2 2 0 00-2 2z" /><circle cx="8" cy="8" r="1.5" /></svg>{{ $t('Tags') }}<span class="ml-auto text-surface-400">›</span>
           </Link>
@@ -96,6 +101,7 @@ import { IconSettings, IconTheme } from '@/Components/Icons';
 import { useAuth } from '@/Composables/useAuth';
 import { useTheme } from '@/Composables/useTheme';
 import { useCircle, KIND_LABELS } from '@/Composables/useCircle';
+import { useSharedPeople } from '@/Composables/useSharedPeople';
 
 defineProps({
   open: { type: Boolean, default: false },
@@ -107,6 +113,7 @@ const emit = defineEmits(['close', 'logout', 'tour', 'install']);
 const ROW = 'flex items-center gap-3 h-[50px] px-3.5 text-[15px] font-semibold text-surface-900 text-left';
 
 const { user, isAdmin } = useAuth();
+const { visible: sharedVisible, badge: sharedBadge } = useSharedPeople();
 const { isDark, toggle: toggleTheme } = useTheme();
 const { circles, current, canManage, canCreate } = useCircle();
 

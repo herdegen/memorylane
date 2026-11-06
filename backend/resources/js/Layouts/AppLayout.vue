@@ -69,7 +69,10 @@
                   class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-surface-700
                          hover:bg-surface-100 hover:text-surface-900 focus:outline-hidden transition-colors"
                 >
-                  <PersonAvatar :name="user.name" :size="7" />
+                  <span class="relative">
+                    <PersonAvatar :name="user.name" :size="7" />
+                    <span v-if="sharedBadge" class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-brand-600 ring-2 ring-white dark:ring-surface-50" aria-hidden="true" />
+                  </span>
                   <span>{{ user.name }}</span>
                   <IconChevron class="w-4 h-4 text-surface-400 transition-transform" :class="{ 'rotate-180': showDropdown }" />
                 </button>
@@ -81,6 +84,10 @@
                   </div>
                   <Link href="/profile" class="dropdown-item" @click="showDropdown = false">{{ $t('Mon profil') }}</Link>
                   <Link href="/households" class="dropdown-item" @click="showDropdown = false">{{ $t('Cercles') }}</Link>
+                  <Link v-if="sharedVisible" href="/shared-people" class="dropdown-item flex items-center" @click="showDropdown = false">
+                    {{ $t('Fiches communes') }}
+                    <span v-if="sharedBadge" class="ml-auto inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-brand-600 text-white text-[11px] font-bold">{{ sharedBadge }}</span>
+                  </Link>
                   <Link href="/tags" class="dropdown-item" @click="showDropdown = false">{{ $t('Tags') }}</Link>
                   <Link href="/guide" class="dropdown-item" @click="showDropdown = false">{{ $t("Guide d'utilisation") }}</Link>
                   <Link href="/tv" class="dropdown-item" @click="showDropdown = false">{{ $t('Relier une télévision') }}</Link>
@@ -122,7 +129,10 @@
               data-tour="account"
               @click="showAccountSheet = true"
             >
-              <PersonAvatar :name="user.name" :size="8" />
+              <span class="relative">
+                <PersonAvatar :name="user.name" :size="8" />
+                <span v-if="sharedBadge" class="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-brand-600 ring-2 ring-white dark:ring-surface-50" aria-hidden="true" />
+              </span>
             </button>
             <Link v-else href="/login" class="btn-primary">{{ $t('Connexion') }}</Link>
           </div>
@@ -177,6 +187,7 @@
 import { ref, watchEffect, onMounted, onUnmounted } from 'vue';
 import { formatLongDate } from '@/utils/format';
 import { Link, router, usePage } from '@inertiajs/vue3';
+import { useSharedPeople } from '@/Composables/useSharedPeople';
 import NavLink from '@/Components/NavLink.vue';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
 import MobileTabBar from '@/Components/MobileTabBar.vue';
@@ -256,6 +267,7 @@ const logout = async () => {
 };
 
 const page = usePage();
+const { visible: sharedVisible, badge: sharedBadge } = useSharedPeople();
 const launchTour = () => {
   showDropdown.value = false;
   showAccountSheet.value = false;

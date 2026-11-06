@@ -31,7 +31,8 @@ class PersonController extends Controller
 
     protected AvatarFacePositionService $avatarPositions;
 
-    public function __construct(MediaService $mediaService, GenealogyService $genealogy, FaceCropService $faceCrops, AvatarFacePositionService $avatarPositions)
+    public function __construct(MediaService $mediaService, GenealogyService $genealogy, FaceCropService $faceCrops, AvatarFacePositionService $avatarPositions,
+        protected \App\Services\SharedFiches $shared)
     {
         $this->mediaService = $mediaService;
         $this->genealogy = $genealogy;
@@ -343,7 +344,29 @@ class PersonController extends Controller
             'canDelete' => $this->isOwnerOrAdmin($person),
             'canSetSelf' => $this->canSetSelf($person),
             'account' => $this->accountPayload($person),
+            'shared' => $this->sharedPayload($request->user(), $person),
         ]);
+    }
+
+    /**
+     * Fiche commune à plusieurs familles : lesquelles, la référente, ce que
+     * le visiteur peut faire directement, les propositions en attente.
+     */
+    private function sharedPayload(\App\Models\User $user, Person $person): ?array
+    {
+        if (! $this->shared->isShared($person)) {
+            return null;
+        }
+        $mine = $user->familyCircleIds();
+        $pending = \App\Models\PersonProposal::pending()->where('person_id', $person->id)->get();
+
+        return [
+            'families' => $this->shared->families($person)->map(fn ($h) => ['id' => $h->id, 'name' => $h->name, 'mine' => in_array($h->id, $mine, true)])->values(),
+            'referent' => $this->shared->referent($person)?->name,
+            'is_referent' => $this->shared->isReferentMember($user, $person),
+            'pending' => $pending->count(),
+            'to_decide' => $pending->filter(fn ($p) => $this->shared->canDecide($user, $p->setRelation('person', $person)))->count(),
+        ];
     }
 
     /**
@@ -782,6 +805,14 @@ class PersonController extends Controller
         $this->authorizeManage($person);
 
         $validated = $this->normalizeNameFields($request->validate($this->personRules()));
+        $source = $request->validate(['source' => 'nullable|string|max:1000'])['source'] ?? null;
+
+        // Appel « photo de profil » (nom complet + avatar) : le nom inchangé
+        // n'est pas redécoupé (il ne deviendrait pas une correction).
+        if (! $request->has('first_name') && ! $request->has('last_name')
+            && isset($validated['name']) && $validated['name'] === $person->name) {
+            unset($validated['name'], $validated['first_name'], $validated['last_name']);
+        }
 
         // L'adresse est confidentielle : un membre qui ne la voit pas ne peut
         // ni la lire ni l'effacer (le formulaire l'enverrait vide).
@@ -796,22 +827,61 @@ class PersonController extends Controller
 
         $this->ensureNoCycle($person->id, array_intersect_key($validated, array_flip(['father_id', 'mother_id'])));
 
-        $person->update($validated);
+        // Fiche commune à plusieurs familles : les corrections d'une famille
+        // non référente deviennent une proposition (cf. SharedFiches).
+        [$direct, $proposed] = $this->shared->split($request->user(), $person, $validated);
+        $person->update($direct);
+        $proposal = $proposed !== [] ? $this->shared->propose($request->user(), $person, $proposed, $source) : null;
+        $message = $proposal ? $this->proposedMessage($person, $proposal) : __('Personne mise a jour');
 
         if ($request->wantsJson()) {
             return response()->json([
-                'message' => __('Personne mise a jour'),
+                'message' => $message,
                 'person' => $person,
+                'proposed' => $proposal ? ['id' => $proposal->id, 'fields' => array_keys($proposed), 'message' => $message] : null,
             ]);
         }
 
-        return redirect()->back()->with('success', __('Personne mise a jour'));
+        return redirect()->back()->with('success', $message);
+    }
+
+    /** « Proposé à la famille X » (la famille qui tranche). */
+    private function proposedMessage(Person $person, \App\Models\PersonProposal $proposal): string
+    {
+        $families = \App\Models\Household::whereIn('id', $this->shared->deciderFamilyIds($proposal))->pluck('name');
+
+        return __('Fiche commune : la correction est proposée à :family, qui la validera.', [
+            'family' => $families->join(', ') ?: __('la famille référente'),
+        ]);
+    }
+
+    /** Réponse d'un changement de lien devenu proposition. */
+    private function proposedResponse(Person $person, \App\Models\PersonProposal $proposal)
+    {
+        return response()->json([
+            'message' => $this->proposedMessage($person, $proposal),
+            'proposed' => ['id' => $proposal->id],
+        ], 202);
     }
 
     public function destroy(Request $request, Person $person)
     {
         // Suppression réservée au créateur de la fiche et aux admins.
         abort_unless($this->isOwnerOrAdmin($person), 403);
+
+        // Fiche commune : on la retire de SES familles, elle reste chez les
+        // autres (pas de suppression pour tout le monde).
+        $mine = $request->user()->familyCircleIds();
+        [$here, $others] = $this->shared->families($person)->partition(fn ($h) => in_array($h->id, $mine, true));
+        if ($here->isNotEmpty() && $others->isNotEmpty()) {
+            $person->circles()->detach($here->pluck('id')->all());
+            $this->shared->forgetCounts($person);
+            $message = __('Retirée de votre famille : la fiche reste chez :family.', ['family' => $others->pluck('name')->join(', ')]);
+
+            return $request->wantsJson()
+                ? response()->json(['message' => $message, 'detached' => true])
+                : redirect()->route('people.index')->with('success', $message);
+        }
 
         $person->delete();
 
@@ -904,9 +974,11 @@ class PersonController extends Controller
         }
         $this->ensureNoCycle($person->id, [$validated['parent_type'].'_id' => $parent->id]);
 
-        $person->update([
-            $validated['parent_type'].'_id' => $validated['parent_id'],
-        ]);
+        [$direct, $proposed] = $this->shared->split($request->user(), $person, [$validated['parent_type'].'_id' => $validated['parent_id']]);
+        if ($proposed !== []) {
+            return $this->proposedResponse($person, $this->shared->propose($request->user(), $person, $proposed));
+        }
+        $person->update($direct);
 
         return response()->json([
             'message' => __('Parent defini'),
@@ -927,9 +999,11 @@ class PersonController extends Controller
         $parentId = $person->{$validated['parent_type'].'_id'};
         abort_if($parentId && ! Person::visibleTo($request->user())->whereKey($parentId)->exists(), 403);
 
-        $person->update([
-            $validated['parent_type'].'_id' => null,
-        ]);
+        [$direct, $proposed] = $this->shared->split($request->user(), $person, [$validated['parent_type'].'_id' => null]);
+        if ($proposed !== []) {
+            return $this->proposedResponse($person, $this->shared->propose($request->user(), $person, $proposed));
+        }
+        $person->update($direct);
 
         return response()->json(['message' => __('Parent retire')]);
     }
@@ -973,6 +1047,17 @@ class PersonController extends Controller
         $validated = $request->validate([
             'spouse_id' => ['required', new VisiblePerson],
         ]);
+
+        // Union d'une fiche commune : la défaire se propose à sa référente.
+        foreach ([$person, Person::findOrFail($validated['spouse_id'])] as $side) {
+            if ($this->shared->isShared($side) && ! $this->shared->isReferentMember($request->user(), $side)) {
+                $other = $side->is($person) ? Person::find($validated['spouse_id']) : $person;
+
+                return $this->proposedResponse($side, $this->shared->propose(
+                    $request->user(), $side, [], null, ['id' => $other->id, 'name' => $other->name]
+                ));
+            }
+        }
 
         $ids = [$person->id, $validated['spouse_id']];
         sort($ids);
@@ -1022,7 +1107,11 @@ class PersonController extends Controller
         }
         $this->ensureNoCycle($child->id, $update);
 
-        $child->update($update);
+        [$direct, $proposed] = $this->shared->split($request->user(), $child, $update);
+        if ($proposed !== []) {
+            return $this->proposedResponse($child, $this->shared->propose($request->user(), $child, $proposed));
+        }
+        $child->update($direct);
 
         return response()->json([
             'message' => __('Enfant ajouté'),

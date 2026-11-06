@@ -22,6 +22,8 @@ class AppServiceProvider extends ServiceProvider
         // Analyse des visages en double : calculée une fois par requête (la
         // page admin la consulte pour chaque cellule du tableau).
         $this->app->scoped(\App\Services\Vision\DuplicateFaceResolver::class);
+        // Familles et famille référente des fiches communes : une fois par requête.
+        $this->app->scoped(\App\Services\SharedFiches::class);
 
     }
 

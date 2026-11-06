@@ -162,6 +162,15 @@
           <p v-if="person.notes" class="mt-2 text-sm text-surface-600 whitespace-pre-wrap max-w-2xl">
             {{ person.notes }}
           </p>
+          <!-- Fiche commune à plusieurs familles : la référente corrige, les autres proposent -->
+          <div v-if="shared" class="mt-3 inline-flex flex-wrap items-center justify-center sm:justify-start gap-x-2 gap-y-1 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+            <CircleKindIcon kind="family" class="w-3.5 h-3.5 shrink-0" />
+            <span>{{ $t('Fiche commune : :families.', { families: shared.families.map((f) => f.name).join(', ') }) }}</span>
+            <span>{{ shared.is_referent ? $t('Votre famille est la référente : vous la corrigez directement.') : $t('Référente : :family, qui valide les corrections.', { family: shared.referent }) }}</span>
+            <Link v-if="shared.pending" href="/shared-people" class="font-semibold underline">
+              {{ $tc(':count proposition en attente|:count propositions en attente', shared.pending) }}
+            </Link>
+          </div>
           <!-- Compte MemoryLane : présent, invitation en cours, ou bouton d'invitation -->
           <div v-if="account.memorial" class="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-surface-500">
             🕯️ {{ $t('En mémoire') }}
@@ -336,6 +345,7 @@
     <PersonFormModal
       v-if="showEditModal"
       :person="person"
+      :shared="shared"
       @close="showEditModal = false"
       @updated="handlePersonUpdated"
     />
@@ -468,6 +478,11 @@ const props = defineProps({
   // Parenté avec le visiteur (« votre fille »), null hors famille / sans fiche « moi ».
   relationLabel: {
     type: String,
+    default: null,
+  },
+  // Fiche commune à plusieurs familles (familles, référente, propositions).
+  shared: {
+    type: Object,
     default: null,
   },
 });
@@ -608,16 +623,27 @@ const handlePersonUpdated = () => {
 };
 
 const deletePerson = async () => {
-  const ok = await confirm({
-    title: t('Supprimer cette fiche'),
-    message: t('Êtes-vous sûr de vouloir supprimer :name ? Cette action ne supprimera pas les médias.', { name: props.person.name }),
-    confirmLabel: t('Supprimer'),
-    danger: true,
-  });
+  // Fiche commune : elle quitte seulement nos familles.
+  const elsewhere = (props.shared?.families || []).filter((f) => !f.mine).map((f) => f.name);
+  const ok = await confirm(elsewhere.length && props.shared.families.some((f) => f.mine)
+    ? {
+      title: t('Retirer cette fiche de votre famille'),
+      message: t(':name restera dans :families, avec ses informations.', { name: props.person.name, families: elsewhere.join(', ') }),
+      confirmLabel: t('Retirer'),
+      danger: true,
+    }
+    : {
+      title: t('Supprimer cette fiche'),
+      message: t('Êtes-vous sûr de vouloir supprimer :name ? Cette action ne supprimera pas les médias.', { name: props.person.name }),
+      confirmLabel: t('Supprimer'),
+      danger: true,
+    });
   if (!ok) return;
 
   try {
-    await axios.delete(`/people/${props.person.id}`);
+    const { data } = await axios.delete(`/people/${props.person.id}`);
+    // Fiche commune : retirée de notre famille seulement.
+    if (data?.detached) toast.success(data.message);
     router.visit('/people');
   } catch (error) {
     toast.error(apiError(error, t('Erreur lors de la suppression de la personne.')));

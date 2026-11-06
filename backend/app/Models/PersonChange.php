@@ -47,6 +47,48 @@ class PersonChange extends Model
         'diff',
     ];
 
+    /**
+     * Proposition en cours d'application (acceptée, ou désaccord qui remet
+     * l'ancienne valeur) : les lignes d'historique écrites pendant ce temps
+     * lui sont rattachées.
+     */
+    private static ?string $proposalContext = null;
+
+    protected static function booted(): void
+    {
+        static::creating(function (PersonChange $change) {
+            $change->proposal_id ??= self::$proposalContext;
+        });
+    }
+
+    /** Exécute $fn en rattachant l'historique écrit à la proposition. */
+    public static function forProposal(string $proposalId, callable $fn): mixed
+    {
+        $previous = self::$proposalContext;
+        self::$proposalContext = $proposalId;
+        try {
+            return $fn();
+        } finally {
+            self::$proposalContext = $previous;
+        }
+    }
+
+    /** Valeur comparable d'un champ suivi : vide = null, date = AAAA-MM-JJ. */
+    public static function normalizeValue(string $field, mixed $value): mixed
+    {
+        if ($value === '' || $value === null) {
+            return null;
+        }
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+        if (in_array($field, ['birth_date', 'death_date'], true)) {
+            return substr((string) $value, 0, 10);
+        }
+
+        return is_scalar($value) ? (string) $value : $value;
+    }
+
     protected function casts(): array
     {
         return [

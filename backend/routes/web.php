@@ -422,6 +422,16 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::post('/{person}/events', [LifeEventController::class, 'store'])->name('events.store');
     });
 
+    // Fiches communes à plusieurs familles : propositions, désaccords
+    Route::prefix('shared-people')->name('shared-people.')->controller(\App\Http\Controllers\SharedPeopleController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/proposals/{proposal}/accept', 'accept')->name('accept');
+        Route::post('/proposals/{proposal}/reject', 'reject')->name('reject');
+        Route::delete('/proposals/{proposal}', 'cancel')->name('cancel');
+        Route::post('/proposals/{proposal}/messages', 'message')->name('message');
+        Route::post('/changes/{change}/dispute', 'dispute')->name('dispute');
+    });
+
     // Édition / suppression d'un moment de vie
     Route::put('/life-events/{lifeEvent}', [LifeEventController::class, 'update'])->name('life-events.update');
     Route::delete('/life-events/{lifeEvent}', [LifeEventController::class, 'destroy'])->name('life-events.destroy');
