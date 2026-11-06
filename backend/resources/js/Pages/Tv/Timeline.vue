@@ -53,10 +53,10 @@
 import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import axios from 'axios';
-import 'leaflet.heat';
 import TvLayout from '@/Layouts/TvLayout.vue';
 import { onTvKey, focusInitial } from '@/Tv/remote';
 import { L, createTvMap, showAll } from '@/Tv/map';
+import '@/utils/leafletHeat';
 import { tc, intlLocale } from '@/i18n';
 import { createAnimator, createGlowLayer, createTimeScale, dataBounds, timeLabelParts, tripSpans } from '@/utils/familyTimeline';
 

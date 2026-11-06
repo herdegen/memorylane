@@ -292,9 +292,8 @@ import { apiError } from '@/utils/apiError';
 import { useToast } from '@/Composables/useToast';
 import { useTags } from '@/Composables/useTags';
 import { t, tc } from '@/i18n';
-import L from 'leaflet';
+import L from '@/utils/leafletHeat';
 import 'leaflet/dist/leaflet.css';
-import 'leaflet.heat';
 import axios from 'axios';
 
 const { isFriends } = useCircle();
