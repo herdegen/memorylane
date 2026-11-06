@@ -54,7 +54,7 @@
       <p class="mt-3 text-xs text-surface-500">
         {{ $t('Décision : :families', { families: proposal.deciders.join(', ') || $t('la famille référente') }) }}
       </p>
-      <div class="mt-2 flex flex-col sm:flex-row gap-2">
+      <div class="mt-2 flex gap-2">
         <textarea
           v-model="reply"
           rows="1"
