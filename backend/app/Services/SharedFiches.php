@@ -458,7 +458,7 @@ class SharedFiches
             ->whereNull('proposal_id')
             ->whereNotNull('user_id')
             ->whereNotIn('user_id', $members)
-            ->where('created_at', '>=', $since)
+            ->where('created_at', '>', $since)
             ->latest('created_at');
     }
 
@@ -469,7 +469,7 @@ class SharedFiches
             ->where('origin', 'proposal')
             ->whereIn('status', [PersonProposal::ACCEPTED, PersonProposal::REJECTED])
             ->where('decided_by', '!=', $user->id)
-            ->where('decided_at', '>=', $since);
+            ->where('decided_at', '>', $since);
     }
 
     public function seenAt(User $user): Carbon

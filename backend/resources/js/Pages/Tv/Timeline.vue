@@ -16,7 +16,8 @@
     <div class="relative z-10 flex-1 flex flex-col justify-end px-24 pb-10">
       <p v-if="state === 'loading'" class="text-[2rem] text-[#c9bfb1] mb-10">{{ $t('On remonte le temps…') }}</p>
       <p v-else-if="state === 'empty'" class="text-[2rem] text-[#c9bfb1] mb-10">{{ $t('Pas encore assez de données pour remonter le temps') }}</p>
-      <template v-else>
+      <p v-else-if="state === 'error'" class="text-[2rem] text-[#c9bfb1] mb-10">{{ $t('La carte animée n’a pas pu se charger. Réessayez dans un instant.') }}</p>
+      <template v-if="state === 'ready'">
         <div class="tv-year font-display" aria-hidden="true">{{ yearLabel }}</div>
         <div class="tv-panel rounded-[1.75rem] px-9 py-6">
           <button type="button" data-tv data-tv-autofocus class="tv-timeline w-full flex items-center gap-7 rounded-[1.25rem] px-5 py-4 text-left" @click="togglePlay">
@@ -127,7 +128,14 @@ async function reload() {
   const params = {};
   if (focus.value) params.proches = 'moi';
   if (!trips.value) params.voyages = 0;
-  const { data } = await axios.get('/map/heatmap/timeline', { params });
+  let data;
+  try {
+    ({ data } = await axios.get('/map/heatmap/timeline', { params }));
+  } catch {
+    // Jamais bloqué sur « On remonte le temps… » : on le dit.
+    if (!destroyed && mine === load) state.value = 'error';
+    return;
+  }
   if (destroyed || mine !== load) return;
   const tracks = data.tracks || [];
   if (tracks.length < 2 || !data.range) {
