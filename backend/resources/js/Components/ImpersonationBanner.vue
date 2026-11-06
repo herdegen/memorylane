@@ -2,6 +2,7 @@
   <!-- « Se connecter en tant que » (admin) : rappel permanent + retour. -->
   <div
     v-if="impersonating"
+    ref="root"
     class="sticky top-0 z-[60] flex flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 py-2 text-sm bg-amber-400 text-amber-950 dark:bg-amber-500"
   >
     <span>
@@ -24,8 +25,11 @@
 import { computed, ref } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import Trans from '@/Components/Trans.vue';
+import { useTopBanner } from '@/Composables/useTopBanner';
 
 const impersonating = computed(() => usePage().props.impersonating);
+const root = ref(null);
+useTopBanner('impersonation', root);
 const leaving = ref(false);
 
 const leave = () => {
