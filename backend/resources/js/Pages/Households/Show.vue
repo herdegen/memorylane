@@ -10,7 +10,7 @@
           {{ $t('Retour aux cercles') }}
         </Link>
 
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6 flex items-start justify-between gap-4">
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
           <div>
             <div class="flex items-center gap-2">
               <h1 class="font-display text-2xl font-semibold text-surface-900">{{ household.name }}</h1>
@@ -24,7 +24,7 @@
             </div>
             <p class="mt-1 text-sm text-surface-500">{{ $tc(':count membre|:count membres', members.length) }}</p>
           </div>
-          <div class="flex items-center gap-1">
+          <div class="flex flex-wrap items-center gap-1 -ml-3 sm:ml-0">
             <button
               v-if="household.is_member"
               @click="leaveHousehold"

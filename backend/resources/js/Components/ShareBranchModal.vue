@@ -113,7 +113,7 @@ const loading = ref(false);
 const saving = ref(false);
 
 const scopes = computed(() => [
-  { value: 'person', label: t('Seulement la fiche de :name', { name: chosen.value?.name ?? '' }) },
+  { value: 'person', label: chosen.value ? t('Seulement la fiche de :name', { name: chosen.value.name }) : t('Seulement cette fiche') },
   { value: 'descendants', label: t('Ses descendants : enfants, petits-enfants…') },
   { value: 'ancestors', label: t('Ses ancêtres : parents, grands-parents…') },
   { value: 'both', label: t('Ses ancêtres et ses descendants') },
