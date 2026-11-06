@@ -50,13 +50,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import axios from 'axios';
 import 'leaflet.heat';
 import TvLayout from '@/Layouts/TvLayout.vue';
-import { onTvKey } from '@/Tv/remote';
-import { L, createTvMap } from '@/Tv/map';
+import { onTvKey, focusInitial } from '@/Tv/remote';
+import { L, createTvMap, showAll } from '@/Tv/map';
 import { tc, intlLocale } from '@/i18n';
 import { createAnimator, createGlowLayer, createTimeScale, dataBounds, timeLabelParts, tripSpans } from '@/utils/familyTimeline';
 
@@ -130,9 +130,14 @@ async function reload() {
   heat = L.heatLayer([], HEAT).addTo(map);
   glow = createGlowLayer(L)({ dark: true }).addTo(map);
   state.value = 'ready';
+  // La frise n'existe qu'une fois les données là : on lui donne le focus.
+  await nextTick();
+  focusInitial();
 
+  // Cadrage sur les lieux de la famille, entre l'en-tête et le panneau
+  // (en proportion de l'écran : les TV n'ont pas toutes la même taille).
   const bounds = dataBounds(tracks);
-  if (bounds) map.fitBounds(bounds, { paddingTopLeft: [80, 220], paddingBottomRight: [80, 460], maxZoom: 7, animate: false });
+  if (bounds) showAll(map, [bounds[0], bounds[1]], { top: 0.18, bottom: 0.46, maxZoom: 7, animate: false });
   seek(0);
   render();
   setTimeout(() => { if (mine === load && state.value === 'ready') play(); }, 1200);
@@ -222,5 +227,6 @@ onBeforeUnmount(() => {
 .tv-root .tv-timeline:focus { background: rgba(52, 45, 35, .96); box-shadow: 0 0 0 0.3rem #fcd34d; }
 .tv-chip { padding: 0.8rem 1.6rem; border-radius: 999px; background: #2c261e; color: #e7e0d6; font-size: 1.625rem; font-weight: 700; }
 .tv-root .tv-chip:focus { background: #f7f2ea; color: #14110d; box-shadow: 0 0 0 0.3rem #fcd34d; }
+:deep(.leaflet-container) { background: #0b0a08; }
 :deep(.leaflet-control-attribution) { background: rgba(0,0,0,.5); color: #8a7f72; font-size: .9rem; }
 </style>
