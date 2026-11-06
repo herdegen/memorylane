@@ -17,15 +17,22 @@
         <p class="mt-1 text-sm text-surface-500">{{ $t('Connectez-vous à votre galerie de souvenirs') }}</p>
       </div>
 
-      <!-- Site de démonstration : entrée en un clic dans la famille fictive -->
-      <div v-if="$page.props.demo" class="mb-8 rounded-2xl bg-brand-50 border border-brand-200 p-5 text-center space-y-3">
-        <p class="text-sm text-surface-700">
-          {{ $t('Découvrez MemoryLane avec la famille Lambert, une famille imaginaire : arbre, photos, récits de vie, carte des souvenirs.') }}
-        </p>
-        <button type="button" class="btn-primary w-full justify-center" :disabled="entering" @click="enterDemo">
-          {{ entering ? $t('Ouverture…') : $t('Entrer dans la démo') }}
-        </button>
-        <p class="text-xs text-surface-500">{{ $t('Aucune inscription. Tout revient à l’état de départ chaque nuit.') }}</p>
+      <!-- Site de démonstration : une famille fictive par langue, entrée en
+           un clic (textes fournis par la famille, dans sa propre langue). -->
+      <div v-if="$page.props.demo" class="mb-8 space-y-3">
+        <div
+          v-for="family in $page.props.demo"
+          :key="family.key"
+          :lang="family.key === 'us' ? 'en' : family.key"
+          class="rounded-2xl bg-brand-50 border border-brand-200 p-5 text-center space-y-3"
+        >
+          <p class="font-display text-lg font-semibold text-surface-900">{{ family.title }}</p>
+          <p class="text-sm text-surface-700">{{ family.text }}</p>
+          <button type="button" class="btn-primary w-full justify-center" :disabled="!!entering" @click="enterDemo(family.key)">
+            {{ entering === family.key ? family.opening : family.button }}
+          </button>
+          <p class="text-xs text-surface-500">{{ family.note }}</p>
+        </div>
       </div>
 
       <!-- Success message -->
@@ -148,10 +155,10 @@ const magicForm = useForm({
 });
 
 // Démo : connexion au compte partagé (POST, jeton CSRF géré par Inertia).
-const entering = ref(false);
-const enterDemo = () => {
-  entering.value = true;
-  router.post('/demo/enter', {}, { onFinish: () => { entering.value = false; } });
+const entering = ref(null);
+const enterDemo = (family) => {
+  entering.value = family;
+  router.post('/demo/enter', { family }, { onFinish: () => { entering.value = null; } });
 };
 
 const sendMagicLink = () => {

@@ -37,7 +37,9 @@ class DemoBuild extends Command
             return self::FAILURE;
         }
 
-        $this->info("Démo prête : {$result['people']} fiches, {$result['photos']} photos.");
+        foreach ($result['families'] as $fam => $f) {
+            $this->info("Famille {$fam} : {$f['people']} fiches, {$f['photos']} photos — visiteur {$f['visitor']}.");
+        }
         $this->line("Compte d'administration : {$result['admin_email']} / {$result['admin_password']} (à garder)");
 
         return self::SUCCESS;

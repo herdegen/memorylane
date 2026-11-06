@@ -32,7 +32,7 @@
               <p class="text-surface-600">{{ $t('Les visages sont ensuite reconnus, les photos datées et placées sur la carte, et chacun peut les raconter.') }}</p>
             </div>
           </div>
-          <Link href="/media" class="btn-secondary inline-flex">{{ $t('Voir les photos de la famille Lambert') }}</Link>
+          <Link href="/media" class="btn-secondary inline-flex">{{ $t('Voir les photos de la famille') }}</Link>
         </div>
         <div v-else class="card p-5 sm:p-8">
           <MediaUploader @organize="openAlbumModal" />

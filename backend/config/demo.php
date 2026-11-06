@@ -8,9 +8,6 @@
 return [
     'enabled' => (bool) env('DEMO_MODE', false),
 
-    // Compte partagé dans lequel « Entrer dans la démo » connecte.
-    'user_email' => env('DEMO_USER_EMAIL', 'demo@memory-lane.fr'),
-
     // Instantané de la base remis en place chaque nuit (demo:reset).
     'snapshot' => storage_path('app/private/demo/snapshot.dump'),
 

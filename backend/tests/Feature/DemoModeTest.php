@@ -22,14 +22,23 @@ class DemoModeTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        config(['demo.enabled' => true, 'demo.user_email' => 'demo@memory-lane.fr']);
+        config(['demo.enabled' => true]);
         $this->visitor = User::factory()->create(['email' => 'demo@memory-lane.fr', 'role' => 'user']);
     }
 
-    public function test_entrer_dans_la_demo_connecte_le_compte_partage(): void
+    public function test_entrer_dans_la_demo_connecte_le_compte_partage_de_la_famille_choisie(): void
     {
-        $this->post('/demo/enter')->assertRedirect(route('dashboard'));
+        $this->post('/demo/enter', ['family' => 'fr'])->assertRedirect(route('dashboard'));
         $this->assertAuthenticatedAs($this->visitor);
+
+        // Une famille par langue : l'entrée anglaise mène à son propre visiteur.
+        $us = DemoBuilder::families()['us'] ?? null;
+        if ($us) {
+            auth()->logout();
+            $english = User::factory()->create(['email' => $us['accounts'][$us['visitor']]['email'], 'role' => 'user']);
+            $this->post('/demo/enter', ['family' => 'us'])->assertRedirect(route('dashboard'));
+            $this->assertAuthenticatedAs($english);
+        }
     }
 
     public function test_hors_demo_pas_d_entree_ni_de_blocage(): void
@@ -73,7 +82,7 @@ class DemoModeTest extends TestCase
     public function test_la_page_sait_qu_elle_est_en_demo(): void
     {
         $this->actingAs($this->visitor)->get('/dashboard')
-            ->assertInertia(fn ($page) => $page->where('demo', true));
+            ->assertInertia(fn ($page) => $page->where('demo.0.key', 'fr')->where('demo.0.button', 'Entrer dans la démo'));
     }
 
     public function test_construction_refusee_hors_base_de_demo(): void

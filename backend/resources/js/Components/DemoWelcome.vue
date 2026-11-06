@@ -6,7 +6,7 @@
       <div class="mx-auto w-14 h-14 rounded-2xl bg-brand-100 text-brand-800 flex items-center justify-center text-2xl" aria-hidden="true">✦</div>
       <h2 class="font-display text-2xl font-bold text-surface-900">{{ $t('Bienvenue dans MemoryLane') }}</h2>
       <p class="text-surface-600">
-        {{ $t('Vous visitez la famille Lambert, une famille imaginaire, avec son arbre, ses photos et ses souvenirs.') }}
+        {{ $t('Vous visitez « :family », une famille imaginaire, avec son arbre, ses photos et ses souvenirs.', { family: $page.props.circle?.current?.name ?? '' }) }}
         <strong class="text-surface-900">{{ $t('C’est votre première visite ?') }}</strong>
       </p>
       <div class="flex flex-col sm:flex-row gap-3 justify-center pt-1">
