@@ -83,6 +83,20 @@ class MemorialTest extends TestCase
         Notification::assertNothingSent();
     }
 
+    public function test_deces_connu_a_l_annee_seulement_pas_de_souvenir_le_jour_de_l_an(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2027-01-01 09:00', 'Europe/Paris'));
+        Notification::fake();
+        $brother = Person::factory()->create(['user_id' => $this->user->id, 'birth_date' => null, 'death_date' => '2020-01-01']);
+        $parent = Person::factory()->create(['user_id' => $this->user->id, 'birth_date' => null]);
+        $this->me->update(['father_id' => $parent->id]);
+        $brother->update(['father_id' => $parent->id]);
+
+        $this->artisan('memorylane:birthday-push')->assertSuccessful();
+
+        Notification::assertNothingSent();
+    }
+
     public function test_plusieurs_souvenirs_le_meme_jour(): void
     {
         $n = new MemorialsToday([
