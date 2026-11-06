@@ -77,8 +77,10 @@ class InvitationService
 
     /**
      * Cercle que rejoindra l'invité : le cercle d'amis commun à la fiche et
-     * à la personne qui invite ; sinon le foyer d'accueil si elle voit la
-     * famille ; sinon son cercle courant.
+     * à la personne qui invite ; sinon la famille de la fiche dont elle fait
+     * partie (plusieurs familles : jamais celle d'un autre), puis sa famille
+     * courante ; installation sans cercle famille : le foyer d'accueil ;
+     * sinon son cercle courant.
      */
     private function householdFor(User $inviter, Person $person): ?string
     {
@@ -91,7 +93,15 @@ class InvitationService
         }
 
         if ($inviter->canSeeFamilyDirectory()) {
-            return Household::welcome()?->id ?? $inviter->currentCircle()?->id;
+            $sharedFamilies = array_values(array_intersect(
+                $person->circles()->where('kind', Household::KIND_FAMILY)->pluck('households.id')->all(),
+                $inviter->familyCircleIds(),
+            ));
+
+            return $sharedFamilies[0]
+                ?? $inviter->currentFamilyCircle()?->id
+                ?? Household::welcome()?->id
+                ?? $inviter->currentCircle()?->id;
         }
 
         return $inviter->currentCircle()?->id;

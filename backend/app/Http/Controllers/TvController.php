@@ -447,7 +447,7 @@ class TvController extends Controller
 
     private function familyQuery(User $user)
     {
-        return Person::visibleTo($user)->where('in_family_directory', true);
+        return Person::inFamilyOf($user);
     }
 
     private function treeFamily(User $user, string $personId): array
@@ -476,10 +476,15 @@ class TvController extends Controller
         $paths = $user->person_id ? $this->genealogy->pathsFrom($user->person_id, 8) : [];
         // Qui a encore de la famille au-delà (flèches sur les cartes).
         $ids = collect([$focus])->concat($parents)->concat($children)->concat($siblings)->concat($spouses)->pluck('id');
-        $withChildren = Person::whereIn('father_id', $ids)->pluck('father_id')
-            ->concat(Person::whereIn('mother_id', $ids)->pluck('mother_id'))->flip();
+        // (parmi SA famille : pas de flèche vers des fiches qu'il ne voit pas)
+        $withChildren = $this->familyQuery($user)->whereIn('father_id', $ids)->pluck('father_id')
+            ->concat($this->familyQuery($user)->whereIn('mother_id', $ids)->pluck('mother_id'))->flip();
+        $parentIds = $this->familyQuery($user)->select('people.id')
+            ->whereIn('people.id', collect([$focus])->concat($parents)->concat($children)->concat($siblings)->concat($spouses)
+                ->flatMap(fn ($p) => [$p->father_id, $p->mother_id])->filter()->unique()->values())
+            ->pluck('people.id')->flip();
 
-        $node = function (Person $p) use ($paths, $user, $withChildren) {
+        $node = function (Person $p) use ($paths, $user, $withChildren, $parentIds) {
             $relation = $p->id === $user->person_id ? __('Vous')
                 : (isset($paths[$p->id]) ? GenealogyService::relationLabel($paths[$p->id], $p->gender) : null);
 
@@ -493,7 +498,7 @@ class TvController extends Controller
                 'gender' => $p->gender,
                 'deceased' => $p->death_date !== null,
                 'photos' => (int) $p->tv_photos,
-                'has_parents' => (bool) ($p->father_id || $p->mother_id),
+                'has_parents' => isset($parentIds[$p->father_id ?? '']) || isset($parentIds[$p->mother_id ?? '']),
                 'has_children' => isset($withChildren[$p->id]),
             ];
         };

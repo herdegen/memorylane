@@ -203,12 +203,46 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference
     {
         $this->circlesCache = null;
         $this->householdIdsCache = null;
+        $this->sharedDirectoryCache = null;
     }
 
     /** IDs des cercles d'amis du compte. */
     public function friendCircleIds(): array
     {
         return $this->circles()->where('kind', Household::KIND_FRIENDS)->pluck('id')->all();
+    }
+
+    /** IDs des cercles famille du compte. */
+    public function familyCircleIds(): array
+    {
+        return $this->circles()->where('kind', Household::KIND_FAMILY)->pluck('id')->all();
+    }
+
+    /**
+     * Cercle famille où entrent ses nouvelles fiches : le cercle courant
+     * s'il est familial, sinon son premier cercle famille.
+     */
+    public function currentFamilyCircle(): ?Household
+    {
+        $current = $this->currentCircle();
+        if ($current && ! $current->isFriends()) {
+            return $current;
+        }
+
+        return $this->circles()->firstWhere('kind', Household::KIND_FAMILY);
+    }
+
+    protected ?bool $sharedDirectoryCache = null;
+
+    /**
+     * Installation sans aucun cercle famille (une seule famille, d'avant le
+     * multi-familles) : le répertoire familial reste commun à tous. Dès qu'un
+     * cercle famille existe, une fiche de famille appartient à ses cercles
+     * famille et n'est visible que de leurs membres.
+     */
+    public function usesSharedFamilyDirectory(): bool
+    {
+        return $this->sharedDirectoryCache ??= ! Household::where('kind', Household::KIND_FAMILY)->exists();
     }
 
     /**

@@ -108,11 +108,7 @@ class FamilyTreeController extends Controller
      */
     private function familyQuery(Request $request)
     {
-        $user = $request->user();
-
-        return $user->canSeeFamilyDirectory()
-            ? Person::visibleTo($user)->where('in_family_directory', true)
-            : Person::whereRaw('1 = 0');
+        return Person::inFamilyOf($request->user());
     }
 
     private function buildNode(Person $person, array $spouseMap, array $childrenMap, array $facePositions = [], ?array $known = null): array

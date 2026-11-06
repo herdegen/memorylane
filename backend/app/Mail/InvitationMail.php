@@ -94,6 +94,13 @@ class InvitationMail extends Mailable
      * @return array<string, mixed>
      */
     /** Cercle d'amis visé par l'invitation, ou null (invitation famille). */
+    private function familyCircle(): ?\App\Models\Household
+    {
+        $circle = $this->invitation->household;
+
+        return $circle?->isFamily() ? $circle : null;
+    }
+
     private function friendsCircle(): ?\App\Models\Household
     {
         $circle = $this->invitation->household;
@@ -133,8 +140,9 @@ class InvitationMail extends Mailable
             'contactPhone' => $this->friendsCircle() ? null : config('mail.invitations.contact_phone'),
             'repliesToAuthor' => self::sentFromAdminGmail($invitation),
             'personalMessage' => $invitation->message,
-            'peopleCount' => self::roundDown(Person::count()),
-            'photoCount' => self::roundDown(Media::count()),
+            // Les chiffres de SA famille (plusieurs familles par installation).
+            'peopleCount' => self::roundDown($this->familyCircle()?->people()->count() ?? Person::count()),
+            'photoCount' => self::roundDown($this->familyCircle()?->photoCount() ?? Media::count()),
             'screenshots' => $screenshots,
             'appUrl' => config('app.url'),
             'appHost' => parse_url(config('app.url'), PHP_URL_HOST),

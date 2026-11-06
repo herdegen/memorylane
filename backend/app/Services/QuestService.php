@@ -367,7 +367,7 @@ class QuestService
             ->whereNotNull('person_id')
             ->pluck('person_id');
 
-        return Person::whereIn('id', $personIds)
+        return Person::visibleTo($user)->whereIn('people.id', $personIds)
             ->whereNull('address')
             ->pluck('id')
             ->map(fn ($id) => ['type' => QuestType::Address->value, 'subject_id' => $id, 'distance' => 1])

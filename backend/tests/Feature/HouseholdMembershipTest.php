@@ -73,6 +73,8 @@ class HouseholdMembershipTest extends TestCase
     public function test_le_responsable_gere_son_cercle_d_amis_pas_ceux_des_autres(): void
     {
         [$owner, $friend, $other] = User::factory()->count(3)->create()->all();
+        // Ils se connaissent déjà (on n'ajoute à un cercle qu'un compte connu).
+        $this->household([$owner, $friend, $other], 'friends');
         $this->actingAs($owner)->postJson('/households', ['name' => 'Les potes', 'kind' => 'friends'])->assertCreated();
         $circle = Household::firstWhere('name', 'Les potes');
 
@@ -119,6 +121,13 @@ class HouseholdMembershipTest extends TestCase
         $member = User::factory()->create();
         $target = User::factory()->create();
         $household = $this->household([$member]); // famille : ouvert par défaut
+        $this->household([$member, $target], 'friends'); // ils se connaissent
+
+        // Un inconnu (aucun cercle en commun) ne s'ajoute pas : invitation par e-mail.
+        $stranger = User::factory()->create();
+        $this->actingAs($member)
+            ->postJson("/households/{$household->id}/members", ['user_id' => $stranger->id])
+            ->assertNotFound();
 
         $this->actingAs($member)
             ->postJson("/households/{$household->id}/members", ['user_id' => $target->id])

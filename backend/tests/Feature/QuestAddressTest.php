@@ -122,7 +122,8 @@ class QuestAddressTest extends TestCase
             'payload' => ['value' => '12 rue des Lilas, 93100 Montreuil'],
         ]);
 
-        $response->assertForbidden();
+        // Hors de la famille : la fiche n'existe pas pour lui.
+        $response->assertNotFound();
         $this->assertNull($this->memberPerson->fresh()->address);
     }
 

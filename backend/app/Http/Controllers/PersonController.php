@@ -922,6 +922,11 @@ class PersonController extends Controller
             'parent_type' => 'required|in:father,mother',
         ]);
 
+        // Un parent qu'on ne voit pas (fiche commune, l'autre famille l'a
+        // relié) ne se retire pas d'ici.
+        $parentId = $person->{$validated['parent_type'].'_id'};
+        abort_if($parentId && ! Person::visibleTo($request->user())->whereKey($parentId)->exists(), 403);
+
         $person->update([
             $validated['parent_type'].'_id' => null,
         ]);

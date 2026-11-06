@@ -37,8 +37,14 @@ class AlbumParticipantController extends Controller
             'person_ids.*' => ['uuid', new VisiblePerson],
         ]);
 
+        // Les participants qu'il ne voit pas (ajoutés par quelqu'un d'une
+        // autre famille ou d'un autre cercle) restent : il ne gère que les siens.
+        $hidden = $album->participants()
+            ->whereNotIn('people.id', \App\Models\Person::visibleTo($request->user())->select('people.id'))
+            ->pluck('people.id');
         $album->participants()->sync(collect($validated['person_ids'])
             ->mapWithKeys(fn ($id) => [$id => ['added_by' => $request->user()->id]])
+            ->union($hidden->mapWithKeys(fn ($id) => [$id => []]))
             ->all());
 
         $stats = $this->participants->classifyAlbum($album);

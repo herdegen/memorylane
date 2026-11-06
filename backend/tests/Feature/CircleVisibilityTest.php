@@ -18,7 +18,7 @@ use Tests\TestCase;
  *  - $friend   : membre du cercle d'amis A uniquement
  *  - $both     : membre de F et de A
  *  - $stranger : membre du cercle d'amis B uniquement
- *  - $loner    : aucun cercle (installation familiale → voit la famille)
+ *  - $loner    : aucun cercle (hors de toute famille → ne voit pas la famille)
  * Fiches : $famP (répertoire familial), $friendP (cercle A), $strangerP (cercle B).
  */
 class CircleVisibilityTest extends TestCase
@@ -73,7 +73,8 @@ class CircleVisibilityTest extends TestCase
             'friend' => [false, true, false],
             'both' => [true, true, false],
             'stranger' => [false, false, true],
-            'loner' => [true, false, false],
+            // Plusieurs familles possibles : sans cercle, on n'est d'aucune famille.
+            'loner' => [false, false, false],
             'admin' => [true, true, true],
         ];
 
@@ -234,7 +235,8 @@ class CircleVisibilityTest extends TestCase
 
         $p = Person::where('name', 'Cousin Germain')->firstOrFail();
         $this->assertTrue($p->in_family_directory);
-        $this->assertSame(0, $p->circles()->count());
+        // Rangée dans la famille de son auteur (multi-familles).
+        $this->assertSame([$this->F->id], $p->circles()->pluck('households.id')->all());
     }
 
     public function test_recherche_n_expose_pas_les_autres_cercles(): void

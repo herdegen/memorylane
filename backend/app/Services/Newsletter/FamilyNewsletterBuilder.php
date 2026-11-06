@@ -267,7 +267,7 @@ class FamilyNewsletterBuilder
             ->whereIn('media_id', $this->familyMedia()->select('media.id'))
             ->with('person')
             ->get();
-        $newPeople = Person::where('in_family_directory', true)->where('created_at', '>=', $this->since)->count();
+        $newPeople = $this->familyPeople()->where('people.created_at', '>=', $this->since)->count();
         // Seulement ce que le destinataire peut voir / ses proches ont fait.
         $members = DB::table('household_user')
             ->whereIn('household_id', $this->user->householdIds())
@@ -427,8 +427,10 @@ class FamilyNewsletterBuilder
 
         $relations = $this->closeRelatives($me);
         $recent = $this->recentRefs('timeline', self::NUDGE_COOLDOWN);
-        $people = Person::whereIn('id', array_keys($relations))
-            ->where(fn ($q) => $q->where('in_family_directory', true)->orWhere('id', $me->id))
+        // Proches au sens de l'arbre, mais seulement ceux qu'il voit (une
+        // belle-famille peut mener vers une autre famille de l'installation).
+        $people = Person::visibleTo($this->user)->whereIn('people.id', array_keys($relations))
+            ->where(fn ($q) => $q->where('in_family_directory', true)->orWhere('people.id', $me->id))
             ->whereNotIn('id', array_filter([...$recent, $exclude]))
             ->withCount('lifeEvents')
             ->get()
@@ -658,13 +660,19 @@ class FamilyNewsletterBuilder
         return [
             'key' => 'numbers',
             'photos' => $photos,
-            'people' => Person::where('in_family_directory', true)->count(),
-            'with_photos' => Person::where('in_family_directory', true)->whereNotNull('portrait_path')->count(),
+            'people' => $this->familyPeople()->count(),
+            'with_photos' => $this->familyPeople()->whereNotNull('portrait_path')->count(),
             'oldest' => $this->familyMedia()->where('type', 'photo')->whereNotNull('taken_at')->min('taken_at'),
         ];
     }
 
     // ── Outils ─────────────────────────────────────────────────────────
+
+    /** Fiches de SA famille (ou de ses familles) : les chiffres de la lettre. */
+    private function familyPeople()
+    {
+        return Person::visibleTo($this->user)->where('people.in_family_directory', true);
+    }
 
     /** Médias du monde famille que le destinataire peut voir (hors partages réservés aux amis). */
     private function familyMedia()

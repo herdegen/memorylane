@@ -9,9 +9,10 @@ use Illuminate\Http\Request;
 
 /**
  * Cercles d'une fiche : y ajouter une fiche qui existe déjà ailleurs (la
- * femme d'un ami dans la bande, un ami dans la famille), ou l'en retirer.
- * Ajouter : quelqu'un qui VOIT la fiche (liaison {person}) et qui peut faire
- * entrer des gens dans le cercle visé (Household::allowsInvitesFrom).
+ * femme d'un ami dans la bande, un ami dans la famille, une fiche commune à
+ * deux familles), ou l'en retirer.
+ * Ajouter : quelqu'un qui VOIT la fiche (liaison {person}), membre du cercle
+ * visé et qui peut y faire entrer des gens (Household::allowsInvitesFrom).
  * Retirer : l'admin, ou celui qui l'a ajoutée (cercle d'amis).
  */
 class PersonCircleController extends Controller
@@ -29,10 +30,9 @@ class PersonCircleController extends Controller
         $household = Household::findOrFail($validated['household_id']);
         abort_unless($this->canAddTo($user, $household, $person), 403, __('Vous ne pouvez pas ajouter cette fiche à ce cercle.'));
 
-        if ($household->isFriends()) {
-            $household->people()->syncWithoutDetaching([$person->id => ['added_by' => $user->id]]);
-        } else {
-            // La famille est un répertoire unique : la fiche y entre pour tous.
+        $household->people()->syncWithoutDetaching([$person->id => ['added_by' => $user->id]]);
+        // Une fiche entrée dans une famille fait partie du répertoire familial.
+        if ($household->isFamily() && ! $person->in_family_directory) {
             $person->forceFill(['in_family_directory' => true])->save();
         }
 
@@ -50,7 +50,12 @@ class PersonCircleController extends Controller
             $household->people()->detach($person->id);
         } else {
             abort_unless($user->isAdmin(), 403, __('Seul un administrateur retire une fiche de la famille.'));
-            $person->forceFill(['in_family_directory' => false])->save();
+            abort_unless($household->people()->whereKey($person->id)->exists(), 404);
+            $household->people()->detach($person->id);
+            // Plus dans aucune famille : la fiche quitte le répertoire familial.
+            if (! $person->circles()->where('kind', Household::KIND_FAMILY)->exists()) {
+                $person->forceFill(['in_family_directory' => false])->save();
+            }
         }
 
         return response()->json($this->state($user, $person->fresh()));
@@ -62,9 +67,12 @@ class PersonCircleController extends Controller
             return false;
         }
 
-        return $household->isFriends()
-            ? ! $household->people()->whereKey($person->id)->exists()
-            : ! $person->in_family_directory && $user->canSeeFamilyDirectory();
+        // Seulement vers un cercle dont on est membre (l'admin : tous).
+        if (! $user->isAdmin() && ! in_array($household->id, $user->householdIds(), true)) {
+            return false;
+        }
+
+        return ! $household->people()->whereKey($person->id)->exists();
     }
 
     /**
@@ -79,26 +87,15 @@ class PersonCircleController extends Controller
         $pivots = $person->circles()->get()->keyBy('id');
 
         $in = [];
-        if ($person->in_family_directory) {
-            $in[] = ['id' => $mine->firstWhere('kind', Household::KIND_FAMILY)?->id, 'name' => __('Famille'), 'kind' => Household::KIND_FAMILY, 'can_remove' => $user->isAdmin()];
-        }
-        foreach ($mine->where('kind', Household::KIND_FRIENDS) as $h) {
-            if ($p = $pivots->get($h->id)) {
-                $in[] = ['id' => $h->id, 'name' => $h->name, 'kind' => $h->kind, 'can_remove' => $h->isManagedBy($user) || $p->pivot->added_by === $user->id];
-            }
-        }
-
         $canAdd = [];
         foreach ($mine as $h) {
-            if ($h->isFriends() && $this->canAddTo($user, $h, $person)) {
+            if ($p = $pivots->get($h->id)) {
+                $in[] = ['id' => $h->id, 'name' => $h->name, 'kind' => $h->kind, 'can_remove' => $h->isFamily()
+                    ? $user->isAdmin()
+                    : $h->isManagedBy($user) || $p->pivot->added_by === $user->id];
+            } elseif ($this->canAddTo($user, $h, $person)) {
                 $canAdd[] = ['id' => $h->id, 'name' => $h->name, 'kind' => $h->kind];
             }
-        }
-        // Famille : une seule entrée, via un cercle familial qui l'autorise.
-        $familyGate = Household::where('kind', Household::KIND_FAMILY)->get()
-            ->first(fn ($h) => $this->canAddTo($user, $h, $person));
-        if ($familyGate) {
-            $canAdd[] = ['id' => $familyGate->id, 'name' => __('Famille'), 'kind' => Household::KIND_FAMILY];
         }
 
         return ['in' => $in, 'can_add' => $canAdd];

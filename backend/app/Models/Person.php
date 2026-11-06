@@ -91,6 +91,26 @@ class Person extends Model
             \App\Jobs\GeocodePendingPlaces::enqueueChanged($person, ['birth_place', 'death_place']);
         });
 
+        // Une nouvelle fiche de famille entre dans le cercle famille de qui la
+        // crée (son cercle courant), si on ne l'a pas déjà rangée ailleurs ;
+        // auteur hors de toute famille (admin) et une seule famille sur
+        // l'installation : dans celle-ci. (Non renseigné = valeur par défaut
+        // de la colonne : fiche de famille.)
+        static::created(function ($person) {
+            if ($person->in_family_directory === false) {
+                return;
+            }
+            $by = auth()->user() ?? $person->user;
+            $circle = $by?->currentFamilyCircle();
+            if (! $circle) {
+                $families = Household::where('kind', Household::KIND_FAMILY)->limit(2)->get(['id']);
+                $circle = $families->count() === 1 ? $families->first() : null;
+            }
+            if ($circle && ! $person->circles()->where('kind', Household::KIND_FAMILY)->exists()) {
+                $person->circles()->syncWithoutDetaching([$circle->id => ['added_by' => $by?->id]]);
+            }
+        });
+
         // Nouvelle photo de profil → portrait stocké à refaire.
         static::saved(function ($person) {
             if ($person->wasChanged('avatar_media_id') || ($person->wasRecentlyCreated && $person->avatar_media_id)) {
@@ -273,8 +293,10 @@ class Person extends Model
 
     /**
      * Fiches que le compte peut voir — POINT UNIQUE de la visibilité :
-     * - répertoire familial : ouvert à qui voit la famille (cercle familial,
-     *   ou installation familiale sans cercle) — comportement historique ;
+     * - fiche de famille : membres des cercles famille auxquels elle est
+     *   rattachée (plusieurs familles sur une même installation, chacune
+     *   chez elle ; une fiche commune est rattachée à plusieurs familles) ;
+     *   sans aucun cercle famille dans l'installation, répertoire commun ;
      * - fiche d'un cercle d'amis : membres de ce cercle seulement ;
      * - toujours : sa propre fiche, celles qu'on a créées, la fiche invitée.
      * L'admin voit tout.
@@ -289,11 +311,18 @@ class Person extends Model
         }
 
         $friendCircles = $user->friendCircleIds();
-        $familyOpen = $user->canSeeFamilyDirectory();
+        $familyCircles = $user->familyCircleIds();
+        // Installation d'une seule famille sans cercle famille : répertoire
+        // commun (comportement d'avant le multi-familles).
+        $sharedDirectory = $user->canSeeFamilyDirectory() && $user->usesSharedFamilyDirectory();
 
-        return $query->where(function ($q) use ($user, $friendCircles, $familyOpen) {
-            if ($familyOpen) {
+        return $query->where(function ($q) use ($user, $friendCircles, $familyCircles, $sharedDirectory) {
+            if ($sharedDirectory) {
                 $q->orWhere('people.in_family_directory', true);
+            } elseif ($familyCircles !== []) {
+                // Multi-familles : les fiches de famille de SES cercles famille.
+                $q->orWhere(fn ($f) => $f->where('people.in_family_directory', true)
+                    ->whereHas('circles', fn ($c) => $c->whereIn('households.id', $familyCircles)));
             }
             if ($friendCircles !== []) {
                 $q->orWhereHas('circles', fn ($c) => $c->whereIn('households.id', $friendCircles));
@@ -303,6 +332,23 @@ class Person extends Model
                 $q->orWhere('people.id', $own);
             }
         });
+    }
+
+    /**
+     * Fiches de SA famille courante (arbre, TV) : le répertoire familial qu'il
+     * voit, réduit à son cercle famille courant quand l'installation en
+     * compte (plusieurs familles : jamais deux arbres mélangés). Vide s'il ne
+     * voit pas la famille.
+     */
+    public function scopeInFamilyOf($query, User $user)
+    {
+        if (! $user->canSeeFamilyDirectory()) {
+            return $query->whereRaw('1 = 0');
+        }
+        $query->visibleTo($user)->where('people.in_family_directory', true);
+        $family = $user->usesSharedFamilyDirectory() ? null : $user->currentFamilyCircle();
+
+        return $family ? $query->whereHas('circles', fn ($c) => $c->whereKey($family->id)) : $query;
     }
 
     /**
@@ -355,9 +401,17 @@ class Person extends Model
             });
         }
 
-        return $user->canSeeFamilyDirectory()
-            ? $query->where('people.in_family_directory', true)
-            : $query;
+        if (! $user->canSeeFamilyDirectory()) {
+            return $query;
+        }
+        $query->where('people.in_family_directory', true);
+
+        // Plusieurs familles : celle du cercle courant seulement.
+        if ($circle && ! $user->usesSharedFamilyDirectory()) {
+            $query->whereHas('circles', fn ($c) => $c->whereKey($circle->id));
+        }
+
+        return $query;
     }
 
     /**

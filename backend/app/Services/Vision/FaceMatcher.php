@@ -54,6 +54,11 @@ class FaceMatcher
             return null;
         }
 
+        // Tâche de fond (sans visiteur) : on associe pour le propriétaire de
+        // la photo, parmi les fiches qu'IL voit — jamais celle d'une autre
+        // famille de l'installation.
+        $viewer ??= \App\Models\User::find($ownerId);
+
         // Une personne ne peut pas être auto-associée deux fois sur le même
         // média : hors montage/reflet (rares, laissés à l'association manuelle),
         // une personne n'apparaît qu'une fois par photo. On écarte donc les

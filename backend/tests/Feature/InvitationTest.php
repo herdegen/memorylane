@@ -44,6 +44,8 @@ class InvitationTest extends TestCase
         ]);
         $this->family = Household::factory()->create(['created_by' => $this->admin->id, 'name' => 'Famille']);
         $this->family->makeWelcome();
+        // Le membre fait partie de la famille (il en voit les fiches).
+        $this->family->members()->attach($this->member->id);
     }
 
     private function invite(?User $by = null, array $options = []): Invitation
@@ -246,6 +248,7 @@ class InvitationTest extends TestCase
             ->assertForbidden();
 
         $tablet = User::factory()->create(['simple_mode' => true]);
+        $this->family->members()->attach($tablet->id);
         $this->actingAs($tablet)
             ->postJson("/people/{$this->person->id}/invite", ['email' => 'elodie@example.fr'])
             ->assertForbidden();

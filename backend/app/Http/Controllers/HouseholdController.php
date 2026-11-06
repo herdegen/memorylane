@@ -192,6 +192,10 @@ class HouseholdController extends Controller
         ]);
 
         $invitee = User::findOrFail($validated['user_id']);
+        // Seulement un compte qu'on connaît déjà (un cercle en commun), comme
+        // la recherche de candidats ; l'admin : tous.
+        $viewer = $request->user();
+        abort_unless($viewer->isAdmin() || User::visibleTo($viewer)->whereKey($invitee->id)->exists(), 404);
         $alreadyMember = $household->isMember($invitee);
 
         $this->addMember($household, $invitee, $request->user());
