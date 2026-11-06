@@ -101,6 +101,10 @@ class HandleInertiaRequests extends Middleware
             'demo' => config('demo.enabled')
                 ? collect(\App\Services\Demo\DemoBuilder::families())->map(fn ($f, $key) => ['key' => $key] + ($f['entry'] ?? []))->values()
                 : false,
+            // Démo : l'accueil de la première visite (histoire de la famille, choses à essayer).
+            'demoWelcome' => fn () => config('demo.enabled') && $request->user()
+                ? \Illuminate\Support\Facades\Cache::remember('demo-welcome:'.$request->user()->id, 600, fn () => \App\Services\Demo\DemoBuilder::welcomeFor($request->user()))
+                : null,
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),

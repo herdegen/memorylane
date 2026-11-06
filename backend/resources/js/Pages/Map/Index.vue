@@ -58,53 +58,6 @@
           </div>
         </div>
 
-        <!-- Filters -->
-        <div class="mb-4">
-          <h3 class="font-semibold mb-2">{{ $t('Filtres') }}</h3>
-
-          <!-- Type filter -->
-          <select
-            v-model="filters.type"
-            @change="applyFilters"
-            class="w-full px-3 py-2 border border-surface-300 rounded-lg mb-3"
-          >
-            <option value="">{{ $t('Tous les types') }}</option>
-            <option value="photo">{{ $t('Photos') }}</option>
-            <option value="video">{{ $t('Vidéos') }}</option>
-            <option value="document">{{ $t('Documents') }}</option>
-          </select>
-
-          <!-- Search by name -->
-          <input
-            v-model="filters.search"
-            @input="debounceFilters"
-            type="text"
-            :placeholder="$t('Rechercher par nom...')"
-            class="w-full px-3 py-2 border border-surface-300 rounded-lg mb-3"
-          />
-
-          <!-- Tag filter -->
-          <div v-if="availableTags.length > 0" class="mb-3">
-            <label class="block text-sm font-medium text-surface-700 mb-2">{{ $t('Tags') }}</label>
-            <div class="flex flex-wrap gap-2">
-              <button
-                v-for="tag in availableTags"
-                :key="tag.id"
-                @click="toggleTag(tag.id)"
-                :class="[
-                  'px-3 py-1 rounded-full text-sm font-medium transition-colors',
-                  selectedTags.includes(tag.id)
-                    ? 'text-white'
-                    : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
-                ]"
-                :style="selectedTags.includes(tag.id) ? { backgroundColor: tag.color || '#0D9488' } : {}"
-              >
-                {{ tag.name }}
-              </button>
-            </div>
-          </div>
-        </div>
-
         <!-- Couches : « Où vit la famille » / « Où vivent mes amis » -->
         <div class="mb-4">
           <h3 class="font-semibold mb-2">{{ $t('Couches') }}</h3>
@@ -164,6 +117,69 @@
               {{ $t('Naissances, mariages, lieux de vie et décès : chacun change de lieu à mi-chemin entre deux dates connues. Depuis 1990, mois par mois, avec les voyages en photos.') }}
             </p>
           </template>
+        </div>
+
+        <!-- Filters -->
+        <div class="mb-4">
+          <h3 class="font-semibold mb-2">{{ $t('Filtres') }}</h3>
+
+          <!-- Type filter -->
+          <select
+            v-model="filters.type"
+            @change="applyFilters"
+            class="w-full px-3 py-2 border border-surface-300 rounded-lg mb-3"
+          >
+            <option value="">{{ $t('Tous les types') }}</option>
+            <option value="photo">{{ $t('Photos') }}</option>
+            <option value="video">{{ $t('Vidéos') }}</option>
+            <option value="document">{{ $t('Documents') }}</option>
+          </select>
+
+          <!-- Search by name -->
+          <input
+            v-model="filters.search"
+            @input="debounceFilters"
+            type="text"
+            :placeholder="$t('Rechercher par nom...')"
+            class="w-full px-3 py-2 border border-surface-300 rounded-lg mb-3"
+          />
+
+          <!-- Tag filter : les plus utilisés (et ceux choisis) ; les autres
+               derrière « Tous les tags », avec une recherche. -->
+          <div v-if="availableTags.length > 0" class="mb-3">
+            <label class="block text-sm font-medium text-surface-700 mb-2">{{ $t('Tags') }}</label>
+            <input
+              v-if="showAllTags && availableTags.length > TOP_TAGS"
+              v-model="tagQuery"
+              type="search"
+              :placeholder="$t('Filtrer les tags…')"
+              class="w-full px-3 py-1.5 border border-surface-300 rounded-lg mb-2 text-sm"
+            />
+            <div class="flex flex-wrap gap-2" :class="{ 'max-h-56 overflow-y-auto': showAllTags }">
+              <button
+                v-for="tag in shownTags"
+                :key="tag.id"
+                @click="toggleTag(tag.id)"
+                :class="[
+                  'px-3 py-1 rounded-full text-sm font-medium transition-colors',
+                  selectedTags.includes(tag.id)
+                    ? 'text-white'
+                    : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
+                ]"
+                :style="selectedTags.includes(tag.id) ? { backgroundColor: tag.color || '#0D9488' } : {}"
+              >
+                {{ tag.name }}
+              </button>
+              <button
+                v-if="availableTags.length > TOP_TAGS"
+                type="button"
+                class="px-3 py-1 rounded-full text-sm font-medium text-brand-700 hover:bg-brand-50"
+                @click="showAllTags = !showAllTags; tagQuery = ''"
+              >
+                {{ showAllTags ? $t('Moins de tags') : tc('Tous les tags (:count)|Tous les tags (:count)', availableTags.length, { count: availableTags.length }) }}
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Media count -->
@@ -333,6 +349,20 @@ const geolocatedMedia = ref([]);
 const geolocatedAlbums = ref([]);
 const availableTags = ref([]);
 const selectedTags = ref(props.filters.tags || []);
+// Tags : les plus utilisés d'abord (avec ceux choisis), le reste à la demande.
+const TOP_TAGS = 8;
+const showAllTags = ref(false);
+const tagQuery = ref('');
+const fold = (v) => String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const shownTags = computed(() => {
+  if (showAllTags.value) {
+    const q = fold(tagQuery.value.trim());
+    return q ? availableTags.value.filter((tag) => fold(tag.name).includes(q)) : availableTags.value;
+  }
+  const top = [...availableTags.value].sort((a, b) => (b.media_count ?? 0) - (a.media_count ?? 0)).slice(0, TOP_TAGS);
+  const chosen = availableTags.value.filter((tag) => selectedTags.value.includes(tag.id) && !top.includes(tag));
+  return [...chosen, ...top];
+});
 
 // Search
 const searchQuery = ref('');

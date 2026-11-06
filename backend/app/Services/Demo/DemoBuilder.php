@@ -88,6 +88,38 @@ class DemoBuilder
         }
     }
 
+    /**
+     * Accueil de la première visite pour un compte de la démo : l'histoire de
+     * sa famille et quelques choses à essayer, liens résolus (« {person:clé} »,
+     * « {person:shared:clé} », « {album:clé} »). Null hors démo.
+     *
+     * @return array{family: string, story: string, try: list<array{icon: string, title: string, text: string, link: string}>}|null
+     */
+    public static function welcomeFor(User $user): ?array
+    {
+        foreach (self::families() as $fam => $data) {
+            if (! isset($data['welcome']) || ! collect($data['accounts'])->contains('email', $user->email)) {
+                continue;
+            }
+            $resolve = fn (string $link) => preg_replace_callback('/\{(person|album):([a-z0-9_:]+)\}/', function ($m) use ($fam, $data) {
+                if ($m[1] === 'album') {
+                    return (string) Album::where('name', $data['albums'][$m[2]]['name'] ?? '')->value('id');
+                }
+                $ref = str_starts_with($m[2], 'shared:') ? "demo:{$m[2]}" : "demo:{$fam}:{$m[2]}";
+
+                return (string) Person::where('gedcom_id', $ref)->value('id');
+            }, $link);
+
+            return [
+                'family' => $fam,
+                'story' => $data['welcome']['story'],
+                'try' => array_map(fn ($item) => ['link' => $resolve($item['link'])] + $item, $data['welcome']['try']),
+            ];
+        }
+
+        return null;
+    }
+
     /** @return array{admin_email: string, admin_password: string, families: array<string, array{visitor: string, people: int, photos: int}>} */
     public function build(?callable $progress = null): array
     {
@@ -169,6 +201,7 @@ class DemoBuilder
             $this->events($fam, $data['events'], $data['places'], $owner);
 
             $friendCircles = $this->friends($fam, $data);
+            $this->addresses($fam, $data);
             foreach ($data['accounts'] as $key => $account) {
                 $this->users["{$fam}:{$key}"]->forceFill(['current_household_id' => $circle->id])->save();
             }
@@ -262,6 +295,24 @@ class DemoBuilder
                     'date_precision' => $precision,
                 ]);
             }
+        }
+    }
+
+    /**
+     * Adresses actuelles (une ville, un quartier) : « Où vit la famille » et
+     * « Où vivent mes amis », et le point d'arrivée de « Dans le temps ».
+     * Coordonnées connues : enregistrement sans géocodage.
+     */
+    private function addresses(string $fam, array $data): void
+    {
+        foreach ($data['addresses'] ?? [] as $key => $place) {
+            [$lat, $lng] = $data['places'][$place];
+            $this->person($fam, $key)->forceFill([
+                'address' => $place,
+                'address_city' => trim(explode(',', $place)[0]),
+                'address_latitude' => $lat,
+                'address_longitude' => $lng,
+            ])->saveQuietly();
         }
     }
 

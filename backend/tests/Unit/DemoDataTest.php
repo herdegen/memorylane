@@ -118,6 +118,13 @@ class DemoDataTest extends TestCase
         foreach ($d['accounts'] as $a) {
             $person($a['person']);
         }
+        foreach ($d['addresses'] ?? [] as $k => $p) {
+            $person($k);
+            $place($p);
+            if (isset($people[$k][5])) {
+                $err[] = "adresse d'une personne décédée : {$k}";
+            }
+        }
         isset($d['accounts'][$d['visitor'] ?? '']) || $err[] = 'visiteur sans compte';
         foreach ($d['albums'] as $k => $a) {
             isset($d['accounts'][$a['owner']]) || $err[] = "album {$k} : propriétaire inconnu";

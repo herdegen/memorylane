@@ -106,6 +106,34 @@ return [
         ['antoine', 'ines', 'spouse', '2016-09-10', 'Marseille, France', null],
     ],
 
+    // Où chacun habite aujourd'hui (famille vivante + tous les amis) : clé => lieu.
+    'addresses' => [
+        'jean' => 'Nantes, France',
+        'francoise' => 'Nantes, France',
+        'sophie' => 'Nantes, France',
+        'thomas' => 'Nantes, France',
+        'lucas' => 'Nantes, France',
+        'emma' => 'Nantes, France',
+        'michel' => 'Bordeaux, France',
+        'catherine' => 'Bordeaux, France',
+        'antoine' => 'Bordeaux, France',
+        'ines' => 'Bordeaux, France',
+        'jade' => 'Bordeaux, France',
+        'annie' => 'Tours, France',
+        'patrick' => 'Tours, France',
+        'lea' => 'Lyon, France',
+        'herve' => 'Rennes, France',
+        'nicolas' => 'Lille, France',
+        'julie' => 'Lille, France',
+        'hugo' => 'Lille, France',
+        'chloe' => 'Lille, France',
+        'camille' => 'Paris, France',
+        // Les copains de fac
+        'mathilde' => 'Toulouse, France',
+        'karim' => 'Marseille, France',
+        'paul' => 'Paris, France',
+    ],
+
     // [qui, type, titre, date, lieu, fin, description]
     'events' => [
         ['joseph_arnaud', 'job', 'Marchand drapier, comme son père', '1858', 'Barcelonnette, France', null, null],
@@ -151,6 +179,17 @@ return [
                 'karim' => ['Karim', 'Haddad', 'M', '1989-11-03', 'Marseille, France'],
                 'paul' => ['Paul', 'Lefèvre', 'M', '1991-05-27', 'Lille, France'],
             ],
+        ],
+    ],
+
+    // Première visite : l'histoire de la famille et quelques choses à essayer.
+    'welcome' => [
+        'story' => 'Les Lambert, de Brest à Nantes et Lyon : un gardien de phare, une professeure de dessin, un médecin de famille… et un ancêtre de Barcelonnette dont le frère a fait souche au Mexique. Vous êtes Camille, journaliste à Paris.',
+        'try' => [
+            ['icon' => '⏳', 'title' => 'La famille dans le temps', 'text' => 'Regardez les Lambert se déplacer sur la carte, génération après génération.', 'link' => '/map?temps=1&proches=moi'],
+            ['icon' => '🔗', 'title' => 'Votre lien avec Jean-Baptiste Arnaud', 'text' => 'L’ancêtre de Barcelonnette que vous partagez avec une famille californienne.', 'link' => '/family-tree?kinship={person:shared:jb_arnaud}'],
+            ['icon' => '🎞️', 'title' => 'La vie de Joseph Lambert', 'text' => 'Marin pêcheur à Quimper, puis gardien de phare à Brest.', 'link' => '/people/{person:joseph}'],
+            ['icon' => '💍', 'title' => 'Le mariage de Sophie et Thomas', 'text' => 'Chambord, juin 2004.', 'link' => '/albums/{album:mariage}'],
         ],
     ],
 
