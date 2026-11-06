@@ -89,6 +89,16 @@ let lastHeat = 0;
 let destroyed = false;
 let load = 0;
 
+const km = (a, b) => {
+  const r = Math.PI / 180;
+  const h = Math.sin(((b[0] - a[0]) * r) / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(((b[1] - a[1]) * r) / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(h));
+};
+const median = (values) => {
+  const v = [...values].sort((x, y) => x - y);
+  return v.length ? v[Math.floor(v.length / 2)] : 0;
+};
+
 const numberFormat = new Intl.NumberFormat(intlLocale());
 const yearOnly = (y) => timeLabelParts(y, intlLocale(), false)[0].value;
 const yearLabel = computed(() => timeLabelParts(year.value, intlLocale(), trips.value && !!scale?.monthly(year.value)).map((p) => p.value).join(''));
@@ -134,10 +144,14 @@ async function reload() {
   await nextTick();
   focusInitial();
 
-  // Cadrage sur les lieux de la famille, entre l'en-tête et le panneau
-  // (en proportion de l'écran : les TV n'ont pas toutes la même taille).
-  const bounds = dataBounds(tracks);
-  if (bounds) showAll(map, [bounds[0], bounds[1]], { top: 0.18, bottom: 0.46, maxZoom: 7, animate: false });
+  // Cadrage sur le cœur de la famille (lieux à moins de 1 500 km de son
+  // centre), entre l'en-tête et le panneau, en proportion de l'écran ; toute
+  // l'étendue seulement si la famille est vraiment dispersée.
+  const points = tracks.flatMap((t) => t.filter((s) => !s.trip).map((s) => [Number(s.lat), Number(s.lng)]));
+  const middle = [median(points.map((p) => p[0])), median(points.map((p) => p[1]))];
+  const core = points.filter((p) => km(p, middle) <= 1500);
+  const frame = core.length >= points.length * 0.7 ? core : (dataBounds(tracks) ?? points);
+  if (frame.length) showAll(map, frame, { top: 0.18, bottom: 0.46, maxZoom: 7, animate: false });
   seek(0);
   render();
   setTimeout(() => { if (mine === load && state.value === 'ready') play(); }, 1200);
