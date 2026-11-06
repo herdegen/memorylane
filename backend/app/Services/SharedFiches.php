@@ -443,10 +443,17 @@ class SharedFiches
      */
     public function newsFor(User $user, Carbon $since, ?array $sharedIds = null): Builder
     {
-        $members = DB::table('household_user')->whereIn('household_id', $user->familyCircleIds())->select('user_id');
+        $mine = $user->familyCircleIds();
+        $members = DB::table('household_user')->whereIn('household_id', $mine)->select('user_id');
 
         return PersonChange::query()
             ->whereIn('person_id', $sharedIds ?? $this->sharedIdsFor($user))
+            // Seulement depuis que la fiche est dans ma famille (pas l'histoire
+            // de l'autre famille d'avant le partage).
+            ->whereExists(fn ($q) => $q->from('household_person as hp')
+                ->whereColumn('hp.person_id', 'person_changes.person_id')
+                ->whereIn('hp.household_id', $mine)
+                ->whereColumn('hp.created_at', '<=', 'person_changes.created_at'))
             ->whereIn('action', ['updated', 'spouse_added', 'spouse_removed'])
             ->whereNull('proposal_id')
             ->whereNotNull('user_id')

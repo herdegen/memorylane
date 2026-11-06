@@ -300,6 +300,19 @@ class SharedPeopleTest extends TestCase
         $this->assertNull(app(SharedFiches::class)->counts($solo));
     }
 
+    public function test_l_histoire_d_avant_le_partage_n_est_pas_une_nouveaute(): void
+    {
+        DB::table('household_person')->where('person_id', $this->p['marthe']->id)->where('household_id', $this->A->id)
+            ->update(['created_at' => now()->subDay()]);
+        PersonChange::forceCreate(['person_id' => $this->p['marthe']->id, 'user_id' => $this->bea->id, 'action' => 'updated',
+            'diff' => ['birth_place' => [null, 'Metz']], 'created_at' => now()->subDays(3)]);
+        $this->assertSame(0, app(SharedFiches::class)->newsFor($this->alice, now()->subDays(30))->count());
+
+        PersonChange::forceCreate(['person_id' => $this->p['marthe']->id, 'user_id' => $this->bea->id, 'action' => 'updated',
+            'diff' => ['notes' => [null, 'Couturière']], 'created_at' => now()]);
+        $this->assertSame(1, app(SharedFiches::class)->newsFor($this->alice, now()->subDays(30))->count());
+    }
+
     public function test_la_fiche_dit_qu_elle_est_commune(): void
     {
         $this->actingAs($this->bea)->get("/people/{$this->p['marthe']->id}")->assertOk()
