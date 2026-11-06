@@ -63,7 +63,7 @@
         </div>
 
         <!-- Nouvelle famille presque vide : pour bien démarrer -->
-        <div v-if="household.kind === 'family' && household.is_member && household.family_people !== null && household.family_people < 10" class="mb-6 rounded-2xl border border-brand-200 bg-brand-50 p-5">
+        <div v-if="household.kind === 'family' && household.is_member && !household.closes_on && household.family_people !== null && household.family_people < 10" class="mb-6 rounded-2xl border border-brand-200 bg-brand-50 p-5">
           <h2 class="font-display text-lg font-semibold text-surface-900">{{ $t('Pour bien démarrer') }}</h2>
           <p class="mt-1 text-sm text-surface-600">{{ tc('La famille compte :count fiche. Trois façons de la faire grandir :|La famille compte :count fiches. Trois façons de la faire grandir :', household.family_people, { count: household.family_people }) }}</p>
           <div class="mt-4 grid gap-3 sm:grid-cols-3">
