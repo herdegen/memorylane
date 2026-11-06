@@ -237,19 +237,7 @@ class GenealogyService
     public function closeOf(string $personId): array
     {
         [$parents, $children] = $this->parentLinks();
-        $walk = function (array $start, array $edges): array {
-            $seen = array_fill_keys($start, true);
-            for ($queue = $start; $queue !== [];) {
-                foreach ($edges[array_shift($queue)] ?? [] as $next) {
-                    if (! isset($seen[$next])) {
-                        $seen[$next] = true;
-                        $queue[] = $next;
-                    }
-                }
-            }
-
-            return $seen;
-        };
+        $walk = fn (array $start, array $edges) => self::walk($start, $edges);
 
         $grandparents = [];
         foreach ($parents[$personId] ?? [] as $parentId) {
@@ -261,6 +249,50 @@ class GenealogyService
             + $walk([$personId, ...($parents[$personId] ?? []), ...$grandparents], $children);
 
         return array_keys($close);
+    }
+
+    /**
+     * Une branche de l'arbre autour d'une personne, pour la partager avec une
+     * autre famille : elle seule (« person »), ses descendants, ses ancêtres,
+     * ou les deux (« both »).
+     *
+     * @return array<int, string> ids, la personne comprise
+     */
+    public function branchOf(string $personId, string $scope): array
+    {
+        [$parents, $children] = $this->parentLinks();
+        $ids = [$personId => true];
+        if (in_array($scope, ['descendants', 'both'], true)) {
+            $ids += self::walk([$personId], $children);
+        }
+        if (in_array($scope, ['ancestors', 'both'], true)) {
+            $ids += self::walk([$personId], $parents);
+        }
+
+        return array_keys($ids);
+    }
+
+    /**
+     * Parcours en largeur depuis $start le long des liens $edges (parents ou
+     * enfants) : toutes les fiches atteintes, départ compris.
+     *
+     * @param  list<string>  $start
+     * @param  array<string, list<string>>  $edges
+     * @return array<string, true>
+     */
+    private static function walk(array $start, array $edges): array
+    {
+        $seen = array_fill_keys($start, true);
+        for ($queue = $start; $queue !== [];) {
+            foreach ($edges[array_shift($queue)] ?? [] as $next) {
+                if (! isset($seen[$next])) {
+                    $seen[$next] = true;
+                    $queue[] = $next;
+                }
+            }
+        }
+
+        return $seen;
     }
 
     /**

@@ -81,6 +81,10 @@
               <CircleKindIcon kind="friends" class="w-4 h-4 text-surface-400" />
               {{ $t('Cercles…') }}
             </button>
+            <button v-if="shareFamilies.length" @click="menuAction(() => showShareBranch = true)" class="dropdown-item w-full text-left flex items-center gap-2.5">
+              <CircleKindIcon kind="family" class="w-4 h-4 text-surface-400" />
+              {{ $t('Partager avec une autre famille…') }}
+            </button>
             <template v-if="canDelete">
               <hr class="dropdown-divider" />
               <button @click="menuAction(deletePerson)" class="dropdown-item w-full text-left flex items-center gap-2.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10">
@@ -313,6 +317,15 @@
       @sent="onInvited"
     />
 
+    <ShareBranchModal
+      v-if="showShareBranch"
+      :person-id="person.id"
+      :person-name="personLabel(person)"
+      :families="shareFamilies"
+      @close="showShareBranch = false"
+      @shared="router.reload({ preserveScroll: true })"
+    />
+
     <!-- Edit Modal -->
     <BaseModal v-if="showCircles" :title="$t('Cercles de :name', { name: personLabel(person) })" max-width="md" @close="showCircles = false">
       <div class="px-6 py-5">
@@ -380,6 +393,7 @@ import PersonFormModal from '@/Components/PersonFormModal.vue';
 import FamilyPanel from '@/Components/FamilyPanel.vue';
 import HowWeMetPanel from '@/Components/HowWeMetPanel.vue';
 import PersonCircles from '@/Components/PersonCircles.vue';
+import ShareBranchModal from '@/Components/ShareBranchModal.vue';
 import FriendshipTimeline from '@/Components/FriendshipTimeline.vue';
 import CircleKindIcon from '@/Components/CircleKindIcon.vue';
 import { useCircle } from '@/Composables/useCircle';
@@ -487,6 +501,16 @@ const toggleSelf = () => {
 
 const showEditModal = ref(false);
 const showCircles = ref(false);
+// « Partager avec une autre famille » : pour qui est membre d'au moins deux
+// familles — vers ses autres familles que la famille courante.
+const showShareBranch = ref(false);
+const shareFamilies = computed(() => {
+  const circle = usePage().props.circle;
+  const families = (circle?.list ?? []).filter((c) => c.kind === 'family');
+  return families.length > 1 && props.person.in_family_directory !== false
+    ? families.filter((c) => c.id !== circle?.current?.id).map((c) => ({ id: c.id, name: c.name }))
+    : [];
+});
 // Menu « Cercles… » : seulement pour un compte qui a des cercles.
 const hasCircles = computed(() => (usePage().props.circle?.list?.length ?? 0) > 0 || usePage().props.circle?.can_manage);
 const showAvatarPicker = ref(false);

@@ -407,6 +407,8 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         // Cercles d'une fiche : ajouter une fiche existante à un cercle
         Route::get('/{person}/circles', [PersonCircleController::class, 'index'])->name('circles.index');
         Route::post('/{person}/circles', [PersonCircleController::class, 'store'])->name('circles.store');
+        Route::get('/{person}/share-branch', [\App\Http\Controllers\BranchShareController::class, 'preview'])->name('shareBranch.preview');
+        Route::post('/{person}/share-branch', [\App\Http\Controllers\BranchShareController::class, 'store'])->name('shareBranch.store');
         Route::delete('/{person}/circles/{household}', [PersonCircleController::class, 'destroy'])->name('circles.destroy');
         // « Comment on s'est connus » (une version par compte)
         Route::get('/{person}/links', [PersonLinkController::class, 'index'])->name('links.index');
