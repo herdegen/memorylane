@@ -97,6 +97,12 @@ class InvitationService
                 $person->circles()->where('kind', Household::KIND_FAMILY)->pluck('households.id')->all(),
                 $inviter->familyCircleIds(),
             ));
+            // Fiche commune à plusieurs de ses familles : celle où il navigue
+            // (sélecteur de l'en-tête) — jamais une autre au hasard.
+            $current = $inviter->currentFamilyCircle()?->id;
+            if ($current && in_array($current, $sharedFamilies, true)) {
+                return $current;
+            }
 
             return $sharedFamilies[0]
                 ?? $inviter->currentFamilyCircle()?->id

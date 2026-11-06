@@ -96,6 +96,19 @@ class BranchShareTest extends TestCase
         $this->assertTrue(Media::accessibleBy($this->bruno->fresh())->whereKey($photo->id)->exists());
     }
 
+    public function test_inviter_depuis_une_fiche_commune_mene_a_la_famille_courante(): void
+    {
+        \Illuminate\Support\Facades\Mail::fake();
+        $this->p['camille']->update(['birth_date' => '1990-01-01']);
+        $this->actingAs($this->carla)->postJson("/people/{$this->p['camille']->id}/share-branch", ['household_id' => $this->B->id, 'scope' => 'person', 'living' => true])->assertOk();
+
+        // Elle navigue dans la famille B : l'invitée entre dans B, pas dans A.
+        $this->carla->forceFill(['current_household_id' => $this->B->id])->save();
+        $invitation = app(\App\Services\InvitationService::class)->invite($this->carla->fresh(), 'camille@example.fr', $this->p['camille']->fresh());
+
+        $this->assertSame($this->B->id, $invitation->household_id);
+    }
+
     public function test_refus(): void
     {
         // Vers une famille dont on n'est pas membre, ou un cercle d'amis : non.
