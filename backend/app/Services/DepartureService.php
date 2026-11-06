@@ -46,6 +46,9 @@ class DepartureService
         $others = $circle->members()->where('users.id', '!=', $user->id)->whereNull('memorial_at')
             ->orderBy('name')->get(['users.id', 'users.name']);
         $isCreator = $circle->isFriends() && $circle->created_by === $user->id;
+        // Dernier responsable du cercle (famille ou amis) : il désigne qui reprend.
+        $lastManager = ($circle->isManager($user) || $isCreator)
+            && $circle->managers()->where('users.id', '!=', $user->id)->doesntExist();
 
         return [
             'shared_photos' => DB::table('household_media')->join('media', 'media.id', '=', 'household_media.media_id')
@@ -53,7 +56,7 @@ class DepartureService
             'shared_albums' => DB::table('album_household')->join('albums', 'albums.id', '=', 'album_household.album_id')
                 ->where('album_household.household_id', $circle->id)->where('albums.user_id', $user->id)->whereNull('albums.deleted_at')->count(),
             'is_creator' => $isCreator,
-            'needs_successor' => $isCreator && $others->isNotEmpty(),
+            'needs_successor' => $lastManager && $others->isNotEmpty(),
             'last_member' => $others->isEmpty(),
             'candidates' => $others->map(fn ($u) => ['id' => $u->id, 'name' => $u->name])->values()->all(),
         ];
@@ -68,7 +71,7 @@ class DepartureService
         $summary = $this->circleSummary($user, $circle);
         if ($summary['needs_successor']) {
             if (! $successorId || ! collect($summary['candidates'])->contains('id', $successorId)) {
-                throw ValidationException::withMessages(['successor_id' => __('Choisissez qui reprend ce groupe.')]);
+                throw ValidationException::withMessages(['successor_id' => __('Choisissez qui devient responsable du cercle.')]);
             }
         }
 
@@ -98,7 +101,10 @@ class DepartureService
                     $circle->delete();
                 }
             } elseif ($summary['needs_successor']) {
-                $circle->forceFill(['created_by' => $successorId])->save();
+                $circle->setRole(User::findOrFail($successorId), Household::ROLE_MANAGER);
+                if ($circle->isFriends()) {
+                    $circle->forceFill(['created_by' => $successorId])->save();
+                }
             }
         });
     }

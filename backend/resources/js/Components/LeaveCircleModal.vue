@@ -1,6 +1,6 @@
 <template>
   <!-- Quitter un cercle : ce que ça concerne, le sort de MES photos et
-       albums partagés, et le successeur si je suis le créateur du groupe. -->
+       albums partagés, et le successeur si je suis le dernier responsable. -->
   <BaseModal :title="member ? $t('Retirer :name de « :circle »', { name: member.name, circle: household.name }) : $t('Quitter « :circle »', { circle: household.name })" max-width="md" @close="$emit('close')">
     <div class="px-6 py-5 space-y-4">
       <p v-if="loading" class="text-sm text-surface-500">{{ $t('Chargement…') }}</p>
@@ -39,9 +39,9 @@
           </label>
         </fieldset>
 
-        <!-- Créateur d'un groupe d'amis : qui le reprend -->
+        <!-- Dernier responsable du cercle : qui le devient -->
         <div v-if="summary.needs_successor">
-          <label class="block text-sm font-semibold text-surface-900 mb-1">{{ $t('Qui reprend ce groupe ?') }}</label>
+          <label class="block text-sm font-semibold text-surface-900 mb-1">{{ $t('Qui devient responsable du cercle ?') }}</label>
           <select v-model="successorId" class="form-input">
             <option :value="null" disabled>{{ $t('Choisir un membre…') }}</option>
             <option v-for="c in summary.candidates" :key="c.id" :value="c.id">{{ c.name }}</option>

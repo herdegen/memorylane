@@ -53,7 +53,9 @@ class HouseholdController extends Controller
         return Inertia::render('Households/Index', [
             'households' => $households,
             'canManage' => Gate::allows('create', Household::class),
-            'canCreateFamily' => $user->isAdmin(),
+            // Plusieurs familles par installation : chacun peut créer la sienne.
+            'canCreateFamily' => true,
+            'canSkipJoin' => $user->isAdmin(),
             'defaultKind' => config('memorylane.default_mode'),
         ]);
     }
@@ -72,9 +74,9 @@ class HouseholdController extends Controller
         ]);
 
         $kind = $validated['kind'] ?? config('memorylane.default_mode');
-        // Un membre crée son cercle d'amis ; la famille reste l'affaire de l'admin.
+        // Chacun crée sa famille ou son groupe d'amis, et en fait partie ;
+        // l'admin peut créer un cercle sans y entrer.
         if (! $request->user()->isAdmin()) {
-            abort_if($kind !== Household::KIND_FRIENDS, 403, __('Seul un administrateur crée un cercle famille.'));
             $validated['join'] = true;
         }
         $household = Household::create([
@@ -85,7 +87,8 @@ class HouseholdController extends Controller
         ]);
 
         if ($validated['join'] ?? true) {
-            $this->addMember($household, $request->user(), $request->user());
+            // Le créateur en est le premier responsable.
+            $household->addMember($request->user(), $request->user(), Household::ROLE_MANAGER);
         }
 
         if ($request->wantsJson()) {
@@ -111,6 +114,7 @@ class HouseholdController extends Controller
             // E-mail des membres : visible de ceux qui gèrent le cercle seulement.
             'email' => $canManage ? $u->email : null,
             'is_creator' => $u->id === $household->created_by,
+            'is_manager' => $u->pivot->role === Household::ROLE_MANAGER,
         ]);
 
         // Galerie du foyer : les médias partagés par les membres, plus
@@ -140,6 +144,7 @@ class HouseholdController extends Controller
                 'is_creator' => $isCreator,
                 'is_member' => $household->isMember($request->user()),
                 'can_manage' => $canManage,
+                'is_manager' => $household->isManager($request->user()),
             ],
             'members' => $members,
             'media' => $media,
@@ -149,6 +154,28 @@ class HouseholdController extends Controller
                     ->map(fn ($p) => ['id' => $p->id, 'name' => $p->name])->values()
                 : [],
         ]);
+    }
+
+    /**
+     * Nomme un membre responsable du cercle, ou lui retire ce rôle. Le cercle
+     * garde toujours au moins un responsable.
+     */
+    public function setRole(Request $request, Household $household, User $user)
+    {
+        Gate::authorize('manageMembers', $household);
+        $validated = $request->validate(['role' => ['required', 'in:'.Household::ROLE_MANAGER.','.Household::ROLE_MEMBER]]);
+        abort_unless($household->isMember($user), 404);
+
+        if ($validated['role'] === Household::ROLE_MEMBER && $household->isManager($user)
+            && $household->managers()->where('users.id', '!=', $user->id)->doesntExist()) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'role' => __('Le cercle doit garder au moins un responsable : nommez-en un autre d’abord.'),
+            ]);
+        }
+
+        $household->setRole($user, $validated['role']);
+
+        return response()->json(['ok' => true]);
     }
 
     /**

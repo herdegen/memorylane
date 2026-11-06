@@ -104,19 +104,28 @@
               <span class="font-medium text-surface-800">{{ m.name }}</span>
               <span class="text-sm text-surface-500 ml-2">{{ m.email }}</span>
               <span
-                v-if="m.is_creator"
+                v-if="m.is_manager"
                 class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-700"
               >
-                {{ $t('Créateur') }}
+                {{ $t('Responsable') }}
               </span>
             </div>
-            <button
-              v-if="household.can_manage && m.user_id !== $page.props.auth?.user?.id"
-              @click="removeMember(m)"
-              class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
-            >
-              {{ $t('Retirer') }}
-            </button>
+            <div v-if="household.can_manage && m.user_id !== $page.props.auth?.user?.id" class="flex items-center gap-4">
+              <button
+                type="button"
+                class="text-sm text-surface-600 hover:text-surface-900"
+                :disabled="roleBusy === m.user_id"
+                @click="toggleRole(m)"
+              >
+                {{ m.is_manager ? $t('Retirer le rôle de responsable') : $t('Nommer responsable') }}
+              </button>
+              <button
+                @click="removeMember(m)"
+                class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
+              >
+                {{ $t('Retirer') }}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -277,6 +286,23 @@ const invite = async (candidate) => {
 // Retirer un membre : mêmes choix qu'un départ (ses photos, successeur).
 const removing = ref(null);
 const removeMember = (member) => { removing.value = member; };
+
+// Responsables : nommer un membre, ou lui retirer le rôle (il en reste
+// toujours au moins un — le serveur refuse sinon).
+const roleBusy = ref(null);
+async function toggleRole(member) {
+  roleBusy.value = member.user_id;
+  try {
+    await axios.patch(`/households/${props.household.id}/members/${member.user_id}/role`, {
+      role: member.is_manager ? 'member' : 'manager',
+    });
+    router.reload({ only: ['members'], preserveScroll: true });
+  } catch (e) {
+    toast.error(e.response?.data?.errors?.role?.[0] || e.response?.data?.message || t('Impossible de changer le rôle.'));
+  } finally {
+    roleBusy.value = null;
+  }
+}
 const onRemoved = () => {
   toast.success(t(':name a été retiré·e du cercle.', { name: removing.value.name }));
   removing.value = null;
