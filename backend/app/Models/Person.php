@@ -310,6 +310,8 @@ class Person extends Model
             return $query;
         }
 
+        // Fiche archivée (plus dans aucune famille) : invisible de tous.
+        $query->whereNull('people.archived_at');
         $friendCircles = $user->friendCircleIds();
         $familyCircles = $user->familyCircleIds();
         // Installation d'une seule famille sans cercle famille : répertoire

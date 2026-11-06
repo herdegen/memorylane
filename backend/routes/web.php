@@ -338,6 +338,9 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::delete('/{household}/members/{user}', [HouseholdController::class, 'removeMember'])->name('members.remove');
         Route::patch('/{household}/members/{user}/role', [HouseholdController::class, 'setRole'])->name('members.role');
         Route::get('/{household}/branch-candidates', [HouseholdController::class, 'branchCandidates'])->name('branchCandidates');
+        Route::post('/{household}/closure', [HouseholdController::class, 'requestClosure'])->name('closure.request');
+        Route::delete('/{household}/closure', [HouseholdController::class, 'cancelClosure'])->name('closure.cancel');
+        Route::post('/{household}/takeover', [HouseholdController::class, 'takeOver'])->name('takeover');
 
         // Fiches rattachées à un cercle d'amis (administrateur)
         Route::get('/{household}/people/candidates', [HouseholdController::class, 'personCandidates'])->name('people.candidates');

@@ -33,12 +33,32 @@
               {{ $t('Quitter le cercle') }}
             </button>
             <button
-              v-if="household.can_manage"
+              v-if="household.can_manage && household.kind === 'family' && !household.closes_on"
+              @click="requestClosure"
+              class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
+            >
+              {{ $t('Fermer la famille…') }}
+            </button>
+            <button
+              v-else-if="household.can_manage && household.kind !== 'family'"
               @click="destroyHousehold"
               class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
             >
               {{ $t('Supprimer le cercle') }}
             </button>
+          </div>
+        </div>
+
+        <!-- Fermeture demandée : la date, reprendre ou annuler, exporter ses photos -->
+        <div v-if="household.closes_on" class="mb-6 rounded-2xl border border-red-200 bg-red-50 dark:bg-red-500/10 dark:border-red-500/30 p-5 space-y-3" role="status">
+          <p class="font-semibold text-surface-900">
+            {{ $t('Cette famille fermera le :date (demande de :name).', { date: formatDate(household.closes_on), name: household.closure_by ?? '?' }) }}
+          </p>
+          <p class="text-sm text-surface-700">{{ $t('Un membre peut la reprendre d’ici là : il en devient responsable et elle continue. Sinon, chacun garde son compte et ses photos ; les fiches communes restent dans les autres familles.') }}</p>
+          <div class="flex flex-wrap items-center gap-3">
+            <button v-if="household.is_member && !household.is_manager" type="button" class="btn-primary btn-sm" @click="takeOver">{{ $t('Reprendre la famille') }}</button>
+            <button v-if="household.can_manage" type="button" class="btn-secondary btn-sm" @click="cancelClosure">{{ $t('Annuler la fermeture') }}</button>
+            <ExportMediaButton v-if="household.is_member" />
           </div>
         </div>
 
@@ -255,6 +275,8 @@ import { useConfirm } from '@/Composables/useConfirm';
 import { usePhotoSwipe } from '@/Composables/usePhotoSwipe';
 import Trans from '@/Components/Trans.vue';
 import ShareBranchModal from '@/Components/ShareBranchModal.vue';
+import ExportMediaButton from '@/Components/ExportMediaButton.vue';
+import { formatDate } from '@/utils/format';
 import { t, tc } from '@/i18n';
 
 const toast = useToast();
@@ -423,6 +445,36 @@ const onLeft = () => {
   toast.success(t('Vous avez quitté le cercle.'));
   router.visit('/households');
 };
+
+// Fermer une famille : 30 jours pendant lesquels un membre peut la reprendre.
+async function requestClosure() {
+  const ok = await confirm({
+    title: t('Fermer la famille'),
+    message: t('Les membres seront prévenus et auront 30 jours pour la reprendre. Ensuite, chacun garde son compte et ses photos, les fiches communes restent dans les autres familles, et les autres fiches sont gardées sans photos pour la généalogie.'),
+    confirmLabel: t('Demander la fermeture'),
+    danger: true,
+  });
+  if (!ok) return;
+  try {
+    await axios.post(`/households/${props.household.id}/closure`);
+    router.reload({ preserveScroll: true });
+  } catch (e) {
+    toast.error(e.response?.data?.message || t('Impossible de demander la fermeture.'));
+  }
+}
+async function cancelClosure() {
+  await axios.delete(`/households/${props.household.id}/closure`);
+  router.reload({ preserveScroll: true });
+}
+async function takeOver() {
+  try {
+    await axios.post(`/households/${props.household.id}/takeover`);
+    toast.success(t('Vous êtes maintenant responsable de cette famille.'));
+    router.reload({ preserveScroll: true });
+  } catch (e) {
+    toast.error(e.response?.data?.message || t('Impossible de reprendre la famille.'));
+  }
+}
 
 const destroyHousehold = async () => {
   const ok = await confirm({

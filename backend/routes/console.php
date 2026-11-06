@@ -24,6 +24,8 @@ Schedule::command('memorylane:birthday-push')->dailyAt('09:00')->timezone('Europ
 Schedule::command('memorylane:prune-upload-sessions')->dailyAt('03:30');
 // Départs de l'application arrivés au bout des 30 jours de grâce.
 Schedule::command('memorylane:process-departures')->dailyAt('03:45');
+// Familles dont la fermeture demandée arrive à échéance (30 jours).
+Schedule::command('households:process-closures')->dailyAt('03:50');
 
 // Fêtes des prénoms : précharge le cache Nominis pour les prochains jours.
 Schedule::command('memorylane:refresh-namedays')->dailyAt('00:10');

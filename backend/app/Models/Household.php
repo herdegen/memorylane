@@ -137,6 +137,7 @@ class Household extends Model
     {
         return [
             'is_default' => 'boolean',
+            'closure_requested_at' => 'datetime',
         ];
     }
 

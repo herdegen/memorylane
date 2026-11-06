@@ -149,6 +149,9 @@ class HouseholdController extends Controller
                 'is_current' => $request->user()->currentCircle()?->id === $household->id,
                 // Famille : nombre de fiches (« Pour bien démarrer » tant qu'elle est presque vide).
                 'family_people' => $household->isFamily() ? $household->people()->where('people.in_family_directory', true)->count() : null,
+                // Fermeture demandée : date et auteur.
+                'closes_on' => $household->closure_requested_at?->copy()->addDays(\App\Services\FamilyClosure::DAYS)->toDateString(),
+                'closure_by' => $household->closure_requested_by ? User::find($household->closure_requested_by)?->name : null,
             ],
             'members' => $members,
             'media' => $media,
@@ -178,6 +181,34 @@ class HouseholdController extends Controller
         }
 
         $household->setRole($user, $validated['role']);
+
+        return response()->json(['ok' => true]);
+    }
+
+    /** Demander la fermeture d'une famille (un responsable) : 30 jours pour la reprendre. */
+    public function requestClosure(Request $request, Household $household, \App\Services\FamilyClosure $closure)
+    {
+        Gate::authorize('update', $household);
+        abort_unless($household->isFamily() && ! $household->closure_requested_at, 422);
+        $closure->request($household, $request->user());
+
+        return response()->json(['closes_on' => $closure->closesOn($household)?->toDateString()]);
+    }
+
+    /** Annuler la fermeture (un responsable). */
+    public function cancelClosure(Request $request, Household $household, \App\Services\FamilyClosure $closure)
+    {
+        Gate::authorize('update', $household);
+        $closure->cancel($household);
+
+        return response()->json(['ok' => true]);
+    }
+
+    /** Reprendre une famille qui allait fermer (un membre) : il en devient responsable. */
+    public function takeOver(Request $request, Household $household, \App\Services\FamilyClosure $closure)
+    {
+        abort_unless($household->isFamily() && $household->closure_requested_at && $household->isMember($request->user()), 422);
+        $closure->takeOver($household, $request->user());
 
         return response()->json(['ok' => true]);
     }
@@ -345,7 +376,14 @@ class HouseholdController extends Controller
     {
         Gate::authorize('delete', $household);
 
-        $household->delete();
+        // Une famille ne s'efface pas d'un clic : elle se ferme en 30 jours
+        // (ses membres peuvent la reprendre) ; l'admin la ferme tout de suite.
+        if ($household->isFamily()) {
+            abort_unless($request->user()->isAdmin(), 422, __('Une famille se ferme en 30 jours : utilisez « Fermer la famille ».'));
+            app(\App\Services\FamilyClosure::class)->close($household);
+        } else {
+            $household->delete();
+        }
 
         if ($request->wantsJson()) {
             return response()->json(['message' => __('Foyer supprimé.')]);
