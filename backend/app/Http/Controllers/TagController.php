@@ -15,7 +15,15 @@ class TagController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Tag::withCount('media');
+        // Les tags des photos qu'il peut voir (plusieurs familles sur une
+        // installation : pas les tags ni les nombres des autres), comptés sur
+        // ces photos ; un tag pas encore utilisé reste proposé.
+        $user = $request->user();
+        $query = $user->isAdmin()
+            ? Tag::withCount('media')
+            : Tag::query()
+                ->where(fn ($q) => $q->whereHas('media', fn ($m) => $m->accessibleBy($user))->orWhereDoesntHave('media'))
+                ->withCount(['media' => fn ($m) => $m->accessibleBy($user)]);
 
         // Search by name if provided
         if ($request->has('search')) {

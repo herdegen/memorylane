@@ -175,6 +175,19 @@ class MultiFamilyIsolationTest extends TestCase
         $this->assertSame($this->bernard->id, $child->fresh()->father_id);
     }
 
+    public function test_les_tags_d_une_autre_famille_restent_chez_elle(): void
+    {
+        $tag = fn (string $name) => \App\Models\Tag::create(['name' => $name, 'slug' => \Illuminate\Support\Str::slug($name)]);
+        $mine = \App\Models\Media::factory()->create(['user_id' => $this->alice->id, 'type' => 'photo']);
+        $mine->tags()->attach($tag('Alpha vacances')->id);
+        $theirs = \App\Models\Media::factory()->create(['user_id' => $this->bruno->id, 'type' => 'photo']);
+        $theirs->tags()->attach($tag('Bravo mariage')->id);
+        $tag('Tout neuf'); // pas encore utilisé : proposé à tous
+
+        $names = collect($this->actingAs($this->alice)->getJson('/tags')->assertOk()->json())->pluck('media_count', 'name');
+        $this->assertSame(['Alpha vacances' => 1, 'Tout neuf' => 0], $names->sortKeys()->all());
+    }
+
     public function test_installation_sans_cercle_famille_repertoire_commun(): void
     {
         Household::query()->delete();
