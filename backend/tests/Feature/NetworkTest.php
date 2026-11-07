@@ -197,6 +197,38 @@ class NetworkTest extends TestCase
         $this->assertSame([], $graph['edges'], 'photos privées de $user');
     }
 
+    public function test_la_frise_part_de_ma_naissance_et_de_ma_rencontre_avec_ma_femme(): void
+    {
+        $user = User::factory()->create();
+        $make = fn (string $name, string $birth, array $extra = []) => Person::factory()->create(['user_id' => $user->id, 'name' => $name, 'birth_date' => $birth] + $extra);
+        $grandpa = $make('Pépé', '1930-01-01');
+        $dad = $make('Papa', '1960-01-01', ['father_id' => $grandpa->id]);
+        $me = $make('Moi', '1988-01-01', ['father_id' => $dad->id]);
+        $user->forceFill(['person_id' => $me->id])->save();
+        $marc = $make('Marc', '1955-01-07');
+        $nicole = $make('Nicole', '1955-07-09');
+        $marion = $make('Marion', '1989-02-23', ['father_id' => $marc->id, 'mother_id' => $nicole->id]);
+        [$p1, $p2] = collect([$me->id, $marion->id])->sort()->values()->all();
+        \App\Models\PersonRelationship::create(['person1_id' => $p1, 'person2_id' => $p2, 'type' => 'spouse', 'start_date' => '2020-08-08']);
+        $baby = $make('Bébé', '2022-05-01', ['father_id' => $me->id]);
+
+        $this->photoWith($user, [$grandpa, $dad], '1975-06-01');   // avant ma naissance
+        $this->photoWith($user, [$me, $marion], '2017-07-01');     // notre première photo
+        $this->photoWith($user, [$marc, $nicole], '1978-07-22');   // leur mariage
+        $this->photoWith($user, [$me, $marc], '2020-08-08');
+        $this->photoWith($user, [$me, $baby], '2022-05-02');
+
+        $graph = $this->actingAs($user)->getJson('/network/data')->assertOk()->json();
+
+        $this->assertSame(1988, $this->edge($graph, $grandpa, $dad)['first_year'], 'ma famille : dès ma naissance');
+        $this->assertSame(2017, $this->edge($graph, $me, $marion)['first_year']);
+        $this->assertSame(2017, $this->edge($graph, $marc, $nicole)['first_year'], 'belle-famille : dès ma rencontre avec Marion');
+        $this->assertSame(2020, $this->edge($graph, $me, $marc)['first_year']);
+        $this->assertSame(2022, $this->edge($graph, $me, $baby)['first_year']);
+        // La tuile « première photo » d'une personne reste la vraie date.
+        $this->assertSame(1975, collect($graph['nodes'])->firstWhere('id', $grandpa->id)['first_year']);
+    }
+
     public function test_repondre_comment_vous_vous_etes_connus_met_a_jour_le_reseau(): void
     {
         $user = User::factory()->create();

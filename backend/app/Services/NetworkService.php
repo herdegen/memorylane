@@ -166,6 +166,20 @@ class NetworkService
         }
         unset($edge);
 
+        // Frise vue depuis « moi » : rien avant ma naissance, et un lien
+        // n'apparaît qu'une fois ses deux personnes entrées dans ma vie
+        // (une photo de mes beaux-parents de 1978 : à ma rencontre avec
+        // ma femme).
+        if ($entry = $this->entryYears($user, $edges)) {
+            foreach ($edges as &$edge) {
+                $floor = max($entry['people'][$edge['source']] ?? $entry['self'], $entry['people'][$edge['target']] ?? $entry['self']);
+                if ($edge['first_year'] !== null && $edge['first_year'] < $floor) {
+                    $edge['first_year'] = $floor;
+                }
+            }
+            unset($edge);
+        }
+
         $personIds = collect($edges)->flatMap(fn ($e) => [$e['source'], $e['target']]);
         if ($user->person_id) {
             $personIds->push($user->person_id);
@@ -266,6 +280,111 @@ class NetworkService
             'context' => $circle ? ['id' => $circle->id, 'name' => $circle->name, 'kind' => $circle->kind] : null,
             'photo_count' => $photoCount,
         ];
+    }
+
+    /**
+     * Année d'entrée de chacun dans la vie du compte, dont la fiche « moi »
+     * est née l'année N : la famille par le sang dès N (ou dès sa propre
+     * naissance) ; un conjoint à la rencontre (année déclarée ou première
+     * photo ou album ensemble), sinon à l'union ; sa famille dès cette
+     * rencontre, ou plus tôt si une photo nous réunit ; les conjoints de
+     * ces familles dès leur union ; les autres à la rencontre déclarée ou à
+     * la première photo avec moi. Jamais avant N ni avant sa naissance.
+     * Null sans fiche « moi » datée.
+     *
+     * @param  list<array>  $edges  années déjà corrigées par les rencontres déclarées
+     * @return array{self: int, people: array<string, int>}|null
+     */
+    private function entryYears(User $user, array $edges): ?array
+    {
+        $self = $user->person_id ? Person::find($user->person_id, ['id', 'birth_date']) : null;
+        if (! $self?->birth_date) {
+            return null;
+        }
+        $selfYear = (int) $self->birth_date->format('Y');
+
+        $parents = [];
+        $children = [];
+        $birth = [];
+        foreach (DB::table('people')->whereNull('deleted_at')->get(['id', 'father_id', 'mother_id', 'birth_date']) as $p) {
+            if ($p->birth_date) {
+                $birth[$p->id] = (int) substr((string) $p->birth_date, 0, 4);
+            }
+            foreach ([$p->father_id, $p->mother_id] as $parent) {
+                if ($parent) {
+                    $parents[$p->id][] = $parent;
+                    $children[$parent][] = $p->id;
+                }
+            }
+        }
+        $unions = [];
+        foreach (DB::table('person_relationships')->get(['person1_id', 'person2_id', 'start_date']) as $r) {
+            $year = $r->start_date ? (int) substr((string) $r->start_date, 0, 4) : null;
+            $unions[$r->person1_id][$r->person2_id] = $year;
+            $unions[$r->person2_id][$r->person1_id] = $year;
+        }
+        // Famille par le sang : ses ancêtres et tous leurs descendants.
+        $bloodOf = function (string $id) use ($parents, $children): array {
+            $up = [$id => true];
+            for ($queue = [$id]; $queue !== [];) {
+                foreach ($parents[array_shift($queue)] ?? [] as $next) {
+                    if (! isset($up[$next])) {
+                        $up[$next] = true;
+                        $queue[] = $next;
+                    }
+                }
+            }
+            $all = $up;
+            for ($queue = array_keys($up); $queue !== [];) {
+                foreach ($children[array_shift($queue)] ?? [] as $next) {
+                    if (! isset($all[$next])) {
+                        $all[$next] = true;
+                        $queue[] = $next;
+                    }
+                }
+            }
+
+            return array_keys($all);
+        };
+        $earliest = function (?int ...$years): ?int {
+            $known = array_filter($years, fn ($y) => $y !== null);
+
+            return $known === [] ? null : min($known);
+        };
+
+        // Première photo ou album avec moi (ou rencontre déclarée).
+        $withMe = [];
+        foreach ($edges as $e) {
+            $other = match ($self->id) {
+                $e['source'] => $e['target'],
+                $e['target'] => $e['source'],
+                default => null,
+            };
+            if ($other && $e['first_year'] !== null) {
+                $withMe[$other] = min($withMe[$other] ?? PHP_INT_MAX, $e['first_year']);
+            }
+        }
+
+        $entry = array_fill_keys($bloodOf($self->id), $selfYear);
+        foreach ($unions[$self->id] ?? [] as $spouse => $start) {
+            $entry[$spouse] ??= $earliest($withMe[$spouse] ?? null, $start) ?? $selfYear;
+            foreach ($bloodOf($spouse) as $id) {
+                $entry[$id] ??= $earliest($withMe[$id] ?? null, $entry[$spouse]);
+            }
+        }
+        foreach (array_keys($entry) as $id) {
+            foreach ($unions[$id] ?? [] as $spouse => $start) {
+                $entry[$spouse] ??= $earliest($withMe[$spouse] ?? null, max($start ?? 0, $entry[$id]));
+            }
+        }
+        foreach ($withMe as $id => $year) {
+            $entry[$id] ??= $year;
+        }
+        foreach ($entry as $id => $year) {
+            $entry[$id] = max($year, $selfYear, $birth[$id] ?? $selfYear);
+        }
+
+        return ['self' => $selfYear, 'people' => $entry];
     }
 
     /**
