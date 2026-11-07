@@ -389,6 +389,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         // Portrait stocké (versionné par ?v=) : cache navigateur illimité.
         Route::get('/{person}/portrait', [PersonController::class, 'portrait'])->name('portrait');
         Route::put('/{person}', [PersonController::class, 'update'])->name('update');
+        Route::post('/{person}/avatar', [PersonController::class, 'uploadAvatar'])->name('uploadAvatar');
         Route::delete('/{person}', [PersonController::class, 'destroy'])->name('destroy');
         Route::post('/attach', [PersonController::class, 'attachToMedia'])->name('attach');
         Route::post('/detach', [PersonController::class, 'detachFromMedia'])->name('detach');

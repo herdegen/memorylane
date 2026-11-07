@@ -864,6 +864,27 @@ class PersonController extends Controller
         ], 202);
     }
 
+    /**
+     * Photo de profil envoyée depuis la fiche (appareil photo ou galerie du
+     * téléphone, fichier sur ordinateur) : elle rejoint les photos de la
+     * personne (sur sa fiche ; validation si elle a son propre compte) et
+     * devient sa photo de profil.
+     */
+    public function uploadAvatar(Request $request, Person $person)
+    {
+        $this->authorizeManage($person);
+        $request->validate(['photo' => 'required|file|max:51200|mimes:jpg,jpeg,png,webp,heic,heif']);
+
+        $media = $this->mediaService->uploadMedia($request->file('photo'), $request->user()->id);
+        app(\App\Services\FichePublisher::class)->publish($media, $person, $request->user());
+        $person->update(['avatar_media_id' => $media->id]);
+
+        return response()->json([
+            'message' => __('Photo de profil enregistrée.'),
+            'person' => $person->fresh(),
+        ], 201);
+    }
+
     public function destroy(Request $request, Person $person)
     {
         // Suppression réservée au créateur de la fiche et aux admins.

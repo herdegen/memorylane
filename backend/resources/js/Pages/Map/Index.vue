@@ -226,27 +226,46 @@
           @close="exitTimeMode"
         />
 
-        <!-- Ouverture du panneau des filtres (téléphone) — en haut à droite,
-             le zoom Leaflet occupe le coin gauche. -->
-        <button
-          type="button"
-          @click="filtersOpen = true"
-          class="md:hidden absolute top-3 right-3 z-[1001] inline-flex items-center gap-1.5
-                 rounded-full bg-white/90 backdrop-blur px-3 py-2 text-sm font-medium
-                 text-surface-700 shadow-warm-md border border-surface-200
-                 dark:bg-surface-100/90"
-          aria-controls="map-filters"
-          :aria-expanded="filtersOpen"
-        >
-          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h18l-7 8v6l-4 2v-8L3 4z" />
-          </svg>
-          {{ $t('Filtres') }}
-          <span
-            v-if="activeFilterCount"
-            class="ml-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-600 px-1 text-xs font-semibold text-white"
-          >{{ activeFilterCount }}</span>
-        </button>
+        <!-- Téléphone, en haut à droite (le zoom Leaflet occupe le coin
+             gauche) : « Dans le temps » d'un geste, et le panneau des filtres. -->
+        <div class="md:hidden absolute top-3 right-3 z-[1001] flex items-center gap-2">
+          <button
+            v-if="!isFriends"
+            type="button"
+            @click="toggleTimeMode"
+            class="w-10 h-10 inline-flex items-center justify-center rounded-full shadow-warm-md border backdrop-blur transition-colors"
+            :class="timeMode
+              ? 'bg-brand-600 border-brand-600 text-white'
+              : 'bg-white/90 border-surface-200 text-surface-700 dark:bg-surface-100/90'"
+            :aria-label="$t('Dans le temps')"
+            :title="$t('Dans le temps')"
+            :aria-pressed="timeMode"
+          >
+            <!-- Sablier -->
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 3h12M6 21h12M7 3c0 5 10 5 10 9s-10 4-10 9M17 3c0 5-10 5-10 9s10 4 10 9" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            @click="filtersOpen = true"
+            class="inline-flex items-center gap-1.5
+                   rounded-full bg-white/90 backdrop-blur px-3 py-2 text-sm font-medium
+                   text-surface-700 shadow-warm-md border border-surface-200
+                   dark:bg-surface-100/90"
+            aria-controls="map-filters"
+            :aria-expanded="filtersOpen"
+          >
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h18l-7 8v6l-4 2v-8L3 4z" />
+            </svg>
+            {{ $t('Filtres') }}
+            <span
+              v-if="activeFilterCount"
+              class="ml-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-600 px-1 text-xs font-semibold text-white"
+            >{{ activeFilterCount }}</span>
+          </button>
+        </div>
       </div>
     </div>
 

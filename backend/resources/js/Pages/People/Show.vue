@@ -73,9 +73,9 @@
               <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
               {{ $t('Modifier la fiche') }}
             </button>
-            <button v-if="canManage && media.length > 0" @click="menuAction(() => showAvatarPicker = true)" class="dropdown-item w-full text-left flex items-center gap-2.5">
+            <button v-if="canManage" @click="menuAction(() => showAvatarPicker = true)" class="dropdown-item w-full text-left flex items-center gap-2.5">
               <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-              {{ $t('Choisir un avatar') }}
+              {{ $t('Photo de profil') }}
             </button>
             <button v-if="hasCircles" @click="menuAction(() => showCircles = true)" class="dropdown-item w-full text-left flex items-center gap-2.5">
               <CircleKindIcon kind="friends" class="w-4 h-4 text-surface-400" />
@@ -108,7 +108,7 @@
           </svg>
         </Link>
 
-        <!-- Avatar (clic = choisir parmi les photos) -->
+        <!-- Avatar (clic = photo de profil : envoyer ou choisir) -->
         <div class="relative group shrink-0">
           <PersonAvatar
             :person="person"
@@ -118,15 +118,23 @@
             fallback-class="text-5xl font-bold text-brand-700"
           />
           <button
-            v-if="canManage && media.length > 0"
+            v-if="canManage"
             @click="showAvatarPicker = true"
             class="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/40 flex items-center justify-center transition-all"
-            :title="$t('Changer l\'avatar')"
+            :title="$t('Photo de profil')"
+            :aria-label="$t('Photo de profil')"
           >
-            <svg class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
+            <!-- Toujours visible (pas de survol sur téléphone) -->
+            <span class="absolute bottom-1 right-1 w-9 h-9 rounded-full bg-brand-600 text-white border-2 border-white shadow-warm-md flex items-center justify-center group-hover:opacity-0 transition-opacity" aria-hidden="true">
+              <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </span>
           </button>
         </div>
 
@@ -353,11 +361,28 @@
     <!-- Avatar Picker Modal -->
     <BaseModal
       v-if="showAvatarPicker"
-      :title="$t('Choisir un avatar')"
+      :title="$t('Photo de profil')"
       max-width="2xl"
       @close="showAvatarPicker = false"
     >
-      <div class="p-6 grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 max-h-96 overflow-y-auto">
+      <div class="px-6 pt-6">
+        <label
+          class="flex items-center justify-center gap-2.5 w-full h-14 rounded-xl border-2 border-dashed border-brand-300 text-brand-700 dark:text-brand-300 font-semibold cursor-pointer hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-colors"
+          :class="{ 'opacity-60 pointer-events-none': uploadingAvatar }"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          {{ uploadingAvatar ? $t('Envoi… :percent %', { percent: avatarProgress }) : $t('Envoyer une photo') }}
+          <input type="file" accept="image/*" class="sr-only" :disabled="uploadingAvatar" @change="uploadAvatar" />
+        </label>
+        <p class="mt-2 text-xs text-center text-surface-500">
+          {{ $t('Depuis l’appareil photo ou la galerie du téléphone, ou un fichier de l’ordinateur. Elle rejoint aussi les photos de :name.', { name: person.first_name || person.name }) }}
+        </p>
+        <h3 v-if="photoMedia.length" class="mt-6 text-sm font-semibold text-surface-700">{{ $t('Ou choisir parmi ses photos') }}</h3>
+      </div>
+      <div v-if="photoMedia.length" class="px-6 pt-3 pb-6 grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 max-h-80 overflow-y-auto">
         <button
           v-for="item in photoMedia"
           :key="item.id"
@@ -380,7 +405,7 @@
           @click="removeAvatar"
           class="mr-auto px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-white border border-red-300 dark:border-red-500/40 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10"
         >
-          {{ $t("Supprimer l'avatar") }}
+          {{ $t('Retirer la photo de profil') }}
         </button>
         <button @click="showAvatarPicker = false" class="btn-secondary">
           {{ $t('Fermer') }}
@@ -589,6 +614,31 @@ const setAvatar = async (mediaId) => {
     router.reload();
   } catch (error) {
     toast.error(error.response?.data?.message || t("Erreur lors du changement d'avatar."));
+  }
+};
+
+// Photo envoyée depuis l'appareil (appareil photo, galerie, fichier).
+const uploadingAvatar = ref(false);
+const avatarProgress = ref(0);
+const uploadAvatar = async (event) => {
+  const file = event.target.files?.[0];
+  event.target.value = '';
+  if (!file) return;
+  const data = new FormData();
+  data.append('photo', file);
+  uploadingAvatar.value = true;
+  avatarProgress.value = 0;
+  try {
+    const response = await axios.post(`/people/${props.person.id}/avatar`, data, {
+      onUploadProgress: (e) => { if (e.total) avatarProgress.value = Math.round((e.loaded / e.total) * 100); },
+    });
+    toast.success(response.data.message);
+    showAvatarPicker.value = false;
+    router.reload();
+  } catch (error) {
+    toast.error(apiError(error, t('Erreur lors de l\'envoi de la photo.')));
+  } finally {
+    uploadingAvatar.value = false;
   }
 };
 
