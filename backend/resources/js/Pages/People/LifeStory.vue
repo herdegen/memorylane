@@ -252,7 +252,7 @@ async function save(status) {
     const { data } = await axios.post(`/people/${props.person.id}/recit/${chapter.value.key}`, {
       status,
       body: body.value,
-      rows: filled.filter((r) => r.from).map(({ id, type, title, place, from, to }) => ({ id, type, title, place, from, to })),
+      rows: filled.filter((r) => r.from).map(({ id, type, title, place, from, to, lat, lng }) => ({ id, type, title, place, from, to, lat, lng })),
       removed: removed.value,
     });
     events.value = data.events;

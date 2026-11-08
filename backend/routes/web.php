@@ -426,6 +426,8 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::post('/{person}/recit/{chapter}', [\App\Http\Controllers\LifeStoryController::class, 'save'])->name('lifeStory.save');
         Route::post('/{person}/recit/{chapter}/audio', [\App\Http\Controllers\LifeStoryController::class, 'audio'])->name('lifeStory.audioStore');
     });
+    // Suggestions de lieux (monde entier) pendant la saisie
+    Route::get('/places/suggest', \App\Http\Controllers\PlaceSuggestController::class)->middleware('throttle:120,1')->name('places.suggest');
     Route::get('/life-story-audio/{answer}', [\App\Http\Controllers\LifeStoryController::class, 'audioFile'])->name('lifeStory.audio');
 
     // Fiches communes à plusieurs familles : propositions, désaccords

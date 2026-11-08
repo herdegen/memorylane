@@ -13,7 +13,7 @@
           :aria-label="def.title_label"
         />
         <p v-else-if="!def.place_only" class="self-center font-semibold text-surface-800">{{ def.title }}</p>
-        <input v-model="row.place" type="text" maxlength="255" :class="FIELD" :placeholder="def.place_label" :aria-label="def.place_label" />
+        <PlaceInput v-model="row.place" :input-class="FIELD" :placeholder="def.place_label" @select="pick" />
       </div>
       <button type="button" class="w-9 h-9 shrink-0 rounded-full text-surface-400 hover:text-surface-700 hover:bg-surface-100" :aria-label="$t('Retirer')" @click="$emit('remove')">×</button>
     </div>
@@ -33,7 +33,9 @@
 </template>
 
 <script setup>
-defineProps({
+import PlaceInput from '@/Components/PlaceInput.vue';
+
+const props = defineProps({
   row: { type: Object, required: true },
   def: { type: Object, required: true },
   years: { type: Array, default: null },
@@ -42,5 +44,11 @@ defineEmits(['remove']);
 
 const BASE = 'h-11 px-3 text-[15px] border border-surface-300 rounded-lg bg-white focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500';
 const FIELD = `w-full ${BASE}`;
+
+// Lieu choisi dans les suggestions : ses coordonnées ; tapé à la main : aucune (géocodé ensuite).
+function pick(place) {
+  props.row.lat = place?.lat ?? null;
+  props.row.lng = place?.lng ?? null;
+}
 </script>
 

@@ -80,6 +80,8 @@ class LifeStoryController extends Controller
             'rows.*.place' => 'nullable|string|max:255',
             'rows.*.from' => 'required|integer|min:1000|max:2100',
             'rows.*.to' => 'nullable|integer|min:1000|max:2100',
+            'rows.*.lat' => 'nullable|numeric|between:-90,90',
+            'rows.*.lng' => 'nullable|numeric|between:-180,180',
             'removed' => 'array|max:40',
             'removed.*' => 'uuid',
         ]);
@@ -104,9 +106,17 @@ class LifeStoryController extends Controller
                     'end_date' => $to ? sprintf('%04d-01-01', $to) : null,
                     'date_precision' => 'year',
                 ];
+                // Lieu choisi dans les suggestions : position exacte.
+                if (isset($row['lat'], $row['lng'])) {
+                    $attributes += ['latitude' => (float) $row['lat'], 'longitude' => (float) $row['lng']];
+                }
                 $event = ! empty($row['id']) ? LifeEvent::where('person_id', $person->id)->find($row['id']) : null;
                 if ($event) {
                     if ($this->canEdit($user, $person, $event) && $this->changed($event, $attributes)) {
+                        // Lieu changé à la main : l'ancienne position ne vaut plus.
+                        if ($event->place !== $attributes['place'] && ! isset($attributes['latitude'])) {
+                            $attributes += ['latitude' => null, 'longitude' => null];
+                        }
                         $event->update($attributes);
                     }
 
@@ -323,6 +333,7 @@ class LifeStoryController extends Controller
     private function changed(LifeEvent $event, array $attributes): bool
     {
         return $event->type !== $attributes['type'] || $event->title !== $attributes['title'] || $event->place !== $attributes['place']
+            || (isset($attributes['latitude']) && ($event->latitude !== $attributes['latitude'] || $event->longitude !== $attributes['longitude']))
             || $event->event_date->format('Y') !== substr($attributes['event_date'], 0, 4)
             || $event->end_date?->format('Y') !== ($attributes['end_date'] ? substr($attributes['end_date'], 0, 4) : null);
     }

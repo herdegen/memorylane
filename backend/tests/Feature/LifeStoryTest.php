@@ -140,6 +140,25 @@ class LifeStoryTest extends TestCase
         $this->actingAs(User::factory()->create())->get("/life-story-audio/{$answer->id}")->assertNotFound();
     }
 
+    public function test_suggestions_de_lieux_du_monde_entier(): void
+    {
+        \Illuminate\Support\Facades\Http::fake(['photon.komoot.io/*' => \Illuminate\Support\Facades\Http::response(['features' => [
+            ['properties' => ['name' => 'Valence', 'state' => 'Communauté valencienne', 'country' => 'Espagne'], 'geometry' => ['coordinates' => [-0.376, 39.469]]],
+            ['properties' => ['name' => 'Valence', 'state' => 'Auvergne-Rhône-Alpes', 'country' => 'France'], 'geometry' => ['coordinates' => [4.892, 44.933]]],
+        ]])]);
+
+        $this->actingAs($this->me)->getJson('/places/suggest?q=valence')->assertOk()
+            ->assertJsonPath('0.label', 'Valence, Communauté valencienne, Espagne')
+            ->assertJsonPath('0.detail', 'Communauté valencienne, Espagne')
+            ->assertJsonPath('1.lat', 44.933);
+
+        // Choisi dans les suggestions : la position exacte va sur la frise.
+        $this->actingAs($this->me)->postJson("/people/{$this->nicole->id}/recit/etudes", ['status' => 'done', 'rows' => [
+            ['type' => 'residence', 'title' => 'Valence, Communauté valencienne, Espagne', 'place' => 'Valence, Communauté valencienne, Espagne', 'from' => 1975, 'to' => 1977, 'lat' => 39.469, 'lng' => -0.376],
+        ]])->assertOk();
+        $this->assertSame(39.469, LifeEvent::sole()->latitude);
+    }
+
     public function test_pas_pour_une_tablette(): void
     {
         $this->me->forceFill(['simple_mode' => true])->save();

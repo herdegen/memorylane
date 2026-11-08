@@ -42,7 +42,13 @@
         <div>
           <label class="block text-sm font-medium text-surface-700 mb-1">{{ $t('Lieu') }}</label>
           <div class="flex gap-2">
-            <input v-model="form.place" type="text" class="form-input" :placeholder="$t('Ville, pays...')" />
+            <PlaceInput
+              v-model="form.place"
+              class="flex-1 min-w-0"
+              input-class="form-input"
+              :placeholder="$t('Ville, pays...')"
+              @select="(p) => p && applyCoordinates({ latitude: p.lat, longitude: p.lng })"
+            />
             <button
               type="button"
               class="btn-secondary shrink-0"
@@ -163,6 +169,7 @@ import { computed, onMounted, ref, reactive, defineAsyncComponent } from 'vue';
 import axios from 'axios';
 import BaseModal from '@/Components/BaseModal.vue';
 import PhotoPicker from '@/Components/PhotoPicker.vue';
+import PlaceInput from '@/Components/PlaceInput.vue';
 import { t } from '@/i18n';
 
 // Chargé à l'ouverture seulement : la carte embarque Leaflet (~45 ko gzip).

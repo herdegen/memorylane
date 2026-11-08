@@ -80,12 +80,10 @@
           <label for="birth_place" class="block text-sm font-medium text-surface-700 mt-3 mb-1">
             {{ $t('Lieu de naissance') }}
           </label>
-          <input
-            id="birth_place"
+          <PlaceInput
             v-model="form.birth_place"
-            type="text"
             :placeholder="$t('Ville, pays')"
-            class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+            input-class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
           />
         </div>
 
@@ -102,12 +100,10 @@
           <label for="death_place" class="block text-sm font-medium text-surface-700 mt-3 mb-1">
             {{ $t('Lieu de décès') }}
           </label>
-          <input
-            id="death_place"
+          <PlaceInput
             v-model="form.death_place"
-            type="text"
             :placeholder="$t('Ville, pays')"
-            class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+            input-class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
           />
         </div>
       </div>
@@ -181,6 +177,7 @@
 import { ref, reactive } from 'vue';
 import axios from 'axios';
 import BaseModal from '@/Components/BaseModal.vue';
+import PlaceInput from '@/Components/PlaceInput.vue';
 import { useToast } from '@/Composables/useToast';
 import { useCircle } from '@/Composables/useCircle';
 import { t } from '@/i18n';
