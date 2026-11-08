@@ -54,6 +54,21 @@ class LifeStoryTest extends TestCase
                 ->where('events.2.chapters', ['travail', 'couple', 'enfants', 'aujourdhui']));
     }
 
+    public function test_un_lieu_de_vie_sans_fin_dure_jusqu_au_demenagement_suivant(): void
+    {
+        $this->nicole->update(['birth_place' => 'Cusset, , , ,']);
+        $this->event('residence', 'Vichy', '1956-01-01');
+        $this->event('residence', 'Les Lilas', '2016-01-01');
+
+        $this->actingAs($this->me)->get("/people/{$this->nicole->id}/recit")->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('chapters.0.facts.0', 'Naissance : 9 juillet 1955 à Cusset')
+                ->where('events.0.chapters', ['naissance', 'primaire', 'college', 'lycee', 'etudes', 'travail', 'couple', 'enfants', 'aujourdhui'])
+                ->where('events.1.chapters', ['travail', 'aujourdhui'])
+                // Jamais d'années dans le futur.
+                ->where('chapters.10.years', [2015, null]));
+    }
+
     public function test_valider_une_etape_remplit_la_frise_sans_doublon(): void
     {
         $url = "/people/{$this->nicole->id}/recit/primaire";

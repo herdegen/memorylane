@@ -51,7 +51,7 @@ class LifeStoryController extends Controller
             ],
             'chapters' => collect($chapters)->map(fn ($c) => [
                 ...$c,
-                'years' => $birthYear && $c['ages'] ? [$birthYear + $c['ages'][0], $c['ages'][1] !== null ? $birthYear + $c['ages'][1] : null] : null,
+                'years' => $this->years($birthYear, $c['ages']),
                 'facts' => $this->facts($person, $c['key']),
             ])->values(),
             'rowTypes' => LifeStory::rowTypes(),
@@ -178,6 +178,22 @@ class LifeStoryController extends Controller
 
     // ── Présentation ───────────────────────────────────────────────────
 
+    /** Années de l'étape d'après l'âge, jamais au-delà de cette année (null : pas de suggestion). */
+    private function years(?int $birthYear, ?array $ages): ?array
+    {
+        if (! $birthYear || ! $ages) {
+            return null;
+        }
+        $now = (int) now()->format('Y');
+        $from = $birthYear + $ages[0];
+        if ($from > $now) {
+            return null;
+        }
+        $to = $ages[1] !== null ? $birthYear + $ages[1] : null;
+
+        return [$from, $to !== null && $to < $now ? $to : null];
+    }
+
     private function answerPayload(LifeStoryAnswer $answer): array
     {
         return [
@@ -199,10 +215,16 @@ class LifeStoryController extends Controller
         $mine = $answers->flatMap(fn ($a) => $a->event_ids ?? [])->flip();
         $chapters = collect(LifeStory::chapters($person));
 
-        return LifeEvent::where('person_id', $person->id)->orderBy('event_date')->get()
-            ->map(function (LifeEvent $e) use ($birthYear, $mine, $chapters, $user, $person) {
+        $all = LifeEvent::where('person_id', $person->id)->orderBy('event_date')->get();
+        // Lieu de vie sans date de fin : il dure jusqu'au déménagement suivant.
+        $moves = $all->where('type', 'residence')->map(fn ($e) => (int) $e->event_date->format('Y'))->values();
+        $until = fn (int $from) => $moves->first(fn ($y) => $y > $from);
+
+        return $all
+            ->map(function (LifeEvent $e) use ($birthYear, $mine, $chapters, $user, $person, $until) {
                 $from = (int) $e->event_date->format('Y');
                 $to = $e->end_date ? (int) $e->end_date->format('Y') : null;
+                $effectiveTo = $e->type === 'residence' && $to === null ? $until($from) : $to;
 
                 return [
                     'id' => $e->id,
@@ -211,7 +233,7 @@ class LifeStoryController extends Controller
                     'place' => $e->place,
                     'from' => $from,
                     'to' => $to,
-                    'chapters' => $this->chaptersOf($e->type, $e->title, $from, $to, $birthYear, $chapters),
+                    'chapters' => $this->chaptersOf($e->type, $e->title, $from, $effectiveTo, $birthYear, $chapters),
                     'mine' => isset($mine[$e->id]),
                     'editable' => $this->canEdit($user, $person, $e),
                     'deletable' => $this->canDelete($user, $person, $e),
@@ -233,10 +255,10 @@ class LifeStoryController extends Controller
             if ($birthYear === null) {
                 return ['naissance'];
             }
-            $until = $to ?? (int) now()->format('Y');
+            $until = $to ?? (int) now()->format('Y') + 1;
 
             return $chapters->filter(fn ($c) => $c['moves'] && $c['ages'] !== null
-                && $birthYear + $c['ages'][0] <= $until && ($c['ages'][1] === null || $from < $birthYear + $c['ages'][1]))
+                && $birthYear + $c['ages'][0] < max($until, $from + 1) && ($c['ages'][1] === null || $from < $birthYear + $c['ages'][1]))
                 ->pluck('key')->values()->all() ?: ['aujourdhui'];
         }
 
@@ -270,7 +292,8 @@ class LifeStoryController extends Controller
     private function facts(Person $person, string $chapter): array
     {
         $date = fn ($d) => $d?->locale(app()->getLocale())->translatedFormat('j F Y');
-        $at = fn (?string $place) => $place ? ' '.__('à :place', ['place' => $place]) : '';
+        $clean = fn (?string $place) => trim(preg_replace('/(\s*,\s*)+$/u', '', preg_replace('/,(\s*,)+/u', ',', (string) $place)));
+        $at = fn (?string $place) => $clean($place) !== '' ? ' '.__('à :place', ['place' => $clean($place)]) : '';
 
         return match ($chapter) {
             'naissance' => $person->birth_date || $person->birth_place
