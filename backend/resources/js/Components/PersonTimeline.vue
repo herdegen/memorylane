@@ -12,13 +12,22 @@
         <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
         {{ $t('Lire') }}
       </button>
+      <!-- Récit de vie guidé, étape par étape : remplit la frise -->
+      <Link
+        v-if="canManage"
+        :href="`/people/${personId}/recit`"
+        class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-brand-50 border border-brand-200 text-sm font-medium text-brand-800 hover:bg-brand-100 transition dark:bg-brand-500/10 dark:border-brand-500/30 dark:text-brand-200"
+      >
+        ✍️ {{ $t('Raconter sa vie') }}
+      </Link>
       <button
         v-if="canManage"
         @click="openCreate"
-        class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-surface-300 text-sm font-medium text-surface-700 hover:bg-surface-50 transition"
+        class="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-full bg-white border border-surface-300 text-sm font-medium text-surface-700 hover:bg-surface-50 transition"
+        :aria-label="$t('Ajouter un moment')"
       >
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-        {{ $t('Ajouter un moment') }}
+        <span class="hidden sm:inline">{{ $t('Ajouter un moment') }}</span>
       </button>
       </div>
     </div>

@@ -421,7 +421,12 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::put('/{person}/links', [PersonLinkController::class, 'upsert'])->name('links.upsert');
         Route::delete('/{person}/links', [PersonLinkController::class, 'destroy'])->name('links.destroy');
         Route::post('/{person}/events', [LifeEventController::class, 'store'])->name('events.store');
+        // Récit de vie guidé, étape par étape (remplit la frise)
+        Route::get('/{person}/recit', [\App\Http\Controllers\LifeStoryController::class, 'show'])->name('lifeStory');
+        Route::post('/{person}/recit/{chapter}', [\App\Http\Controllers\LifeStoryController::class, 'save'])->name('lifeStory.save');
+        Route::post('/{person}/recit/{chapter}/audio', [\App\Http\Controllers\LifeStoryController::class, 'audio'])->name('lifeStory.audioStore');
     });
+    Route::get('/life-story-audio/{answer}', [\App\Http\Controllers\LifeStoryController::class, 'audioFile'])->name('lifeStory.audio');
 
     // Fiches communes à plusieurs familles : propositions, désaccords
     Route::prefix('shared-people')->name('shared-people.')->controller(\App\Http\Controllers\SharedPeopleController::class)->group(function () {
