@@ -1191,8 +1191,9 @@ class PersonController extends Controller
     private function accountPayload(Person $person): array
     {
         $viewer = auth()->user();
-        $account = User::where('person_id', $person->id)->first(['id', 'memorial_at']);
-        $hasAccount = $account !== null;
+        $account = User::where('person_id', $person->id)->first();
+        // Compte créé d'avance mais jamais activé : on peut l'inviter.
+        $hasAccount = $account !== null && ! InvitationService::isDormant($account);
         $pending = $hasAccount ? null : Invitation::open()
             ->where('person_id', $person->id)
             ->with('inviter:id,name')
