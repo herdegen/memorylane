@@ -42,6 +42,28 @@
         <p v-if="form.errors.date" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.errors.date }}</p>
       </div>
 
+      <!-- Thème : range l'album (filtre, archives à part) -->
+      <fieldset>
+        <legend class="block text-sm font-medium text-surface-700 mb-2">{{ $t('Thème') }}</legend>
+        <div class="flex flex-wrap gap-2">
+          <button
+            v-for="key in ALBUM_THEMES"
+            :key="key"
+            type="button"
+            class="h-9 px-3 rounded-full text-[13px] font-semibold border transition"
+            :class="themeKey(form.theme) === key ? 'bg-brand-600 border-brand-600 text-white' : 'bg-white border-surface-300 text-surface-600 hover:bg-surface-50'"
+            :aria-pressed="themeKey(form.theme) === key"
+            @click="form.theme = key === 'moment' ? null : key"
+          >
+            {{ themeEmoji(key) }} {{ themeLabel(key) }}
+          </button>
+        </div>
+        <p v-if="themeKey(form.theme) === 'archives'" class="mt-1.5 text-xs text-surface-500">
+          {{ $t('Des photos de plusieurs époques : l\'album est rangé à part, hors de la frise.') }}
+        </p>
+        <p v-if="form.errors.theme" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.errors.theme }}</p>
+      </fieldset>
+
       <p class="text-xs text-surface-500">
         {{ $t('L\'album est privé à sa création ; partagez-le ensuite avec un cercle ou des personnes depuis sa page.') }}
       </p>
@@ -138,6 +160,7 @@ import FormField from '@/Components/Forms/FormField.vue';
 import FormButton from '@/Components/Forms/FormButton.vue';
 import { usePeopleDirectory } from '@/Composables/usePeopleDirectory';
 import { useTags } from '@/Composables/useTags';
+import { ALBUM_THEMES, themeKey, themeEmoji, themeLabel } from '@/utils/albumThemes';
 
 const props = defineProps({
   album: {
@@ -155,6 +178,7 @@ const form = useForm({
   name: props.album?.name || '',
   description: props.album?.description || '',
   date: props.album?.date ? String(props.album.date).slice(0, 10) : '',
+  theme: props.album?.theme || null,
   cover_media_id: props.album?.cover_media_id || null,
   is_smart: props.album?.is_smart || false,
   smart_rules: {

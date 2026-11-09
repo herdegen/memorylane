@@ -21,12 +21,20 @@ class Album extends Model
         ];
     }
 
+    /**
+     * Thèmes d'album : liste FERMÉE, calquée sur les types de moments de vie.
+     * Null = « Moments » (affichage par défaut). Les archives sortent de la
+     * frise des albums (photos de plusieurs époques).
+     */
+    public const THEMES = ['voyage', 'reunion', 'mariage', 'bapteme', 'anniversaire', 'fete', 'archives', 'moment'];
+
     protected $fillable = [
         'user_id',
         'name',
         'slug',
         'description',
         'date',
+        'theme',
         'cover_media_id',
         'is_public',
         'is_smart',

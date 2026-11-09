@@ -44,6 +44,7 @@ class AlbumController extends Controller
             'description' => 'nullable|string|max:1000',
             // Date de l'album : héritée par ses photos et vidéos sans date.
             'date' => 'nullable|date',
+            'theme' => ['nullable', 'string', \Illuminate\Validation\Rule::in(Album::THEMES)],
             'cover_media_id' => 'nullable|uuid|exists:media,id',
             'is_smart' => 'boolean',
             'smart_rules' => 'nullable|required_if:is_smart,true|array',
@@ -88,7 +89,8 @@ class AlbumController extends Controller
 
         return Inertia::render('Albums/Index', [
             'albums' => $albums,
-            'discovery' => app(AlbumDiscovery::class)->sections($request->user(), $albums),
+            // Seul l'album à l'honneur sert ici (les rangées restent pour la télévision).
+            'discovery' => app(AlbumDiscovery::class)->sections($request->user(), $albums, withRows: false),
         ]);
     }
 
