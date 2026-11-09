@@ -314,6 +314,8 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         // « Qui était du voyage ? »
         Route::get('/{album}/participants', [AlbumParticipantController::class, 'index'])->name('participants.index');
         Route::put('/{album}/participants', [AlbumParticipantController::class, 'update'])->name('participants.update');
+        // Rôles d'un album à thème (mariés, témoins, baptisé…)
+        Route::put('/{album}/roles', [\App\Http\Controllers\AlbumRoleController::class, 'update'])->name('roles.update');
         // Partage avec un cercle entier
         Route::get('/{album}/circles', [AlbumController::class, 'circles'])->name('circles.list');
         Route::post('/{album}/circles', [AlbumController::class, 'shareWithCircle'])->name('circles.share');

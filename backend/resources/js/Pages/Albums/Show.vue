@@ -141,7 +141,10 @@
           </svg>
         </Link>
         <div class="min-w-0">
-          <div class="text-xs font-medium uppercase tracking-widest" :class="heroLight ? 'text-ink/65' : 'text-snow/75'">{{ $t('Albums') }}</div>
+          <div class="text-xs font-medium uppercase tracking-widest" :class="heroLight ? 'text-ink/65' : 'text-snow/75'">
+            <template v-if="album.theme && album.theme !== 'moment'">{{ themeEmoji(album.theme) }} {{ themeLabel(album.theme) }}</template>
+            <template v-else>{{ $t('Albums') }}</template>
+          </div>
           <h1
             class="font-display text-[28px] leading-tight sm:text-5xl font-bold truncate"
             :class="heroLight ? 'text-ink [text-shadow:0_1px_10px_rgba(255,255,255,0.8)]' : 'text-snow [text-shadow:0_2px_12px_rgba(23,20,15,0.55)]'"
@@ -351,6 +354,36 @@
       </button>
     </div>
 
+    <!-- « Tout voir » d'un bloc du thème : seuls ces médias -->
+    <div
+      v-if="idsFilter"
+      class="flex flex-wrap items-center gap-3 px-4 sm:px-8 py-3 bg-surface-50 border-b border-surface-200"
+    >
+      <span class="text-sm text-surface-800">
+        <strong>{{ idsFilter.label }}</strong>
+        <span class="text-surface-500"> ({{ $tc(':count média|:count médias', albumMedia.length) }})</span>
+      </span>
+      <button type="button" class="ml-auto text-sm font-medium text-brand-700 hover:text-brand-900" @click="idsFilter = null">
+        {{ $t('Tout l’album') }}
+      </button>
+    </div>
+
+    <!-- ================= Album à thème : mis en avant ================= -->
+    <template v-if="showHighlights">
+      <AlbumHighlights
+        :highlights="album.highlights"
+        :media="album.media"
+        :can-edit="!!album.can_edit"
+        @open="openFromHighlights"
+        @filter="filterTo"
+        @edit-role="editRole"
+      />
+      <h2 class="px-4 sm:px-8 pt-8 sm:pt-10 pb-3 font-display text-xl sm:text-2xl font-semibold text-surface-900">
+        {{ album.theme === 'mariage' ? $t('Toute la journée') : $t('Toutes les photos') }}
+        <span class="font-sans text-[13px] font-normal text-surface-500 ml-1">{{ $tc(':count média|:count médias', album.media_count || 0) }}</span>
+      </h2>
+    </template>
+
     <!-- ================= Galerie mosaïque pleine largeur ================= -->
     <div
       v-if="album.media && album.media.length > 0"
@@ -460,6 +493,16 @@
       @close="showParticipants = false"
       @saved="router.reload({ only: ['album'] })"
     />
+    <AlbumRoleModal
+      v-if="roleEdit"
+      :album-id="album.id"
+      :role="roleEdit.role"
+      :title="roleEdit.title"
+      :selected="roleEdit.people"
+      :suggestions="album.highlights?.candidates || []"
+      @close="roleEdit = null"
+      @saved="router.reload({ only: ['album'], preserveScroll: true })"
+    />
     <MomentFromPhotos
       :open="showMakeMoment"
       :photos="selectedPhotosForMoment"
@@ -488,6 +531,9 @@ import { useToast } from '@/Composables/useToast';
 import { useConfirm } from '@/Composables/useConfirm';
 import { slideUrl, thumbnailUrl as smallThumbUrl } from '@/utils/media';
 import AlbumParticipantsModal from '@/Components/AlbumParticipantsModal.vue';
+import AlbumHighlights from '@/Components/AlbumHighlights.vue';
+import AlbumRoleModal from '@/Components/AlbumRoleModal.vue';
+import { themeEmoji, themeLabel } from '@/utils/albumThemes';
 import MomentFromPhotos from '@/Components/MomentFromPhotos.vue';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
 import Trans from '@/Components/Trans.vue';
@@ -684,6 +730,22 @@ const albumMediaIds = computed(() => {
 
 // Étape choisie sur la carte-trajet (null : tout l'album).
 const placeFilter = ref(null);
+// Album à thème : « Tout voir » d'un bloc (les mariés, une décennie…).
+const idsFilter = ref(null);
+const roleEdit = ref(null);
+const showHighlights = computed(() => !!props.album.highlights?.sections?.length
+  && !idsFilter.value && !placeFilter.value && !unidentifiedOnly.value);
+const filterTo = (f) => {
+  idsFilter.value = f;
+  requestAnimationFrame(() => document.getElementById('album-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+};
+const editRole = (section) => {
+  roleEdit.value = { role: section.role, title: section.title, people: section.people || [] };
+};
+const openFromHighlights = (media) => {
+  const index = albumMedia.value.findIndex((m) => m.id === media.id);
+  if (index >= 0) handleMediaClick(media, index);
+};
 // « Qui est-ce ? » (téléphone) : seules les photos avec des visages à nommer.
 const unidentifiedOnly = ref(false);
 const pendingFacesCount = computed(() =>
@@ -693,6 +755,10 @@ const participantsPreview = computed(() => props.album.participants_preview || [
 const albumMedia = computed(() => {
   let all = props.album.media || [];
   if (unidentifiedOnly.value) all = all.filter((m) => (m.pending_faces_count || 0) > 0);
+  if (idsFilter.value) {
+    const keep = new Set(idsFilter.value.ids);
+    all = all.filter((m) => keep.has(m.id));
+  }
   if (!placeFilter.value) return all;
   const ids = new Set(placeFilter.value.media_ids);
   return all.filter((m) => ids.has(m.id));

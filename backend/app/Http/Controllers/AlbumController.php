@@ -208,6 +208,10 @@ class AlbumController extends Controller
 
         $album->places = $this->placesOf($album);
 
+        // Album à thème : ce que la page met en avant avant toutes les photos.
+        $album->highlights = app(\App\Services\AlbumHighlights::class)->for($album, $request->user());
+        $album->can_edit = Gate::allows('update', $album);
+
         if ($request->wantsJson()) {
             return response()->json($album);
         }
