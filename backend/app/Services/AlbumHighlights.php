@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Album;
 use App\Models\Person;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -63,7 +64,7 @@ class AlbumHighlights
     public function for(Album $album, User $user): ?array
     {
         $theme = $album->theme;
-        if (! in_array($theme, ['mariage', 'bapteme', 'anniversaire', 'reunion', 'fete', 'archives'], true)) {
+        if (! in_array($theme, ['mariage', 'bapteme', 'anniversaire', 'reunion', 'fete', 'archives', 'voyage'], true)) {
             return null;
         }
         $this->album = $album;
@@ -79,12 +80,17 @@ class AlbumHighlights
             'bapteme' => $this->baptism(),
             'anniversaire', 'reunion', 'fete' => $this->celebration($theme),
             'archives' => $this->archives(),
+            'voyage' => $this->trip(),
         };
+        $sections = array_values(array_filter($sections));
+        if ($sections === []) {
+            return null;
+        }
 
         return [
             'theme' => $theme,
             'roles' => self::ROLES_BY_THEME[$theme] ?? [],
-            'sections' => array_values(array_filter($sections)),
+            'sections' => $sections,
             // Pour choisir les rôles : les personnes des photos, les plus vues d'abord.
             'candidates' => $this->canEdit() ? $this->candidates() : [],
         ];
@@ -163,17 +169,112 @@ class AlbumHighlights
         $dated = $this->album->media->filter(fn ($m) => $m->taken_at !== null);
         $decades = $dated->groupBy(fn ($m) => intdiv((int) $m->taken_at->format('Y'), 10) * 10)
             ->sortKeys()
-            ->map(fn ($g, $d) => ['decade' => (int) $d, 'ids' => $g->pluck('id')->values()->all()])
+            ->map(fn ($g, $d) => ['key' => (int) $d, 'title' => self::decadeLabel((int) $d), 'subtitle' => null, 'ids' => $g->pluck('id')->values()->all()])
             ->values()->all();
         $undated = $this->album->media->filter(fn ($m) => $m->taken_at === null)->pluck('id')->values()->all();
 
         return [
             $this->peopleSection('people', __('Les personnes'), __('touchez un nom pour ne voir que ses photos'), exclude: [], limit: 16, lifeDates: true),
-            $decades ? ['key' => 'decades', 'type' => 'decades', 'title' => __('Au fil du temps'),
-                'subtitle' => trans_choice(':count photo datée|:count photos datées', $dated->count()), 'decades' => $decades] : null,
+            $decades ? ['key' => 'decades', 'type' => 'rows', 'title' => __('Au fil du temps'),
+                'subtitle' => trans_choice(':count photo datée|:count photos datées', $dated->count()), 'rows' => $decades] : null,
             $undated ? ['key' => 'undated', 'type' => 'undated', 'title' => trans_choice(':count photo sans date|:count photos sans date', count($undated)),
                 'text' => __('Une date, même approximative (« vers 1950 »), et la photo rejoint sa décennie.'), 'ids' => $undated] : null,
         ];
+    }
+
+    /**
+     * Voyage : les photos jour par jour (Jour 1, Jour 2…), avec le lieu du
+     * jour. Le séjour est tout l'album s'il tient en trois semaines, sinon la
+     * plus grosse suite de jours photographiés ; les photos égarées hors de
+     * cette période vont dans « Autres dates » (jamais de « Jour 3245 »).
+     */
+    private function trip(): array
+    {
+        $dated = $this->album->media->filter(fn ($m) => $m->taken_at !== null)
+            ->sortBy(fn ($m) => [$m->taken_at->timestamp, $m->clip_start ?? 0]);
+        $byDay = $dated->groupBy(fn ($m) => $m->taken_at->format('Y-m-d'))->sortKeys();
+        if ($byDay->count() < 2) {
+            return [];
+        }
+
+        // Tout l'album tient en trois semaines : c'est le séjour (des jours
+        // sans photo au milieu ne le coupent pas). Sinon, suites de jours à
+        // moins de 3 jours d'écart.
+        $days = $byDay->keys()->all();
+        $segments = [[]];
+        $prev = null;
+        $short = Carbon::parse($days[0])->diffInDays(Carbon::parse(end($days))) < 21;
+        foreach ($days as $day) {
+            if ($prev && ! $short && Carbon::parse($prev)->diffInDays(Carbon::parse($day)) > 2) {
+                $segments[] = [];
+            }
+            $segments[array_key_last($segments)][] = $day;
+            $prev = $day;
+        }
+        $stay = collect($segments)->sortByDesc(fn ($days) => collect($days)->sum(fn ($d) => $byDay[$d]->count()))->first();
+        $start = Carbon::parse($stay[0]);
+        $length = (int) $start->diffInDays(Carbon::parse(end($stay))) + 1;
+        if (count($stay) < 2 || $length > 31) {
+            return [];
+        }
+
+        $coords = \App\Models\MediaMetadata::whereIn('media_id', $dated->pluck('id'))
+            ->whereNotNull('latitude')->whereNotNull('longitude')
+            ->get(['media_id', 'latitude', 'longitude'])->keyBy('media_id');
+        $geocoder = app(GeocodeService::class);
+        $missing = [];
+        $rows = [];
+        foreach ($stay as $day) {
+            $media = $byDay[$day];
+            // Lieux du jour : les cellules d'~1 km les plus photographiées.
+            $names = $media->filter(fn ($m) => isset($coords[$m->id]))
+                ->groupBy(fn ($m) => round((float) $coords[$m->id]->latitude, 2).','.round((float) $coords[$m->id]->longitude, 2))
+                ->sortByDesc(fn ($g) => $g->count())->take(3)
+                ->map(function ($g) use ($coords, $geocoder, &$missing) {
+                    $c = $coords[$g->first()->id];
+                    [$lat, $lng] = [(float) $c->latitude, (float) $c->longitude];
+                    if (! $geocoder->isPlaceNameResolved($lat, $lng)) {
+                        $missing[] = [$lat, $lng];
+                    }
+
+                    return $geocoder->cachedPlaceName($lat, $lng);
+                })
+                // Noms en alphabet latin seulement (« Chiraz » oui, un district
+                // rural écrit en persan non).
+                ->filter()->map(fn ($n) => trim(explode(',', $n)[0]))
+                ->filter(fn ($n) => preg_match('/\p{Latin}/u', $n))
+                ->unique()->take(2)->values();
+            $date = Carbon::parse($day)->locale(app()->getLocale())->translatedFormat('l j F');
+            $rows[] = [
+                'key' => $day,
+                'title' => __('Jour :n', ['n' => (int) $start->diffInDays(Carbon::parse($day)) + 1]),
+                'subtitle' => $names->isEmpty() ? $date : $date.' · '.$names->implode(', '),
+                'ids' => $media->pluck('id')->values()->all(),
+            ];
+        }
+        \App\Jobs\ResolvePlaceNames::dispatchOnce(array_slice($missing, 0, 60));
+
+        $others = $dated->reject(fn ($m) => in_array($m->taken_at->format('Y-m-d'), $stay, true))->pluck('id')->values()->all();
+        if ($others) {
+            $rows[] = ['key' => 'others', 'title' => __('Autres dates'), 'subtitle' => null, 'ids' => $others];
+        }
+        $undated = $this->album->media->filter(fn ($m) => $m->taken_at === null)->pluck('id')->values()->all();
+        if ($undated) {
+            $rows[] = ['key' => 'undated', 'title' => __('Sans date'), 'subtitle' => null, 'ids' => $undated];
+        }
+
+        return [[
+            'key' => 'days', 'type' => 'rows', 'title' => __('Jour par jour'),
+            'subtitle' => trans_choice(':count jour|:count jours', $length), 'rows' => $rows,
+        ]];
+    }
+
+    /** « Années 50 », « Années 2000 » ; en anglais « 1950s ». */
+    private static function decadeLabel(int $decade): string
+    {
+        return app()->getLocale() === 'en'
+            ? "{$decade}s"
+            : __('Années :decade', ['decade' => $decade < 2000 ? substr((string) $decade, 2) : (string) $decade]);
     }
 
     // ---- Briques --------------------------------------------------------------

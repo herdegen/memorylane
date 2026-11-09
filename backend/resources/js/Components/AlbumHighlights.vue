@@ -108,36 +108,37 @@
           </button>
         </div>
 
-        <!-- Archives : par décennie -->
-        <div v-if="s.type === 'decades'">
-          <div v-for="d in s.decades" :key="d.decade" class="grid sm:grid-cols-[8rem_1fr] gap-2 sm:gap-5 py-3 border-t border-surface-200">
-            <h3 class="font-display text-lg sm:text-xl font-semibold text-surface-900 leading-tight">
-              {{ decadeLabel(d.decade) }}
-              <span class="block font-sans text-xs font-medium text-surface-500 mt-0.5">{{ $tc(':count photo|:count photos', d.ids.length) }}</span>
-            </h3>
-            <div class="grid grid-cols-4 sm:grid-cols-6 gap-1 rounded-lg overflow-hidden">
+        <!-- Lignes : une décennie (archives), un jour (voyage)… -->
+        <div v-if="s.type === 'rows'">
+          <div v-for="r in s.rows" :key="r.key" class="grid sm:grid-cols-[11rem_1fr] gap-2 sm:gap-5 py-3 border-t border-surface-200">
+            <button type="button" class="text-left self-start" @click="$emit('filter', { label: rowLabel(r), ids: r.ids })">
+              <h3 class="font-display text-lg sm:text-xl font-semibold text-surface-900 leading-tight">{{ r.title }}</h3>
+              <span v-if="r.subtitle" class="block text-[13px] text-surface-600 mt-0.5 first-letter:uppercase">{{ r.subtitle }}</span>
+              <span class="block text-xs font-medium text-surface-500 mt-0.5">{{ $tc(':count photo|:count photos', r.ids.length) }}</span>
+            </button>
+            <div class="grid grid-cols-4 sm:grid-cols-6 gap-1 rounded-lg overflow-hidden self-start">
               <button
-                v-for="(m, i) in mediaOf(d.ids).slice(0, d.ids.length > 6 ? 5 : 6)"
+                v-for="(m, i) in mediaOf(r.ids).slice(0, r.ids.length > 6 ? 5 : 6)"
                 :key="m.id"
                 type="button"
                 class="relative aspect-square overflow-hidden bg-surface-100"
-                :class="i >= (d.ids.length > 4 ? 3 : 4) ? 'hidden sm:block' : ''"
+                :class="i >= (r.ids.length > 4 ? 3 : 4) ? 'hidden sm:block' : ''"
                 @click="$emit('open', m)"
               >
                 <MediaCard :media="m" fill class="pointer-events-none" />
               </button>
               <button
-                v-if="d.ids.length > 4"
+                v-if="r.ids.length > 4"
                 type="button"
                 class="sm:hidden aspect-square grid place-items-center bg-surface-900 text-snow font-bold"
-                @click="$emit('filter', { label: decadeLabel(d.decade), ids: d.ids })"
-              >+{{ d.ids.length - 3 }}</button>
+                @click="$emit('filter', { label: rowLabel(r), ids: r.ids })"
+              >+{{ r.ids.length - 3 }}</button>
               <button
-                v-if="d.ids.length > 6"
+                v-if="r.ids.length > 6"
                 type="button"
                 class="hidden sm:grid aspect-square place-items-center bg-surface-900 text-snow font-bold"
-                @click="$emit('filter', { label: decadeLabel(d.decade), ids: d.ids })"
-              >+{{ d.ids.length - 5 }}</button>
+                @click="$emit('filter', { label: rowLabel(r), ids: r.ids })"
+              >+{{ r.ids.length - 5 }}</button>
             </div>
           </div>
         </div>
@@ -158,7 +159,6 @@
 import { computed } from 'vue';
 import MediaCard from '@/Components/MediaCard.vue';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
-import { t, locale } from '@/i18n';
 
 const props = defineProps({
   highlights: { type: Object, required: true },
@@ -179,7 +179,6 @@ const desktopCount = (s) => (s.type === 'role' ? 8 : 5);
 const tilesOf = (s) => mediaOf(s.ids).slice(0, Math.max(mobileCount(s), desktopCount(s)));
 const countOf = (s) => (s.ids || []).length;
 
-const decadeLabel = (dec) => t('Années :decade', {
-  decade: locale() === 'en' ? `${dec}s` : (dec < 2000 ? String(dec).slice(2) : dec),
-});
+// « Jour 2 · dimanche 8 août · Bruges » (bandeau du filtre)
+const rowLabel = (r) => [r.title, r.subtitle].filter(Boolean).join(' · ');
 </script>

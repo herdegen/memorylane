@@ -134,9 +134,62 @@ class AlbumHighlightsTest extends TestCase
         $this->assertSame('1928 – 1981', $people['Roger']['years']);
         $this->assertSame('1931 –', $people['Marianne']['years']);
         $this->assertSame([$a->id, $b->id], $people['Roger']['ids']);
-        $this->assertSame([[1950, [$a->id]], [1970, [$b->id, $c->id]]],
-            array_map(fn ($d) => [$d['decade'], $d['ids']], $s['decades']['decades']));
+        $this->assertSame([[1950, 'Années 50', [$a->id]], [1970, 'Années 70', [$b->id, $c->id]]],
+            array_map(fn ($d) => [$d['key'], $d['title'], $d['ids']], $s['decades']['rows']));
         $this->assertSame([$undated->id], $s['undated']['ids']);
+    }
+
+    public function test_voyage_jour_par_jour_avec_le_lieu_et_les_photos_egarees_a_part(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+        $album = Album::factory()->create(['user_id' => $this->me->id, 'theme' => 'voyage']);
+        $d1 = $this->photo($album, [], takenAt: '2012-08-15 10:00:00');
+        $d1b = $this->photo($album, [], takenAt: '2012-08-15 18:00:00');
+        $d3 = $this->photo($album, [], takenAt: '2012-08-17 09:00:00');
+        $stray = $this->photo($album, [], takenAt: '2018-07-12 12:00:00');
+        $undated = $this->photo($album, [], takenAt: null);
+        // Berlin déjà connu (cache) pour le jour 1 ; le jour 3 est à résoudre.
+        foreach ([[$d1, 52.52, 13.40], [$d1b, 52.52, 13.40], [$d3, 52.39, 13.06]] as [$m, $lat, $lng]) {
+            \App\Models\MediaMetadata::create(['media_id' => $m->id, 'latitude' => $lat, 'longitude' => $lng]);
+        }
+        \Illuminate\Support\Facades\Cache::put('geocode:rev:52.52,13.4', 'Berlin, Allemagne', now()->addDay());
+
+        $s = $this->sections($album)['days'];
+        $this->assertSame('3 jours', $s['subtitle']);
+        $rows = collect($s['rows'])->keyBy('key');
+        $this->assertSame('Jour 1', $rows['2012-08-15']['title']);
+        $this->assertSame('mercredi 15 août · Berlin', $rows['2012-08-15']['subtitle']);
+        $this->assertSame([$d1->id, $d1b->id], $rows['2012-08-15']['ids']);
+        // Un jour sans photo n'a pas de ligne, mais la numérotation suit le calendrier.
+        $this->assertSame('Jour 3', $rows['2012-08-17']['title']);
+        $this->assertSame('vendredi 17 août', $rows['2012-08-17']['subtitle']);
+        $this->assertSame([$stray->id], $rows['others']['ids']);
+        $this->assertSame([$undated->id], $rows['undated']['ids']);
+        // Le lieu inconnu est cherché en arrière-plan.
+        \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\ResolvePlaceNames::class,
+            fn ($job) => $job->points === [[52.39, 13.06]]);
+    }
+
+    public function test_voyage_de_moins_de_trois_semaines_jamais_coupe_par_des_jours_sans_photo(): void
+    {
+        // Ski du 7 au 17 avril, rien les 14 et 15 : un seul séjour, rien dans « Autres dates ».
+        $album = Album::factory()->create(['user_id' => $this->me->id, 'theme' => 'voyage']);
+        foreach (['2009-04-07', '2009-04-13', '2009-04-16', '2009-04-17'] as $d) {
+            $this->photo($album, [], takenAt: "{$d} 11:00:00");
+        }
+
+        $rows = collect($this->sections($album)['days']['rows']);
+        $this->assertSame(['Jour 1', 'Jour 7', 'Jour 10', 'Jour 11'], $rows->pluck('title')->all());
+        $this->assertNull($rows->firstWhere('key', 'others'));
+    }
+
+    public function test_voyage_d_une_seule_journee_rien_de_plus(): void
+    {
+        $album = Album::factory()->create(['user_id' => $this->me->id, 'theme' => 'voyage']);
+        $this->photo($album, [], takenAt: '2000-07-15 10:00:00');
+        $this->photo($album, [], takenAt: '2000-07-15 16:00:00');
+
+        $this->actingAs($this->me)->getJson("/albums/{$album->id}")->assertOk()->assertJsonPath('highlights', null);
     }
 
     public function test_sans_theme_ou_voyage_rien_de_plus(): void
