@@ -33,7 +33,9 @@ SUMMARY=$(grep '^OK (' "$LOG")
 rm -f "$LOG"
 
 echo "▶ Build du front"
-(cd backend && npm run build > /dev/null) || { echo "✗ Build du front en échec : commit ${SHA:0:7} NON validé."; exit 1; }
+BUILD_LOG=$(mktemp)
+(cd backend && npm run build > "$BUILD_LOG" 2>&1) || { tail -20 "$BUILD_LOG"; rm -f "$BUILD_LOG"; echo "✗ Build du front en échec : commit ${SHA:0:7} NON validé."; exit 1; }
+rm -f "$BUILD_LOG"
 
 mkdir -p "$HOME/.memorylane-tests-ok"
 echo "$(date '+%Y-%m-%d %H:%M') ${SUMMARY}" > "$HOME/.memorylane-tests-ok/$SHA"
