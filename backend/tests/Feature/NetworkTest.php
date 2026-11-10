@@ -232,9 +232,11 @@ class NetworkTest extends TestCase
     public function test_repondre_comment_vous_vous_etes_connus_met_a_jour_le_reseau(): void
     {
         $user = User::factory()->create();
-        $me = Person::factory()->create(['user_id' => $user->id]);
+        // Naissances fixées : personne n'entre dans le réseau avant ma naissance
+        // ni avant la sienne (dates aléatoires sinon).
+        $me = Person::factory()->create(['user_id' => $user->id, 'birth_date' => '1980-01-01']);
         $user->forceFill(['person_id' => $me->id])->save();
-        $friend = Person::factory()->create(['user_id' => $user->id]);
+        $friend = Person::factory()->create(['user_id' => $user->id, 'birth_date' => '1980-01-01']);
         $this->photoWith($user, [$me, $friend], '2021-05-01');
 
         $this->assertSame(2021, $this->edge($this->actingAs($user)->getJson('/network/data')->json(), $me, $friend)['first_year']);

@@ -33,8 +33,11 @@ class AuthController extends Controller
             'password.required' => __('Le mot de passe est requis.'),
         ]);
 
+        // Les adresses sont enregistrées en minuscules (User::email()).
+        $credentials['email'] = mb_strtolower(trim($credentials['email']));
+
         // Anti force brute : 5 essais par adresse et par IP, puis attente.
-        $throttleKey = 'login:'.strtolower($credentials['email']).'|'.$request->ip();
+        $throttleKey = 'login:'.$credentials['email'].'|'.$request->ip();
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
             $minutes = (int) ceil(RateLimiter::availableIn($throttleKey) / 60);
 
@@ -79,7 +82,8 @@ class AuthController extends Controller
             'email.email' => __('L\'adresse email doit être valide.'),
         ]);
 
-        $throttleKey = 'magic-link:' . strtolower($request->email) . '|' . $request->ip();
+        $email = mb_strtolower(trim($request->email));
+        $throttleKey = 'magic-link:'.$email.'|'.$request->ip();
 
         if (RateLimiter::tooManyAttempts($throttleKey, 3)) {
             return back()->withErrors([
@@ -89,7 +93,7 @@ class AuthController extends Controller
 
         RateLimiter::hit($throttleKey, 600);
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::where('email', $email)->first();
 
         // Même réponse dans tous les cas (pas d'énumération des comptes) ;
         // aucun lien pour un compte « en mémoire ».

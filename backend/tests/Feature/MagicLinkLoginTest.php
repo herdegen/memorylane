@@ -22,6 +22,21 @@ class MagicLinkLoginTest extends TestCase
     }
 
     /**
+     * Adresse saisie avec d'autres majuscules que celles du compte : le lien
+     * part quand même.
+     */
+    public function test_magic_link_is_sent_whatever_the_email_case(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->create(['email' => 'Family@Example.com']);
+
+        $this->post('/login/magic', ['email' => 'family@example.COM'])->assertSessionHas('success');
+
+        Notification::assertSentTo($user, MagicLoginLink::class);
+    }
+
+    /**
      * Un utilisateur existant reçoit le lien par e-mail.
      */
     public function test_magic_link_is_sent_to_existing_user(): void
