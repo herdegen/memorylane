@@ -10,6 +10,9 @@
  *      (lien à usage unique)
  *   2. cd backend && node scripts/guide-captures.mjs '<url-login-magique>' [terme-recherche]
  *      ONLY=recherche,tags node scripts/… → ne régénère que ces vignettes.
+ *      Pas-à-pas « dater une photo » (tuto-*) : TUTO_ALBUM=<id d'album> et
+ *      TUTO_MEDIA=<id d'une photo du compte, avec des visages détectés>
+ *      (sinon ces vignettes sont sautées).
  *
  * ⚠️ Utiliser un compte dont les photos peuvent figurer dans le guide (les
  * vignettes sont visibles de TOUS les comptes connectés).
@@ -29,6 +32,37 @@ if (!magicUrl) {
 // Source de vérité des vignettes — garder ALIGNÉ avec les `image:` de
 // resources/js/Pages/Guide.vue. Une vignette manquante n'est pas bloquante :
 // le front la masque proprement (GuideImage.vue).
+const TUTO_ALBUM = process.env.TUTO_ALBUM;
+const TUTO_MEDIA = process.env.TUTO_MEDIA;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Entoure l'élément à repérer (bouton, champ) d'un anneau rouge bien visible.
+const ring = (page, selector) => page.evaluate((sel) => {
+  const el = document.querySelector(sel);
+  if (!el) return false;
+  el.scrollIntoView({ block: 'center' });
+  el.style.outline = '4px solid #e11d48';
+  el.style.outlineOffset = '4px';
+  el.style.borderRadius = '12px';
+  return true;
+}, selector);
+
+// Ouvre la première photo de l'album dans la visionneuse, puis entoure le
+// bouton qui mène à la fiche (ⓘ sur ordinateur, « Détails » sur téléphone).
+const openViewer = (target) => async (page) => {
+  await page.click('[data-guide="media-tile"]');
+  await page.waitForSelector('.pswp--open', { timeout: 10000 });
+  await sleep(1500);
+  await ring(page, target);
+};
+const openFace = async (page) => {
+  await page.click('[data-guide="face"]');
+  await page.waitForSelector('[data-guide="face-panel"]', { timeout: 10000 });
+  await sleep(600);
+  await ring(page, '[data-guide="face-panel"]');
+  await ring(page, '[data-guide="face"]');
+};
+
 const SHOTS = [
   { name: 'dashboard', path: '/dashboard' },
   { name: 'mes-photos', path: '/media' },
@@ -69,6 +103,20 @@ const SHOTS = [
     settle: 1800,
   },
   { name: 'tags', path: '/tags' },
+  // Pas-à-pas « dater une photo, nommer quelqu'un » (ordinateur + téléphone).
+  { name: 'tuto-fiche', path: `/albums/${TUTO_ALBUM}`, requires: TUTO_ALBUM, interact: openViewer('.pswp__button--info') },
+  { name: 'tuto-fiche-phone', phone: true, path: `/albums/${TUTO_ALBUM}`, requires: TUTO_ALBUM, interact: openViewer('.pswp__mobile-bar-details') },
+  { name: 'tuto-date', path: `/media/${TUTO_MEDIA}`, requires: TUTO_MEDIA, interact: (page) => ring(page, '[data-guide="media-edit"]') },
+  {
+    name: 'tuto-date-phone', phone: true, path: `/media/${TUTO_MEDIA}`, requires: TUTO_MEDIA,
+    interact: async (page) => {
+      await page.click('[data-guide="media-info"]'); // section repliée sur téléphone
+      await sleep(400);
+      await ring(page, '[data-guide="media-edit"]');
+    },
+  },
+  { name: 'tuto-visage', path: `/media/${TUTO_MEDIA}`, requires: TUTO_MEDIA, interact: openFace },
+  { name: 'tuto-visage-phone', phone: true, path: `/media/${TUTO_MEDIA}`, requires: TUTO_MEDIA, interact: openFace },
 ];
 
 const THEMES = ['light', 'dark'];
@@ -94,9 +142,16 @@ try {
 
   // 2. Vignettes : viewport fixe 1440×900 (affichées ~800px → ~1.8x).
   for (const shot of SHOTS.filter((s) => !only || only.includes(s.name))) {
+    if ('requires' in shot && !shot.requires) {
+      console.warn(`⚠ ${shot.name} : TUTO_ALBUM / TUTO_MEDIA non fournis — vignette sautée`);
+      continue;
+    }
     for (const theme of THEMES) {
       const page = await browser.newPage();
-      await page.setViewport({ width: 1440, height: 900 });
+      // Téléphone : 390×844 (iPhone), pour la bande « Détails » et les sections repliées.
+      await page.setViewport(shot.phone
+        ? { width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true }
+        : { width: 1440, height: 900 });
       // Le script anti-FOUC de app.blade.php lit localStorage.theme.
       await page.evaluateOnNewDocument((t) => localStorage.setItem('theme', t), theme);
 

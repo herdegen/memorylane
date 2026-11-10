@@ -301,6 +301,7 @@
 
             <!-- Face Match Panel -->
             <FaceMatchPanel
+              data-guide="face-panel"
               class="order-first sm:order-none"
               v-if="selectedFace"
               :key="selectedFace.id"

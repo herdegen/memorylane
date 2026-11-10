@@ -4,6 +4,7 @@
     <div class="flex items-center justify-between" :class="expanded ? 'mb-4' : 'sm:mb-4'">
       <button
         type="button"
+        data-guide="media-info"
         class="flex items-center gap-2 text-left sm:pointer-events-none"
         :aria-expanded="expanded"
         @click="open = !open"
@@ -13,6 +14,7 @@
       </button>
       <button
         v-if="!isEditing"
+        data-guide="media-edit"
         @click="startEditing"
         class="text-sm text-brand-600 hover:text-brand-800"
         :class="expanded ? '' : 'hidden sm:inline'"
