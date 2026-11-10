@@ -23,15 +23,13 @@ docker compose exec -T app composer install --no-interaction --quiet
 
 echo "▶ Tests PHPUnit"
 LOG=$(mktemp)
-if ! docker compose exec -T app php -d memory_limit=512M vendor/bin/phpunit 2>&1 | tee "$LOG" | grep -E '^(OK|Tests:|FAILURES|ERRORS)' ; then
-    :
-fi
+docker compose exec -T app php -d memory_limit=512M vendor/bin/phpunit --colors=never > "$LOG" 2>&1 || true
 if ! grep -q '^OK (' "$LOG"; then
-    grep -v '^/var/www/html/vendor' "$LOG" | grep -A25 '^There w' | head -60
+    { grep -v '^/var/www/html/vendor' "$LOG" | grep -A25 '^There w' | head -60; tail -3 "$LOG"; } || true
     echo "✗ Tests en échec : commit ${SHA:0:7} NON validé."
     rm -f "$LOG"; exit 1
 fi
-SUMMARY=$(grep '^OK (' "$LOG" | tr -d '\033' | sed 's/\[[0-9;]*m//g')
+SUMMARY=$(grep '^OK (' "$LOG")
 rm -f "$LOG"
 
 echo "▶ Build du front"
