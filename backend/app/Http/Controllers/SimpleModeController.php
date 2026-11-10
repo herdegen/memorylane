@@ -228,7 +228,10 @@ class SimpleModeController extends Controller
             'url' => $this->mediaService->thumbnailUrl($media, ['large', 'medium']),
             'title' => self::caption($media),
             'when' => $media->taken_at ? self::whenLabel($media->taken_at) : null,
+            // « vous » d'abord, puis les autres par ordre alphabétique (ordre
+            // stable : la base ne garantit aucun ordre sur la relation).
             'who' => $media->people
+                ->sortBy(fn (Person $p) => [$p->id === $user->person_id ? 0 : 1, self::shortName($p)])
                 ->map(fn (Person $p) => $p->id === $user->person_id ? __('vous') : self::shortName($p))
                 ->values()
                 ->all(),

@@ -26,8 +26,10 @@ LOG=$(mktemp)
 docker compose exec -T app php -d memory_limit=512M vendor/bin/phpunit --colors=never > "$LOG" 2>&1 || true
 if ! grep -q '^OK (' "$LOG"; then
     { grep -v '^/var/www/html/vendor' "$LOG" | grep -A25 '^There w' | head -60; tail -3 "$LOG"; } || true
-    echo "✗ Tests en échec : commit ${SHA:0:7} NON validé."
-    rm -f "$LOG"; exit 1
+    mkdir -p "$HOME/.memorylane-tests-ok"
+    mv "$LOG" "$HOME/.memorylane-tests-ok/derniere-erreur.log"
+    echo "✗ Tests en échec : commit ${SHA:0:7} NON validé (journal complet : ~/.memorylane-tests-ok/derniere-erreur.log)."
+    exit 1
 fi
 SUMMARY=$(grep '^OK (' "$LOG")
 rm -f "$LOG"
