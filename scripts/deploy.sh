@@ -3,7 +3,8 @@
 #
 #   scripts/deploy.sh <branche|commit>
 #
-# Avance main en fast-forward jusqu'à <branche|commit>, avec : vérifications →
+# Avance main en fast-forward jusqu'à <branche|commit>, avec : vérifications
+# (dont tests validés sur le dev par scripts/test.sh pour CE commit) →
 # dump de la base → maintenance → code → dépendances si les verrous ont
 # changé → migrations → build front → caches Laravel → conteneurs → fin de
 # maintenance → contrôle des pages.
@@ -27,6 +28,17 @@ OLD=$(git rev-parse HEAD)
 NEW=$(git rev-parse --verify "$REF^{commit}")
 [ "$OLD" != "$NEW" ] || { echo "Rien à déployer."; exit 0; }
 git merge-base --is-ancestor "$OLD" "$NEW" || { echo "$REF ne descend pas de main : fast-forward impossible."; exit 1; }
+# Verrou : le commit doit avoir passé scripts/test.sh sur le dev (suite
+# complète + build). DEPLOY_SANS_TESTS=1 pour une urgence, en connaissance de cause.
+TESTS_OK="$HOME/.memorylane-tests-ok/$NEW"
+if [ -f "$TESTS_OK" ]; then
+    echo "Tests validés : $(cat "$TESTS_OK")"
+elif [ "${DEPLOY_SANS_TESTS:-}" = 1 ]; then
+    echo "⚠️  Déploiement SANS validation des tests (DEPLOY_SANS_TESTS=1)."
+else
+    echo "Commit ${NEW:0:7} non validé par les tests. Dans ~/memorylane-dev : se placer sur ce commit puis lancer scripts/test.sh."
+    exit 1
+fi
 git log --oneline "$OLD..$NEW"
 changed() { git diff --name-only "$OLD" "$NEW" -- "$@" | grep -q .; }
 
