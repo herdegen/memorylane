@@ -10,7 +10,8 @@ use Illuminate\Support\Str;
 /**
  * Après un déploiement : envoie une sonde sur chaque file de tâches de fond et
  * vérifie qu'elle est traitée par un worker démarré APRÈS le début du
- * déploiement (donc avec le nouveau code). Lancé par scripts/deploy.sh.
+ * déploiement (donc avec le nouveau code). Lancé par scripts/deploy.sh, qui
+ * redémarre TOUS les workers : une seule sonde par file suffit alors.
  */
 class DeployProbeCommand extends Command
 {
@@ -55,7 +56,9 @@ class DeployProbeCommand extends Command
         $ok = true;
         foreach (array_keys(self::QUEUES) as $queue) {
             if (! isset($results[$queue])) {
-                $this->error("✗ file {$queue} : sonde non traitée (workers arrêtés ou bloqués ?)");
+                // Un worker resté sur l'ancien code échoue aussi ici (il ne connaît
+                // pas memorylane.booted_at) : la sonde finit dans failed_jobs.
+                $this->error("✗ file {$queue} : sonde non traitée (workers arrêtés, bloqués ou restés sur l'ancien code)");
                 $ok = false;
             } elseif ($results[$queue] < $since) {
                 $this->error("✗ file {$queue} : worker démarré avant le déploiement, ancien code en mémoire (redémarrer horizon)");
