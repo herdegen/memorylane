@@ -94,14 +94,14 @@
 
               <!-- Cartes automatiques (mariage, naissance, décès) : modifiables
                    aussi — l'union (date, lieu, photo) ou la fiche elle-même. -->
-              <div v-if="canManage && !item.life_event_id && (item.union || item.kind === 'birth' || item.kind === 'death')" class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div v-if="canManage && !item.life_event_id && (item.union || item.kind === 'birth' || item.kind === 'death')" class="absolute top-2 right-2 flex gap-1 pointer-fine:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                 <button @click.stop="editAuto(item)" class="p-1.5 rounded-full bg-white/90 text-surface-600 hover:text-brand-600 shadow-sm" :title="$t('Modifier')">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                 </button>
               </div>
 
               <!-- Actions gestionnaire sur les moments (au survol) -->
-              <div v-if="canManage && item.life_event_id" class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div v-if="canManage && item.life_event_id" class="absolute top-2 right-2 flex gap-1 pointer-fine:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                 <button @click.stop="openEdit(item)" class="p-1.5 rounded-full bg-white/90 text-surface-600 hover:text-brand-600 shadow-sm" :title="$t('Modifier')">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                 </button>
