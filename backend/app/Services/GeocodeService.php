@@ -223,7 +223,7 @@ class GeocodeService
     }
 
     /** « 75010 Paris » ou « Paris 10e arrondissement » → « Paris ». */
-    private static function bareCity(string $segment): string
+    public static function bareCity(string $segment): string
     {
         $city = preg_replace('/\b\d{4,5}\b/u', '', $segment);
         // Arrondissements : « Paris 10e », « Paris-Xème », « Lyon 3ème arr. ».
@@ -417,6 +417,60 @@ class GeocodeService
         Cache::put($key, $name ?? 'miss', now()->addDays($name ? self::HIT_TTL_DAYS : self::MISS_TTL_DAYS));
 
         return $name;
+    }
+
+    /**
+     * Commune qui contient ce point, d'après Nominatim (géocodage inverse au
+     * niveau de la ville) : son identifiant Wikidata et tous ses noms
+     * (« Trier », « Trèves »…). Sert à trouver la photo d'une localité dont
+     * le nom seul est ambigu (homonymes) ou qui n'est connue que par une
+     * adresse. Null si aucune ; false si Nominatim est injoignable (non
+     * mémorisé, on retentera).
+     *
+     * @return array{wikidata: string, names: list<string>}|null|false
+     */
+    public function municipalityAt(float $lat, float $lng): array|null|false
+    {
+        $key = 'geocode:muni:'.round($lat, 2).','.round($lng, 2);
+        $cached = Cache::get($key);
+        if ($cached !== null) {
+            return $cached === 'miss' ? null : $cached;
+        }
+
+        try {
+            $this->throttle();
+            $response = Http::withHeaders(['User-Agent' => ExternalHttp::userAgent()])
+                ->timeout(6)
+                ->get(self::REVERSE_ENDPOINT, [
+                    'lat' => $lat,
+                    'lon' => $lng,
+                    'format' => 'jsonv2',
+                    'zoom' => 10,
+                    'extratags' => 1,
+                    'namedetails' => 1,
+                ]);
+        } catch (\Throwable $e) {
+            Log::warning('GeocodeService: échec Nominatim inverse (commune)', ['lat' => $lat, 'lng' => $lng, 'error' => $e->getMessage()]);
+
+            return false;
+        }
+        if ($response->status() === 429 || $response->serverError()) {
+            return false;
+        }
+
+        $wikidata = $response->ok() ? $response->json('extratags.wikidata') : null;
+        $result = is_string($wikidata) && preg_match('/^Q\d+$/', $wikidata)
+            ? [
+                'wikidata' => $wikidata,
+                'names' => array_values(array_unique(array_filter([
+                    $response->json('name'),
+                    ...array_values((array) ($response->json('namedetails') ?? [])),
+                ], 'is_string'))),
+            ]
+            : null;
+        Cache::put($key, $result ?? 'miss', now()->addDays($result ? self::HIT_TTL_DAYS : self::MISS_TTL_DAYS));
+
+        return $result;
     }
 
     /** Cellule d'environ 1 km : des points voisins partagent leur nom. */
