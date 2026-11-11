@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\ExternalHttp;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -111,7 +112,7 @@ class PlacePhotoService
     {
         try {
             $response = Http::withHeaders([
-                'User-Agent' => 'MemoryLane/1.3.0 (family media hub)',
+                'User-Agent' => ExternalHttp::userAgent(),
             ])->timeout(6)->get(self::WIKIPEDIA_SUMMARY.rawurlencode(str_replace(' ', '_', $locality)));
 
             if (! $this->definitive($response)) {
@@ -182,7 +183,7 @@ class PlacePhotoService
     {
         try {
             $response = Http::withHeaders([
-                'User-Agent' => 'MemoryLane/1.3.0 (family media hub)',
+                'User-Agent' => ExternalHttp::userAgent(),
             ])->timeout(6)->get(self::COMMONS_ENDPOINT, [
                 'action' => 'query',
                 'format' => 'json',

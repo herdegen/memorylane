@@ -102,4 +102,15 @@ class PlacePhotoServiceTest extends TestCase
             $service->photoFor(48.42, 7.52, 'Valff, Bas-Rhin')
         );
     }
+
+    public function test_s_identifie_aupres_de_wikipedia_avec_l_adresse_du_site(): void
+    {
+        config(['app.url' => 'https://exemple.test', 'mail.from.address' => 'contact@exemple.test']);
+        Http::fake(['*' => Http::response(['type' => 'disambiguation'])]);
+
+        app(PlacePhotoService::class)->photoFor(1.0, 1.0, 'Agonac');
+
+        Http::assertSent(fn ($r) => str_contains($r->url(), 'wikipedia.org')
+            && $r->header('User-Agent')[0] === 'MemoryLane/1.3 (https://exemple.test; contact@exemple.test)');
+    }
 }

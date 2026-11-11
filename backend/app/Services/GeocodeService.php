@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\ExternalHttp;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -357,7 +358,7 @@ class GeocodeService
     {
         try {
             $response = Http::withHeaders([
-                'User-Agent' => 'MemoryLane/1.3.0 (family media hub)',
+                'User-Agent' => ExternalHttp::userAgent(),
             ])->timeout(6)->get(self::BAN_ENDPOINT, [
                 'q' => $address,
                 'limit' => 1,
@@ -430,7 +431,7 @@ class GeocodeService
             $this->throttle();
 
             $response = Http::withHeaders([
-                'User-Agent' => 'MemoryLane/1.3.0 (family media hub)',
+                'User-Agent' => ExternalHttp::userAgent(),
                 'Accept-Language' => 'fr',
             ])->timeout(6)->get(self::REVERSE_ENDPOINT, [
                 'lat' => $lat,
@@ -469,7 +470,7 @@ class GeocodeService
             $this->throttle();
 
             $response = Http::withHeaders([
-                'User-Agent' => 'MemoryLane/1.3.0 (family media hub)',
+                'User-Agent' => ExternalHttp::userAgent(),
             ])->timeout(6)->get(self::ENDPOINT, [
                 'q' => $place,
                 'format' => 'json',

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\ExternalHttp;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -19,7 +20,7 @@ class PlaceSuggestController extends Controller
         $lang = in_array(app()->getLocale(), ['fr', 'en', 'de'], true) ? app()->getLocale() : 'en';
 
         $places = Cache::remember('place-suggest:'.$lang.':'.md5(mb_strtolower($q)), now()->addDays(30), function () use ($q, $lang) {
-            $response = Http::withHeaders(['User-Agent' => 'MemoryLane (family photo archive)'])
+            $response = Http::withHeaders(['User-Agent' => ExternalHttp::userAgent()])
                 ->timeout(5)
                 ->get('https://photon.komoot.io/api/', ['q' => $q, 'lang' => $lang, 'limit' => 8]);
             if (! $response->successful()) {

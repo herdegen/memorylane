@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\FamilyTimelineService;
 use App\Services\GenealogyService;
 use App\Services\MediaService;
+use App\Support\ExternalHttp;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Http;
@@ -325,7 +326,7 @@ class MapController extends Controller
 
         try {
             $response = Http::withHeaders([
-                'User-Agent' => 'MemoryLane/1.3.0 (family media hub)',
+                'User-Agent' => ExternalHttp::userAgent(),
             ])->get('https://nominatim.openstreetmap.org/search', [
                 'q' => $validated['query'],
                 'format' => 'json',
