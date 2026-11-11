@@ -255,6 +255,8 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::post('/{media}/fiches', [\App\Http\Controllers\MediaFicheController::class, 'store'])->name('fiches.store');
         Route::delete('/{media}/fiches/{person}', [\App\Http\Controllers\MediaFicheController::class, 'destroy'])->name('fiches.destroy');
         Route::post('/{media}/fiche-decision', [\App\Http\Controllers\MediaFicheController::class, 'decide'])->name('fiches.decide');
+        // Annuler une correction (date, lieu, visage) de l'historique de la photo
+        Route::post('/changes/{mediaChange}/revert', [\App\Http\Controllers\MediaChangeController::class, 'revert'])->name('changes.revert');
     });
 
     // Tag routes
@@ -403,6 +405,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         // Inviter ce proche à créer son accès (mail + lien /bienvenue)
         Route::post('/{person}/invite', [InvitationController::class, 'store'])->name('invite');
         Route::post('/{person}/spouse', [PersonController::class, 'addSpouse'])->name('addSpouse');
+        Route::put('/{person}/spouse', [PersonController::class, 'updateSpouse'])->name('updateSpouse');
         Route::delete('/{person}/spouse', [PersonController::class, 'removeSpouse'])->name('removeSpouse');
         Route::post('/{person}/child', [PersonController::class, 'addChild'])->name('addChild');
 

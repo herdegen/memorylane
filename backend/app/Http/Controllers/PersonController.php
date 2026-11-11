@@ -587,9 +587,25 @@ class PersonController extends Controller
                 $label = ($spouse->pivot->type ?? 'spouse') === 'partner'
                     ? __('Union avec :name', ['name' => $spouse->name])
                     : __('Mariage avec :name', ['name' => $spouse->name]);
+                // Photo choisie pour l'union (à défaut : le portrait du conjoint),
+                // seulement si le visiteur la voit.
+                $unionMediaId = $spouse->pivot->media_id ?? null;
+                $unionMedia = $unionMediaId
+                    ? Media::accessibleBy($viewer)->with('conversions')->find($unionMediaId)
+                    : null;
                 $items[] = array_merge(
                     $this->autoEvent('marriage', $start, $label, $spouse->pivot->start_place ?? null),
-                    ['related' => $this->relatedPayload($spouse)]
+                    [
+                        'related' => $this->relatedPayload($spouse),
+                        'media' => $unionMedia ? $this->mediaPayload($unionMedia) : null,
+                        // Carte modifiable (date, lieu, photo) : PUT /people/{id}/spouse.
+                        'union' => [
+                            'spouse_id' => $spouse->id,
+                            'start_date' => \Illuminate\Support\Carbon::parse($start)->format('Y-m-d'),
+                            'start_place' => $spouse->pivot->start_place ?? null,
+                            'media_id' => $unionMedia?->id,
+                        ],
+                    ]
                 );
             }
         }
@@ -1059,6 +1075,47 @@ class PersonController extends Controller
         );
 
         return response()->json(['message' => __('Relation ajoutee')]);
+    }
+
+    /**
+     * Date, lieu et photo d'une union (carte « Mariage » de la frise). Fiche
+     * commune à plusieurs familles : réservé à sa famille référente.
+     * Journalisé sur les deux fiches (PersonRelationshipObserver).
+     */
+    public function updateSpouse(Request $request, Person $person)
+    {
+        $this->authorizeManage($person);
+
+        $validated = $request->validate([
+            'spouse_id' => ['required', new VisiblePerson],
+            'start_date' => 'nullable|date',
+            'start_place' => 'nullable|string|max:255',
+            'media_id' => 'nullable|uuid',
+        ]);
+        $spouse = Person::findOrFail($validated['spouse_id']);
+        $this->authorizeManage($spouse);
+
+        foreach ([$person, $spouse] as $side) {
+            abort_if(
+                $this->shared->isShared($side) && ! $this->shared->isReferentMember($request->user(), $side),
+                403,
+                __('Fiche commune à plusieurs familles : seule sa famille référente modifie cette union.')
+            );
+        }
+        if (! empty($validated['media_id'])) {
+            abort_unless(Media::accessibleBy($request->user())->whereKey($validated['media_id'])->exists(), 403);
+        }
+
+        $ids = [$person->id, $spouse->id];
+        sort($ids);
+        $union = PersonRelationship::where('person1_id', $ids[0])->where('person2_id', $ids[1])->firstOrFail();
+        $union->update([
+            'start_date' => $validated['start_date'] ?? null,
+            'start_place' => filled($validated['start_place'] ?? null) ? trim($validated['start_place']) : null,
+            'media_id' => $validated['media_id'] ?? null,
+        ]);
+
+        return response()->json(['message' => __('Union mise à jour.')]);
     }
 
     public function removeSpouse(Request $request, Person $person)

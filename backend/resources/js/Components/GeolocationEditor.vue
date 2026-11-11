@@ -21,12 +21,14 @@
           {{ $t('Voir sur la carte') }}
         </button>
         <button
+          v-if="canEdit"
           @click="showEditForm = true"
           class="px-4 py-2 bg-surface-200 text-surface-700 rounded-lg hover:bg-surface-300 text-sm"
         >
           {{ $t('Modifier') }}
         </button>
         <button
+          v-if="canEdit"
           @click="removeLocation"
           class="px-4 py-2 bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-500/25 text-sm"
         >
@@ -41,6 +43,7 @@
         {{ $t('Aucune géolocalisation disponible pour ce média.') }}
       </p>
       <button
+        v-if="canEdit"
         @click="showEditForm = true"
         class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 text-sm"
       >
@@ -49,7 +52,7 @@
     </div>
 
     <!-- Edit form -->
-    <div v-if="showEditForm" class="border-t pt-4">
+    <div v-if="showEditForm && canEdit" class="border-t pt-4">
       <h4 class="font-medium mb-3">{{ hasLocation ? $t('Modifier la localisation') : $t('Ajouter la localisation') }}</h4>
 
       <!-- Location search -->
@@ -161,6 +164,11 @@ const props = defineProps({
   mediaId: {
     type: String,
     required: true,
+  },
+  // Placer / déplacer / retirer : tout membre qui voit la photo (journalisé).
+  canEdit: {
+    type: Boolean,
+    default: true,
   },
   initialLatitude: {
     type: Number,

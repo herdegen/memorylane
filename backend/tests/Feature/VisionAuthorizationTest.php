@@ -100,26 +100,28 @@ class VisionAuthorizationTest extends TestCase
     }
 
     /**
-     * Un membre du cercle voit les visages et les suggestions, mais
-     * l'identification sur la fiche photo est réservée à l'admin et à la
-     * personne qui a envoyé la photo (les membres passent par les quêtes).
+     * Un membre du cercle voit les visages et les suggestions, et peut aussi
+     * les identifier depuis la fiche photo (édition partagée, journalisée).
      */
-    public function test_membre_du_foyer_voit_mais_n_identifie_pas(): void
+    public function test_membre_du_foyer_identifie_et_c_est_journalise(): void
     {
         $member = $this->householdMember();
         $person = Person::factory()->create(['user_id' => $this->owner->id]);
+        // Photo (l'ajout manuel n'existe que sur une photo ou une vidéo), sans date :
+        // le contrôle naissance/date de la photo ne dépend pas du hasard des fabriques.
+        $this->media->update(['type' => 'photo', 'taken_at' => null]);
 
         $this->actingAs($member)->getJson("/vision/media/{$this->media->id}/faces")->assertOk();
         $this->actingAs($member)->getJson("/vision/faces/{$this->face->id}/suggest")->assertOk();
 
         $this->actingAs($member)
             ->postJson("/vision/faces/{$this->face->id}/match", ['person_id' => $person->id])
-            ->assertForbidden();
-        $this->actingAs($member)->postJson("/vision/faces/{$this->face->id}/dismiss")->assertForbidden();
+            ->assertOk();
         $this->actingAs($member)
             ->postJson("/vision/media/{$this->media->id}/faces/add", ['bounding_box' => ['x' => 1, 'y' => 1, 'width' => 5, 'height' => 5]])
-            ->assertForbidden();
-        $this->assertSame('unmatched', $this->face->fresh()->status);
+            ->assertCreated();
+        $this->assertSame('matched', $this->face->fresh()->status);
+        $this->assertSame(2, \App\Models\MediaChange::where('media_id', $this->media->id)->count());
     }
 
     public function test_proprietaire_et_admin_identifient(): void

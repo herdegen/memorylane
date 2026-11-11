@@ -13,7 +13,7 @@
         <svg class="sm:hidden w-5 h-5 text-surface-400 transition-transform" :class="expanded ? 'rotate-180' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
       </button>
       <button
-        v-if="!isEditing"
+        v-if="!isEditing && canEdit"
         data-guide="media-edit"
         @click="startEditing"
         class="text-sm text-brand-600 hover:text-brand-800"
@@ -185,6 +185,11 @@ const props = defineProps({
   media: {
     type: Object,
     required: true,
+  },
+  // Corriger les détails : tout membre qui voit la photo (MediaPolicy::editDetails).
+  canEdit: {
+    type: Boolean,
+    default: true,
   },
 });
 

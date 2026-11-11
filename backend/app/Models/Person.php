@@ -239,14 +239,14 @@ class Person extends Model
     public function spousesAsFirst()
     {
         return $this->belongsToMany(Person::class, 'person_relationships', 'person1_id', 'person2_id')
-            ->withPivot('type', 'start_date', 'end_date', 'start_place')
+            ->withPivot('type', 'start_date', 'end_date', 'start_place', 'media_id')
             ->withTimestamps();
     }
 
     public function spousesAsSecond()
     {
         return $this->belongsToMany(Person::class, 'person_relationships', 'person2_id', 'person1_id')
-            ->withPivot('type', 'start_date', 'end_date', 'start_place')
+            ->withPivot('type', 'start_date', 'end_date', 'start_place', 'media_id')
             ->withTimestamps();
     }
 

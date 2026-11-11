@@ -249,7 +249,7 @@
     <!-- ================= Sa vie (frise horizontale) ================= -->
     <!-- Amis : « Vos souvenirs ensemble » à la place de la frise de vie -->
     <FriendshipTimeline v-if="isFriends" :person-id="person.id" :person-name="personLabel(person)" />
-    <PersonTimeline v-else ref="timelineRef" :person-id="person.id" :person-name="personLabel(person)" :can-manage="canManage" />
+    <PersonTimeline v-else ref="timelineRef" :person-id="person.id" :person-name="personLabel(person)" :can-manage="canManage" @edit-person="showEditModal = true" />
 
     <!-- ================= Galeries, séparées par album puis par année ================= -->
     <div v-if="media.length > 0" id="photos" class="pt-7 sm:pt-9 pb-12 scroll-mt-16">

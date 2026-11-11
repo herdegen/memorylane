@@ -212,7 +212,7 @@
                puis Informations (repliées) et le reste — via `order-*`. -->
           <div class="flex flex-col gap-4 sm:gap-6">
             <!-- Basic info with editor -->
-            <MediaInfoEditor class="order-6 sm:order-none" :media="media" @updated="handleMediaUpdated" />
+            <MediaInfoEditor class="order-6 sm:order-none" :media="media" :can-edit="canEditFaces" @updated="handleMediaUpdated" />
 
             <!-- Mémos vocaux : la famille raconte la photo -->
             <VoiceNotesPanel
@@ -302,7 +302,7 @@
             <!-- Face Match Panel -->
             <FaceMatchPanel
               data-guide="face-panel"
-              class="order-first sm:order-none"
+              class="order-first"
               v-if="selectedFace"
               :key="selectedFace.id"
               :face="selectedFace"
@@ -371,11 +371,15 @@
             <!-- Geolocation -->
             <GeolocationEditor
               class="order-5 sm:order-none"
+              :can-edit="canEditFaces"
               :media-id="media.id"
               :initial-latitude="media.metadata?.latitude"
               :initial-longitude="media.metadata?.longitude"
               :initial-altitude="media.metadata?.altitude"
             />
+
+            <!-- Historique des corrections (date, lieu, visages) -->
+            <MediaHistory v-if="history.length" class="order-8 sm:order-none" :changes="history" />
 
             <!-- Actions -->
             <div class="order-9 sm:order-none bg-white rounded-lg shadow-xs p-4 sm:p-6">
@@ -430,13 +434,14 @@
 </template>
 
 <script setup>
-import { ref, computed, defineAsyncComponent } from 'vue';
+import { ref, computed, nextTick, defineAsyncComponent } from 'vue';
 import { Head, router, Link, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import TagInput from '@/Components/TagInput.vue';
 import PersonInput from '@/Components/PersonInput.vue';
 import FichePanel from '@/Components/FichePanel.vue';
 import GeolocationEditor from '@/Components/GeolocationEditor.vue';
+import MediaHistory from '@/Components/MediaHistory.vue';
 import MediaInfoEditor from '@/Components/MediaInfoEditor.vue';
 import FaceDetectionOverlay from '@/Components/FaceDetectionOverlay.vue';
 import FaceMatchPanel from '@/Components/FaceMatchPanel.vue';
@@ -496,6 +501,16 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  // Droits du visiteur : { edit_details } (date, lieu, visages).
+  can: {
+    type: Object,
+    default: () => ({}),
+  },
+  // Historique des corrections (date, lieu, visages), plus récent d'abord.
+  history: {
+    type: Array,
+    default: () => [],
+  },
   // Ajouté à la fiche du viewer par quelqu'un, en attente de sa décision.
   ficheRequest: {
     type: Object,
@@ -528,8 +543,8 @@ const openFaceFromViewer = (face) => {
   handleFaceClick(face);
 };
 
-// Identification des visages depuis cette page : admin et personne qui a
-// envoyé la photo seulement (la famille contribue via les quêtes).
+// Corrections (date, lieu, visages) : tout membre qui voit la photo, sauf
+// l'invité temporaire — journalisées et annulables (historique en bas).
 const isOwner = computed(() => props.media.user_id === usePage().props.auth?.user?.id);
 const isAdmin = computed(() => usePage().props.auth?.user?.role === 'admin');
 // « En faire un moment » : tout membre (pas un invité temporaire).
@@ -538,7 +553,7 @@ const canMakeMoment = computed(() => {
   return !!u && !u.is_guest && !u.simple_mode;
 });
 const showMakeMoment = ref(false);
-const canEditFaces = computed(() => isOwner.value || isAdmin.value);
+const canEditFaces = computed(() => props.can?.edit_details ?? (isOwner.value || isAdmin.value));
 
 // Référence au lecteur vidéo (pour capturer le temps courant dans l'éditeur de découpe).
 const playerRef = ref(null);
@@ -690,13 +705,15 @@ const handleMediaUpdated = (updatedMedia) => {
 };
 
 const handleFaceClick = (face) => {
-  // Identification réservée à l'admin et à la personne qui a envoyé la photo.
   if (!canEditFaces.value) return;
   // Matché, non-matché OU rejeté : on ouvre le panneau (permet de corriger,
   // ré-identifier ou ignorer). `rejected` = visage désassocié « collant »
   // (issue #30) : il reste un carré cliquable pour pouvoir l'ignorer/re-tagger.
   if (['unmatched', 'matched', 'rejected'].includes(face.status)) {
     selectedFace.value = face;
+    // Le panneau s'ouvre en tête de la colonne de droite : on s'assure qu'il
+    // est visible (petits écrans d'ordinateur, page déjà défilée).
+    nextTick(() => document.querySelector('[data-guide="face-panel"]')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
   }
 };
 

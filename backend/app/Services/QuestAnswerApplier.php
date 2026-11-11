@@ -33,15 +33,15 @@ class QuestAnswerApplier
      * Matrice d'autorisations : ne pas répondre à une question qu'on ne peut
      * pas appliquer. Fiches personnes : tout compte connecté (fiches globales
      * à l'instance, journalisé). Visages : quiconque peut VOIR le média
-     * (aligné VisionController::matchFace). Date/géoloc média : owner strict
-     * (aligné MediaController::update / MapController::updateGeolocation).
+     * (aligné VisionController::matchFace). Date/géoloc média : tout compte qui
+     * peut corriger la photo (MediaPolicy::editDetails), journalisé.
      */
     public function authorize(User $user, QuestType $type, Model $subject): void
     {
         if ($subject instanceof DetectedFace) {
             Gate::forUser($user)->authorize('view', $subject->media);
         } elseif ($subject instanceof Media) {
-            abort_unless($subject->user_id === $user->id, 403);
+            Gate::forUser($user)->authorize('editDetails', $subject);
         } elseif ($type === QuestType::Address) {
             // L'adresse est sensible : réservée au propriétaire de la fiche,
             // aux admins, et au foyer de la personne (miroir de la génération
@@ -98,14 +98,38 @@ class QuestAnswerApplier
             QuestType::Job => $this->applyLifeEvent($user, $subject, 'job', $payload['title'], (int) $payload['year']),
             QuestType::Education => $this->applyLifeEvent($user, $subject, 'education', $payload['title'], (int) $payload['year']),
             QuestType::Residence => $this->applyLifeEvent($user, $subject, 'residence', $payload['place'], (int) $payload['year'], $payload['place']),
-            QuestType::FaceIdentify => $this->faceMatcher->applyMatch($subject, $payload['person_id'], verified: true),
-            QuestType::MediaDate => $subject->update(['taken_at' => $payload['value']]),
-            QuestType::MediaGeo => $subject->metadata()->updateOrCreate([], [
-                'latitude' => $payload['latitude'],
-                'longitude' => $payload['longitude'],
-            ]),
+            QuestType::FaceIdentify => $this->applyFace($subject, $payload['person_id']),
+            QuestType::MediaDate => $this->applyMediaDate($subject, $payload['value']),
+            QuestType::MediaGeo => $this->applyMediaGeo($subject, $payload['latitude'], $payload['longitude']),
             QuestType::HowMet => $this->applyHowMet($user, $subject, $payload),
         };
+    }
+
+    /** Visage nommé depuis l'accueil : noté dans l'historique de la photo. */
+    private function applyFace(DetectedFace $face, string $personId): void
+    {
+        $history = app(MediaHistory::class);
+        $before = $history->faceState($face);
+        $this->faceMatcher->applyMatch($face, $personId, verified: true);
+        if ($before['person_id'] !== $personId) {
+            $history->log($face->media, 'face_identified', ['before' => $before, 'after' => $history->faceState($face->fresh())]);
+        }
+    }
+
+    private function applyMediaDate(Media $media, ?string $value): void
+    {
+        $history = app(MediaHistory::class);
+        $before = $history->snapshot($media);
+        $media->update(['taken_at' => $value]);
+        $history->logUpdate($media, $before);
+    }
+
+    private function applyMediaGeo(Media $media, $latitude, $longitude): void
+    {
+        $history = app(MediaHistory::class);
+        $before = $history->position($media);
+        $media->metadata()->updateOrCreate([], ['latitude' => $latitude, 'longitude' => $longitude]);
+        $history->log($media, 'geolocated', ['before' => $before, 'after' => $history->position($media)]);
     }
 
     /**

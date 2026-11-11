@@ -478,18 +478,18 @@ const howTo = [
   {
     title: t('Changez la date'),
     text: t('Dans le cadre « Informations », cliquez « Modifier » (sur téléphone, touchez d’abord « Informations » pour le déplier). Corrigez la date, puis « Enregistrer ». Vieille photo dont on ne connaît que l’année ? Mettez le 1er janvier.'),
-    note: t('Seule la personne qui a envoyé la photo peut changer sa date. Pour une photo envoyée par quelqu’un d’autre, prévenez-la, ou répondez quand l’accueil vous demande en quelle année elle a été prise.'),
+    note: t('Toute la famille peut corriger une photo qu’elle voit : sa date, son lieu, les personnes. Chaque correction est notée dans l’« Historique des corrections », en bas de la page : la personne qui a envoyé la photo peut l’annuler.'),
     image: 'tuto-date',
   },
   {
     title: t('Mettez un nom sur un visage'),
     text: t('Sur la photo, les visages sont encadrés : cliquez un cadre et choisissez la personne, MemoryLane en suggère. Un visage oublié ? « ＋ Ajouter un visage » sous la photo, puis entourez-le.'),
-    note: t('Sur les photos envoyées par les autres, c’est l’accueil qui vous pose la question « Qui est-ce ? ».'),
+    note: t('Le panneau « Identifier le visage » s’ouvre à côté de la photo (sur téléphone, juste en dessous). L’accueil vous pose aussi la question « Qui est-ce ? » pour les visages encore inconnus.'),
     image: 'tuto-visage',
   },
   {
     title: t('Plusieurs photos d’un coup'),
-    text: t('Dans Mes photos, touchez « Sélectionner », cochez les photos, puis « Dater » : la même date pour toutes.'),
+    text: t('Pour vos propres photos : dans Mes photos, touchez « Sélectionner », cochez les photos, puis « Dater » : la même date pour toutes.'),
   },
 ];
 

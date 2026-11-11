@@ -134,7 +134,8 @@ class VisionController extends Controller
      */
     public function analyzeOnServer(Request $request, Media $media): JsonResponse
     {
-        $this->authorizeFaceEditing($media);
+        $user = auth()->user();
+        abort_unless($user->isAdmin() || $media->user_id === $user->id, 403, __('Seuls l\'admin et la personne qui a envoyé la photo lancent son analyse.'));
         abort_unless(in_array($media->type, ['photo', 'video'], true), 422, __('Seules les photos et vidéos s\'analysent.'));
         abort_unless(\App\Services\Vision\FaceEngine::enabled(), 409, __('Analyse serveur désactivée.'));
 
@@ -211,6 +212,8 @@ class VisionController extends Controller
             'vision_processed_at' => now(),
         ]);
 
+        app(\App\Services\MediaHistory::class)->log($media, 'face_added', ['face_id' => $face->id]);
+
         $face->load('person');
 
         return response()->json($face, 201);
@@ -228,7 +231,10 @@ class VisionController extends Controller
         // Désassociation « collante » : le visage passe en `rejected` et n'est
         // plus re-matché automatiquement (sinon la correction serait défaite par
         // l'auto-association, issue #30). Il reste ré-identifiable manuellement.
+        $history = app(\App\Services\MediaHistory::class);
+        $before = $history->faceState($detectedFace);
         $this->faceMatcher->disassociate($detectedFace);
+        $history->log($detectedFace->media, 'face_reset', ['before' => $before]);
 
         return response()->json(['message' => 'Face reset']);
     }
@@ -344,7 +350,12 @@ class VisionController extends Controller
             'allow_duplicate' => ['sometimes', 'boolean'],
         ]);
 
+        $history = app(\App\Services\MediaHistory::class);
+        $before = $history->faceState($detectedFace);
         $this->faceMatcher->applyMatch($detectedFace, $validated['person_id'], (bool) ($validated['allow_duplicate'] ?? false), verified: true);
+        if ($before['person_id'] !== $validated['person_id']) {
+            $history->log($detectedFace->media, 'face_identified', ['before' => $before, 'after' => $history->faceState($detectedFace->fresh())]);
+        }
         $detectedFace->load('person');
 
         return response()->json($detectedFace);
@@ -400,7 +411,10 @@ class VisionController extends Controller
 
         // Rejeter un visage retire aussi son association éventuelle (person_id +
         // pivot), pas seulement son affichage (issue #30, incohérence secondaire).
+        $history = app(\App\Services\MediaHistory::class);
+        $before = $history->faceState($detectedFace);
         $this->faceMatcher->disassociate($detectedFace, 'dismissed');
+        $history->log($detectedFace->media, 'face_dismissed', ['before' => $before]);
 
         return response()->json(['message' => 'Face dismissed']);
     }
@@ -426,21 +440,17 @@ class VisionController extends Controller
         Gate::authorize('update', $media);
     }
 
+    /** Identifier les visages : tout compte qui voit la photo (sauf invité), journalisé. */
+    private function authorizeFaceEditing(?Media $media): void
+    {
+        abort_unless($media, 404);
+        Gate::authorize('editDetails', $media);
+    }
+
     /**
      * Un visage identifié comme une fiche d'un autre cercle ne peut être ni
      * ré-identifié ni désassocié par ce viewer (il ne la voit pas).
      */
-    /**
-     * Identifier, ajouter, ignorer ou analyser les visages d'une photo :
-     * réservé à l'admin et à la personne qui a envoyé la photo (les autres
-     * membres voient les visages et passent par les quêtes).
-     */
-    private function authorizeFaceEditing(?Media $media): void
-    {
-        $user = auth()->user();
-        abort_unless($media && ($user->isAdmin() || $media->user_id === $user->id), 403, __('Seuls l\'admin et la personne qui a envoyé la photo identifient ses visages.'));
-    }
-
     private function ensureFacePersonEditable(DetectedFace $face): void
     {
         abort_unless($face->personVisibleTo(auth()->user()), 403, __('Ce visage est identifié dans un autre cercle.'));

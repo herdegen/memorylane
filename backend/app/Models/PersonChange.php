@@ -38,6 +38,7 @@ class PersonChange extends Model
         'restored' => 'Fiche restaurée',
         'spouse_added' => 'Conjoint ajouté',
         'spouse_removed' => 'Conjoint retiré',
+        'union_updated' => 'Union modifiée',
     ];
 
     protected $fillable = [
@@ -149,6 +150,7 @@ class PersonChange extends Model
             'updated' => ! empty($this->diff),
             'created', 'deleted' => true,
             'spouse_added', 'spouse_removed' => ! empty($this->diff['spouse_id']),
+            'union_updated' => ! empty($this->diff['spouse_id']) && ! empty($this->diff['changes']),
             default => false,
         };
     }

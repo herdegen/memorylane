@@ -22,7 +22,26 @@ class PersonRelationshipObserver
         $this->log($relationship, 'spouse_removed');
     }
 
-    private function log(PersonRelationship $relationship, string $action): void
+    /** Date, lieu, photo de l'union : journalisés sur les deux fiches. */
+    public function updated(PersonRelationship $relationship): void
+    {
+        $changes = [];
+        foreach (['start_date', 'start_place', 'end_date', 'media_id'] as $field) {
+            if ($relationship->wasChanged($field)) {
+                $old = $relationship->getOriginal($field);
+                $new = $relationship->getAttribute($field);
+                $changes[$field] = [
+                    $old instanceof \DateTimeInterface ? $old->format('Y-m-d') : $old,
+                    $new instanceof \DateTimeInterface ? $new->format('Y-m-d') : $new,
+                ];
+            }
+        }
+        if ($changes) {
+            $this->log($relationship, 'union_updated', ['changes' => $changes]);
+        }
+    }
+
+    private function log(PersonRelationship $relationship, string $action, array $extra = []): void
     {
         $userId = auth()->id();
         if ($userId === null) {
@@ -37,7 +56,7 @@ class PersonRelationshipObserver
                 'person_id' => $self,
                 'user_id' => $userId,
                 'action' => $action,
-                'diff' => ['spouse_id' => $other, 'spouse_name' => $names[$other] ?? null],
+                'diff' => ['spouse_id' => $other, 'spouse_name' => $names[$other] ?? null] + $extra,
             ]);
         }
     }

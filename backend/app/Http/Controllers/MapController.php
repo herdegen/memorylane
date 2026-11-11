@@ -264,7 +264,7 @@ class MapController extends Controller
      */
     public function updateGeolocation(Request $request, Media $media)
     {
-        Gate::authorize('update', $media);
+        Gate::authorize('editDetails', $media);
 
         $validated = $request->validate([
             'latitude' => 'required|numeric|between:-90,90',
@@ -272,6 +272,8 @@ class MapController extends Controller
             'altitude' => 'nullable|numeric',
         ]);
 
+        $history = app(\App\Services\MediaHistory::class);
+        $before = $history->position($media);
         $media->metadata()->updateOrCreate(
             ['media_id' => $media->id],
             [
@@ -280,6 +282,7 @@ class MapController extends Controller
                 'altitude' => $validated['altitude'] ?? null,
             ]
         );
+        $history->log($media, 'geolocated', ['before' => $before, 'after' => $history->position($media)]);
 
         return response()->json([
             'message' => 'Geolocation updated successfully',
@@ -292,8 +295,13 @@ class MapController extends Controller
      */
     public function removeGeolocation(Media $media)
     {
-        Gate::authorize('update', $media);
+        Gate::authorize('editDetails', $media);
 
+        $history = app(\App\Services\MediaHistory::class);
+        $before = $history->position($media);
+        if ($before) {
+            $history->log($media, 'geolocation_removed', ['before' => $before]);
+        }
         $media->metadata()->update([
             'latitude' => null,
             'longitude' => null,

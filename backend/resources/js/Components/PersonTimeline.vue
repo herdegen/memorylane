@@ -92,6 +92,14 @@
                 {{ kindIcon(item.kind) }}
               </div>
 
+              <!-- Cartes automatiques (mariage, naissance, décès) : modifiables
+                   aussi — l'union (date, lieu, photo) ou la fiche elle-même. -->
+              <div v-if="canManage && !item.life_event_id && (item.union || item.kind === 'birth' || item.kind === 'death')" class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button @click.stop="editAuto(item)" class="p-1.5 rounded-full bg-white/90 text-surface-600 hover:text-brand-600 shadow-sm" :title="$t('Modifier')">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                </button>
+              </div>
+
               <!-- Actions gestionnaire sur les moments (au survol) -->
               <div v-if="canManage && item.life_event_id" class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button @click.stop="openEdit(item)" class="p-1.5 rounded-full bg-white/90 text-surface-600 hover:text-brand-600 shadow-sm" :title="$t('Modifier')">
@@ -134,6 +142,15 @@
 
     </div>
 
+    <UnionFormModal
+      v-if="unionEditing"
+      :person-id="personId"
+      :person-name="personName"
+      :item="unionEditing"
+      @close="unionEditing = null"
+      @saved="unionEditing = null; load()"
+    />
+
     <LifeEventFormModal
       v-if="showModal"
       :person-id="personId"
@@ -166,6 +183,7 @@ import { t } from '@/i18n';
 // Modale d'un moment et diaporama chargés à la demande : tous deux embarquent
 // Leaflet (~45 ko gzip), inutile tant qu'on ne les ouvre pas.
 const LifeEventFormModal = defineAsyncComponent(() => import('@/Components/LifeEventFormModal.vue'));
+const UnionFormModal = defineAsyncComponent(() => import('@/Components/UnionFormModal.vue'));
 const storyPlayerComponent = shallowRef(null);
 
 const toast = useToast();
@@ -176,6 +194,8 @@ const props = defineProps({
   personName: { type: String, default: '' },
   canManage: { type: Boolean, default: false },
 });
+// Naissance / décès : la fiche ouvre son propre formulaire.
+const emit = defineEmits(['edit-person']);
 
 const items = ref([]);
 const loading = ref(true);
@@ -224,6 +244,12 @@ const load = async ({ silent = false } = {}) => {
 
 const openCreate = () => { editing.value = null; showModal.value = true; };
 const openEdit = (item) => { editing.value = item; showModal.value = true; };
+// Carte automatique : un mariage s'édite ici (union), naissance et décès dans la fiche.
+const unionEditing = ref(null);
+const editAuto = (item) => {
+  if (item.union) unionEditing.value = item;
+  else emit('edit-person');
+};
 const onSaved = () => { showModal.value = false; load(); };
 
 const removeEvent = async (item) => {

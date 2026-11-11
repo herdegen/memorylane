@@ -278,6 +278,10 @@ class MediaController extends Controller
         return Inertia::render('Media/Show', [
             'media' => $media,
             'voiceNotes' => $voiceNotes,
+            // Corriger date, lieu, visages : tout membre qui voit la photo
+            // (journalisé, annulable — historique ci-dessous).
+            'can' => ['edit_details' => Gate::allows('editDetails', $media)],
+            'history' => \App\Http\Controllers\MediaChangeController::payload($media, $viewer),
             'ficheRequest' => $ficheRequest,
             // « Ajouter une personne » : présents sur l'album, même d'un autre cercle
             'albumPeople' => app(\App\Services\Vision\AlbumParticipants::class)->identifiedAround($media, auth()->user()),
@@ -304,7 +308,9 @@ class MediaController extends Controller
      */
     public function update(Request $request, Media $media)
     {
-        Gate::authorize('update', $media);
+        // Tout membre qui voit la photo corrige ses détails ; journalisé et
+        // annulable (MediaHistory).
+        Gate::authorize('editDetails', $media);
 
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
@@ -312,7 +318,10 @@ class MediaController extends Controller
             'taken_at' => 'nullable|date',
         ]);
 
+        $history = app(\App\Services\MediaHistory::class);
+        $before = $history->snapshot($media);
         $media->update($validated);
+        $history->logUpdate($media, $before);
 
         if ($request->wantsJson()) {
             return response()->json([
