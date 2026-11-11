@@ -218,6 +218,9 @@ class AlbumController extends Controller
 
         return Inertia::render('Albums/Show', [
             'album' => $album,
+            // Histoire tirée de cet album (lisible par le visiteur), s'il y en a une.
+            'story' => \App\Models\Story::visibleTo(auth()->user())->where('album_id', $album->id)
+                ->orderByRaw('published_at IS NULL')->first(['id', 'title']),
         ]);
     }
 

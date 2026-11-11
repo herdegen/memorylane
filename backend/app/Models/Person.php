@@ -209,6 +209,12 @@ class Person extends Model
         return $this->hasMany(LifeEvent::class);
     }
 
+    /** Histoires où la personne apparaît (principale ou non). */
+    public function stories()
+    {
+        return $this->belongsToMany(Story::class, 'story_person')->withPivot(['is_main', 'role', 'position']);
+    }
+
     public function father()
     {
         return $this->belongsTo(Person::class, 'father_id');

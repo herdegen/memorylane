@@ -40,6 +40,7 @@
               <NavLink v-if="isFriends" href="/network" :active="$page.component.startsWith('Network/')">{{ $t('Réseau') }}</NavLink>
               <NavLink v-else href="/family-tree" :active="$page.component.startsWith('FamilyTree/') || $page.component.startsWith('Network/')">{{ $t('Arbre') }}</NavLink>
               <NavLink href="/map" :active="$page.component.startsWith('Map/')">{{ $t('Carte') }}</NavLink>
+              <NavLink v-if="!isFriends" href="/stories" :active="$page.component.startsWith('Stories/')">{{ $t('Histoires') }}</NavLink>
             </div>
           </div>
 

@@ -315,6 +315,8 @@ class MediaController extends Controller
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
             'description' => 'nullable|string|max:2000',
+            // Texte d'un document (coupure de presse, lettre…), cherchable.
+            'transcription' => 'nullable|string|max:50000',
             'taken_at' => 'nullable|date',
             // Vieilles photos : mois, année ou décennie seulement.
             'taken_at_precision' => 'nullable|in:'.implode(',', Media::DATE_PRECISIONS),

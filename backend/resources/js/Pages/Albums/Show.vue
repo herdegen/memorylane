@@ -65,6 +65,13 @@
           <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
           {{ $t('Diaporama') }}
         </button>
+        <Link
+          :href="storyHref"
+          class="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-snow/90 backdrop-blur text-sm font-semibold text-ink shadow-warm-md hover:bg-snow transition"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 012-2h5v16H6a2 2 0 00-2 2V5zm16 0a2 2 0 00-2-2h-5v16h5a2 2 0 012 2V5z" /></svg>
+          {{ story ? $t('Lire l’histoire') : $t('Raconter l’histoire') }}
+        </Link>
         <button
           v-if="isOwner"
           @click="showSharePanel = !showSharePanel"
@@ -197,6 +204,10 @@
           {{ selectionMode ? $t('Terminer') : $t('Sélection') }}
         </button>
       </div>
+      <Link :href="storyHref" class="h-11 rounded-2xl border bg-white border-surface-300 text-surface-900 text-sm font-bold flex items-center justify-center gap-1.5">
+        <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 012-2h5v16H6a2 2 0 00-2 2V5zm16 0a2 2 0 00-2-2h-5v16h5a2 2 0 012 2V5z" /></svg>
+        {{ story ? $t('Lire l’histoire : :title', { title: story.title }) : $t('Raconter l’histoire de cet album') }}
+      </Link>
 
       <button
         v-if="participantsPreview.length || isOwner"
@@ -547,7 +558,14 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  // Histoire tirée de l'album : { id, title } ou null
+  story: {
+    type: Object,
+    default: null,
+  },
 });
+
+const storyHref = computed(() => (props.story ? `/stories/${props.story.id}` : `/stories/create?album=${props.album.id}`));
 
 const toast = useToast();
 const { confirm } = useConfirm();

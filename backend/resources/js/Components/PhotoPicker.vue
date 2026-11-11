@@ -102,6 +102,8 @@ const props = defineProps({
   // Sélection de départ : [{ id, thumbnail_url }]
   initial: { type: Array, default: () => [] },
   max: { type: Number, default: 24 },
+  // Album ouvert d'emblée (histoire tirée d'un album)
+  albumId: { type: String, default: null },
 });
 const emit = defineEmits(['close', 'done']);
 
@@ -199,6 +201,7 @@ watch(() => props.open, (v) => {
   if (!v) return;
   selected.value = props.initial.map((p) => ({ id: p.id, thumbnail_url: p.thumbnail_url }));
   q.value = '';
-  setTab(props.around ? 'date' : 'recent');
+  if (props.albumId) albumId.value = props.albumId;
+  setTab(props.albumId ? 'album' : props.around ? 'date' : 'recent');
 }, { immediate: true });
 </script>

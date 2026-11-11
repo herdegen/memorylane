@@ -55,6 +55,7 @@ class Media extends Model
             'original_name' => $this->original_name,
             'title'         => $this->title,
             'description'   => $this->description,
+            'transcription' => $this->transcription,
         ];
     }
 
@@ -64,7 +65,7 @@ class Media extends Model
      */
     public function searchIndexShouldBeUpdated(): bool
     {
-        return $this->wasRecentlyCreated || $this->wasChanged(['original_name', 'title', 'description']);
+        return $this->wasRecentlyCreated || $this->wasChanged(['original_name', 'title', 'description', 'transcription']);
     }
 
     /**
@@ -79,6 +80,7 @@ class Media extends Model
         'original_name',
         'title',
         'description',
+        'transcription',
         'file_path',
         'content_hash',
         'perceptual_hash',

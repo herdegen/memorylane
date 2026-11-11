@@ -76,7 +76,7 @@ class MediaChangeController extends Controller
                 'new' => self::date($dates[1] ?? null, $precisions[1] ?? null),
             ]);
         }
-        foreach (['title' => __('Titre'), 'description' => __('Description')] as $field => $label) {
+        foreach (['title' => __('Titre'), 'description' => __('Description'), 'transcription' => __('Transcription')] as $field => $label) {
             if (isset($d[$field])) {
                 $parts[] = __(':field : :old → :new', ['field' => $label, 'old' => self::text($d[$field][0] ?? null), 'new' => self::text($d[$field][1] ?? null)]);
             }

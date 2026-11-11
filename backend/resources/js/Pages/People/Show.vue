@@ -246,6 +246,31 @@
       :can-manage="canManage"
     />
 
+    <!-- ================= Histoires où la personne apparaît ================= -->
+    <section v-if="!isFriends && (stories.length || canManage)" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+      <div class="flex items-center justify-between gap-3 mb-3">
+        <h2 class="font-display text-xl sm:text-2xl font-bold text-surface-900">{{ $t('Histoires') }}</h2>
+        <Link :href="`/stories/create?person=${person.id}`" class="btn-secondary btn-sm">{{ $t('Raconter une histoire') }}</Link>
+      </div>
+      <div v-if="stories.length" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <Link
+          v-for="s in stories"
+          :key="s.id"
+          :href="`/stories/${s.id}`"
+          class="rounded-2xl bg-white border border-surface-200 px-4 py-3.5 flex flex-col gap-1.5 hover:border-brand-400 transition"
+        >
+          <span class="flex items-center gap-2 text-xs text-surface-500">
+            <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 012-2h5v16H6a2 2 0 00-2 2V5zm16 0a2 2 0 00-2-2h-5v16h5a2 2 0 012 2V5z" /></svg>
+            <span v-if="s.role">{{ s.role }}</span>
+            <span v-if="!s.published" class="px-1.5 rounded bg-surface-100 font-semibold">{{ $t('Brouillon') }}</span>
+          </span>
+          <span class="font-display text-lg font-bold text-surface-900 leading-snug">{{ s.title }}</span>
+          <span v-if="s.summary" class="text-sm text-surface-600 line-clamp-2">{{ s.summary }}</span>
+        </Link>
+      </div>
+      <p v-else class="text-sm text-surface-500">{{ $t('Une anecdote, un souvenir, une affaire de famille : racontez ce qu’on sait de :name.', { name: personLabel(person) }) }}</p>
+    </section>
+
     <!-- ================= Sa vie (frise horizontale) ================= -->
     <!-- Amis : « Vos souvenirs ensemble » à la place de la frise de vie -->
     <FriendshipTimeline v-if="isFriends" :person-id="person.id" :person-name="personLabel(person)" />
@@ -509,6 +534,11 @@ const props = defineProps({
   shared: {
     type: Object,
     default: null,
+  },
+  // Histoires où la personne apparaît : [{ id, title, summary, kind, published, role }]
+  stories: {
+    type: Array,
+    default: () => [],
   },
 });
 
