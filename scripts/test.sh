@@ -15,6 +15,15 @@ project=$(grep -s '^COMPOSE_PROJECT_NAME=' .env | cut -d= -f2 || true)
 [ "$project" = memorylane-dev ] || { echo "À lancer dans ~/memorylane-dev (jamais sur la prod)."; exit 1; }
 [ -z "$(git status --porcelain --untracked-files=no)" ] || { echo "Modifications non commitées : commiter d'abord, le verrou porte sur un commit."; exit 1; }
 
+# Une seule validation à la fois : elles partagent la base memorylane_test
+# (deux suites simultanées s'effacent mutuellement les tables).
+mkdir -p "$HOME/.memorylane-tests-ok"
+exec 9> "$HOME/.memorylane-tests-ok/.verrou"
+if ! flock -n 9; then
+    echo "Une autre validation tourne déjà : attente de sa fin…"
+    flock 9
+fi
+
 SHA=$(git rev-parse HEAD)
 echo "▶ Validation de $(git log --oneline -1 "$SHA")"
 
