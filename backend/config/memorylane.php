@@ -60,4 +60,11 @@ return [
             'insightface' => ['match' => 1.25, 'auto' => 1.0, 'margin' => 0.15, 'strong' => 0.75],
         ],
     ],
+
+    // Lecture automatique du texte des photos (Tesseract) : classe les
+    // documents (lettres tapées, journaux, actes imprimés) et propose leur texte.
+    'documents' => [
+        'ocr' => env('DOCUMENTS_OCR', true),
+        'tesseract' => env('TESSERACT_BINARY', '/usr/bin/tesseract'),
+    ],
 ];

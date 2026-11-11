@@ -3080,5 +3080,9 @@
     "Redécouvert": "Rediscovered",
     "Redécouvertes": "Rediscovered",
     "en cours": "in progress",
-    "sur :count photo ajoutée cette année|sur :count photos ajoutées cette année": "in :count photo added this year|in :count photos added this year"
+    "sur :count photo ajoutée cette année|sur :count photos ajoutées cette année": "in :count photo added this year|in :count photos added this year",
+    "C’est un document (lettre, acte, journal…)": "This is a document (letter, certificate, newspaper…)",
+    "Texte du document": "Document text",
+    "lu automatiquement": "read automatically",
+    "Lecture automatique du texte, à relire.": "Text read automatically, to be checked."
 }

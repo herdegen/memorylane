@@ -60,6 +60,24 @@
         <p class="mt-1 text-xs text-surface-400">{{ $t('Vieille photo ? Choisissez « Année » ou « Décennie » si vous ne connaissez pas le jour exact.') }}</p>
       </div>
 
+      <!-- Document (lettre, acte, journal) : rangé dans « Documents », avec son texte -->
+      <div v-if="media.type === 'photo'" class="flex flex-col gap-2">
+        <label class="flex items-center gap-2 text-sm text-surface-700">
+          <input id="is_document" v-model="form.is_document" type="checkbox" class="rounded border-surface-300 text-brand-600 focus:ring-brand-500" />
+          {{ $t('C’est un document (lettre, acte, journal…)') }}
+        </label>
+        <div v-if="form.is_document">
+          <label for="transcription" class="block text-sm font-medium text-surface-700 mb-1">{{ $t('Texte du document') }}</label>
+          <textarea
+            id="transcription"
+            v-model="form.transcription"
+            rows="8"
+            class="w-full px-3 py-2 border border-surface-300 rounded-lg text-sm focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+            :placeholder="$t('Recopiez le texte du document : il deviendra lisible sur téléphone et retrouvable par la recherche.')"
+          ></textarea>
+        </div>
+      </div>
+
       <div class="flex justify-end gap-2">
         <button
           type="button"
@@ -88,6 +106,14 @@
       <div v-if="media.description">
         <dt class="text-sm font-medium text-surface-500">{{ $t('Description') }}</dt>
         <dd class="mt-1 text-sm text-surface-900 whitespace-pre-wrap">{{ media.description }}</dd>
+      </div>
+
+      <div v-if="media.transcription">
+        <dt class="text-sm font-medium text-surface-500 flex items-center gap-2">
+          {{ $t('Texte du document') }}
+          <span v-if="media.transcription_source === 'ocr'" class="px-1.5 rounded bg-surface-100 text-[11px] font-semibold text-surface-500">{{ $t('lu automatiquement') }}</span>
+        </dt>
+        <dd class="mt-1 text-sm text-surface-900 whitespace-pre-wrap max-h-80 overflow-y-auto">{{ media.transcription }}</dd>
       </div>
 
       <div>
@@ -221,6 +247,8 @@ const form = reactive({
   title: props.media.title || '',
   description: props.media.description || '',
   date: dateOf(props.media),
+  is_document: !!props.media.is_document,
+  transcription: props.media.transcription || '',
 });
 // Recrée le champ date à chaque ouverture (il lit sa valeur au montage).
 const editKey = ref(0);
@@ -229,6 +257,8 @@ const startEditing = () => {
   form.title = props.media.title || '';
   form.description = props.media.description || '';
   form.date = dateOf(props.media);
+  form.is_document = !!props.media.is_document;
+  form.transcription = props.media.transcription || '';
   editKey.value += 1;
   isEditing.value = true;
 };
@@ -245,6 +275,8 @@ const save = async () => {
       description: form.description || null,
       taken_at: form.date.date || null,
       taken_at_precision: form.date.precision,
+      ...(props.media.type === 'photo' && form.is_document !== !!props.media.is_document ? { is_document: form.is_document } : {}),
+      ...(form.transcription !== (props.media.transcription || '') ? { transcription: form.transcription || null } : {}),
     });
     isEditing.value = false;
     emit('updated', response.data.media);
@@ -258,6 +290,7 @@ const save = async () => {
 
 const formatType = (type) => {
   const types = { photo: t('Photo'), video: t('Vidéo'), document: t('Document') };
+  if (type === 'photo' && props.media.is_document) return t('Document');
   return types[type] || type;
 };
 

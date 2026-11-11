@@ -317,6 +317,8 @@ class MediaController extends Controller
             'description' => 'nullable|string|max:2000',
             // Texte d'un document (coupure de presse, lettre…), cherchable.
             'transcription' => 'nullable|string|max:50000',
+            // Rangé dans « Documents » (classement à la main : définitif).
+            'is_document' => 'sometimes|boolean',
             'taken_at' => 'nullable|date',
             // Vieilles photos : mois, année ou décennie seulement.
             'taken_at_precision' => 'nullable|in:'.implode(',', Media::DATE_PRECISIONS),
@@ -325,6 +327,13 @@ class MediaController extends Controller
             $precision = $validated['taken_at_precision'] ?? null;
             $validated['taken_at'] = Media::normalizeTakenAt($validated['taken_at'], $precision);
             $validated['taken_at_precision'] = $validated['taken_at'] && $precision !== 'day' ? $precision : null;
+        }
+
+        if (array_key_exists('is_document', $validated)) {
+            $validated['document_source'] = 'manual';
+        }
+        if (array_key_exists('transcription', $validated) && $validated['transcription'] !== $media->transcription) {
+            $validated['transcription_source'] = filled($validated['transcription']) ? 'manual' : null;
         }
 
         $history = app(\App\Services\MediaHistory::class);

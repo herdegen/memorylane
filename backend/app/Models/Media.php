@@ -81,6 +81,9 @@ class Media extends Model
         'title',
         'description',
         'transcription',
+        'is_document',
+        'document_source',
+        'transcription_source',
         'file_path',
         'content_hash',
         'perceptual_hash',
@@ -122,6 +125,8 @@ class Media extends Model
             'clip_end' => 'float',
             'thumbnail_at' => 'float',
             'is_source' => 'boolean',
+            'is_document' => 'boolean',
+            'text_checked_at' => 'datetime',
         ];
     }
 

@@ -53,3 +53,6 @@ Schedule::command('people:refresh-portraits')->dailyAt('04:30')->timezone('Europ
 // le filet de sécurité (Nominatim, 1 req/s). Les introuvables ne sont
 // retentés qu'au bout d'une semaine.
 Schedule::command('people:geocode-places')->dailyAt('05:10')->timezone('Europe/Paris')->withoutOverlapping();
+
+// Lecture du texte des photos jamais lues (repère les documents), par lots la nuit.
+Schedule::command('media:read-documents --limit=400')->dailyAt('01:10')->timezone('Europe/Paris')->withoutOverlapping();
