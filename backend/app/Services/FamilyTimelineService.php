@@ -83,7 +83,7 @@ class FamilyTimelineService
 
     public const TRIP_PHOTOGRAPHER = 3;
 
-    /** Emploi ou études au-delà de cette durée (en années) : un lieu de vie, pas une sortie. */
+    /** Études au-delà de cette durée (en années) : un lieu de vie, pas une sortie. */
     public const STAY_MIN_YEARS = 0.5;
 
     public function __construct(private GeocodeService $geocoder) {}
@@ -427,12 +427,12 @@ class FamilyTimelineService
     }
 
     /**
-     * Un emploi ou des études de plus de six mois (date de fin connue) : un
-     * séjour, donc un lieu de vie qui compte dans les médianes.
+     * Des études de plus de six mois (date de fin connue) : un séjour, donc un
+     * lieu de vie qui compte dans les médianes.
      */
     private static function isStay(LifeEvent $event): bool
     {
-        return in_array($event->type, ['job', 'education'], true)
+        return $event->type === 'education'
             && $event->event_date && $event->end_date
             && self::decimalYear($event->end_date) - self::decimalYear($event->event_date) > self::STAY_MIN_YEARS;
     }
@@ -456,7 +456,9 @@ class FamilyTimelineService
      */
     private static function momentTrip(LifeEvent $event, array $coords): ?array
     {
-        if ($event->type === 'residence' || self::isStay($event) || ! $event->event_date) {
+        // Le lieu de travail ne place jamais personne : on y va chaque jour
+        // depuis chez soi, ce n'est ni un domicile ni un voyage.
+        if (in_array($event->type, ['residence', 'job'], true) || self::isStay($event) || ! $event->event_date) {
             return null;
         }
         $latLng = self::eventLatLng($event, $coords);
