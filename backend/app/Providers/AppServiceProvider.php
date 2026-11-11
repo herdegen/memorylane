@@ -19,6 +19,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // Heure de démarrage du processus : un worker de file la garde en
+        // mémoire, ce qui prouve après un déploiement qu'il tourne bien avec
+        // le nouveau code (cf. memorylane:deploy-probe).
+        $this->app->instance('memorylane.booted_at', microtime(true));
         // Analyse des visages en double : calculée une fois par requête (la
         // page admin la consulte pour chaque cellule du tableau).
         $this->app->scoped(\App\Services\Vision\DuplicateFaceResolver::class);

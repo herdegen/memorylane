@@ -7,7 +7,8 @@
 # (dont tests validés sur le dev par scripts/test.sh pour CE commit) →
 # dump de la base → maintenance → code → dépendances si les verrous ont
 # changé → migrations → build front → caches Laravel → conteneurs → fin de
-# maintenance → contrôle des pages.
+# maintenance → contrôle des pages, des files de tâches de fond (workers à
+# jour) et des pages clés dans un navigateur sans écran.
 # En cas d'échec une fois la maintenance activée, le site RESTE en maintenance
 # (rien n'est annulé automatiquement) : corriger, puis
 #   docker compose exec app php artisan up
@@ -76,6 +77,8 @@ step "Caches Laravel"
 artisan optimize
 
 step "Conteneurs"
+# Les workers démarrés après cet instant tournent avec le nouveau code.
+DEPLOY_START=$(date +%s)
 if changed docker-compose.yml docker-compose.prod.yml docker/app docker/nginx; then
     # Workers arrêtés d'abord : sinon ils perdent Redis/Postgres pendant leur
     # recréation et remplissent le journal d'erreurs de connexion.
@@ -103,4 +106,26 @@ for path in /up /login; do
     echo "$path → $code"
     [ "$code" = 200 ] || fail=1
 done
-[ "$fail" = 0 ] && echo "✅ Déployé : $(git log --oneline -1)" || { echo "⚠️  Contrôle en échec : vérifier le site et storage/logs."; exit 1; }
+[ "$fail" = 0 ] || { echo "⚠️  Contrôle en échec : vérifier le site et storage/logs."; exit 1; }
+
+# Contrôle approfondi (DEPLOY_SANS_CONTROLE=1 pour le sauter) : chaque file de
+# tâches de fond traitée par un worker à jour, puis les pages clés ouvertes
+# dans un navigateur sans écran (compte admin, lecture seule).
+if [ "${DEPLOY_SANS_CONTROLE:-}" != 1 ]; then
+    step "Tâches de fond"
+    artisan memorylane:deploy-probe --since="$DEPLOY_START" || fail=1
+
+    step "Pages clés (navigateur)"
+    control=$(artisan tinker --execute='
+        $admin = App\Models\User::where("role", "admin")->orderBy("created_at")->first();
+        $paths = array_values(array_filter([
+            ($id = App\Models\Media::where("user_id", $admin->id)->where("type", "photo")->latest("created_at")->value("id")) ? "/media/$id" : null,
+            ($id = App\Models\Album::where("user_id", $admin->id)->latest("created_at")->value("id")) ? "/albums/$id" : null,
+            $admin->person_id ? "/people/$admin->person_id" : null,
+        ]));
+        echo json_encode(["link" => App\Notifications\MagicLoginLink::urlFor($admin), "paths" => $paths]);
+    ' | tail -1)
+    (cd backend && node scripts/post-deploy-check.mjs "$control") || fail=1
+fi
+
+[ "$fail" = 0 ] && echo "✅ Déployé : $(git log --oneline -1)" || { echo "⚠️  Déployé (site en ligne) mais contrôle approfondi en échec : voir ci-dessus."; exit 1; }
