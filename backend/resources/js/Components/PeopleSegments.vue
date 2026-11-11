@@ -1,9 +1,9 @@
 <template>
   <!-- Téléphone : segmenté en tête de l'onglet « Proches » (« Amis » en mode
-       amis) — Personnes · Arbre (Réseau) · Carte · Histoires (famille). Les pages Arbre, Réseau et
+       amis) — Personnes · Arbre (Réseau) · Carte. Les pages Arbre, Réseau et
        Carte sont pleine hauteur : voir `.app-viewport` dans app.css. -->
   <div class="sm:hidden h-13 px-4 py-2 bg-page">
-    <div class="grid h-9 p-0.5 rounded-full bg-surface-200/80" :class="segments.length === 4 ? 'grid-cols-4' : 'grid-cols-3'" role="tablist">
+    <div class="grid grid-cols-3 h-9 p-0.5 rounded-full bg-surface-200/80" role="tablist">
       <Link
         v-for="s in segments"
         :key="s.href"
@@ -36,7 +36,6 @@ const segments = computed(() => {
       ? { href: '/network', label: t('Réseau'), active: c.startsWith('Network/') }
       : { href: '/family-tree', label: t('Arbre'), active: c.startsWith('FamilyTree/') || c.startsWith('Network/') },
     { href: '/map', label: t('Carte'), active: c.startsWith('Map/') },
-    ...(isFriends.value ? [] : [{ href: '/stories', label: t('Histoires'), active: c.startsWith('Stories/') }]),
   ];
 });
 </script>

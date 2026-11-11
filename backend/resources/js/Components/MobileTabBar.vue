@@ -51,8 +51,9 @@ const isActive = (tab) => {
   switch (tab) {
     case 'home': return c === 'Dashboard';
     case 'photos': return c.startsWith('Media/');
-    case 'albums': return c.startsWith('Albums/');
-    case 'people': return c.startsWith('People/') || c.startsWith('FamilyTree/') || c.startsWith('Network/') || c.startsWith('Map/') || c.startsWith('Stories/');
+    // Les histoires partent souvent d'un album : elles vivent dans l'onglet Albums.
+    case 'albums': return c.startsWith('Albums/') || c.startsWith('Stories/');
+    case 'people': return c.startsWith('People/') || c.startsWith('FamilyTree/') || c.startsWith('Network/') || c.startsWith('Map/');
     default: return false;
   }
 };

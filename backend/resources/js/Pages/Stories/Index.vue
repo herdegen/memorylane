@@ -1,7 +1,7 @@
 <template>
   <Head :title="$t('Histoires')" />
   <AppLayout>
-    <PeopleSegments />
+    <AlbumSegments />
     <div class="max-w-5xl mx-auto py-4 sm:py-9 px-4 sm:px-8">
       <div class="flex items-end justify-between gap-4 mb-5">
         <div class="min-w-0">
@@ -53,7 +53,7 @@
 import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
-import PeopleSegments from '@/Components/PeopleSegments.vue';
+import AlbumSegments from '@/Components/AlbumSegments.vue';
 import { storyKindLabel as kindLabel } from '@/utils/stories';
 
 defineProps({ stories: { type: Array, default: () => [] } });

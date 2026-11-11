@@ -1,6 +1,7 @@
 <template>
   <Head :title="$t('Albums')" />
   <AppLayout>
+    <AlbumSegments />
     <div class="py-4 sm:py-9 px-4 sm:px-8">
       <!-- En-tête : titre, recherche, nouvel album -->
       <div class="flex items-center sm:items-end justify-between gap-4 mb-3 sm:mb-5">
@@ -258,6 +259,7 @@
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import AlbumSegments from '@/Components/AlbumSegments.vue';
 import AlbumTile from '@/Components/AlbumTile.vue';
 import AlbumFormModal from '@/Components/AlbumFormModal.vue';
 import BaseModal from '@/Components/BaseModal.vue';
