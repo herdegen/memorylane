@@ -60,7 +60,8 @@ try {
     throw new Error(`connexion refusée par le lien magique (page finale : ${page.url()})`);
   }
 
-  const visit = async (path, check) => {
+  // Un essai : renvoie la liste des problèmes relevés sur la page.
+  const attempt = async (path, check) => {
     problems = [];
     let response;
     try {
@@ -75,10 +76,22 @@ try {
       const missing = await page.evaluate(check).catch((e) => `vérification impossible : ${e.message}`);
       if (missing) problems.push(missing);
     }
+    return [...new Set(problems)];
+  };
 
-    if (problems.length) {
+  // Une page en échec est retentée une fois : juste après le redémarrage des
+  // conteneurs, Chromium voit les interfaces réseau changer et coupe des
+  // requêtes (net::ERR_NETWORK_CHANGED), sans que le site soit en cause.
+  const visit = async (path, check) => {
+    let found = await attempt(path, check);
+    if (found.length) {
+      await new Promise((r) => setTimeout(r, 5000));
+      found = await attempt(path, check);
+    }
+
+    if (found.length) {
       failures.push(path);
-      console.log(`✗ ${path}\n    ${[...new Set(problems)].join('\n    ')}`);
+      console.log(`✗ ${path}\n    ${found.join('\n    ')}`);
     } else {
       console.log(`✓ ${path}`);
     }

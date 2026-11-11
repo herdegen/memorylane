@@ -116,6 +116,8 @@ if [ "${DEPLOY_SANS_CONTROLE:-}" != 1 ]; then
     artisan memorylane:deploy-probe --since="$DEPLOY_START" || fail=1
 
     step "Pages clés (navigateur)"
+    # Laisse le réseau Docker se stabiliser après les redémarrages.
+    sleep 5
     control=$(artisan tinker --execute='
         $admin = App\Models\User::where("role", "admin")->orderBy("created_at")->first();
         $paths = array_values(array_filter([
