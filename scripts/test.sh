@@ -30,9 +30,17 @@ echo "▶ Validation de $(git log --oneline -1 "$SHA")"
 # Dépendances PHP alignées sur le composer.lock du commit (rapide si à jour).
 docker compose exec -T app composer install --no-interaction --quiet
 
-echo "▶ Tests PHPUnit"
+# Base de test réservée à la validation : d'autres sessions lancent leurs
+# tests sur memorylane_test depuis d'autres dossiers (autres migrations), et
+# deux suites sur la même base s'effacent les tables (vu le 2026-11-11).
+DB=memorylane_validation_test
+docker compose exec -T postgres sh -c "psql -U \"\$POSTGRES_USER\" -tAc \"SELECT 1 FROM pg_database WHERE datname = '$DB'\" | grep -q 1 || createdb -U \"\$POSTGRES_USER\" $DB"
+sed "s/value=\"memorylane_test\"/value=\"$DB\"/" backend/phpunit.xml > backend/phpunit.validation.xml
+trap 'rm -f backend/phpunit.validation.xml' EXIT
+
+echo "▶ Tests PHPUnit (base $DB)"
 LOG=$(mktemp)
-docker compose exec -T app php -d memory_limit=512M vendor/bin/phpunit --colors=never > "$LOG" 2>&1 || true
+docker compose exec -T app php -d memory_limit=512M vendor/bin/phpunit -c phpunit.validation.xml --colors=never > "$LOG" 2>&1 || true
 if ! grep -q '^OK (' "$LOG"; then
     { grep -v '^/var/www/html/vendor' "$LOG" | grep -A25 '^There w' | head -60; tail -3 "$LOG"; } || true
     mkdir -p "$HOME/.memorylane-tests-ok"
