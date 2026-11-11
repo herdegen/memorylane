@@ -28,6 +28,8 @@ class DashboardController extends Controller
         return Inertia::render('Dashboard', [
             'onThisDay' => $onThisDay,
             'celebrations' => $this->celebrations(),
+            // Récaps à la une (anniversaire : « Prénom au fil des ans »)
+            'recaps' => app(\App\Services\RecapService::class)->featured(auth()->user()),
             // La personne du jour est le REPLI quand aucun souvenir daté du jour.
             'personOfTheDay' => $onThisDay->isEmpty() ? $this->personOfTheDay() : null,
             'showGuide' => auth()->user()->dashboard_guide_hidden_at === null,

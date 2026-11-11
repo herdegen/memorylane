@@ -126,6 +126,15 @@
         </div>
       </template>
 
+      <!-- Ordinateur : grande légende (récaps « au fil des ans » : l'année et l'âge) -->
+      <div
+        v-if="bigCaptions && !isMobile && currentItem && currentItem.type !== 'card' && (currentItem.chapter || storyCaption)"
+        class="absolute inset-x-0 bottom-0 h-1/2 flex flex-col items-start justify-end pl-10 pb-24 bg-linear-to-t from-black/70 to-transparent pointer-events-none text-snow"
+      >
+        <span v-if="currentItem.chapter" class="inline-block px-3.5 py-1 rounded-full bg-snow/20 backdrop-blur-sm text-base font-bold tracking-wide">{{ currentItem.chapter }}</span>
+        <div v-if="storyCaption" class="mt-2 font-display text-6xl leading-none [text-shadow:0_2px_14px_rgba(0,0,0,.6)]">{{ storyCaption }}</div>
+      </div>
+
       <!-- Contrôles desktop (auto-masqués) -->
       <Transition name="fade">
         <div v-if="controlsVisible && !isMobile" class="absolute inset-0 pointer-events-none">
@@ -212,6 +221,8 @@ const props = defineProps({
   // Titre affiché en haut sur téléphone (façon stories) ; les slides peuvent
   // porter `when` (moment), `chapter` (chip) et `people` (prénoms).
   title: { type: String, default: '' },
+  // Ordinateur : légende en grand (chapitre + texte), pas seulement dans la barre.
+  bigCaptions: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['close']);

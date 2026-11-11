@@ -141,6 +141,11 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/dashboard/hide-guide', [DashboardController::class, 'hideGuide'])->name('dashboard.hideGuide');
+    // Récaps : « Prénom au fil des ans »…
+    Route::get('/recaps', [\App\Http\Controllers\RecapController::class, 'index'])->name('recaps.index');
+    Route::get('/recaps/years/{person}', [\App\Http\Controllers\RecapController::class, 'years'])->name('recaps.years');
+    Route::get('/recaps/year/{year}', [\App\Http\Controllers\RecapController::class, 'year'])->whereNumber('year')->name('recaps.year');
+    Route::post('/recaps/seen', [\App\Http\Controllers\RecapController::class, 'seen'])->name('recaps.seen');
     // Premiers pas : mini-tuto d'envoi de photos, visite guidée (vus une fois)
     Route::post('/onboarding/{step}', [\App\Http\Controllers\OnboardingController::class, 'store'])
         ->whereIn('step', \App\Http\Controllers\OnboardingController::STEPS)

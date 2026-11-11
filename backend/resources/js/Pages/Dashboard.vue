@@ -21,6 +21,9 @@
         <!-- Corrections proposées par une autre famille sur une fiche commune -->
         <SharedPeopleCard />
 
+        <!-- Récaps à la une : « Prénom au fil des ans » autour de son anniversaire -->
+        <RecapStrip v-if="recaps.length" :recaps="recaps" />
+
         <!-- ============ Souvenirs « Il y a N ans » ============ -->
         <div v-if="onThisDay.length > 0" class="space-y-4" data-tour="today">
           <div class="flex items-center justify-between">
@@ -260,6 +263,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import { formatLongDate } from '@/utils/format';
 import { tc, intlLocale } from '@/i18n';
 import FullscreenSlideshow from '@/Components/FullscreenSlideshow.vue';
+import RecapStrip from '@/Components/RecapStrip.vue';
 import QuestCard from '@/Components/QuestCard.vue';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
 import PushPromptCard from '@/Components/PushPromptCard.vue';
@@ -275,6 +279,7 @@ const { isFriends } = useCircle();
 const { user } = useAuth();
 
 const props = defineProps({
+  recaps: { type: Array, default: () => [] },
   onThisDay: {
     type: Array,
     default: () => [],

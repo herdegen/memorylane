@@ -64,6 +64,9 @@
             <span v-if="sharedBadge" class="ml-auto inline-flex items-center justify-center min-w-6 h-6 px-1.5 rounded-full bg-brand-600 text-white text-xs font-bold">{{ sharedBadge }}</span>
             <span v-else class="ml-auto text-surface-400">›</span>
           </Link>
+          <Link href="/recaps" :class="ROW" @click="$emit('close')">
+            <svg class="w-5 h-5 text-surface-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M10 8.5l5 3.5-5 3.5z" /></svg>{{ $t('Récaps') }}<span class="ml-auto text-surface-400">›</span>
+          </Link>
           <Link href="/tags" :class="ROW" @click="$emit('close')">
             <svg class="w-5 h-5 text-surface-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12l9 9 9-9-9-9H5a2 2 0 00-2 2z" /><circle cx="8" cy="8" r="1.5" /></svg>{{ $t('Tags') }}<span class="ml-auto text-surface-400">›</span>
           </Link>

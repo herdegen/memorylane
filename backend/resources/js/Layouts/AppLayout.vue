@@ -99,6 +99,7 @@
                     {{ $t('Fiches communes') }}
                     <span v-if="sharedBadge" class="ml-auto inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-brand-600 text-white text-[11px] font-bold">{{ sharedBadge }}</span>
                   </Link>
+                  <Link href="/recaps" class="dropdown-item" @click="showDropdown = false">{{ $t('Récaps') }}</Link>
                   <Link href="/tags" class="dropdown-item" @click="showDropdown = false">{{ $t('Tags') }}</Link>
                   <Link href="/guide" class="dropdown-item" @click="showDropdown = false">{{ $t("Guide d'utilisation") }}</Link>
                   <Link href="/tv" class="dropdown-item" @click="showDropdown = false">{{ $t('Relier une télévision') }}</Link>
