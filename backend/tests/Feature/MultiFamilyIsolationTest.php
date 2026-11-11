@@ -73,6 +73,30 @@ class MultiFamilyIsolationTest extends TestCase
         return collect($key ? $response->json($key) : $response->json())->pluck('id');
     }
 
+    /**
+     * Branche d'arbre chargée à la demande (/family-tree/data/{person}) : depuis
+     * l'ancêtre commun on ne reçoit que sa famille ; une fiche de l'autre
+     * famille est introuvable.
+     */
+    public function test_tree_branch_on_demand_never_returns_the_other_family(): void
+    {
+        $ids = fn ($person) => collect($this->actingAs($this->alice)
+            ->getJson("/family-tree/data/{$person->id}")->assertOk()->json())->pluck('id');
+
+        $fromShared = $ids($this->ulysse);
+        $this->assertTrue($fromShared->contains($this->anne->id));
+        $this->assertFalse($fromShared->contains($this->bernard->id), 'Branche B visible depuis l\'ancêtre commun');
+        $this->assertFalse($fromShared->contains($this->beatrice->id));
+
+        // Une fiche de l'autre famille est introuvable, pas seulement filtrée.
+        $this->actingAs($this->alice)->getJson("/family-tree/data/{$this->bernard->id}")->assertNotFound();
+
+        // Les liens des fiches renvoyées ne pointent pas vers l'autre famille.
+        $this->assertStringNotContainsString($this->bernard->id, json_encode(
+            $this->actingAs($this->alice)->getJson("/family-tree/data/{$this->ulysse->id}")->json()
+        ));
+    }
+
     public function test_les_nouvelles_fiches_entrent_dans_la_famille_de_leur_auteur(): void
     {
         $this->assertSame([$this->A->id], $this->arthur->circles()->pluck('households.id')->all());
