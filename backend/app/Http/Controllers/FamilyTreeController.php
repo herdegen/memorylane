@@ -111,6 +111,16 @@ class FamilyTreeController extends Controller
         return Person::inFamilyOf($request->user());
     }
 
+    /** Fiches présentes dans une histoire publiée que le visiteur peut lire (calculé une fois). */
+    private ?array $storyPeople = null;
+
+    private function storyPeople(): array
+    {
+        return $this->storyPeople ??= \Illuminate\Support\Facades\DB::table('story_person')
+            ->whereIn('story_id', \App\Models\Story::visibleTo(auth()->user())->whereNotNull('published_at')->select('stories.id'))
+            ->pluck('person_id')->flip()->all();
+    }
+
     private function buildNode(Person $person, array $spouseMap, array $childrenMap, array $facePositions = [], ?array $known = null): array
     {
         // Liens restreints aux fiches renvoyées (pas d'id d'un autre cercle).
@@ -139,6 +149,8 @@ class FamilyTreeController extends Controller
                 // pour les avatars « photo entière », null sinon.
                 'avatar_position' => $facePositions[$person->id] ?? null,
                 'slug' => $person->slug,
+                // Apparaît dans une histoire publiée lisible : petit livre sur la carte.
+                'has_story' => isset($this->storyPeople()[$person->id]),
             ],
             'rels' => [
                 'father' => $inTree($person->father_id),

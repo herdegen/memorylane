@@ -786,9 +786,19 @@ let faceObserver = null;
 function applyFacePositions() {
   if (!chartRef.value) return;
   chartRef.value.querySelectorAll('.card[data-id]').forEach((el) => {
-    const position = rawById[el.getAttribute('data-id')]?.data?.avatar_position;
+    const data = rawById[el.getAttribute('data-id')]?.data;
+    const position = data?.avatar_position;
     const img = el.querySelector('img');
     if (img && position) img.style.objectPosition = position;
+    // Personne d'une histoire de famille : petit livre en coin de carte.
+    const inner = el.querySelector('.card-inner');
+    if (inner && data?.has_story && !inner.querySelector('.story-badge')) {
+      const badge = document.createElement('span');
+      badge.className = 'story-badge';
+      badge.title = t('Apparaît dans une histoire de famille');
+      badge.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M4 5a2 2 0 012-2h5v16H6a2 2 0 00-2 2V5zm16 0a2 2 0 00-2-2h-5v16h5a2 2 0 012 2V5z"/></svg>';
+      inner.appendChild(badge);
+    }
   });
 }
 
@@ -993,6 +1003,14 @@ onBeforeUnmount(() => {
 
 /* Lisibilité des cartes : coins arrondis, ombre douce, photo + texte alignés */
 .ml-tree .card-inner { border-radius: 10px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14); }
+/* Petit livre : la personne apparaît dans une histoire de famille. */
+.ml-tree .card-inner { position: relative; }
+.ml-tree .story-badge {
+  position: absolute; top: 4px; right: 4px; z-index: 2;
+  width: 20px; height: 20px; border-radius: 9999px; display: flex; align-items: center; justify-content: center;
+  background: var(--color-brand-600); color: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); pointer-events: none;
+}
+.ml-tree .story-badge svg { width: 12px; height: 12px; }
 .ml-tree .card-image-rect {
   display: flex;
   align-items: center;

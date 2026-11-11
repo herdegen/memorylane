@@ -33,6 +33,8 @@ class DashboardController extends Controller
             // La personne du jour est le REPLI quand aucun souvenir daté du jour.
             'personOfTheDay' => $onThisDay->isEmpty() ? $this->personOfTheDay() : null,
             'showGuide' => auth()->user()->dashboard_guide_hidden_at === null,
+            // « Une histoire de famille » : la plus récente du mois, sinon une par semaine.
+            'story' => $this->storyOfTheWeek(),
             // Médias ajoutés à SA fiche par d'autres, à valider.
             'fichePending' => app(\App\Services\FichePublisher::class)->pendingFor(auth()->user())
                 ->map(fn ($m) => [
@@ -42,6 +44,37 @@ class DashboardController extends Controller
                     'by' => strtok($m->user?->name ?? '', ' '),
                 ])->values(),
         ]);
+    }
+
+    /**
+     * Histoire mise en avant sur l'accueil : celle publiée ce mois-ci (la plus
+     * récente), sinon une histoire tirée au sort pour la semaine.
+     */
+    private function storyOfTheWeek(): ?array
+    {
+        $user = auth()->user();
+        $stories = \App\Models\Story::visibleTo($user)->whereNotNull('published_at')
+            ->with(['people', 'chapters'])->orderByDesc('published_at')->get();
+        if ($stories->isEmpty()) {
+            return null;
+        }
+        $story = $stories->first(fn ($s) => $s->published_at->gte(now()->subDays(30)))
+            ?? $stories[crc32($user->id.now()->format('o-W')) % $stories->count()];
+
+        $mediaId = $story->mediaIds()[0] ?? null;
+        $cover = $mediaId ? \App\Models\Media::accessibleBy($user)->with('conversions')->find($mediaId) : null;
+        $main = $story->mainPerson();
+
+        return [
+            'id' => $story->id,
+            'title' => $story->title,
+            'summary' => \Illuminate\Support\Str::limit((string) $story->summary, 220),
+            'kind' => $story->kind,
+            'chapters' => $story->chapters->count(),
+            'cover' => $cover ? $this->mediaService->thumbnailUrl($cover, ['medium', 'small']) : null,
+            'main' => $main ? ['id' => $main->id, 'name' => $main->name] : null,
+            'new' => $story->published_at->gte(now()->subDays(30)),
+        ];
     }
 
     /**

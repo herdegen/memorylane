@@ -3088,5 +3088,17 @@
     "C’est un document (lettre, acte, journal…)": "Es un documento (carta, acta, periódico…)",
     "Texte du document": "Texto del documento",
     "lu automatiquement": "leído automáticamente",
-    "Lecture automatique du texte, à relire.": "Texto leído automáticamente, por revisar."
+    "Lecture automatique du texte, à relire.": "Texto leído automáticamente, por revisar.",
+    "Apparaît dans une histoire de famille": "Aparece en una historia de familia",
+    "Chapitre :n sur :total": "Capítulo :n de :total",
+    "La suite dans une prochaine lettre, ou tout de suite en ligne.": "Continuará en una próxima carta, o ahora mismo en línea.",
+    "La suite de l’histoire": "La historia continúa",
+    "Lire la fin": "Leer el final",
+    "Lire le chapitre": "Leer el capítulo",
+    "Lire l’histoire (:count chapitre)|Lire l’histoire (:count chapitres)": "Leer la historia (:count capítulo)|Leer la historia (:count capítulos)",
+    "Nouvelle histoire de famille": "Nueva historia de familia",
+    "Une histoire de famille": "Una historia de familia",
+    "Une question de l’histoire": "Una pregunta de la historia",
+    "la suite de « :title »": "la continuación de «:title»",
+    "une histoire de famille, « :title »": "una historia de familia, «:title»"
 }

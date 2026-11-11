@@ -102,6 +102,10 @@ class QuestAnswerApplier
             QuestType::MediaDate => $this->applyMediaDate($subject, $payload['value'], $payload['precision'] ?? null),
             QuestType::MediaGeo => $this->applyMediaGeo($subject, $payload['latitude'], $payload['longitude']),
             QuestType::HowMet => $this->applyHowMet($user, $subject, $payload),
+            // « Je sais quelque chose » : un ajout signé sous la question de l'histoire.
+            QuestType::StoryQuestion => $subject->story->notes()->create([
+                'user_id' => $user->id, 'question_id' => $subject->id, 'body' => trim($payload['value']),
+            ]),
         };
     }
 

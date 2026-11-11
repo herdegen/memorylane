@@ -111,6 +111,17 @@
             @endif
             <p style="margin:12px 0 0;"><a href="{{ $s['url'] }}" style="{{ $link }}">{{ __('Voir les photos du cercle') }} →</a></p>
 
+        @elseif ($s['key'] === 'story')
+            <p style="{{ $kicker }}">{{ $s['number'] === 1 ? __('Une histoire de famille') : __('La suite de l’histoire') }}</p>
+            <p style="{{ $h2 }}">{{ $s['title'] }}</p>
+            @if ($s['summary'])<p style="{{ $p }}">{{ $s['summary'] }}</p>@endif
+            <p style="font-size:13px; letter-spacing:1px; text-transform:uppercase; color:#b45309; margin:14px 0 4px;">{{ __('Chapitre :n sur :total', ['n' => $s['number'], 'total' => $s['total']]) }}@if ($s['when']) · {{ $s['when'] }}@endif</p>
+            <p style="font-family:{{ $serif }}; font-size:19px; color:#1c1917; margin:0 0 8px;">{{ $s['chapter'] }}</p>
+            @if ($s['image'])<img src="{{ $s['image'] }}" alt="" style="display:block; max-width:100%; max-height:280px; border-radius:10px; margin:6px 0 12px;">@endif
+            @if ($s['excerpt'])<p style="{{ $p }}">{{ $s['excerpt'] }}</p>@endif
+            <a href="{{ $s['url'] }}" style="{{ $btn }}">{{ $s['number'] < $s['total'] ? __('Lire le chapitre') : __('Lire la fin') }}</a>
+            @if ($s['number'] < $s['total'])<p style="font-size:13px; color:#78716c; margin:10px 0 0;">{{ __('La suite dans une prochaine lettre, ou tout de suite en ligne.') }}</p>@endif
+
         @elseif ($s['key'] === 'person_of_week')
             <p style="{{ $kicker }}">{{ __('La personne de la semaine') }}</p>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>

@@ -59,6 +59,11 @@
             >
               {{ question.person.birth_year ? $t('Voir sa fiche — né·e en :year', { year: question.person.birth_year }) : $t('Voir sa fiche') }}
             </Link>
+            <!-- Question d'une histoire de famille : de quelle histoire il s'agit -->
+            <p v-if="question.story" class="text-sm text-surface-600 mt-1">
+              {{ $t('Une question de l’histoire') }}
+              <Link :href="question.story.url" class="font-semibold text-brand-700 hover:underline">« {{ question.story.title }} »</Link>
+            </p>
             <!-- D'où vient la photo : album(s), date, qui l'a envoyée -->
             <p v-if="originText" class="text-xs text-surface-500 mt-0.5">
               📁 <template v-for="(a, i) in origin.albums" :key="a.id"><Link :href="`/albums/${a.id}`" class="hover:text-brand-700 hover:underline">{{ a.name }}</Link><span v-if="i < origin.albums.length - 1">, </span></template>
@@ -101,6 +106,16 @@
               :placeholder="textPlaceholder"
               @keyup.enter="submitAnswer"
             />
+
+            <!-- Histoire : ce qu'on sait, librement -->
+            <textarea
+              v-else-if="uiKind === 'story'"
+              v-model="form.value"
+              rows="3"
+              class="form-input max-w-xl"
+              :placeholder="$t('Ce que vous savez, d’où vous le tenez…')"
+              :aria-label="$t('Votre ajout')"
+            ></textarea>
 
             <!-- Encore en vie ? -->
             <div v-else-if="uiKind === 'death_status'" class="space-y-3">
@@ -489,6 +504,7 @@ const UI_KINDS = {
   face_identify: 'face',
   media_geo: 'media_geo',
   how_met: 'how_met',
+  story_question: 'story',
 };
 
 const uiKind = computed(() => UI_KINDS[question.value?.type]);
@@ -573,6 +589,8 @@ const currentPayload = computed(() => {
       return form.value.value ? { value: form.value.value } : null;
     case 'text':
       return form.value.value ? { value: form.value.value } : null;
+    case 'story':
+      return form.value.value?.trim() ? { value: form.value.value.trim() } : null;
     case 'death_status':
       return deceased.value ? { death_date: form.value.death_date || null } : null;
     case 'parent':

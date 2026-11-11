@@ -3084,5 +3084,17 @@
     "C’est un document (lettre, acte, journal…)": "This is a document (letter, certificate, newspaper…)",
     "Texte du document": "Document text",
     "lu automatiquement": "read automatically",
-    "Lecture automatique du texte, à relire.": "Text read automatically, to be checked."
+    "Lecture automatique du texte, à relire.": "Text read automatically, to be checked.",
+    "Apparaît dans une histoire de famille": "Appears in a family story",
+    "Chapitre :n sur :total": "Chapter :n of :total",
+    "La suite dans une prochaine lettre, ou tout de suite en ligne.": "To be continued in a coming letter, or right now online.",
+    "La suite de l’histoire": "The story continues",
+    "Lire la fin": "Read the ending",
+    "Lire le chapitre": "Read the chapter",
+    "Lire l’histoire (:count chapitre)|Lire l’histoire (:count chapitres)": "Read the story (:count chapter)|Read the story (:count chapters)",
+    "Nouvelle histoire de famille": "New family story",
+    "Une histoire de famille": "A family story",
+    "Une question de l’histoire": "A question from the story",
+    "la suite de « :title »": "more of “:title”",
+    "une histoire de famille, « :title »": "a family story, “:title”"
 }
