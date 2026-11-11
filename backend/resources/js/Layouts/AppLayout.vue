@@ -63,15 +63,17 @@
               <IconTheme :dark="isDark" icon-class="icon-sm" />
             </button>
 
-            <a v-if="isAdmin" href="/admin" class="btn-admin">
-              <IconSettings icon-class="icon-sm mr-1.5" />
-              {{ $t('Admin') }}
+            <!-- Écran moyen : icône seule (place pour la recherche) -->
+            <a v-if="isAdmin" href="/admin" class="btn-admin shrink-0" :title="$t('Admin')">
+              <IconSettings icon-class="icon-sm min-[1400px]:mr-1.5" />
+              <span class="sr-only min-[1400px]:not-sr-only">{{ $t('Admin') }}</span>
             </a>
 
             <template v-if="user">
               <div class="relative" ref="dropdownRef">
                 <button
                   @click="showDropdown = !showDropdown"
+                  :title="user.name"
                   class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-surface-700
                          hover:bg-surface-100 hover:text-surface-900 focus:outline-hidden transition-colors"
                 >
@@ -79,7 +81,7 @@
                     <PersonAvatar :name="user.name" :size="7" />
                     <span v-if="sharedBadge" class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-brand-600 ring-2 ring-white dark:ring-surface-50" aria-hidden="true" />
                   </span>
-                  <span>{{ user.name }}</span>
+                  <span class="hidden min-[1400px]:inline">{{ user.name }}</span>
                   <IconChevron class="w-4 h-4 text-surface-400 transition-transform" :class="{ 'rotate-180': showDropdown }" />
                 </button>
 
