@@ -9,9 +9,12 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Photo d'illustration d'un lieu, trouvée automatiquement :
- *  1. l'image de l'article Wikipédia (fr) de la localité — c'est en général
- *     SA photo emblématique (l'église, la mairie, la vue d'ensemble) ;
- *  2. à défaut, géo-recherche sur Wikimedia Commons autour des coordonnées
+ *  1. l'« image principale » de la localité sur Wikidata (P18), choisie par
+ *     la communauté : une vraie vue (la skyline de Denver, la Grand-Place de
+ *     Lille) là où l'article Wikipédia montre un drapeau ou un collage. Les
+ *     homonymes sont départagés par la distance au lieu géocodé ;
+ *  2. à défaut, l'image de l'article Wikipédia (fr) de la localité ;
+ *  3. à défaut, géo-recherche sur Wikimedia Commons autour des coordonnées
  *     (meilleur effort : ce que la communauté a photographié à 300 m).
  * Cache durable. Null si rien de photogénique.
  */
@@ -20,6 +23,11 @@ class PlacePhotoService
     private const COMMONS_ENDPOINT = 'https://commons.wikimedia.org/w/api.php';
 
     private const WIKIPEDIA_SUMMARY = 'https://fr.wikipedia.org/api/rest_v1/page/summary/';
+
+    private const WIKIDATA_ENDPOINT = 'https://www.wikidata.org/w/api.php';
+
+    /** Au-delà, la localité Wikidata est un homonyme, pas notre lieu. */
+    private const WIKIDATA_MAX_KM = 25;
 
     private const HIT_TTL_DAYS = 365;
     private const MISS_TTL_DAYS = 14;
@@ -36,6 +44,13 @@ class PlacePhotoService
         if ($place !== null) {
             $locality = trim(explode(',', $place)[0]);
             if (mb_strlen($locality) >= 3) {
+                $wd = Cache::get($this->wikidataKey($locality, $latitude, $longitude));
+                if ($wd === null) {
+                    return false;
+                }
+                if ($wd !== 'miss') {
+                    return true;
+                }
                 $wp = Cache::get('placephoto:wp:'.md5(mb_strtolower($locality)));
                 if ($wp === null) {
                     return false;
@@ -51,6 +66,9 @@ class PlacePhotoService
 
     public function photoFor(float $latitude, float $longitude, ?string $place = null): ?string
     {
+        if ($place !== null && ($url = $this->wikidataPhotoFor($place, $latitude, $longitude)) !== null) {
+            return $url;
+        }
         if ($place !== null && ($url = $this->wikipediaPhotoFor($place)) !== null) {
             return $url;
         }
@@ -69,6 +87,136 @@ class PlacePhotoService
         Cache::put($key, $url ?? 'miss', now()->addDays($url ? self::HIT_TTL_DAYS : self::MISS_TTL_DAYS));
 
         return $url;
+    }
+
+    /** Clé de cache Wikidata : la localité ET sa position (homonymes). */
+    private function wikidataKey(string $locality, float $latitude, float $longitude): string
+    {
+        return 'placephoto:wd:'.md5(mb_strtolower($locality)).sprintf(':%.2f,%.2f', $latitude, $longitude);
+    }
+
+    /** Image principale Wikidata de la localité (premier segment du lieu). */
+    private function wikidataPhotoFor(string $place, float $latitude, float $longitude): ?string
+    {
+        $locality = trim(explode(',', $place)[0]);
+        if (mb_strlen($locality) < 3) {
+            return null;
+        }
+
+        $key = $this->wikidataKey($locality, $latitude, $longitude);
+        $cached = Cache::get($key);
+        if ($cached !== null) {
+            return $cached === 'miss' ? null : $this->downsized($cached);
+        }
+
+        $url = $this->fetchWikidata($locality, $latitude, $longitude);
+        if ($url === false) {
+            return null; // échec passager : on retentera à la prochaine frise
+        }
+        Cache::put($key, $url ?? 'miss', now()->addDays($url ? self::HIT_TTL_DAYS : self::MISS_TTL_DAYS));
+
+        return $url;
+    }
+
+    /**
+     * Localités de ce nom sur Wikipédia (fr, en, de) → l'entité Wikidata la
+     * plus proche du lieu géocodé (pages d'homonymie et homonymes lointains
+     * écartés) → son image principale, en vignette de 1280 px.
+     */
+    private function fetchWikidata(string $locality, float $latitude, float $longitude): string|false|null
+    {
+        try {
+            $response = Http::withHeaders(['User-Agent' => ExternalHttp::userAgent()])
+                ->timeout(6)
+                ->get(self::WIKIDATA_ENDPOINT, [
+                    'action' => 'wbgetentities',
+                    'sites' => 'frwiki|enwiki|dewiki',
+                    'titles' => $locality,
+                    'props' => 'claims',
+                    'format' => 'json',
+                ]);
+            if (! $this->definitive($response)) {
+                Log::warning('PlacePhotoService: Wikidata indisponible', ['locality' => $locality, 'status' => $response->status()]);
+
+                return false;
+            }
+            if (! $response->ok()) {
+                return null;
+            }
+
+            $file = null;
+            $best = self::WIKIDATA_MAX_KM;
+            foreach ($response->json('entities') ?? [] as $entity) {
+                $coords = data_get($entity, 'claims.P625.0.mainsnak.datavalue.value');
+                $image = $this->mainImage($entity['claims']['P18'] ?? []);
+                if (! is_array($coords) || $image === null) {
+                    continue;
+                }
+                $km = $this->distanceKm($latitude, $longitude, (float) $coords['latitude'], (float) $coords['longitude']);
+                if ($km <= $best) {
+                    $best = $km;
+                    $file = $image;
+                }
+            }
+            if ($file === null || $this->rejected($file)) {
+                return null;
+            }
+
+            $info = Http::withHeaders(['User-Agent' => ExternalHttp::userAgent()])
+                ->timeout(6)
+                ->get(self::COMMONS_ENDPOINT, [
+                    'action' => 'query',
+                    'format' => 'json',
+                    'titles' => 'File:'.$file,
+                    'prop' => 'imageinfo',
+                    'iiprop' => 'url|mime',
+                    'iiurlwidth' => 1280,
+                ]);
+            if (! $this->definitive($info)) {
+                return false;
+            }
+            $image = collect($info->json('query.pages') ?? [])->first()['imageinfo'][0] ?? null;
+            if (! $image || ! str_starts_with($image['mime'] ?? '', 'image/') || str_contains($image['mime'], 'svg')) {
+                return null;
+            }
+
+            return strtok($image['thumburl'] ?? $image['url'], '?') ?: null;
+        } catch (\Throwable $e) {
+            Log::warning('PlacePhotoService: échec Wikidata', ['locality' => $locality, 'error' => $e->getMessage()]);
+
+            return false;
+        }
+    }
+
+    /** Fichier de l'image principale : rang « préféré » d'abord, jamais « déprécié ». */
+    private function mainImage(array $claims): ?string
+    {
+        $claims = array_filter($claims, fn ($c) => ($c['rank'] ?? 'normal') !== 'deprecated');
+        usort($claims, fn ($a, $b) => (($b['rank'] ?? '') === 'preferred') <=> (($a['rank'] ?? '') === 'preferred'));
+        $file = data_get($claims, '0.mainsnak.datavalue.value');
+
+        return is_string($file) && $file !== '' ? $file : null;
+    }
+
+    /** Vrai pour une carte, un drapeau, un blason… (d'après le nom du fichier). */
+    private function rejected(string $name): bool
+    {
+        $name = mb_strtolower(rawurldecode($name));
+        foreach (self::REJECTED_IMAGE_WORDS as $word) {
+            if (str_contains($name, $word)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function distanceKm(float $lat1, float $lng1, float $lat2, float $lng2): float
+    {
+        $a = sin(deg2rad($lat2 - $lat1) / 2) ** 2
+            + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin(deg2rad($lng2 - $lng1) / 2) ** 2;
+
+        return 2 * 6371 * asin(min(1, sqrt($a)));
     }
 
     /**
@@ -131,11 +279,8 @@ class PlacePhotoService
             }
 
             // Nom du fichier seul : l'URL porte des paramètres de suivi.
-            $name = mb_strtolower(rawurldecode(basename(parse_url($url, PHP_URL_PATH) ?? '')));
-            foreach (self::REJECTED_IMAGE_WORDS as $word) {
-                if (str_contains($name, $word)) {
-                    return null;
-                }
+            if ($this->rejected(basename(parse_url($url, PHP_URL_PATH) ?? ''))) {
+                return null;
             }
 
             // Variante réduite (1280 px) via le dépôt Commons, sauf si
