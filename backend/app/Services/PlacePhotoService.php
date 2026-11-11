@@ -58,10 +58,13 @@ class PlacePhotoService
 
         $cached = Cache::get($key);
         if ($cached !== null) {
-            return $cached === 'miss' ? null : $cached;
+            return $cached === 'miss' ? null : $this->downsized($cached);
         }
 
         $url = $this->fetchNearby($latitude, $longitude);
+        if ($url === false) {
+            return null; // échec passager : on retentera à la prochaine frise
+        }
         Cache::put($key, $url ?? 'miss', now()->addDays($url ? self::HIT_TTL_DAYS : self::MISS_TTL_DAYS));
 
         return $url;
@@ -82,22 +85,40 @@ class PlacePhotoService
 
         $cached = Cache::get($key);
         if ($cached !== null) {
-            return $cached === 'miss' ? null : $cached;
+            return $cached === 'miss' ? null : $this->downsized($cached);
         }
 
         $url = $this->fetchWikipedia($locality);
+        if ($url === false) {
+            return null; // échec passager : on retentera à la prochaine frise
+        }
         Cache::put($key, $url ?? 'miss', now()->addDays($url ? self::HIT_TTL_DAYS : self::MISS_TTL_DAYS));
 
         return $url;
     }
 
-    private function fetchWikipedia(string $locality): ?string
+    /**
+     * Vrai si la réponse est définitive (article trouvé ou absent) ; faux
+     * pour un refus passager (trop de requêtes, panne) à ne pas mémoriser.
+     */
+    private function definitive(\Illuminate\Http\Client\Response $response): bool
+    {
+        return $response->successful() || in_array($response->status(), [400, 403, 404], true);
+    }
+
+    /** URL de l'image, null si l'article n'en a pas de photogénique, false si échec passager. */
+    private function fetchWikipedia(string $locality): string|false|null
     {
         try {
             $response = Http::withHeaders([
                 'User-Agent' => 'MemoryLane/1.3.0 (family media hub)',
             ])->timeout(6)->get(self::WIKIPEDIA_SUMMARY.rawurlencode(str_replace(' ', '_', $locality)));
 
+            if (! $this->definitive($response)) {
+                Log::warning('PlacePhotoService: Wikipédia indisponible', ['locality' => $locality, 'status' => $response->status()]);
+
+                return false;
+            }
             // Seuls les vrais articles comptent (pas les pages d'homonymie).
             if (! $response->ok() || $response->json('type') !== 'standard') {
                 return null;
@@ -108,37 +129,56 @@ class PlacePhotoService
                 return null;
             }
 
-            $name = mb_strtolower(rawurldecode($url));
+            // Nom du fichier seul : l'URL porte des paramètres de suivi.
+            $name = mb_strtolower(rawurldecode(basename(parse_url($url, PHP_URL_PATH) ?? '')));
             foreach (self::REJECTED_IMAGE_WORDS as $word) {
                 if (str_contains($name, $word)) {
                     return null;
                 }
             }
 
-            // Variante réduite (1280 px) de l'original, via le dépôt Commons.
-            return $this->commonsThumb($url, 1280);
+            // Variante réduite (1280 px) via le dépôt Commons, sauf si
+            // l'original est déjà plus petit.
+            $width = (int) $response->json('originalimage.width');
+
+            return $width > 0 && $width <= 1280
+                ? strtok($url, '?')
+                : $this->commonsThumb($url, 1280);
         } catch (\Throwable $e) {
             Log::warning('PlacePhotoService: échec Wikipédia', ['locality' => $locality, 'error' => $e->getMessage()]);
 
-            return null;
+            return false;
         }
     }
 
     /**
      * URL de vignette Commons à partir de l'URL d'un original
-     * (…/commons/a/ab/Nom.jpg → …/commons/thumb/a/ab/Nom.jpg/1280px-Nom.jpg).
+     * (…/commons/a/ab/Nom.jpg → …/commons/thumb/a/ab/Nom.jpg/1280px-Nom.jpg)
+     * ou d'une vignette d'une autre taille (Wikipédia renvoie parfois
+     * thumb.wikimedia.org/…/3840px-Nom.jpg).
      */
-    private function commonsThumb(string $originalUrl, int $width): string
+    private function commonsThumb(string $url, int $width): string
     {
-        $path = parse_url($originalUrl, PHP_URL_PATH) ?? '';
-        if (! preg_match('#^/wikipedia/commons/([0-9a-f])/([0-9a-f]{2})/([^/]+)$#', $path, $m)) {
-            return $originalUrl;
+        $path = parse_url($url, PHP_URL_PATH) ?? '';
+        if (! preg_match('#^/wikipedia/commons/(?:thumb/)?([0-9a-f])/([0-9a-f]{2})/([^/]+?)(?:/\d+px-[^/]+)?$#', $path, $m)) {
+            return $url;
         }
 
         return "https://upload.wikimedia.org/wikipedia/commons/thumb/{$m[1]}/{$m[2]}/{$m[3]}/{$width}px-{$m[3]}";
     }
 
-    private function fetchNearby(float $latitude, float $longitude): ?string
+    /** Vignette déjà en cache plus large que 1280 px : ramenée à 1280. */
+    private function downsized(string $url): string
+    {
+        $path = parse_url($url, PHP_URL_PATH) ?? '';
+
+        return preg_match('#/thumb/.+/(\d+)px-[^/]+$#', $path, $m) && (int) $m[1] > 1280
+            ? $this->commonsThumb($url, 1280)
+            : $url;
+    }
+
+    /** URL de la photo voisine, null s'il n'y en a pas, false si échec passager. */
+    private function fetchNearby(float $latitude, float $longitude): string|false|null
     {
         try {
             $response = Http::withHeaders([
@@ -156,6 +196,11 @@ class PlacePhotoService
                 'iiurlwidth' => 1280,
             ]);
 
+            if (! $this->definitive($response)) {
+                Log::warning('PlacePhotoService: Commons indisponible', ['status' => $response->status()]);
+
+                return false;
+            }
             if (! $response->ok()) {
                 return null;
             }
@@ -172,7 +217,7 @@ class PlacePhotoService
         } catch (\Throwable $e) {
             Log::warning('PlacePhotoService: échec Wikimedia', ['error' => $e->getMessage()]);
 
-            return null;
+            return false;
         }
     }
 }
