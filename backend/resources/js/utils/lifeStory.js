@@ -4,7 +4,7 @@ import { formatPartialDate } from '@/utils/format';
 import { t } from '@/i18n';
 
 export const ICONS = {
-  birth: '🎂', death: '🕯️', marriage: '💍', child: '👶',
+  birth: '🎂', death: '🕯️', marriage: '💍', child: '👶', child_death: '🕯️',
   job: '💼', education: '🎓', residence: '🏠', photo: '📷',
   voyage: '🧭', military: '🎖️', distinction: '🏅',
   // Fêtes (« sous-moments » définis, cf. LifeEventFormModal)
@@ -13,7 +13,7 @@ export const ICONS = {
   moment: '★', custom: '★',
 };
 export const LABELS = {
-  birth: t('Naissance'), death: t('Décès'), marriage: t('Mariage'), child: t('Enfant'),
+  birth: t('Naissance'), death: t('Décès'), marriage: t('Mariage'), child: t('Enfant'), child_death: t('Décès d’un enfant'),
   job: t('Emploi'), education: t('Études'), residence: t('Résidence'), photo: t('Photo'),
   voyage: t('Voyage'), military: t('Parcours militaire'), distinction: t('Distinction'),
   bapteme: t('Baptême'), communion: t('Communion'), confirmation: t('Confirmation'), mariage_religieux: t('Mariage religieux'),

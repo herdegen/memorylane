@@ -42,6 +42,8 @@
               <NavLink v-if="isFriends" href="/network" :active="$page.component.startsWith('Network/')">{{ $t('Réseau') }}</NavLink>
               <NavLink v-else href="/family-tree" :active="$page.component.startsWith('FamilyTree/') || $page.component.startsWith('Network/')">{{ $t('Arbre') }}</NavLink>
               <NavLink href="/map" :active="$page.component.startsWith('Map/')">{{ $t('Carte') }}</NavLink>
+              <!-- Écran moyen : pas la place, « Histoires » passe dans le menu du compte. -->
+              <NavLink v-if="!isFriends" href="/stories" class="hidden! min-[1180px]:inline-flex!" :active="$page.component.startsWith('Stories/')">{{ $t('Histoires') }}</NavLink>
             </div>
           </div>
 
@@ -91,6 +93,7 @@
                     <p class="text-sm font-semibold text-surface-900 truncate">{{ user.email }}</p>
                   </div>
                   <Link href="/profile" class="dropdown-item" @click="showDropdown = false">{{ $t('Mon profil') }}</Link>
+                  <Link v-if="!isFriends" href="/stories" class="dropdown-item min-[1180px]:hidden" @click="showDropdown = false">{{ $t('Histoires') }}</Link>
                   <Link href="/households" class="dropdown-item" @click="showDropdown = false">{{ $t('Cercles') }}</Link>
                   <Link v-if="sharedVisible" href="/shared-people" class="dropdown-item flex items-center" @click="showDropdown = false">
                     {{ $t('Fiches communes') }}

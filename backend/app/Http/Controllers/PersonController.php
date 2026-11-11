@@ -340,6 +340,20 @@ class PersonController extends Controller
             'isSelf' => auth()->user()->person_id === $person->id,
             // « votre fille », « votre tante »… depuis la fiche « moi » du visiteur
             'relationLabel' => $this->viewerRelationLabel($request->user(), $person),
+            // Histoires où la personne apparaît (lisibles par le visiteur).
+            'stories' => \App\Models\Story::visibleTo($request->user())
+                ->whereHas('people', fn ($q) => $q->where('people.id', $person->id))
+                ->with(['people' => fn ($q) => $q->where('people.id', $person->id)])
+                ->orderByDesc('published_at')
+                ->get()
+                ->map(fn (\App\Models\Story $s) => [
+                    'id' => $s->id,
+                    'title' => $s->title,
+                    'summary' => $s->summary,
+                    'kind' => $s->kind,
+                    'published' => $s->published_at !== null,
+                    'role' => $s->people->first()?->pivot->role,
+                ])->values(),
             'canManage' => $this->canManage($person),
             'canDelete' => $this->isOwnerOrAdmin($person),
             'canSetSelf' => $this->canSetSelf($person),
@@ -380,8 +394,14 @@ class PersonController extends Controller
         }
         $paths = $this->genealogy->pathsFrom($selfId, 4);
 
-        return isset($paths[$person->id])
-            ? \App\Services\GenealogyService::relationLabel($paths[$person->id], $person->gender)
+        if (isset($paths[$person->id])) {
+            return \App\Services\GenealogyService::relationLabel($paths[$person->id], $person->gender);
+        }
+        // Parent éloigné (« frère de Thadée, votre trisaïeul ») : seulement par le sang.
+        $path = $this->genealogy->pathBetween($selfId, $person->id);
+
+        return $path && ! in_array('spouse', $path['edges'], true)
+            ? \App\Services\GenealogyService::distantRelationLabel($path, Person::whereIn('id', $path['ids'])->get()->keyBy('id')->all())
             : null;
     }
 
@@ -622,6 +642,13 @@ class PersonController extends Controller
                 $this->autoEvent('child', $child->birth_date, __('Naissance de :name', ['name' => $child->name]), $child->birth_place),
                 ['related' => $this->relatedPayload($child)]
             );
+            // Un enfant mort avant son parent : un moment de la vie du parent.
+            if ($child->death_date && (! $person->death_date || $child->death_date->lte($person->death_date))) {
+                $items[] = array_merge(
+                    $this->autoEvent('child_death', $child->death_date, __('Décès de :name', ['name' => $child->name]), $child->death_place),
+                    ['related' => $this->relatedPayload($child)]
+                );
+            }
         }
 
         // Moments libres

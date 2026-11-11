@@ -431,6 +431,18 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::post('/{person}/recit/{chapter}', [\App\Http\Controllers\LifeStoryController::class, 'save'])->name('lifeStory.save');
         Route::post('/{person}/recit/{chapter}/audio', [\App\Http\Controllers\LifeStoryController::class, 'audio'])->name('lifeStory.audioStore');
     });
+    // Histoires de famille : bibliothèque, lecture, écriture, ajouts des lecteurs
+    Route::prefix('stories')->name('stories.')->controller(\App\Http\Controllers\StoryController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/create', 'create')->name('create');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{story}', 'show')->name('show');
+        Route::get('/{story}/edit', 'edit')->name('edit');
+        Route::put('/{story}', 'update')->name('update');
+        Route::delete('/{story}', 'destroy')->name('destroy');
+        Route::post('/{story}/notes', 'storeNote')->middleware('throttle:30,1')->name('notes.store');
+    });
+    Route::delete('/story-notes/{note}', [\App\Http\Controllers\StoryController::class, 'destroyNote'])->name('stories.notes.destroy');
     // Suggestions de lieux (monde entier) pendant la saisie
     Route::get('/places/suggest', \App\Http\Controllers\PlaceSuggestController::class)->middleware('throttle:120,1')->name('places.suggest');
     Route::get('/life-story-audio/{answer}', [\App\Http\Controllers\LifeStoryController::class, 'audioFile'])->name('lifeStory.audio');
