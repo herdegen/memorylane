@@ -4,8 +4,10 @@
     <!-- Fête d'anniversaire : première visite du jour d'un anniversaire -->
     <BirthdayGreeting />
     <nav class="bg-white border-b border-surface-200 sticky top-0 z-40">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
+      <!-- Pleine largeur : sur grand écran, le menu ne reste pas serré au
+           milieu (cercle tronqué, recherche réduite à quelques lettres). -->
+      <div class="px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between gap-4 h-16">
           <!-- Logo + nav links -->
           <div class="flex">
             <div class="shrink-0 flex items-center">
@@ -44,8 +46,12 @@
           </div>
 
           <!-- Right: admin + user -->
-          <div class="hidden sm:flex sm:items-center gap-3">
-            <SearchBar v-if="user" />
+          <div class="hidden sm:flex sm:items-center gap-3 min-w-0">
+            <!-- Largeur propre : la recherche ne se tasse plus à la taille de
+                 son texte, et rétrécit d'abord si la place manque. -->
+            <div v-if="user" class="min-w-0 w-40 lg:w-56 xl:w-72">
+              <SearchBar />
+            </div>
 
             <button
               @click="toggleTheme"

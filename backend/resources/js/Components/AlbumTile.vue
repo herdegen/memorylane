@@ -37,7 +37,7 @@
         </svg>
       </div>
 
-      <!-- Un badge seulement pour l'exception -->
+      <!-- Qui voit l'album : cercle, personnes choisies, privé… -->
       <div class="absolute top-2 right-2 flex items-center gap-1.5">
         <span
           v-if="album.is_smart"
@@ -45,12 +45,16 @@
           :title="$t('Album intelligent : se remplit automatiquement')"
         >✦ {{ $t('Auto') }}</span>
         <span
-          v-if="isPrivate"
-          class="w-6 h-6 rounded-full bg-ink/55 text-snow grid place-items-center"
-          :title="$t('Privé')"
+          class="inline-flex items-center gap-1 h-6 px-2 rounded-full bg-ink/55 text-snow text-[11px] font-semibold backdrop-blur-sm"
+          :title="audience.title"
         >
-          <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 018 0v4" /></svg>
-          <span class="sr-only">{{ $t('Privé') }}</span>
+          <svg class="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <template v-if="audience.icon === 'circle'"><circle cx="9" cy="8" r="3.2" /><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" /><path d="M16 4.5a3.2 3.2 0 010 7M21 20c0-2.6-1.6-4.8-4-5.6" /></template>
+            <template v-else-if="audience.icon === 'people'"><circle cx="12" cy="8" r="3.5" /><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7" /></template>
+            <template v-else-if="audience.icon === 'link'"><path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1" /><path d="M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1" /></template>
+            <template v-else><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 018 0v4" /></template>
+          </svg>
+          {{ audience.label }}
         </span>
       </div>
     </div>
@@ -93,11 +97,28 @@ watch(animating, (on) => {
 });
 onBeforeUnmount(stop);
 
-// Cadenas : seulement sur MES albums que personne d'autre ne voit.
-const isPrivate = computed(() => props.album.is_owner !== false
-  && !(props.album.households_count > 0)
-  && !(props.album.accesses_count > 0)
-  && !props.album.has_share_link);
+// Qui voit l'album, du plus large au plus restreint : un cercle, des
+// personnes choisies, les personnes identifiées sur ses photos, un lien
+// anonyme ; sinon privé (ou « partagé » pour un album d'un autre).
+const audience = computed(() => {
+  const a = props.album;
+  if (a.households_count > 0) {
+    return { icon: 'circle', label: t('Cercle'), title: t('Partagé avec le cercle') };
+  }
+  if (a.accesses_count > 0) {
+    return { icon: 'people', label: tc(':count personne|:count personnes', a.accesses_count), title: t('Partagé avec des personnes choisies') };
+  }
+  if (a.share_with_tagged) {
+    return { icon: 'people', label: t('Personnes identifiées'), title: t('Visible des personnes identifiées sur ses photos') };
+  }
+  if (a.has_share_link) {
+    return { icon: 'link', label: t('Lien'), title: t('Partagé par un lien') };
+  }
+  if (a.is_owner === false) {
+    return { icon: 'people', label: t('Partagé'), title: t('Partagé avec vous') };
+  }
+  return { icon: 'lock', label: t('Privé'), title: t('Privé : vous seul le voyez') };
+});
 
 // « juin 2020 », « 2018 », ou « 2009 → 2018 » pour un album sur plusieurs années.
 const monthYear = (d) => new Date(`${d}T12:00:00`).toLocaleDateString(intlLocale(), { month: 'long', year: 'numeric' });

@@ -88,6 +88,23 @@
                 decoding="async"
                 @click="playSlideshow"
               />
+              <!-- Sans photo de famille : la photo du lieu (Wikipédia /
+                   Commons), signalée comme telle. -->
+              <template v-else-if="item.place_photo_url">
+                <img
+                  :src="placeThumb(item.place_photo_url)"
+                  class="w-full h-full object-cover cursor-pointer"
+                  loading="lazy"
+                  decoding="async"
+                  alt=""
+                  @error="onPlaceThumbError($event, item.place_photo_url)"
+                  @click="playSlideshow"
+                />
+                <span
+                  class="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-ink/55 text-snow text-[10.5px] font-medium pointer-events-none"
+                  :title="$t('Photo du lieu — Wikimedia Commons')"
+                >{{ kindIcon(item.kind) }} {{ $t('Photo du lieu') }}</span>
+              </template>
               <div v-else class="w-full h-full flex items-center justify-center bg-brand-50 dark:bg-brand-500/10 text-4xl">
                 {{ kindIcon(item.kind) }}
               </div>
@@ -290,7 +307,20 @@ defineExpose({ play: playSlideshow, hasPlayable });
 // Chapitres du récit de vie (logique partagée avec la télévision).
 const storyEvents = computed(() => buildStoryEvents(items.value));
 
-const thumb = (item) => item.media?.medium_url || item.media?.thumbnail_url || item.related?.avatar_url || null;
+// Image de la carte : photo du moment, sinon la première de sa galerie ou
+// de son album, sinon le portrait de la personne liée (mariage, enfant).
+const thumb = (item) => {
+  const m = item.media || item.photos?.[0] || item.album?.media?.[0];
+  return m?.medium_url || m?.thumbnail_url || item.related?.avatar_url || null;
+};
+
+// Photo du lieu : la vignette Commons de 500 px suffit à la carte (l'URL
+// reçue est celle de 1280 px, pour le récit de vie) ; repli sur celle-ci si
+// Commons ne sert pas cette taille.
+const placeThumb = (url) => url.replace('/1280px-', '/500px-');
+const onPlaceThumbError = (event, url) => {
+  if (event.target.src !== url) event.target.src = url;
+};
 
 
 
