@@ -98,6 +98,9 @@ class Media extends Model
         'bitrate',
         'uploaded_at',
         'taken_at',
+        // Null ou 'day' : date exacte ; 'month', 'year', 'decade' : connue à
+        // peu près (vieilles photos). Voir normalizeTakenAt().
+        'taken_at_precision',
         'taken_at_album_id',
     ];
 
@@ -219,6 +222,38 @@ class Media extends Model
      * album accessible (public / accès accordé / tagué). La galerie reste
      * privée : un média hors album partagé n'est visible que du propriétaire.
      */
+    /** Précisions de date possibles (null = exacte). */
+    public const DATE_PRECISIONS = ['day', 'month', 'year', 'decade'];
+
+    /**
+     * Ramène une date au début de la période connue (mois, année, décennie),
+     * à midi ; la précision dit ce qu'on affiche (« années 1970 »).
+     */
+    public static function normalizeTakenAt(?string $date, ?string $precision): ?string
+    {
+        if ($date === null || $date === '') {
+            return null;
+        }
+        $d = \Illuminate\Support\Carbon::parse($date);
+
+        return match ($precision) {
+            'month' => $d->startOfMonth()->setTime(12, 0)->format('Y-m-d H:i:s'),
+            'year' => $d->startOfYear()->setTime(12, 0)->format('Y-m-d H:i:s'),
+            'decade' => $d->setDate(intdiv($d->year, 10) * 10, 1, 1)->setTime(12, 0)->format('Y-m-d H:i:s'),
+            default => $d->format('Y-m-d H:i:s'),
+        };
+    }
+
+    /**
+     * Date connue au jour près : seules ces photos font les « souvenirs du
+     * jour » et « il y a N ans cette semaine » (une photo des « années 1970 »
+     * ne doit pas ressortir chaque 1er janvier).
+     */
+    public function scopeExactDate($query)
+    {
+        return $query->where(fn ($q) => $q->whereNull('media.taken_at_precision')->orWhere('media.taken_at_precision', 'day'));
+    }
+
     public function scopeAccessibleBy($query, ?User $user)
     {
         if (! $user) {

@@ -641,6 +641,7 @@ class FamilyNewsletterBuilder
         $media = $this->familyMedia()
             ->where('type', 'photo')
             ->whereNotNull('taken_at')
+            ->exactDate()
             ->whereRaw('EXTRACT(WEEK FROM taken_at) = ?', [(int) $this->now->format('W')])
             ->whereRaw('EXTRACT(YEAR FROM taken_at) < ?', [$this->now->year])
             ->with(['conversions', 'people'])

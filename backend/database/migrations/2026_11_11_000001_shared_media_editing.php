@@ -8,7 +8,8 @@ use Illuminate\Support\Facades\Schema;
  * Édition partagée : tout membre qui voit une photo peut en corriger la date,
  * le lieu et les personnes ; chaque correction est journalisée (media_changes)
  * et annulable par l'auteur de la photo, l'admin ou la personne qui l'a faite.
- * Une union peut aussi porter sa photo (carte « Mariage » de la frise).
+ * Une union peut aussi porter sa photo (carte « Mariage » de la frise), et la
+ * date d'une photo sa précision (mois, année, décennie).
  */
 return new class extends Migration
 {
@@ -31,6 +32,12 @@ return new class extends Migration
             $table->index(['media_id', 'created_at']);
         });
 
+        // Vieilles photos : souvent on ne connaît que le mois, l'année ou la
+        // décennie. Null = date exacte (comme avant).
+        Schema::table('media', function (Blueprint $table) {
+            $table->string('taken_at_precision', 6)->nullable()->after('taken_at');
+        });
+
         Schema::table('person_relationships', function (Blueprint $table) {
             $table->uuid('media_id')->nullable()->after('start_place');
             $table->foreign('media_id')->references('id')->on('media')->nullOnDelete();
@@ -43,6 +50,7 @@ return new class extends Migration
             $table->dropForeign(['media_id']);
             $table->dropColumn('media_id');
         });
+        Schema::table('media', fn (Blueprint $table) => $table->dropColumn('taken_at_precision'));
         Schema::dropIfExists('media_changes');
     }
 };

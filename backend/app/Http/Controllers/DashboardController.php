@@ -71,6 +71,7 @@ class DashboardController extends Controller
                 fn ($q) => $q->inContext($user)->where('media.user_id', $user->id),
             )
             ->whereNotNull('taken_at')
+            ->exactDate()
             ->whereRaw('EXTRACT(MONTH FROM taken_at) = ?', [$today->month])
             ->whereRaw('EXTRACT(DAY FROM taken_at) = ?', [$today->day])
             ->whereRaw('EXTRACT(YEAR FROM taken_at) < ?', [$today->year])

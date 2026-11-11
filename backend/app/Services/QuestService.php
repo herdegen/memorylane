@@ -917,6 +917,8 @@ class QuestService
         return [
             'albums' => $albums,
             'date' => $media->taken_at?->toDateString(),
+            // Vieilles photos : « années 1970 » plutôt qu'un faux 1er janvier.
+            'date_precision' => $media->taken_at_precision,
             'owner' => $media->user_id !== $user->id ? $media->user?->name : null,
         ];
     }

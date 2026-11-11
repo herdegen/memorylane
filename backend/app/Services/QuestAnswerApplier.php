@@ -99,7 +99,7 @@ class QuestAnswerApplier
             QuestType::Education => $this->applyLifeEvent($user, $subject, 'education', $payload['title'], (int) $payload['year']),
             QuestType::Residence => $this->applyLifeEvent($user, $subject, 'residence', $payload['place'], (int) $payload['year'], $payload['place']),
             QuestType::FaceIdentify => $this->applyFace($subject, $payload['person_id']),
-            QuestType::MediaDate => $this->applyMediaDate($subject, $payload['value']),
+            QuestType::MediaDate => $this->applyMediaDate($subject, $payload['value'], $payload['precision'] ?? null),
             QuestType::MediaGeo => $this->applyMediaGeo($subject, $payload['latitude'], $payload['longitude']),
             QuestType::HowMet => $this->applyHowMet($user, $subject, $payload),
         };
@@ -116,11 +116,12 @@ class QuestAnswerApplier
         }
     }
 
-    private function applyMediaDate(Media $media, ?string $value): void
+    private function applyMediaDate(Media $media, ?string $value, ?string $precision = null): void
     {
         $history = app(MediaHistory::class);
         $before = $history->snapshot($media);
-        $media->update(['taken_at' => $value]);
+        $takenAt = Media::normalizeTakenAt($value, $precision);
+        $media->update(['taken_at' => $takenAt, 'taken_at_precision' => $takenAt && $precision !== 'day' ? $precision : null]);
         $history->logUpdate($media, $before);
     }
 

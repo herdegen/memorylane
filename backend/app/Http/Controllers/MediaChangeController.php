@@ -48,11 +48,7 @@ class MediaChangeController extends Controller
         $d = $c->diff ?? [];
 
         return match ($c->action) {
-            'updated' => collect($d)->map(fn ($pair, $field) => __(':field : :old → :new', [
-                'field' => match ($field) { 'taken_at' => __('Date'), 'title' => __('Titre'), default => __('Description') },
-                'old' => self::show($field, $pair[0] ?? null),
-                'new' => self::show($field, $pair[1] ?? null),
-            ]))->join(' · '),
+            'updated' => self::updatedSummary($c),
             'geolocated' => empty($d['before']) ? __('Lieu placé sur la carte') : __('Lieu déplacé sur la carte'),
             'geolocation_removed' => __('Lieu retiré'),
             'face_identified' => ! empty($d['before']['person_name'])
@@ -65,15 +61,48 @@ class MediaChangeController extends Controller
         };
     }
 
-    private static function show(string $field, ?string $value): string
+    /** « Date : années 1970 → 12 mars 1972 · Titre : … » */
+    private static function updatedSummary(MediaChange $c): string
+    {
+        $d = $c->diff ?? [];
+        $parts = [];
+        if (isset($d['taken_at']) || isset($d['taken_at_precision'])) {
+            $media = $c->media;
+            $dates = $d['taken_at'] ?? [$media?->taken_at?->format('Y-m-d H:i:s'), $media?->taken_at?->format('Y-m-d H:i:s')];
+            $precisions = $d['taken_at_precision'] ?? [$media?->taken_at_precision, $media?->taken_at_precision];
+            $parts[] = __(':field : :old → :new', [
+                'field' => __('Date'),
+                'old' => self::date($dates[0] ?? null, $precisions[0] ?? null),
+                'new' => self::date($dates[1] ?? null, $precisions[1] ?? null),
+            ]);
+        }
+        foreach (['title' => __('Titre'), 'description' => __('Description')] as $field => $label) {
+            if (isset($d[$field])) {
+                $parts[] = __(':field : :old → :new', ['field' => $label, 'old' => self::text($d[$field][0] ?? null), 'new' => self::text($d[$field][1] ?? null)]);
+            }
+        }
+
+        return implode(' · ', $parts);
+    }
+
+    /** Date à sa précision : « 12 mars 1972 », « mars 1972 », « 1972 », « années 1970 ». */
+    public static function date(?string $value, ?string $precision): string
     {
         if ($value === null || $value === '') {
             return __('vide');
         }
-        if ($field === 'taken_at') {
-            return \Illuminate\Support\Carbon::parse($value)->translatedFormat('j F Y');
-        }
+        $d = \Illuminate\Support\Carbon::parse($value);
 
-        return '« '.\Illuminate\Support\Str::limit($value, 60).' »';
+        return match ($precision) {
+            'decade' => __('années :decade', ['decade' => intdiv($d->year, 10) * 10]),
+            'year' => (string) $d->year,
+            'month' => $d->translatedFormat('F Y'),
+            default => $d->translatedFormat('j F Y'),
+        };
+    }
+
+    private static function text(?string $value): string
+    {
+        return $value === null || $value === '' ? __('vide') : '« '.\Illuminate\Support\Str::limit($value, 60).' »';
     }
 }

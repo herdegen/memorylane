@@ -81,7 +81,7 @@ class SimpleModeController extends Controller
         } else {
             // Souvenirs du jour d'abord, puis un mélange qui change chaque jour.
             $query->orderByRaw(
-                '(EXTRACT(MONTH FROM taken_at) = ? AND EXTRACT(DAY FROM taken_at) = ?) IS TRUE DESC',
+                "(EXTRACT(MONTH FROM taken_at) = ? AND EXTRACT(DAY FROM taken_at) = ? AND COALESCE(taken_at_precision, 'day') = 'day') IS TRUE DESC",
                 [$today->month, $today->day],
             )->orderByRaw('md5(media.id::text || ?)', [$today->toDateString()]);
         }
@@ -167,6 +167,7 @@ class SimpleModeController extends Controller
 
         $media = $this->photoQuery($user)
             ->whereNotNull('taken_at')
+            ->exactDate()
             ->whereRaw('EXTRACT(MONTH FROM taken_at) = ?', [$today->month])
             ->whereRaw('EXTRACT(DAY FROM taken_at) = ?', [$today->day])
             ->whereRaw('EXTRACT(YEAR FROM taken_at) < ?', [$today->year])

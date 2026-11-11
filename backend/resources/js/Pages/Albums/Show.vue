@@ -525,7 +525,7 @@ import SharePanel from '@/Components/SharePanel.vue';
 import MediaPickerModal from '@/Components/MediaPickerModal.vue';
 import FullscreenSlideshow from '@/Components/FullscreenSlideshow.vue';
 import BaseModal from '@/Components/BaseModal.vue';
-import { formatDuration, formatLongDate } from '@/utils/format';
+import { formatDuration, formatMediaDate } from '@/utils/format';
 import { usePhotoSwipe } from '@/Composables/usePhotoSwipe';
 import { useToast } from '@/Composables/useToast';
 import { useConfirm } from '@/Composables/useConfirm';
@@ -964,7 +964,7 @@ const slideshowSlides = computed(() => {
       type: m.type,
       src: slideUrl(m),
       label: m.title || m.original_name,
-      when: m.taken_at ? formatLongDate(m.taken_at) : null,
+      when: m.taken_at ? formatMediaDate(m) : null,
       weight: m.matched_faces_count > 0 ? 3 : 1,
       place: place ? { index: place.index, label: place.label, latitude: place.latitude, longitude: place.longitude } : null,
     };

@@ -305,7 +305,7 @@ import PeopleSegments from '@/Components/PeopleSegments.vue';
 import BottomSheet from '@/Components/BottomSheet.vue';
 import FamilyTimelinePlayer from '@/Components/FamilyTimelinePlayer.vue';
 import { useCircle } from '@/Composables/useCircle';
-import { formatDate } from '@/utils/format';
+import { formatMediaDate } from '@/utils/format';
 import { escapeHtml } from '@/utils/html';
 import { apiError } from '@/utils/apiError';
 import { useToast } from '@/Composables/useToast';
@@ -525,7 +525,7 @@ const albumItem = (album) => ({
 const mediaItem = (media) => ({
   kind: 'media', id: media.id, lat: media.latitude, lng: media.longitude,
   thumb: media.thumbnail_url,
-  title: media.taken_at ? formatDate(media.taken_at) : (media.original_name || t('Photo')),
+  title: media.taken_at ? formatMediaDate(media) : (media.original_name || t('Photo')),
   sub: media.type === 'video' ? t('Vidéo') : t('Photo'),
   href: `/media/${encodeURIComponent(media.id)}`,
   raw: media,
@@ -552,7 +552,7 @@ function singleMarker(item) {
       <div class="text-center">
         <img src="${escapeHtml(item.thumb)}" alt="${name}" class="w-32 h-32 object-cover rounded-sm mb-2" />
         <div class="font-medium text-sm">${name}</div>
-        ${item.raw.taken_at ? `<div class="text-xs text-surface-500">${escapeHtml(formatDate(item.raw.taken_at))}</div>` : ''}
+        ${item.raw.taken_at ? `<div class="text-xs text-surface-500">${escapeHtml(formatMediaDate(item.raw))}</div>` : ''}
         <div class="mt-2">
           <a href="${escapeHtml(item.href)}" class="text-brand-600 hover:text-brand-800 text-sm">${escapeHtml(t('Voir le média'))}</a>
         </div>

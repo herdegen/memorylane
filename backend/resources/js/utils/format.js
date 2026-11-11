@@ -45,9 +45,22 @@ export function formatLongDate(dateString) {
 // Date à précision variable (moments de vie dont on ne connaît que l'année ou
 // le mois) : 'year' → « 1950 », 'month' → « mars 1953 », sinon date longue.
 export function formatPartialDate(dateString, precision = 'day') {
+  if (precision === 'decade') {
+    const year = new Date(dateString).getFullYear();
+    return Number.isNaN(year) ? '' : t('années :decade', { decade: Math.floor(year / 10) * 10 });
+  }
   if (precision === 'year') return localized(dateString, { year: 'numeric' });
   if (precision === 'month') return localized(dateString, { month: 'long', year: 'numeric' });
   return formatLongDate(dateString);
+}
+
+// Date d'une photo à sa précision (vieilles photos) : « années 1970 », « 1972 »,
+// « mars 1972 », sinon date longue (avec l'heure si `withTime`).
+export function formatMediaDate(media, { withTime = false } = {}) {
+  if (!media?.taken_at) return '';
+  const precision = media.taken_at_precision;
+  if (precision && precision !== 'day') return formatPartialDate(media.taken_at, precision);
+  return withTime ? formatDateTime(media.taken_at) : formatLongDate(media.taken_at);
 }
 
 // Date + heure : « 3 juin 2024, 14:05 ».

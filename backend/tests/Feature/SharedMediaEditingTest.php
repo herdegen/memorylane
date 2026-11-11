@@ -127,4 +127,52 @@ class SharedMediaEditingTest extends TestCase
         $this->actingAs($this->owner)->get("/media/{$this->media->id}")
             ->assertInertia(fn ($page) => $page->where('history.0.can_revert', true));
     }
+
+    public function test_dater_a_la_decennie_et_rester_hors_des_souvenirs_du_jour(): void
+    {
+        $this->actingAs($this->member)
+            ->putJson("/media/{$this->media->id}", ['taken_at' => '1974-06-15', 'taken_at_precision' => 'decade'])
+            ->assertOk();
+
+        $media = $this->media->fresh();
+        $this->assertSame('1970-01-01 12:00:00', $media->taken_at->format('Y-m-d H:i:s'));
+        $this->assertSame('decade', $media->taken_at_precision);
+        $this->assertFalse(Media::whereKey($media->id)->exactDate()->exists());
+
+        $this->actingAs($this->owner)->get("/media/{$this->media->id}")
+            ->assertInertia(fn ($page) => $page->where('history.0.summary', fn ($text) => str_contains($text, 'années 1970')));
+
+        // Revenir à une date exacte efface la précision.
+        $this->actingAs($this->member)->putJson("/media/{$this->media->id}", ['taken_at' => '1972-06-01 10:30:00'])->assertOk();
+        $this->assertNull($this->media->fresh()->taken_at_precision);
+        $this->assertTrue(Media::whereKey($media->id)->exactDate()->exists());
+    }
+
+    public function test_dater_en_masse_a_l_annee(): void
+    {
+        $this->actingAs($this->owner)->postJson('/media/bulk/taken-at', [
+            'media_ids' => [$this->media->id], 'taken_at' => '1965-05-20', 'taken_at_precision' => 'year',
+        ])->assertOk();
+
+        $media = $this->media->fresh();
+        $this->assertSame('1965-01-01', $media->taken_at->toDateString());
+        $this->assertSame('year', $media->taken_at_precision);
+    }
+
+    public function test_la_question_de_l_accueil_accepte_une_decennie(): void
+    {
+        $this->media->update(['taken_at' => null]);
+
+        $this->actingAs($this->member)->postJson('/quests/answer', [
+            'question_type' => 'media_date',
+            'subject_id' => $this->media->id,
+            'answer_kind' => 'answered',
+            'payload' => ['value' => '1958-01-01', 'precision' => 'decade'],
+        ])->assertSuccessful();
+
+        $media = $this->media->fresh();
+        $this->assertSame('1950-01-01', $media->taken_at->toDateString());
+        $this->assertSame('decade', $media->taken_at_precision);
+        $this->assertSame(1, MediaChange::where('media_id', $media->id)->count());
+    }
 }

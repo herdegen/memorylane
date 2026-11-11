@@ -316,7 +316,14 @@ class MediaController extends Controller
             'title' => 'nullable|string|max:255',
             'description' => 'nullable|string|max:2000',
             'taken_at' => 'nullable|date',
+            // Vieilles photos : mois, année ou décennie seulement.
+            'taken_at_precision' => 'nullable|in:'.implode(',', Media::DATE_PRECISIONS),
         ]);
+        if (array_key_exists('taken_at', $validated)) {
+            $precision = $validated['taken_at_precision'] ?? null;
+            $validated['taken_at'] = Media::normalizeTakenAt($validated['taken_at'], $precision);
+            $validated['taken_at_precision'] = $validated['taken_at'] && $precision !== 'day' ? $precision : null;
+        }
 
         $history = app(\App\Services\MediaHistory::class);
         $before = $history->snapshot($media);
@@ -345,13 +352,20 @@ class MediaController extends Controller
             'media_ids.*' => 'uuid',
             // null : retirer la date (ex. date du scan d'une photo papier).
             'taken_at' => 'present|nullable|date',
+            // Vieilles photos : mois, année ou décennie seulement.
+            'taken_at_precision' => 'nullable|in:'.implode(',', Media::DATE_PRECISIONS),
         ]);
+        $precision = $validated['taken_at_precision'] ?? null;
+        $takenAt = Media::normalizeTakenAt($validated['taken_at'], $precision);
 
         $ids = Media::whereIn('id', $validated['media_ids'])
             ->where('user_id', $request->user()->id)
             ->pluck('id');
-        $updated = Media::whereIn('id', $ids)
-            ->update(['taken_at' => $validated['taken_at'], 'taken_at_album_id' => null]);
+        $updated = Media::whereIn('id', $ids)->update([
+            'taken_at' => $takenAt,
+            'taken_at_precision' => $takenAt && $precision !== 'day' ? $precision : null,
+            'taken_at_album_id' => null,
+        ]);
         // Sans date : celle de leur album daté, s'il y en a un.
         if ($validated['taken_at'] === null) {
             app(\App\Services\AlbumDating::class)->syncMedia($ids);

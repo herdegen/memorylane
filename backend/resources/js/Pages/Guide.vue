@@ -477,7 +477,7 @@ const howTo = [
   },
   {
     title: t('Changez la date'),
-    text: t('Dans le cadre « Informations », cliquez « Modifier » (sur téléphone, touchez d’abord « Informations » pour le déplier). Corrigez la date, puis « Enregistrer ». Vieille photo dont on ne connaît que l’année ? Mettez le 1er janvier.'),
+    text: t('Dans le cadre « Informations », cliquez « Modifier » (sur téléphone, touchez d’abord « Informations » pour le déplier). Corrigez la date, puis « Enregistrer ». Vieille photo dont on ne connaît pas le jour ? Choisissez « Mois », « Année » ou « Décennie » : elle s’affichera par exemple « années 1970 ».'),
     note: t('Toute la famille peut corriger une photo qu’elle voit : sa date, son lieu, les personnes. Chaque correction est notée dans l’« Historique des corrections », en bas de la page : la personne qui a envoyé la photo peut l’annuler.'),
     image: 'tuto-date',
   },

@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\DB;
 class MediaHistory
 {
     /** Champs d'informations suivis (MediaController::update, quêtes). */
-    public const FIELDS = ['title', 'description', 'taken_at'];
+    public const FIELDS = ['title', 'description', 'taken_at', 'taken_at_precision'];
 
     public function __construct(private FaceMatcher $faceMatcher) {}
 

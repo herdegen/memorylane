@@ -77,9 +77,16 @@
 
           <!-- Saisie par famille d'UI -->
           <div class="space-y-3">
-            <!-- Date simple (naissance, décès ancien, photo sans date) -->
+            <!-- Photo sans date : jour, mois, année ou décennie (vieilles photos) -->
+            <PhotoDateInput
+              v-if="uiKind === 'date' && question.type === 'media_date'"
+              :key="question.subject_id"
+              v-model="photoDate"
+              class="max-w-md"
+            />
+            <!-- Date simple (naissance, décès ancien) -->
             <input
-              v-if="uiKind === 'date'"
+              v-else-if="uiKind === 'date'"
               v-model="form.value"
               type="date"
               class="form-input max-w-xs"
@@ -408,6 +415,8 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, defineAsyncComponent } from 'vue';
+import PhotoDateInput from '@/Components/PhotoDateInput.vue';
+import { formatPartialDate } from '@/utils/format';
 import { Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import RelationshipPicker from '@/Components/RelationshipPicker.vue';
@@ -415,7 +424,7 @@ import PersonAvatar from '@/Components/PersonAvatar.vue';
 import { useToast } from '@/Composables/useToast';
 import { useCircle } from '@/Composables/useCircle';
 import { usePeopleDirectory } from '@/Composables/usePeopleDirectory';
-import { t, tc, intlLocale } from '@/i18n';
+import { t, tc } from '@/i18n';
 
 // Chargé à l'ouverture seulement : la carte embarque Leaflet (~45 ko gzip).
 const GeolocatePickerModal = defineAsyncComponent(() => import('@/Components/GeolocatePickerModal.vue'));
@@ -445,7 +454,11 @@ const showLightbox = ref(false);
 
 const currentYear = new Date().getFullYear();
 
+// Date d'une photo à précision variable : { date, precision }.
+const photoDate = ref({ date: null, precision: null });
+
 const resetForm = () => {
+  photoDate.value = { date: null, precision: null };
   form.value = { type: 'spouse' };
   pickedPerson.value = null;
   deceased.value = false;
@@ -488,7 +501,7 @@ const originSuffix = computed(() => {
   const o = origin.value;
   if (!o) return '';
   return [
-    o.date ? new Date(o.date).toLocaleDateString(intlLocale(), { day: 'numeric', month: 'long', year: 'numeric' }) : null,
+    o.date ? formatPartialDate(o.date, o.date_precision || 'day') : null,
     o.owner ? t('envoyée par :name', { name: o.owner }) : null,
   ].filter(Boolean).join(' · ');
 });
@@ -554,6 +567,10 @@ const currentPayload = computed(() => {
   if (!q) return null;
   switch (uiKind.value) {
     case 'date':
+      if (q.type === 'media_date') {
+        return photoDate.value.date ? { value: photoDate.value.date, precision: photoDate.value.precision } : null;
+      }
+      return form.value.value ? { value: form.value.value } : null;
     case 'text':
       return form.value.value ? { value: form.value.value } : null;
     case 'death_status':

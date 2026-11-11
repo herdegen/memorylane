@@ -674,6 +674,7 @@ class TvController extends Controller
         return Media::inContext($user)
             ->whereIn('type', ['photo', 'video'])
             ->whereNotNull('taken_at')
+            ->exactDate()
             ->whereRaw('EXTRACT(MONTH FROM taken_at) = ?', [$today->month])
             ->whereRaw('EXTRACT(DAY FROM taken_at) = ?', [$today->day])
             ->whereRaw('EXTRACT(YEAR FROM taken_at) < ?', [$today->year]);

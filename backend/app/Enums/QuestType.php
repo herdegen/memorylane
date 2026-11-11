@@ -135,7 +135,11 @@ enum QuestType: string
                 'year' => 'required|integer|between:1500,'.now()->year,
             ],
             self::FaceIdentify => ['person_id' => ['required', 'uuid', new VisiblePerson]],
-            self::MediaDate => ['value' => 'required|date|before:tomorrow'],
+            self::MediaDate => [
+                'value' => 'required|date|before:tomorrow',
+                // Vieilles photos : mois, année ou décennie seulement.
+                'precision' => 'nullable|in:day,month,year,decade',
+            ],
             self::MediaGeo => [
                 'latitude' => 'required|numeric|between:-90,90',
                 'longitude' => 'required|numeric|between:-180,180',
