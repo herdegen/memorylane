@@ -2550,6 +2550,80 @@ return [
                 'Which cousin wrote the letter in 1941 — a Brennan or a Walsh?',
             ],
         ],
+        'nueva_ubaye' => [
+            'title' => 'Honoré’s shop, La Nueva Ubaye',
+            'summary' => 'A young draper from the French Alps sails for Mexico in 1861 and opens a fabric shop on the plaza of Guadalajara, named after his valley.',
+            'kind' => 'documented',
+            'credits' => 'From Abuela Rosa’s photo box and the parish records found by María Elena.',
+            'album' => 'guadalajara_archives',
+            'author' => 'maria_elena',
+            'people' => ['honore', 'refugio'],
+            'chapters' => [
+                ['title' => 'A borrowed coat', 'when' => '1861', 'blocks' => [
+                    ['text', 'Honoré was nineteen when he left Barcelonnette with a borrowed coat, a few gold coins sewn into the lining and the address of a cousin in Mexico City. Like the other “Barcelonnettes”, he slept under the shop counter for five years and learned Spanish from the customers.'],
+                ]],
+                ['title' => 'The shop on the plaza', 'when' => '1866 – 1905', 'blocks' => [
+                    ['text', 'In 1866 he moved to Guadalajara and opened La Nueva Ubaye: French calico, Manchester cotton, Lyon silk for the cathedral’s feast days — and credit for anyone with a good face.'],
+                    ['media', 'ga_nueva_ubaye', 'La Nueva Ubaye, the shop on the plaza.'],
+                    ['media', 'ga_honore_refugio', 'Honoré and Refugio, newly married (1868).'],
+                    ['quote', 'Her father made him wait two years and learn to dance the jarabe before he said yes.', 'Abuela Rosa'],
+                ]],
+                ['title' => 'Home again', 'when' => '1885', 'blocks' => [
+                    ['text', 'Twenty-four years later Honoré sailed back to see his widowed mother. He came home with his father’s brass draper’s measure and a photograph of the valley, which hung above the counter until 1970. His brother Joseph’s descendants — the Lambert family, in France — are on MemoryLane too.'],
+                    ['media', 'ga_honore_barcelonnette', 'Honoré home again in Barcelonnette.'],
+                ]],
+            ],
+            'questions' => ['Who has the brass draper’s measure now?', 'Did Honoré visit his brother Joseph in Valence on the 1885 trip?'],
+        ],
+        'bracero_letters' => [
+            'title' => 'Three years of letters: Rafael, bracero',
+            'summary' => 'In 1956 a young shoemaker from Guadalajara signs a bracero contract to earn enough for a ring. He writes to Rosa every Sunday.',
+            'kind' => 'memory',
+            'credits' => 'Told by María Elena, from her father’s letters and Tío Chuy’s stories.',
+            'album' => 'bracero',
+            'author' => 'maria_elena',
+            'people' => ['rafael', 'rosa', 'chuy'],
+            'chapters' => [
+                ['title' => 'Across the fabric counter', 'when' => 'May 1955', 'blocks' => [
+                    ['text', 'Rafael came into the fabric shop to buy lining cloth for his master’s boots. He came back every week for a month, buying a little less each time. The girl behind the counter was Rosa, Honoré’s great-granddaughter.'],
+                ]],
+                ['title' => 'Empalme, then Salinas', 'when' => '1956 – 1959', 'blocks' => [
+                    ['text', 'Days of waiting in the sun at the Empalme reception center, a medical inspection, fingerprints, and a contract in a language he couldn’t read. Then lettuce in the Salinas Valley, bent over the short-handled hoe from dawn.'],
+                    ['media', 'br_empalme', 'Waiting at the Empalme reception center.'],
+                    ['media', 'br_lettuce', 'Lettuce harvest in the Salinas Valley.'],
+                    ['quote', 'On Sundays Chuy played guitar, and I wrote to Rosa. I told her about the fog, never about my back.', 'Rafael, in a letter'],
+                    ['media', 'br_letter', 'One of the letters home.'],
+                ]],
+                ['title' => 'A ring and a workshop', 'when' => '1959', 'blocks' => [
+                    ['text', 'Three years of money orders paid for a ring and the tools of his own workshop. They married on December 12, 1959, the day of the Virgin of Guadalupe; Chuy came down from Salinas with a suitcase of American presents.'],
+                    ['media', 'ga_rafael_rosa_wedding', 'Rafael and Rosa’s wedding.'],
+                ]],
+            ],
+            'questions' => ['Does anyone have the rest of the letters? Abuela Rosa kept them in a shoebox.'],
+        ],
+        'antonio' => [
+            'title' => 'Antonio, “of the Congo nation”',
+            'summary' => 'Taken from West Central Africa, enslaved on a cattle estate of the Costa Chica, he bought his own freedom in 1752. The oldest ancestor we can name.',
+            'kind' => 'documented',
+            'credits' => 'Researched by María Elena in the parish books of Cuajinicuilapa and the Veracruz port registers.',
+            'author' => 'maria_elena',
+            'people' => ['antonio', 'candelaria'],
+            'sensitive' => true,
+            'disagreements' => 'Tía Lupita says Antonio took the name Salinas from a priest; the 1752 record María Elena found names his godfather as a mule driver, Juan Salinas.',
+            'chapters' => [
+                ['title' => 'A name never written down', 'when' => '1705 – 1724', 'blocks' => [
+                    ['text', 'His name in his own language was never written down. Captured as a young man during the civil wars of the Kingdom of Kongo, he was marched to the coast and shipped across the Atlantic. The Spanish register at Veracruz lists him only as “Antonio, of the Congo nation”, with a price beside his name.'],
+                ]],
+                ['title' => 'The best rider of the Costa Chica', 'when' => '1726 – 1752', 'blocks' => [
+                    ['text', 'For twenty-six years he worked the cattle estates of the Pacific coast on horseback. In 1740 he married Candelaria, a free woman of African and Indigenous descent: under colonial law status followed the mother, so all their children were born free.'],
+                    ['quote', 'He was known as the best rider between the lagoons and the hills.', 'Family tradition, Cuajinicuilapa'],
+                ]],
+                ['title' => 'Freedom', 'when' => '1752', 'blocks' => [
+                    ['text', 'In 1752 he paid for his own freedom, peso by peso, with money saved from selling hides and breaking horses. A round house of mud and palm, a corral, a few cows: the first things in his life that belonged to him.'],
+                ]],
+            ],
+            'questions' => ['Can anyone read the 1752 manumission record? María Elena has a scan of it.'],
+        ],
     ],
 
     // Guided life story, already started.

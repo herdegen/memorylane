@@ -518,6 +518,8 @@ class DemoBuilder
                 'kind' => $s['kind'],
                 'credits' => $s['credits'] ?? null,
                 'album_id' => isset($s['album']) ? $this->albums["{$fam}:{$s['album']}"]->id : null,
+                'sensitive' => $s['sensitive'] ?? false,
+                'disagreements' => $s['disagreements'] ?? null,
                 'published_at' => now()->subDays(3),
             ]);
             foreach ($s['people'] as $i => $key) {

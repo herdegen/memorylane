@@ -319,6 +319,75 @@ return [
                 'Le petit cadeau de la rue de Siam : est-ce la broche que portait Marie sur les photos ?',
             ],
         ],
+        'pierre_odette' => [
+            'title' => 'Pierre et Odette, de Lyon à Nantes',
+            'summary' => 'Un ingénieur de Brest, une élève des Beaux-Arts de Lyon : comment les grands-parents se sont rencontrés, mariés, puis installés au bord de l’Erdre.',
+            'kind' => 'memory',
+            'credits' => 'Raconté par Jean et Annie, d’après ce que leurs parents en disaient à table.',
+            'album' => 'brest',
+            'author' => 'jean',
+            'people' => ['odette', 'pierre'],
+            'chapters' => [
+                ['title' => 'L’exposition des Beaux-Arts', 'when' => 'Printemps 1947', 'blocks' => [
+                    ['text', 'Pierre est à Lyon pour le mariage d’un camarade de l’École navale. Le lendemain, pour tuer le temps avant le train, il entre dans l’exposition des élèves des Beaux-Arts. Il s’arrête devant un dessin du port de Brest. L’élève qui l’a fait n’a jamais vu la mer : elle l’a dessiné d’après une carte postale.'],
+                    ['quote', 'Je lui ai dit que le phare n’était pas du bon côté. Elle m’a répondu qu’il n’avait qu’à l’emmener le voir.', 'Pierre, cinquante ans plus tard'],
+                ]],
+                ['title' => 'Le mariage de mai 1948', 'when' => '22 mai 1948', 'blocks' => [
+                    ['text', 'Un an plus tard, les deux familles se retrouvent à Lyon, à Saint-Bruno des Chartreux. Les Lambert sont montés de Brest en train ; Auguste, le père d’Odette, a tissé lui-même la soie de la robe.'],
+                    ['media', 'fairepart_1948', 'Le faire-part, conservé par Odette.'],
+                ]],
+                ['title' => 'La première voiture', 'when' => '1955', 'blocks' => [
+                    ['text', 'Installés à Nantes, où Pierre travaille aux chantiers navals, ils achètent leur première voiture en 1955. Odette dessine tout au long des voyages : il reste trois carnets de croquis de la route de Brest.'],
+                    ['media', 'voiture_ancienne', 'La première voiture de Pierre, devant la maison de l’Erdre.'],
+                    ['media', 'plage_annees60', 'Un dimanche à la plage du Moulin Blanc, avec Jean et Michel.'],
+                ]],
+            ],
+            'questions' => ['Qui a gardé les carnets de croquis d’Odette ?'],
+        ],
+        'oncle' => [
+            'title' => 'L’oncle d’Amérique',
+            'summary' => 'En 1885, Honoré, parti au Mexique vingt-quatre ans plus tôt, serait passé par Valence voir son frère Joseph. La famille en garde un coupon de soie… et deux versions de l’histoire.',
+            'kind' => 'legend',
+            'credits' => 'Légende familiale transmise par Jeanne Moreau, née Fabre.',
+            'author' => 'jean',
+            'people' => ['joseph_arnaud', 'marie_fabre', 'rosalie'],
+            'disagreements' => 'Jean pense que la soie venait vraiment du magasin d’Honoré à Guadalajara. Annie est persuadée qu’Honoré l’avait achetée à Lyon en passant, pour faire bonne figure.',
+            'chapters' => [
+                ['title' => 'Le frère qui est parti', 'when' => '1861', 'blocks' => [
+                    ['text', 'Joseph et Honoré sont fils d’un marchand drapier de Barcelonnette. En 1861, Honoré part pour le Mexique, comme des centaines de jeunes de la vallée de l’Ubaye ; Joseph reste et ouvre une boutique de tissus à Valence.'],
+                ]],
+                ['title' => 'La visite', 'when' => 'Été 1885', 'blocks' => [
+                    ['text', 'Vingt-quatre ans plus tard, Honoré revient voir sa mère, veuve. D’après Jeanne, il s’arrête à Valence avec une malle « qui sentait le café » et offre à sa nièce Marie, quatorze ans, un coupon de soie brodée.'],
+                    ['quote', 'Ma mère disait qu’il parlait français avec l’accent espagnol, et qu’il pleurait en regardant le Rhône.', 'Jeanne Moreau, née Fabre'],
+                ]],
+                ['title' => 'Le coupon de soie', 'when' => 'Aujourd’hui', 'blocks' => [
+                    ['text', 'Le coupon a servi au voile de baptême de trois générations. Depuis que la famille Sullivan a retrouvé les Lambert grâce à MemoryLane, on sait qu’Honoré tenait La Nueva Ubaye, un magasin de tissus à Guadalajara.'],
+                ]],
+            ],
+            'questions' => ['Où est le coupon de soie aujourd’hui ?', 'Quelqu’un a-t-il une photo du voile de baptême ?'],
+        ],
+        'vendanges' => [
+            'title' => 'Le dernier automne chez Lucien',
+            'summary' => 'L’oncle Lucien, guide de haute montagne, avait fini sa vie au milieu des vignes du Beaujolais. Septembre 1987, les dernières vendanges tous ensemble.',
+            'kind' => 'memory',
+            'credits' => 'Souvenirs de Michel et de Jean.',
+            'album' => 'vendanges',
+            'author' => 'jean',
+            'people' => ['lucien', 'michel', 'jean'],
+            'chapters' => [
+                ['title' => 'Le guide devenu vigneron', 'when' => '1952 – 1987', 'blocks' => [
+                    ['text', 'Lucien a passé trente ans à guider des cordées autour de Grenoble. À la retraite, il rachète quelques rangs de vigne près de Villefranche-sur-Saône : « Là au moins, la pente ne me fera plus peur. »'],
+                    ['media', 'moisson', 'Le domaine, vu depuis le chemin.'],
+                ]],
+                ['title' => 'Les vendanges', 'when' => 'Septembre 1987', 'blocks' => [
+                    ['text', 'Michel, devenu œnologue à Bordeaux, monte avec ses instruments ; Jean vient avec toute la famille. Trois jours à couper, porter, fouler.'],
+                    ['media', 'raisins', 'Lucien et Michel, le premier matin.'],
+                    ['quote', 'Il a goûté le moût, il a fait la grimace, et il a dit : celui-là, on le boira à mon enterrement.', 'Michel'],
+                    ['media', 'chemin_campagne', 'La promenade d’après-vendanges.'],
+                ]],
+            ],
+            'questions' => ['Reste-t-il une bouteille de la cuvée 1987 ?'],
+        ],
     ],
 
     // Récit de vie guidé, déjà commencé : [fiche, auteur, étapes => texte].
