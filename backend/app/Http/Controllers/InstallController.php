@@ -93,6 +93,9 @@ class InstallController extends Controller
         $add(__('Photos d\'iPhone (HEIC)'), $heic ? 'ok' : 'warn', $heic ? __('Lues et converties') : __('Non prises en charge par ImageMagick'));
         $ffmpeg = trim((string) @shell_exec('command -v ffmpeg'));
         $add(__('Vidéos (ffmpeg)'), $ffmpeg ? 'ok' : 'error', $ffmpeg ? __('Installé') : __('Absent'));
+        // Lecture du texte des documents : facultative (sans elle, pas de tri des documents).
+        $tesseract = is_executable((string) config('memorylane.documents.tesseract'));
+        $add(__('Lecture des documents (Tesseract)'), $tesseract ? 'ok' : 'warn', $tesseract ? __('Installé') : __('Absent'));
 
         $writable = is_writable(base_path('.env')) && is_writable(storage_path()) && is_writable(base_path('bootstrap/cache'));
         $add(__('Droits d\'écriture'), $writable ? 'ok' : 'error', $writable ? __('Configuration et dossiers de travail') : __('backend/.env ou storage/ non modifiable'), __('Les fichiers doivent appartenir à l\'utilisateur qui a lancé install.sh.'));

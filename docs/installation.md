@@ -1,6 +1,6 @@
 # Installer MemoryLane chez soi
 
-MemoryLane rassemble les photos, vidéos et souvenirs d'une famille : albums, arbre généalogique, reconnaissance des visages, carte, frise de vie, jeu « Qui est-ce ? », interface pour la télévision… Ce guide explique comment l'installer sur **votre** serveur. Rien n'est envoyé ailleurs que là où vous le choisissez.
+MemoryLane rassemble les photos, vidéos et souvenirs d'une famille : albums, arbre généalogique, reconnaissance des visages, carte, frise de vie, jeu « Qui est-ce ? », interface pour la télévision… Ce guide explique comment l'installer sur **votre** serveur. Vos photos ne sont envoyées nulle part ailleurs que là où vous le choisissez (voir [Connexions vers l'extérieur](#connexions-vers-lextérieur)).
 
 L'installation se fait en deux temps :
 
@@ -39,6 +39,21 @@ Facultatif, selon vos choix dans l'assistant :
 - **Un stockage S3**, chez Scaleway, OVHcloud, Backblaze, AWS… Il peut servir pour les photos, pour les sauvegardes, ou pour les deux.
 
 Sans rien de tout ça, MemoryLane fonctionne à la maison, sur votre réseau.
+
+### Connexions vers l'extérieur
+
+Le serveur doit pouvoir joindre Internet (en sortie) pour l'installation et les mises à jour (images Docker, paquets PHP et JavaScript). Ensuite, pour enrichir les fiches, il interroge quelques services publics et gratuits, **sans jamais leur envoyer de photo** : seulement un nom de lieu, des coordonnées ou un prénom.
+
+| Pour… | Service |
+|---|---|
+| Situer les lieux sur la carte | OpenStreetMap (Nominatim), Base Adresse Nationale (adresses en France) |
+| Suggérer des lieux pendant la saisie | Photon (komoot) |
+| Illustrer un lieu par une photo | Wikipédia, Wikidata, Wikimedia Commons |
+| Fêtes des prénoms | nominis.cef.fr |
+
+Le navigateur des visiteurs charge en plus les fonds de carte (OpenStreetMap, Esri). La lecture du texte des documents (Tesseract) et la reconnaissance des visages restent sur votre serveur.
+
+Pour couper le géocodage automatique des lieux, réglez `GEOCODE_AUTO=false` dans `backend/.env` (voir [Changer un réglage plus tard](#changer-un-réglage-plus-tard)).
 
 ---
 
