@@ -458,7 +458,8 @@ class InstallController extends Controller
                         'invite_policy' => Household::defaultInvitePolicy($kind),
                         'created_by' => $user->id,
                     ]);
-                    $circle->addMember($user, $user);
+                    // L'administrateur en est le premier responsable (comme tout créateur de cercle).
+                    $circle->addMember($user, $user, Household::ROLE_MANAGER);
                     $user->forceFill(['current_household_id' => $circle->id])->save();
                 }
 

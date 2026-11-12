@@ -155,6 +155,11 @@ class InstallerTest extends TestCase
         $this->assertSame('Famille Martin', $circle->name);
         $this->assertSame(Household::KIND_FAMILY, $circle->kind);
         $this->assertTrue($circle->members()->whereKey($admin->id)->exists());
+        // Plusieurs familles par installation : l'admin est responsable de la
+        // première, et sa fiche y est rattachée (sinon invisible pour lui).
+        $this->assertTrue($circle->isManager($admin));
+        $this->assertTrue($circle->people()->whereKey($admin->person_id)->exists());
+        $this->assertTrue(\App\Models\Person::visibleTo($admin)->whereKey($admin->person_id)->exists());
 
         $finished = file_get_contents($this->dir.'/finished.env');
         $this->assertStringContainsString('PROFILES=local-storage,faces,https', $finished);
