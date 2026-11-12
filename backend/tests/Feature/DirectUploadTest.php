@@ -133,6 +133,28 @@ class DirectUploadTest extends TestCase
         ]);
     }
 
+    public function test_old_camcorder_formats_are_accepted_and_sent_to_optimization(): void
+    {
+        Queue::fake();
+        $this->actingAs($this->user)->postJson('/media/uploads/initiate', [
+            'original_name' => 'noel-1994.mpg', 'mime_type' => 'video/mpeg', 'size' => 300 * 1024 * 1024,
+        ])->assertStatus(201);
+
+        $session = UploadSession::create([
+            'user_id' => $this->user->id,
+            'upload_id' => 'u2', 's3_key' => 'media/videos/noel.mpg',
+            'original_name' => 'noel-1994.mpg', 'mime_type' => 'video/mpeg',
+            'size' => 1234, 'type' => 'video',
+        ]);
+        $this->actingAs($this->user)->postJson('/media/uploads/complete', [
+            'upload_session_id' => $session->id, 'parts' => [['part_number' => 1, 'etag' => '"aaa"']],
+        ])->assertStatus(201);
+
+        // D'abord le MP4 optimisé ; miniatures et métadonnées viendront après.
+        Queue::assertPushed(\App\Jobs\OptimizeUploadedVideo::class);
+        Queue::assertNotPushed(\App\Jobs\GenerateMediaConversions::class);
+    }
+
     public function test_status_returns_uploaded_parts_for_resume(): void
     {
         $session = UploadSession::create([

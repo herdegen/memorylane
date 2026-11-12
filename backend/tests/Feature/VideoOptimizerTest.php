@@ -117,6 +117,43 @@ class VideoOptimizerTest extends TestCase
         Bus::assertDispatched(\App\Jobs\GenerateMediaConversions::class);
     }
 
+    public function test_an_uploaded_mpg_is_replaced_by_the_optimized_mp4(): void
+    {
+        Bus::fake([\App\Jobs\GenerateMediaConversions::class, \App\Jobs\ProcessUploadedMedia::class]);
+        $disk = config('filesystems.default');
+        Storage::fake($disk);
+        Storage::disk($disk)->put('media/videos/2026/11/noel.mpg', file_get_contents($this->camcorderVideo()));
+        $user = User::factory()->create();
+        $video = Media::factory()->video()->create([
+            'user_id' => $user->id, 'file_path' => 'media/videos/2026/11/noel.mpg', 'mime_type' => 'video/mpeg', 'original_name' => 'noel-1994.mpg',
+        ]);
+
+        app()->call([new \App\Jobs\OptimizeUploadedVideo($video), 'handle']);
+
+        $video->refresh();
+        $this->assertSame('video/mp4', $video->mime_type);
+        $this->assertSame('noel-1994.mp4', $video->original_name);
+        Storage::disk($disk)->assertMissing('media/videos/2026/11/noel.mpg');
+        Storage::disk($disk)->assertExists($video->file_path);
+        $this->assertSame('h264', app(VideoOptimizer::class)->probe(Storage::disk($disk)->path($video->file_path))['codec']);
+        Bus::assertDispatched(\App\Jobs\GenerateMediaConversions::class);
+    }
+
+    public function test_an_unreadable_upload_keeps_its_original_and_goes_on(): void
+    {
+        Bus::fake([\App\Jobs\GenerateMediaConversions::class, \App\Jobs\ProcessUploadedMedia::class]);
+        $disk = config('filesystems.default');
+        Storage::fake($disk);
+        Storage::disk($disk)->put('media/videos/2026/11/casse.mpg', 'pas une vidéo');
+        $video = Media::factory()->video()->create(['user_id' => User::factory()->create()->id, 'file_path' => 'media/videos/2026/11/casse.mpg', 'mime_type' => 'video/mpeg']);
+
+        app()->call([new \App\Jobs\OptimizeUploadedVideo($video), 'handle']);
+
+        $this->assertSame('media/videos/2026/11/casse.mpg', $video->fresh()->file_path);
+        Storage::disk($disk)->assertExists('media/videos/2026/11/casse.mpg');
+        Bus::assertDispatched(\App\Jobs\GenerateMediaConversions::class);
+    }
+
     public function test_drive_videos_are_optimized_apart_and_only_the_optimized_copy_is_kept(): void
     {
         Bus::fake([\App\Jobs\GenerateMediaConversions::class, \App\Jobs\ProcessUploadedMedia::class]);

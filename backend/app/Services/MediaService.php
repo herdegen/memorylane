@@ -290,6 +290,15 @@ class MediaService
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
     ];
 
+    /**
+     * Vieux formats vidéo (caméscope, DVD, vieux téléphones) : acceptés à
+     * l'envoi, puis remplacés par un MP4 optimisé (OptimizeUploadedVideo).
+     */
+    public const LEGACY_VIDEO_MIMES = [
+        'video/mpeg', 'video/mp2t', 'video/vnd.dlna.mpeg-tts', 'video/3gpp',
+        'video/x-ms-wmv', 'video/x-flv', 'video/dv',
+    ];
+
     public static function extensionForMime(?string $mime): string
     {
         return self::EXTENSIONS[$mime] ?? 'bin';
@@ -390,6 +399,18 @@ class MediaService
      * sur le fichier téléchargé (pas de job séparé, pas de double download S3).
      */
     protected function dispatchProcessingJobs(Media $media): void
+    {
+        // Vieux format vidéo : d'abord le MP4 optimisé, la suite après.
+        if ($media->type === 'video' && in_array($media->mime_type, self::LEGACY_VIDEO_MIMES, true)) {
+            \App\Jobs\OptimizeUploadedVideo::dispatch($media);
+
+            return;
+        }
+        $this->startProcessing($media);
+    }
+
+    /** Métadonnées, miniatures, visages, lecture des documents. */
+    public function startProcessing(Media $media): void
     {
         ProcessUploadedMedia::dispatch($media);
         GenerateMediaConversions::dispatch($media);

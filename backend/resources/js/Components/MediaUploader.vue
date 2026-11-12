@@ -329,7 +329,11 @@ const summary = ref({});
 let idCounter = 0;
 
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
-const VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska', 'video/webm'];
+const VIDEO_TYPES = [
+  'video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska', 'video/webm',
+  // Vieux formats (caméscope, DVD, vieux téléphones) : convertis en MP4 optimisé après l'envoi.
+  'video/mpeg', 'video/mp2t', 'video/vnd.dlna.mpeg-tts', 'video/3gpp', 'video/x-ms-wmv', 'video/x-flv', 'video/dv',
+];
 const DOC_TYPES = [
   'application/pdf',
   'application/msword',
@@ -339,13 +343,18 @@ const DOC_TYPES = [
 const EXT_MIME = {
   mp4: 'video/mp4', mov: 'video/quicktime', avi: 'video/x-msvideo',
   mkv: 'video/x-matroska', webm: 'video/webm', m4v: 'video/mp4',
+  mpg: 'video/mpeg', mpeg: 'video/mpeg', mpe: 'video/mpeg', m2v: 'video/mpeg', vob: 'video/mpeg',
+  mts: 'video/mp2t', m2ts: 'video/mp2t', ts: 'video/mp2t', '3gp': 'video/3gpp', '3g2': 'video/3gpp',
+  wmv: 'video/x-ms-wmv', flv: 'video/x-flv', dv: 'video/dv',
   heic: 'image/heic', heif: 'image/heif',
 };
 
+const KNOWN_TYPES = new Set([...IMAGE_TYPES, ...VIDEO_TYPES, ...DOC_TYPES]);
 const resolveMime = (file) => {
-  if (file.type) return file.type;
+  if (KNOWN_TYPES.has(file.type)) return file.type;
+  // Type vide ou variante selon le navigateur (« video/x-mpeg », « video/mpg »…) : l'extension tranche.
   const ext = file.name.split('.').pop()?.toLowerCase();
-  return EXT_MIME[ext] || '';
+  return EXT_MIME[ext] || file.type || '';
 };
 const isVideo = (mime) => mime.startsWith('video/');
 

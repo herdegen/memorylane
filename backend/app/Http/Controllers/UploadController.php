@@ -26,6 +26,8 @@ class UploadController extends Controller
         'video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska', 'video/webm',
         'image/jpeg', 'image/png', 'image/gif', 'image/webp',
         'application/pdf',
+        // Vieux formats vidéo : convertis en MP4 optimisé après l'envoi.
+        ...MediaService::LEGACY_VIDEO_MIMES,
     ];
 
     public function __construct(
