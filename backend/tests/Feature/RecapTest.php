@@ -73,6 +73,9 @@ class RecapTest extends TestCase
         $this->photo($paul, '2020-07-01 12:00:00', owner: User::factory()->create());
         // … et une autre qu'il a gardée hors de sa fiche.
         $this->photo($paul, '2021-07-01 12:00:00', ficheStatus: 'private');
+        // … et un document qui le cite, identifié sur sa fiche mais sans son visage.
+        $document = Media::factory()->photo()->create(['user_id' => $this->me->id, 'taken_at' => '1926-01-01 12:00:00']);
+        $document->people()->attach($paul->id);
 
         $people = $this->service()->throughYearsPeople($this->me);
         $this->assertSame(['Loïc'], $people->map(fn ($r) => $r['person']->first_name)->all());

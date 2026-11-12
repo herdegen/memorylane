@@ -363,7 +363,7 @@ class RecapService
     /** Cache propre au visiteur ET à son cercle courant (les photos visibles en dépendent). */
     private function cacheKey(string $what, User $user): string
     {
-        return "recaps:v2:{$what}:{$user->id}:".($user->currentCircle()?->id ?? 'none');
+        return "recaps:v3:{$what}:{$user->id}:".($user->currentCircle()?->id ?? 'none');
     }
 
     /** Médias ajoutés (cette année-là) que le visiteur voit, dans son cercle courant. */
@@ -401,7 +401,11 @@ class RecapService
         return DB::table('recap_views')->where('user_id', $user->id)->where('recap_key', $key)->exists();
     }
 
-    /** Photos datées que le visiteur peut voir, avec les personnes identifiées. */
+    /**
+     * Photos datées que le visiteur peut voir, où l'on VOIT la personne : son
+     * visage y est reconnu. Une simple mention (document, coupure de presse,
+     * capture d'un livre identifiée sur sa fiche) ne compte pas.
+     */
     private function taggedPhotos(User $user)
     {
         return DB::table('media_person as mp')
@@ -409,6 +413,9 @@ class RecapService
             ->whereNull('m.deleted_at')
             ->whereNotNull('m.taken_at')
             ->where('m.type', 'photo')
+            ->whereExists(fn ($q) => $q->select(DB::raw(1))->from('detected_faces as seen')
+                ->whereColumn('seen.media_id', 'm.id')->whereColumn('seen.person_id', 'mp.person_id')
+                ->where('seen.status', 'matched'))
             ->where(fn ($q) => $q->whereNull('mp.fiche_status')->orWhere('mp.fiche_status', '!=', FichePublisher::PRIVATE))
             ->whereIn('m.id', Media::accessibleBy($user)->select('media.id'));
     }
