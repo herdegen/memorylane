@@ -163,7 +163,8 @@
     </nav>
 
     <!-- Départ de l'application programmé : rappel et annulation, partout. -->
-    <div v-if="user?.departure_at" class="bg-amber-100 dark:bg-amber-500/15 text-amber-900 dark:text-amber-200 text-sm px-4 py-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+    <!-- Sa hauteur est retranchée des pages plein écran (useTopBanner). -->
+    <div v-if="user?.departure_at" ref="departureBanner" class="bg-amber-100 dark:bg-amber-500/15 text-amber-900 dark:text-amber-200 text-sm px-4 py-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
       <span>{{ $t('Votre départ de MemoryLane est programmé pour le :date.', { date: formatLongDate(user.departure_at) }) }}</span>
       <Link href="/account/departure" class="font-semibold underline">{{ $t('Annuler ou voir les détails') }}</Link>
     </div>
@@ -220,6 +221,7 @@ import { useAuth } from '@/Composables/useAuth';
 import { useTheme } from '@/Composables/useTheme';
 import { startBackgroundFaceScan } from '@/Composables/useBackgroundFaceScan';
 import ImpersonationBanner from '@/Components/ImpersonationBanner.vue';
+import { useTopBanner } from '@/Composables/useTopBanner';
 import BirthdayGreeting from '@/Components/BirthdayGreeting.vue';
 import { usePush } from '@/Composables/usePush';
 import { useCircle } from '@/Composables/useCircle';
@@ -228,6 +230,9 @@ const { user, isAdmin } = useAuth();
 const { isDark, toggle: toggleTheme } = useTheme();
 const { syncOnce: syncPushSubscription, unsubscribeThisDevice, permission: pushPermission } = usePush();
 const { mode, isFriends, circles, current, peopleLabel } = useCircle();
+// Bandeau « départ programmé » : sa hauteur est retirée des pages plein écran.
+const departureBanner = ref(null);
+useTopBanner('departure', departureBanner);
 
 // Accent du mode (ambre famille, teal amis) : app.css recolore la palette
 // `brand` sous [data-mode=friends].

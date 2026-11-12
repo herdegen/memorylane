@@ -66,7 +66,8 @@ class SmartAlbumService
     protected function buildQuery(array $rules, ?string $userId = null)
     {
         // Un album intelligent ne pioche que dans les médias de son propriétaire.
-        $query = Media::query()->where('user_id', $userId);
+        // … sans les vidéos découpées : leurs clips les remplacent.
+        $query = Media::query()->where('user_id', $userId)->withoutClipSources();
 
         if (! empty($rules['person_id'])) {
             $query->whereHas('people', fn ($q) => $q->where('people.id', $rules['person_id']));

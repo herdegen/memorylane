@@ -317,9 +317,17 @@ class Media extends Model
      * ami du cercle. Sa propre présence ne compte pas (sinon toutes ses
      * photos de famille y entreraient).
      */
+    /** Écarte les vidéos découpées en clips (leurs clips les remplacent). */
+    public function scopeWithoutClipSources($query)
+    {
+        return $query->where('media.is_source', false);
+    }
+
     public function scopeInContext($query, User $user)
     {
-        $query->accessibleBy($user);
+        // Une vidéo découpée en clips ne s'affiche plus dans les listes : ses
+        // clips la remplacent (on la retrouve depuis chacun d'eux).
+        $query->accessibleBy($user)->where('media.is_source', false);
 
         $circle = $user->currentCircle();
         if (! $circle?->isFriends()) {

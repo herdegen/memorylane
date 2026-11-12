@@ -283,6 +283,14 @@ class MediaController extends Controller
             'can' => ['edit_details' => Gate::allows('editDetails', $media)],
             'history' => \App\Http\Controllers\MediaChangeController::payload($media, $viewer),
             'ficheRequest' => $ficheRequest,
+            // Vidéo découpée : les personnes de tous ses clips (calculées, donc à jour).
+            'clipPeople' => $media->clips->isEmpty() ? [] : \App\Models\Person::visibleTo($viewer)
+                ->whereHas('media', fn ($q) => $q->whereIn('media.id', $media->clips->pluck('id')))
+                ->withCount(['media as clips_count' => fn ($q) => $q->whereIn('media.id', $media->clips->pluck('id'))])
+                ->orderBy('name')
+                ->get()
+                ->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'avatar_url' => $p->avatarUrl(), 'clips_count' => $p->clips_count])
+                ->values(),
             // « Ajouter une personne » : présents sur l'album, même d'un autre cercle
             'albumPeople' => app(\App\Services\Vision\AlbumParticipants::class)->identifiedAround($media, auth()->user()),
             // Moments de frise qui utilisent cette photo (illustration ou galerie),

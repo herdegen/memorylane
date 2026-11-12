@@ -35,7 +35,7 @@ class SearchController extends Controller
         // On élargit le take() car le filtre user_id s'applique après le scoring
         // Scout (sinon on risque de perdre des résultats pertinents).
         $media = $this->safeSearch(fn () => Media::search($query)
-            ->query(fn ($builder) => $builder->with('conversions')->where('user_id', $userId))
+            ->query(fn ($builder) => $builder->with('conversions')->where('user_id', $userId)->withoutClipSources())
             ->take(30)
             ->get()
             ->take(8));

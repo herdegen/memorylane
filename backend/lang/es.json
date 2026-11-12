@@ -3326,5 +3326,7 @@
     "Une histoire de famille": "Una historia de familia",
     "Une question de l’histoire": "Una pregunta de la historia",
     "la suite de « :title »": "la continuación de «:title»",
-    "une histoire de famille, « :title »": "una historia de familia, «:title»"
+    "une histoire de famille, « :title »": "una historia de familia, «:title»",
+    "Vidéo découpée en :count clip : c’est lui qu’on retrouve dans les albums et sur les fiches.|Vidéo découpée en :count clips : ce sont eux qu’on retrouve dans les albums et sur les fiches.": "Vídeo cortado en :count clip: es lo que aparece en los álbumes y en las fichas.|Vídeo cortado en :count clips: son los que aparecen en los álbumes y en las fichas.",
+    "Dans les clips": "En los clips"
 }

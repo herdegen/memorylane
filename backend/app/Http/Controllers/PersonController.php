@@ -308,6 +308,7 @@ class PersonController extends Controller
         // par année (issue #32) plutôt qu'une grille à plat paginée.
         $media = $person->media()
             ->accessibleBy(auth()->user())
+            ->withoutClipSources()
             ->with(['conversions', 'tags'])
             ->orderBy('taken_at', 'desc')
             ->orderBy('uploaded_at', 'desc')
@@ -689,6 +690,7 @@ class PersonController extends Controller
         // (le front regroupe la frise par album puis par année, issue #32).
         $photos = $person->media()
             ->accessibleBy(auth()->user())
+            ->withoutClipSources()
             ->whereNotNull('taken_at')
             ->with('conversions')
             ->orderBy('taken_at')

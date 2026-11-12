@@ -168,6 +168,28 @@
               </p>
             </div>
 
+            <!-- Vidéo découpée : elle n'apparaît plus dans les listes, ses clips la remplacent -->
+            <div v-if="media.clips && media.clips.length" class="mt-4 rounded-lg bg-surface-50 border border-surface-200 px-4 py-3">
+              <p class="text-sm text-surface-700">
+                {{ $tc('Vidéo découpée en :count clip : c’est lui qu’on retrouve dans les albums et sur les fiches.|Vidéo découpée en :count clips : ce sont eux qu’on retrouve dans les albums et sur les fiches.', media.clips.length) }}
+              </p>
+              <div v-if="clipPeople.length" class="mt-2.5">
+                <p class="text-xs font-semibold uppercase tracking-wider text-surface-400 mb-1.5">{{ $t('Dans les clips') }}</p>
+                <div class="flex flex-wrap gap-1.5">
+                  <Link
+                    v-for="p in clipPeople"
+                    :key="p.id"
+                    :href="`/people/${p.id}`"
+                    class="inline-flex items-center gap-1.5 rounded-full bg-white border border-surface-200 py-0.5 pl-0.5 pr-2.5 text-sm text-surface-800 hover:border-brand-400"
+                  >
+                    <PersonAvatar :person="p" :size="6" />
+                    {{ p.name }}
+                    <span class="text-xs text-surface-400">{{ p.clips_count }}</span>
+                  </Link>
+                </div>
+              </div>
+            </div>
+
             <!-- Éditeur de découpe : vidéo source (pas un clip) -->
             <div v-if="media.type === 'video' && !media.source_media_id" class="mt-4">
               <VideoClipEditor
@@ -436,6 +458,7 @@
 <script setup>
 import { ref, computed, nextTick, defineAsyncComponent } from 'vue';
 import { Head, router, Link, usePage } from '@inertiajs/vue3';
+import PersonAvatar from '@/Components/PersonAvatar.vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import TagInput from '@/Components/TagInput.vue';
 import PersonInput from '@/Components/PersonInput.vue';
@@ -515,6 +538,11 @@ const props = defineProps({
   ficheRequest: {
     type: Object,
     default: null,
+  },
+  // Vidéo découpée : personnes de tous ses clips [{ id, name, avatar_url, clips_count }]
+  clipPeople: {
+    type: Array,
+    default: () => [],
   },
 });
 

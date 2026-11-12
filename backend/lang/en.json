@@ -3322,5 +3322,7 @@
     "Une histoire de famille": "A family story",
     "Une question de l’histoire": "A question from the story",
     "la suite de « :title »": "more of “:title”",
-    "une histoire de famille, « :title »": "a family story, “:title”"
+    "une histoire de famille, « :title »": "a family story, “:title”",
+    "Vidéo découpée en :count clip : c’est lui qu’on retrouve dans les albums et sur les fiches.|Vidéo découpée en :count clips : ce sont eux qu’on retrouve dans les albums et sur les fiches.": "Video cut into :count clip: that is what appears in albums and on profiles.|Video cut into :count clips: those are what appear in albums and on profiles.",
+    "Dans les clips": "In the clips"
 }
