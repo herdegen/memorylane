@@ -713,7 +713,7 @@ const S3Fields = (p) => {
     }),
     p.errors[key] ? h('p', { class: 'error' }, p.errors[key]) : null,
   ]);
-  return h('div', { class: 'grid sm:grid-cols-2 gap-4' }, [
+  return h('div', { class: 's3-fields grid sm:grid-cols-2 gap-4' }, [
     field('endpoint', t('Adresse du service (endpoint)'), { wide: true, placeholder: 'https://s3.fr-par.scw.cloud' }),
     field('region', t('Région'), { placeholder: 'fr-par' }),
     field('bucket', t('Bucket'), { placeholder: t('souvenirs-famille') }),
@@ -769,4 +769,9 @@ select.input { @apply pr-8; }
 .btn-primary { @apply h-12 px-6 rounded-xl bg-amber-600 text-white font-semibold hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed items-center justify-center; }
 .btn-secondary { @apply h-12 px-5 rounded-xl border border-stone-300 bg-white font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-50; }
 code { @apply px-1.5 py-0.5 rounded bg-stone-100 text-[0.9em]; }
+/* Champs S3 (petit composant en fonction de rendu) : seule sa racine porte
+   l'attribut du style scopé, d'où :deep() pour ses libellés et champs. */
+.s3-fields :deep(.label) { @apply block text-[15px] font-semibold mb-1; }
+.s3-fields :deep(.input) { @apply w-full h-12 px-4 rounded-xl border border-stone-300 bg-white text-[16px] focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400; }
+.s3-fields :deep(.error) { @apply mt-1.5 text-sm text-red-700; }
 </style>
