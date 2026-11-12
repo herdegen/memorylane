@@ -32,7 +32,7 @@ class InstallerTest extends TestCase
         config(['memorylane.install_dir' => $this->dir]);
 
         $this->envPath = $this->dir.'/backend.env';
-        $template = file_get_contents(base_path('../docker/selfhost/backend.env.template'));
+        $template = file_get_contents(resource_path('install/backend.env.template'));
         file_put_contents($this->envPath, strtr($template, [
             '__APP_KEY__' => 'base64:'.base64_encode(random_bytes(32)),
             '__APP_URL__' => 'http://192.168.1.20:8080',

@@ -152,7 +152,7 @@ EOF
     local app_key; app_key="base64:$(head -c 32 /dev/urandom | base64)"
     sed -e "s|__APP_KEY__|${app_key}|" -e "s|__APP_URL__|${url}|g" \
         -e "s|__DB_PASSWORD__|${db_password}|" -e "s|__MEILI_KEY__|${meili_key}|" \
-        docker/selfhost/backend.env.template > "$APP_ENV_FILE"
+        backend/resources/install/backend.env.template > "$APP_ENV_FILE"
     chmod 600 "$APP_ENV_FILE"
     ok "backend/.env (application) : clé de chiffrement générée"
 
