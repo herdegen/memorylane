@@ -45,6 +45,17 @@ class RouteInventoryTest extends TestCase
         'tv/ecran/code' => ['code d\'appairage de la TV', 'ThrottleRequests'],
         'albums/shared/{token}' => ['album partagé par lien secret', null],
         'albums/shared/{token}/media/{media}/file/{conversion?}' => ['fichier d\'un album partagé par lien', null],
+        // Installation chez soi : n'existe que pendant l'installation (404 sinon).
+        'install' => ['assistant d\'installation', 'InstallerGate'],
+        'install/acces' => ['code affiché par install.sh (limité)', 'ThrottleRequests'],
+        'install/verifications' => ['étape de l\'assistant (code saisi)', 'InstallerGate'],
+        'install/site' => ['étape de l\'assistant (code saisi)', 'InstallerGate'],
+        'install/stockage' => ['étape de l\'assistant (code saisi)', 'InstallerGate'],
+        'install/emails' => ['étape de l\'assistant (code saisi)', 'InstallerGate'],
+        'install/sauvegardes' => ['étape de l\'assistant (code saisi)', 'InstallerGate'],
+        'install/options' => ['étape de l\'assistant (code saisi)', 'InstallerGate'],
+        'install/compte' => ['étape de l\'assistant (code saisi)', 'InstallerGate'],
+        'install/terminer' => ['étape de l\'assistant (code saisi)', 'InstallerGate'],
     ];
 
     /**
