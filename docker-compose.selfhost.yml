@@ -57,6 +57,9 @@ services:
 
   faces:
     container_name: !reset null
+    # Nom d'image propre au projet (pas « memorylane-faces:1 » partagé avec
+    # une autre installation de la même machine).
+    image: !reset null
     profiles: ["faces"]
 
   backup:

@@ -306,7 +306,9 @@ update() {
     git log --oneline "$before..HEAD" | head -20
     step "Mise à jour"
     artisan down --retry=30 >/dev/null || true
-    dc build app >/dev/null
+    # Toutes les images (app, horizon, scheduler, nginx…) : les workers ont la
+    # leur, et un outil ajouté au Dockerfile (ex. Tesseract) doit y être aussi.
+    dc build >/dev/null
     dc up -d --remove-orphans >/dev/null 2>&1
     wait_healthy app
     dc exec -T app composer install --no-interaction --no-dev --optimize-autoloader --no-progress >/dev/null 2>&1
@@ -315,6 +317,8 @@ update() {
     artisan optimize >/dev/null
     artisan scout:sync-index-settings >/dev/null 2>&1 || true
     dc restart app horizon scheduler >/dev/null 2>&1
+    # nginx garde l'adresse de l'ancien conteneur app s'il a été recréé.
+    dc exec -T nginx nginx -s reload >/dev/null 2>&1 || dc restart nginx >/dev/null 2>&1
     wait_healthy nginx
     artisan up >/dev/null
     ok "MemoryLane est à jour : $(git log --oneline -1)"
