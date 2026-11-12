@@ -3328,5 +3328,10 @@
     "la suite de « :title »": "la continuación de «:title»",
     "une histoire de famille, « :title »": "una historia de familia, «:title»",
     "Vidéo découpée en :count clip : c’est lui qu’on retrouve dans les albums et sur les fiches.|Vidéo découpée en :count clips : ce sont eux qu’on retrouve dans les albums et sur les fiches.": "Vídeo cortado en :count clip: es lo que aparece en los álbumes y en las fichas.|Vídeo cortado en :count clips: son los que aparecen en los álbumes y en las fichas.",
-    "Dans les clips": "En los clips"
+    "Dans les clips": "En los clips",
+    "Chercher par titre, nom de fichier, description…": "Buscar por título, nombre de archivo, descripción…",
+    "La miniature est encore en préparation : elle apparaîtra d’ici quelques minutes.": "La miniatura aún se está preparando: aparecerá en unos minutos.",
+    "Nouvelle miniature prête.": "Nueva miniatura lista.",
+    "Pas encore dans un album": "Aún no está en un álbum",
+    "Supprimer cet album vide": "Eliminar este álbum vacío"
 }

@@ -209,8 +209,13 @@ class MediaService
         }
 
         // Search by name if provided
+        // « Pas encore dans un album » (pour ranger).
+        if (! empty($filters['no_album'])) {
+            $query->whereDoesntHave('albums');
+        }
+
         if (isset($filters['search'])) {
-            $query->whereUnaccentLike(['original_name', 'title'], $filters['search']);
+            $query->whereUnaccentLike(['original_name', 'title', 'description'], $filters['search']);
         }
 
         // Video-specific filters

@@ -29,6 +29,36 @@
       </div>
     </div>
 
+    <!-- Filtres (choisir dans l'existant) : type, recherche, période, personnes… -->
+    <div v-if="mode === 'pick'" class="px-6 pt-4 flex flex-col gap-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <button
+          v-for="tp in TYPES"
+          :key="tp.value"
+          type="button"
+          class="px-3 py-1 rounded-full text-[13px] font-medium border transition"
+          :class="type === tp.value ? 'bg-brand-600 border-brand-600 text-white' : 'bg-white border-surface-300 text-surface-600 hover:bg-surface-50'"
+          @click="type = tp.value"
+        >
+          {{ tp.label }}
+        </button>
+        <label class="flex items-center gap-1.5 text-sm text-surface-600 ml-auto">
+          <input id="picker-no-album" v-model="noAlbum" type="checkbox" class="rounded border-surface-300 text-brand-600 focus:ring-brand-500" />
+          {{ $t('Pas encore dans un album') }}
+          <span v-if="options.counts?.no_album != null" class="text-xs text-surface-400">{{ options.counts.no_album }}</span>
+        </label>
+      </div>
+      <input
+        id="picker-search"
+        v-model="search"
+        type="search"
+        class="form-input !py-1.5 text-sm"
+        :placeholder="$t('Chercher par titre, nom de fichier, description…')"
+        :aria-label="$t('Chercher')"
+      />
+      <MediaFilters :state="filterState" :years="options.years || []" :counts="options.counts || {}" @change="onFiltersChange" />
+    </div>
+
     <!-- Téléversement direct dans l'album -->
     <div v-if="mode === 'upload'" class="flex-1 overflow-y-auto p-6">
       <p v-if="uploadedCount > 0" class="mb-4 text-sm text-teal-700 dark:text-teal-300">
@@ -233,11 +263,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useIntersectionObserver } from '@vueuse/core';
 import axios from 'axios';
 import BaseModal from '@/Components/BaseModal.vue';
 import MediaUploader from '@/Components/MediaUploader.vue';
+import MediaFilters from '@/Components/MediaFilters.vue';
 import { thumbnailUrl } from '@/utils/media';
 import { t } from '@/i18n';
 
@@ -282,12 +313,58 @@ const scrollContainer = ref(null);
 const sentinel = ref(null);
 const sentinelVisible = ref(false);
 
+// Filtres : mêmes paramètres que la galerie « Mes photos ».
+const TYPES = [
+  { value: 'all', label: t('Tous') },
+  { value: 'photo', label: t('Photos') },
+  { value: 'video', label: t('Vidéos') },
+  { value: 'document', label: t('Documents') },
+];
+const type = ref('all');
+const search = ref('');
+const noAlbum = ref(false);
+const filterState = reactive({ sort: 'recent', yearFrom: null, yearTo: null, undated: false, people: [], peopleMode: null, tags: [] });
+const options = ref({});
+const params = () => ({
+  type: type.value === 'all' ? undefined : type.value,
+  search: search.value.trim() || undefined,
+  no_album: noAlbum.value ? 1 : undefined,
+  sort: filterState.sort,
+  year_from: filterState.undated ? undefined : filterState.yearFrom || undefined,
+  year_to: filterState.undated ? undefined : filterState.yearTo || undefined,
+  undated: filterState.undated ? 1 : undefined,
+  people: filterState.people.length ? filterState.people : undefined,
+  people_mode: filterState.peopleMode || undefined,
+});
+
+// Nouveau filtre : on repart de la première page (la sélection est gardée).
+let reloadId = 0;
+const reload = async () => {
+  const id = ++reloadId;
+  loading.value = true;
+  availableMedia.value = [];
+  page.value = 1;
+  lastPage.value = 1;
+  try {
+    await loadPage(1, id);
+  } catch (error) {
+    console.error('Failed to load media:', error);
+  } finally {
+    if (id === reloadId) loading.value = false;
+  }
+};
+const onFiltersChange = (patch) => { Object.assign(filterState, patch); reload(); };
+watch([type, noAlbum], reload);
+let searchTimer = null;
+watch(search, () => { clearTimeout(searchTimer); searchTimer = setTimeout(reload, 300); });
+
 // Charge une page et l'accumule (en excluant les médias déjà dans l'album).
-const loadPage = async (pageNum) => {
+const loadPage = async (pageNum, id = reloadId) => {
   const { data } = await axios.get('/media', {
-    params: { page: pageNum },
+    params: { page: pageNum, ...params() },
     headers: { Accept: 'application/json' },
   });
+  if (id !== reloadId) return; // réponse d'un ancien filtre
   const fresh = (data.data || []).filter((m) => !props.excludeMediaIds.includes(m.id));
   availableMedia.value.push(...fresh);
   page.value = data.current_page ?? pageNum;
@@ -325,6 +402,7 @@ watch(loadingMore, (isLoading, wasLoading) => {
 });
 
 onMounted(async () => {
+  axios.get('/media/filter-options').then(({ data }) => { options.value = data; }).catch(() => {});
   try {
     await loadPage(1);
   } catch (error) {

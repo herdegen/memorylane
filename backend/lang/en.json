@@ -3324,5 +3324,10 @@
     "la suite de « :title »": "more of “:title”",
     "une histoire de famille, « :title »": "a family story, “:title”",
     "Vidéo découpée en :count clip : c’est lui qu’on retrouve dans les albums et sur les fiches.|Vidéo découpée en :count clips : ce sont eux qu’on retrouve dans les albums et sur les fiches.": "Video cut into :count clip: that is what appears in albums and on profiles.|Video cut into :count clips: those are what appear in albums and on profiles.",
-    "Dans les clips": "In the clips"
+    "Dans les clips": "In the clips",
+    "Chercher par titre, nom de fichier, description…": "Search by title, file name, description…",
+    "La miniature est encore en préparation : elle apparaîtra d’ici quelques minutes.": "The thumbnail is still being prepared: it will appear in a few minutes.",
+    "Nouvelle miniature prête.": "New thumbnail ready.",
+    "Pas encore dans un album": "Not in an album yet",
+    "Supprimer cet album vide": "Delete this empty album"
 }

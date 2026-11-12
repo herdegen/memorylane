@@ -83,7 +83,8 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
           </svg>
         </button>
-        <div v-if="album.media && album.media.length > 0" class="relative" ref="actionsMenuRef">
+        <!-- Menu : toujours là pour le propriétaire (un album vide se modifie et se supprime aussi). -->
+        <div v-if="isOwner || hasMedia" class="relative" ref="actionsMenuRef">
           <button
             @click="showActionsMenu = !showActionsMenu"
             class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-snow/90 backdrop-blur text-ink shadow-warm-md hover:bg-snow transition"
@@ -99,7 +100,7 @@
               <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
               {{ $t('Ajouter des médias') }}
             </button>
-            <button @click="openFromMenu(toggleSelectionMode)" class="dropdown-item w-full text-left flex items-center gap-2.5">
+            <button v-if="hasMedia" @click="openFromMenu(toggleSelectionMode)" class="dropdown-item w-full text-left flex items-center gap-2.5">
               <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
               {{ selectionMode ? $t('Terminer la sélection') : $t('Sélectionner') }}
             </button>
@@ -111,7 +112,7 @@
               <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
               {{ unidentifiedOnly ? $t('Toutes les photos') : $t('Visages à identifier (:count)', { count: pendingFacesCount }) }}
             </button>
-            <button @click="openFromMenu(() => showParticipants = true)" class="dropdown-item w-full text-left flex items-center gap-2.5">
+            <button v-if="hasMedia" @click="openFromMenu(() => showParticipants = true)" class="dropdown-item w-full text-left flex items-center gap-2.5">
               <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
               {{ $t('Qui était là ?') }}
             </button>
@@ -442,6 +443,11 @@
           </svg>
           {{ $t('Ajouter des médias') }}
         </button>
+        <div v-if="isOwner" class="mt-3">
+          <button type="button" class="text-sm text-red-600 dark:text-red-400 hover:underline" @click="deleteAlbum">
+            {{ $t('Supprimer cet album vide') }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -565,6 +571,7 @@ const props = defineProps({
   },
 });
 
+const hasMedia = computed(() => (props.album.media?.length ?? 0) > 0);
 const storyHref = computed(() => (props.story ? `/stories/${props.story.id}` : `/stories/create?album=${props.album.id}`));
 
 const toast = useToast();

@@ -600,10 +600,28 @@ const useCurrentFrame = async () => {
   if (!ok) return;
   settingFrame.value = true;
   try {
+    const thumbOf = (m) => (m.conversions || []).find((c) => c.conversion_name === 'medium')?.file_path || null;
+    const before = thumbOf(props.media);
     const { data } = await axios.post(`/media/${props.media.id}/video-frame`, { time });
     toast.success(data.message);
-    // Le temps de refaire les miniatures et l'analyse (quelques secondes).
-    setTimeout(() => router.reload({ only: ['media'], onFinish: () => { settingFrame.value = false; } }), 6000);
+    // Refaire les miniatures demande de relire la vidéo (plus ou moins long
+    // selon sa taille) : on recharge jusqu'à voir la nouvelle image, 2 min au plus.
+    const started = Date.now();
+    const poll = () => router.reload({
+      only: ['media'],
+      onFinish: () => {
+        if (thumbOf(props.media) !== before) {
+          settingFrame.value = false;
+          toast.success(t('Nouvelle miniature prête.'));
+        } else if (Date.now() - started < 120000) {
+          setTimeout(poll, 3000);
+        } else {
+          settingFrame.value = false;
+          toast.info(t('La miniature est encore en préparation : elle apparaîtra d’ici quelques minutes.'));
+        }
+      },
+    });
+    setTimeout(poll, 3000);
   } catch (error) {
     settingFrame.value = false;
     toast.error(apiError(error, t('Impossible de changer l’image.')));

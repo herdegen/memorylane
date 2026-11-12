@@ -52,4 +52,37 @@ class ImageConversionsTest extends TestCase
         }
         $this->assertLessThan(64 * 1024 * 1024, $peak, 'Mémoire PHP consommée par la conversion');
     }
+
+    /**
+     * Miniatures refaites (nouvelle image de vidéo, rotation…) : nouveau nom
+     * de fichier, donc nouvelle adresse — sinon le navigateur garde
+     * l'ancienne image — et l'ancien fichier est effacé.
+     */
+    public function test_regenerated_conversions_get_a_new_file_and_the_old_one_is_removed(): void
+    {
+        $disk = config('filesystems.default');
+        Storage::fake($disk);
+        $img = new \Imagick();
+        $img->newImage(1200, 900, new \ImagickPixel('#cc8866'));
+        $img->setImageFormat('jpeg');
+        Storage::disk($disk)->put('media/photos/2026/11/refaite.jpg', $img->getImageBlob());
+        $img->clear();
+        $media = Media::factory()->create([
+            'type' => 'photo', 'mime_type' => 'image/jpeg',
+            'original_name' => 'refaite.jpg', 'file_path' => 'media/photos/2026/11/refaite.jpg',
+        ]);
+
+        (new GenerateMediaConversions($media))->handle(app(S3Service::class));
+        $first = $media->conversions()->pluck('file_path', 'conversion_name');
+
+        (new GenerateMediaConversions($media->fresh()))->handle(app(S3Service::class));
+        $second = $media->conversions()->pluck('file_path', 'conversion_name');
+
+        $this->assertCount(4, $second);
+        foreach ($first as $name => $oldPath) {
+            $this->assertNotSame($oldPath, $second[$name], "{$name} : même fichier, le navigateur garderait l'ancienne image");
+            Storage::disk($disk)->assertMissing($oldPath);
+            Storage::disk($disk)->assertExists($second[$name]);
+        }
+    }
 }

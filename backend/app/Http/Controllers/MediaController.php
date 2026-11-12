@@ -34,7 +34,7 @@ class MediaController extends Controller
      */
     private const FILTER_KEYS = [
         'type', 'search', 'tags', 'duration_min', 'duration_max', 'resolution', 'video_codec',
-        'sort', 'year_from', 'year_to', 'undated', 'people', 'people_mode',
+        'sort', 'year_from', 'year_to', 'undated', 'people', 'people_mode', 'no_album',
     ];
 
     /**
@@ -101,6 +101,37 @@ class MediaController extends Controller
         ]);
     }
 
+    /**
+     * Années et compteurs des filtres de la galerie (Mes photos, et la
+     * fenêtre « Ajouter des médias » d'un album).
+     */
+    private function galleryFilterOptions(Request $request): array
+    {
+        $userId = $this->getCurrentUserId();
+        $gallery = fn () => Media::where('user_id', $userId)->where('is_source', false);
+
+        return [
+            // Années de prise de vue présentes, pour le filtre de période.
+            'years' => $gallery()->whereNotNull('taken_at')
+                ->selectRaw('DISTINCT EXTRACT(YEAR FROM taken_at)::int AS year')
+                ->orderByDesc('year')
+                ->pluck('year'),
+            // Compteurs des filtres « à trier » (Sans date, Sans personne…).
+            'counts' => [
+                'undated' => $gallery()->whereNull('taken_at')->count(),
+                'no_people' => $gallery()->whereDoesntHave('people')->where('type', '!=', 'document')->count(),
+                'unidentified' => $gallery()->whereHas('detectedFaces', fn ($q) => $q->unidentified($request->user()))->count(),
+                'no_album' => $gallery()->whereDoesntHave('albums')->count(),
+            ],
+        ];
+    }
+
+    /** Options des filtres, en JSON (fenêtre « Ajouter des médias »). */
+    public function filterOptions(Request $request)
+    {
+        return response()->json($this->galleryFilterOptions($request));
+    }
+
     public function index(Request $request)
     {
         $filters = $request->only(self::FILTER_KEYS);
@@ -125,17 +156,7 @@ class MediaController extends Controller
             // Objet JSON même vide (un [] ferait lire Array.prototype.sort côté JS).
             'filters'        => (object) $filters,
             'availableCodecs' => $availableCodecs,
-            // Années de prise de vue présentes, pour le filtre de période.
-            'years' => $gallery()->whereNotNull('taken_at')
-                ->selectRaw('DISTINCT EXTRACT(YEAR FROM taken_at)::int AS year')
-                ->orderByDesc('year')
-                ->pluck('year'),
-            // Compteurs des filtres « à trier » (Sans date, Sans personne…).
-            'counts' => [
-                'undated' => $gallery()->whereNull('taken_at')->count(),
-                'no_people' => $gallery()->whereDoesntHave('people')->where('type', '!=', 'document')->count(),
-                'unidentified' => $gallery()->whereHas('detectedFaces', fn ($q) => $q->unidentified($request->user()))->count(),
-            ],
+            ...$this->galleryFilterOptions($request),
             // Noms des personnes filtrées (chips), limités aux fiches visibles.
             'filterPeople' => Person::visibleTo($request->user())
                 ->whereIn('people.id', MediaService::personIdsFilter($filters))

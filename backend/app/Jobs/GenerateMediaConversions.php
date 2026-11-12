@@ -19,6 +19,9 @@ use Intervention\Image\ImageManager;
 
 class GenerateMediaConversions implements ShouldQueue
 {
+    /** Fichiers des miniatures remplacées pendant ce passage (effacés à la fin). */
+    protected array $replacedPaths = [];
+
     use DownloadsMediaToTemp, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
@@ -82,6 +85,14 @@ class GenerateMediaConversions implements ShouldQueue
             } elseif ($this->media->type === 'video') {
                 $this->generateVideoConversions($s3Service);
             }
+
+            // Anciennes versions des miniatures refaites : plus référencées.
+            foreach (array_unique($this->replacedPaths) as $path) {
+                if (! MediaConversion::where('file_path', $path)->exists()) {
+                    $s3Service->delete($path);
+                }
+            }
+            $this->replacedPaths = [];
 
             Log::info('GenerateMediaConversions: Conversion generation completed', [
                 'media_id' => $this->media->id,
@@ -383,6 +394,17 @@ class GenerateMediaConversions implements ShouldQueue
         $directory = dirname($this->media->file_path);
         $filename = pathinfo($this->media->file_path, PATHINFO_FILENAME);
         $conversionPath = "{$directory}/{$filename}_{$conversionName}.{$extension}";
+
+        // Miniature refaite (nouvelle image de vidéo, rotation…) : nouveau nom,
+        // donc nouvelle adresse — sinon le navigateur garde l'ancienne image
+        // en cache (l'adresse signée reste la même pendant une heure).
+        // L'ancien fichier est effacé une fois la nouvelle version enregistrée.
+        $previous = MediaConversion::where('media_id', $this->media->id)
+            ->where('conversion_name', $conversionName)->value('file_path');
+        if ($previous !== null) {
+            $conversionPath = "{$directory}/{$filename}_{$conversionName}-".base_convert((string) (int) (microtime(true) * 1000), 10, 36).".{$extension}";
+            $this->replacedPaths[] = $previous;
+        }
 
         // Determine visibility based on disk
         $visibility = in_array($s3Service->getDisk(), ['local', 'public']) ? 'public' : 'private';
