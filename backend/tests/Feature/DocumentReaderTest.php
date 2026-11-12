@@ -111,4 +111,14 @@ class DocumentReaderTest extends TestCase
         config(['memorylane.documents.tesseract' => '/introuvable/tesseract']);
         $this->artisan('media:read-documents')->assertFailed();
     }
+
+    public function test_la_lecture_est_mise_en_file_apres_les_conversions(): void
+    {
+        // Sans Tesseract (machines de test), la ligne n'est jamais atteinte :
+        // un job sans Dispatchable cassait les conversions en production.
+        \Illuminate\Support\Facades\Queue::fake();
+        $media = Media::factory()->create(['user_id' => $this->user->id, 'type' => 'photo']);
+        \App\Jobs\ReadDocumentText::dispatch($media);
+        \Illuminate\Support\Facades\Queue::assertPushedOn('faces', \App\Jobs\ReadDocumentText::class);
+    }
 }
