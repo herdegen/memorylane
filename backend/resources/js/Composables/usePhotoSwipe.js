@@ -339,6 +339,10 @@ export function usePhotoSwipe(getMedia, options = {}) {
     const items = viewableItems();
     const index = items.findIndex((item) => item.id === media.id);
     if (index !== -1 && lightbox) {
+      // La liste affichée a pu être filtrée depuis la construction (visages à
+      // identifier, étape d'un trajet…) sans que la source surveillée change :
+      // l'index vaut pour la liste COURANTE, les slides doivent la suivre.
+      lightbox.options.dataSource = items.map(toSlide);
       lightbox.loadAndOpen(index);
       return true;
     }
