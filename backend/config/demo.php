@@ -24,7 +24,7 @@ return [
         'google-photos.session', 'google-photos.import', 'google-drive.token', 'google-drive.import',
         'google-drive.connect', 'google-photos.connect', 'takeout.store',
         'family-tree.import.upload', 'family-tree.import.confirm',
-        'voice-notes.store',
+        'voice-notes.store', 'people.uploadAvatar', 'people.lifeStory.audioStore',
         // E-mails vers l'extérieur, invitations
         'people.invite', 'households.members.invite',
         // Compte partagé
@@ -32,5 +32,6 @@ return [
         // Suppressions lourdes
         'media.destroy', 'albums.destroy', 'people.destroy',
         'households.destroy', 'households.leave', 'households.members.remove',
+        'households.closure.request', 'households.takeover', 'households.members.role', 'stories.destroy',
     ],
 ];

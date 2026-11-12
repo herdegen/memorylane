@@ -45,6 +45,7 @@ class RouteInventoryTest extends TestCase
         'tv/ecran/code' => ['code d\'appairage de la TV', 'ThrottleRequests'],
         'albums/shared/{token}' => ['album partagé par lien secret', null],
         'albums/shared/{token}/media/{media}/file/{conversion?}' => ['fichier d\'un album partagé par lien', null],
+        'demo/enter' => ['entrée du site de démo (refusée hors DEMO_MODE)', 'ThrottleRequests'],
     ];
 
     /**

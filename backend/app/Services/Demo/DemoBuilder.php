@@ -5,17 +5,21 @@ namespace App\Services\Demo;
 use App\Models\Album;
 use App\Models\Household;
 use App\Models\LifeEvent;
+use App\Models\LifeStoryAnswer;
 use App\Models\Media;
 use App\Models\Person;
 use App\Models\PersonRelationship;
+use App\Models\Story;
 use App\Models\Tag;
 use App\Models\User;
 use App\Services\AlbumDating;
 use App\Services\GeocodeService;
+use App\Services\SharedFiches;
 use App\Services\MediaService;
 use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -41,6 +45,12 @@ class DemoBuilder
 
     /** @var array<string, Household> cercle famille de chaque famille */
     private array $circles = [];
+
+    /** @var array<string, Media> « fr:phare » */
+    private array $photos = [];
+
+    /** @var array<string, Album> « fr:brest » */
+    private array $albums = [];
 
     public function __construct(private MediaService $media, private AlbumDating $albumDating) {}
 
@@ -101,9 +111,12 @@ class DemoBuilder
             if (! isset($data['welcome']) || ! collect($data['accounts'])->contains('email', $user->email)) {
                 continue;
             }
-            $resolve = fn (string $link) => preg_replace_callback('/\{(person|album):([a-z0-9_:]+)\}/', function ($m) use ($fam, $data) {
+            $resolve = fn (string $link) => preg_replace_callback('/\{(person|album|story):([a-z0-9_:]+)\}/', function ($m) use ($fam, $data) {
                 if ($m[1] === 'album') {
                     return (string) Album::where('name', $data['albums'][$m[2]]['name'] ?? '')->value('id');
+                }
+                if ($m[1] === 'story') {
+                    return (string) Story::where('title', $data['stories'][$m[2]]['title'] ?? '')->value('id');
                 }
                 $ref = str_starts_with($m[2], 'shared:') ? "demo:{$m[2]}" : "demo:{$fam}:{$m[2]}";
 
@@ -208,6 +221,9 @@ class DemoBuilder
 
             $say('  albums et photos (fichier, téléchargement ou image d’attente, miniatures)…');
             $photos = $this->albumsAndPhotos($fam, $data, $circle, $friendCircles, $say);
+            $this->weddingPhotos($fam, $data);
+            $this->stories($fam, $data);
+            $this->lifeStories($fam, $data);
 
             $summary[$fam] = [
                 'visitor' => $data['accounts'][$data['visitor']]['email'],
@@ -219,6 +235,7 @@ class DemoBuilder
         // Unions et frises des ancêtres communs (une seule fois).
         $this->couples('shared', $shared['couples'], $shared['places']);
         $this->events('shared', $shared['events'], $shared['places'], $sharedOwner);
+        $this->proposals($families, $shared);
 
         app(DemoFreshener::class)->freshen();
 
@@ -361,13 +378,24 @@ class DemoBuilder
                 'name' => $a['name'],
                 'description' => $a['description'],
                 'date' => $a['date'] ?? null,
+                'theme' => $a['theme'] ?? $data['album_themes'][$key] ?? null,
             ]);
+            $this->albums["{$fam}:{$key}"] = $albums[$key];
+            foreach ($data['album_roles'][$key] ?? [] as $role => $who) {
+                foreach ($who as $personKey) {
+                    DB::table('album_roles')->insertOrIgnore([
+                        'album_id' => $albums[$key]->id, 'person_id' => $this->person($fam, $personKey)->id,
+                        'role' => $role, 'added_by' => $owner->id, 'created_at' => now(), 'updated_at' => now(),
+                    ]);
+                }
+            }
             $circle = $a['circle'] === 'family' ? $family : $friendCircles[$a['circle']];
             $albums[$key]->households()->attach($circle->id, ['granted_by' => $owner->id]);
         }
 
-        // Miniatures et analyses tout de suite (pas de file d'attente pendant la construction).
-        config(['queue.default' => 'sync']);
+        // Miniatures et analyses tout de suite (pas de file d'attente pendant la
+        // construction) ; les documents sont décrits dans les données, pas lus.
+        config(['queue.default' => 'sync', 'memorylane.documents.ocr' => false]);
         $count = 0;
         foreach ($data['photos'] as $key => $p) {
             $media = $this->importPhoto($fam, $key, $p);
@@ -375,11 +403,17 @@ class DemoBuilder
             $say("    {$count}/".count($data['photos'])." {$p['title']}");
 
             [$lat, $lng] = $data['places'][$p['place']] ?? [null, null];
+            $this->photos["{$fam}:{$key}"] = $media;
             $media->forceFill([
                 'title' => $p['title'],
                 'description' => isset($p['author']) ? "Photo : {$p['author']} (Unsplash, via Lorem Picsum)." : null,
                 'taken_at' => Carbon::parse($p['date']),
-            ])->save();
+                'taken_at_precision' => $p['precision'] ?? null,
+                'text_checked_at' => now(),
+            ] + (isset($p['document']) ? [
+                'is_document' => true, 'document_source' => 'manual',
+                'transcription' => $p['document'], 'transcription_source' => 'manual',
+            ] : []))->save();
             if ($lat !== null) {
                 $media->metadata()->updateOrCreate([], ['latitude' => $lat, 'longitude' => $lng]);
             }
@@ -460,6 +494,86 @@ class DemoBuilder
         }
         imagejpeg($img, $path, 85);
         imagedestroy($img);
+    }
+
+    /** Photo choisie pour une union : le mariage sur la frise, avec son image. */
+    private function weddingPhotos(string $fam, array $data): void
+    {
+        foreach ($data['wedding_photos'] ?? [] as [$a, $b, $photo]) {
+            [$p1, $p2] = [$this->person($fam, $a)->id, $this->person($fam, $b)->id];
+            PersonRelationship::where(fn ($q) => $q->where('person1_id', $p1)->where('person2_id', $p2))
+                ->orWhere(fn ($q) => $q->where('person1_id', $p2)->where('person2_id', $p1))
+                ->update(['media_id' => $this->photos["{$fam}:{$photo}"]->id]);
+        }
+    }
+
+    /** Histoires de famille, publiées, avec chapitres (texte, citation, photo) et questions. */
+    private function stories(string $fam, array $data): void
+    {
+        foreach ($data['stories'] ?? [] as $s) {
+            $story = Story::create([
+                'user_id' => $this->users["{$fam}:{$s['author']}"]->id,
+                'title' => $s['title'],
+                'summary' => $s['summary'],
+                'kind' => $s['kind'],
+                'credits' => $s['credits'] ?? null,
+                'album_id' => isset($s['album']) ? $this->albums["{$fam}:{$s['album']}"]->id : null,
+                'published_at' => now()->subDays(3),
+            ]);
+            foreach ($s['people'] as $i => $key) {
+                $story->people()->attach($this->person($fam, $key)->id, ['is_main' => $i === 0, 'position' => $i]);
+            }
+            foreach ($s['chapters'] as $i => $c) {
+                $blocks = array_map(fn ($b) => match ($b[0]) {
+                    'text' => ['type' => 'text', 'text' => $b[1]],
+                    'quote' => ['type' => 'quote', 'text' => $b[1], 'cite' => $b[2] ?? null],
+                    'media' => ['type' => 'media', 'media_id' => $this->photos["{$fam}:{$b[1]}"]->id, 'caption' => $b[2] ?? null],
+                }, $c['blocks']);
+                $story->chapters()->create(['position' => $i, 'title' => $c['title'], 'when_label' => $c['when'] ?? null, 'blocks' => $blocks]);
+            }
+            foreach ($s['questions'] ?? [] as $i => $text) {
+                $story->questions()->create(['position' => $i, 'text' => $text]);
+            }
+        }
+    }
+
+    /** Récit de vie guidé déjà commencé (étapes écrites, à poursuivre par le visiteur). */
+    private function lifeStories(string $fam, array $data): void
+    {
+        foreach ($data['life_stories'] ?? [] as $l) {
+            foreach ($l['chapters'] as $chapter => $body) {
+                LifeStoryAnswer::create([
+                    'person_id' => $this->person($fam, $l['person'])->id,
+                    'user_id' => $this->users["{$fam}:{$l['author']}"]->id,
+                    'chapter' => $chapter,
+                    'status' => 'done',
+                    'body' => $body,
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Fiche commune : une correction proposée par la famille qui n'est pas
+     * référente, en attente de la famille référente (page « Fiches communes »).
+     */
+    private function proposals(array $families, array $shared): void
+    {
+        $fiches = app(SharedFiches::class);
+        foreach ($shared['proposals'] ?? [] as $p) {
+            $person = $this->people["shared:{$p['person']}"]->fresh();
+            $referent = $fiches->referent($person);
+            $from = collect($this->circles)->search(fn ($c) => $c->id !== $referent?->id);
+            if ($from === false) {
+                continue;
+            }
+            $user = $this->owner($from, $families[$from]);
+            $fields = collect($p['fields'])->map(fn ($new, $field) => [$person->getRawOriginal($field), $new])->all();
+            $proposal = $fiches->propose($user, $person, $fields, $p['source'][$families[$from]['locale']] ?? null);
+            if (isset($p['message'][$families[$from]['locale']])) {
+                $proposal->messages()->create(['user_id' => $user->id, 'body' => $p['message'][$families[$from]['locale']]]);
+            }
+        }
     }
 
     /** « 1920 » → (1920-01-01, year) ; « 1975-09 » → (1975-09-01, month). */

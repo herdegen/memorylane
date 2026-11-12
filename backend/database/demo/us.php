@@ -41,8 +41,9 @@ return [
         'try' => [
             ['icon' => '⏳', 'title' => 'Watch your family travel through time', 'text' => 'Three centuries of moves, from Ireland, Texas and Mexico to Los Angeles and Honolulu.', 'link' => '/map?temps=1&proches=moi'],
             ['icon' => '🔗', 'title' => 'How are you related to Honoré Arnaud?', 'text' => 'The draper from Barcelonnette, whose brother’s descendants live in France.', 'link' => '/family-tree?kinship={person:honore}'],
-            ['icon' => '🎞️', 'title' => 'Antonio’s life story', 'text' => 'From the Kingdom of Kongo to freedom on the Costa Chica.', 'link' => '/people/{person:antonio}'],
-            ['icon' => '🌺', 'title' => 'Sofía & Kai’s wedding', 'text' => 'A beach wedding on Oahu, with the whole family.', 'link' => '/albums/{album:oahu_wedding}'],
+            ['icon' => '📖', 'title' => 'Peg and Frank build the Liberty ships', 'text' => 'A family story in chapters, with the 1941 hiring letter the app read by itself.', 'link' => '/stories/{story:shipyard}'],
+            ['icon' => '🧭', 'title' => 'Route 66, day by day', 'text' => 'Santa Monica to Chicago in 2003: the album retraces the trip stop by stop.', 'link' => '/albums/{album:route66}'],
+            ['icon' => '✍️', 'title' => 'Tell a life story', 'text' => 'Your dad Mike started his story step by step: school, college, teaching… Pick up where he left off.', 'link' => '/people/{person:mike}/recit'],
         ],
     ],
 
@@ -1365,6 +1366,13 @@ return [
         ],
 
         // ═══ Long Beach days ═════════════════════════════════════════════
+        'lb_hiring_letter' => [
+            'file' => 'shipyard_letter_1941.jpg',
+            'title' => 'Frank’s hiring letter from the shipyard',
+            'date' => '1941-11-03 12:00', 'place' => 'Long Beach, California, USA', 'album' => 'long_beach',
+            'people' => ['frank'], 'uploader' => 'mike', 'tags' => ['archives', 'world war ii', 'work'], 'orientation' => 'portrait',
+            'document' => "CALIFORNIA SHIPBUILDING CORPORATION\nTerminal Island · Wilmington, California\n\nNovember 3, 1941\n\nMr. Francis X. Sullivan\nc/o Mrs. Kathleen Brennan\n1127 Cherry Avenue, Long Beach\n\nDear Mr. Sullivan:\n\nWith reference to your application of October 21, we are pleased to offer you employment as a WELDER, THIRD CLASS, at the rate of 87 cents per hour, on the second shift (4 p.m. to midnight).\n\nPlease report to Gate 4 on Monday, November 10, at 3:30 p.m., bringing this letter, your Social Security card and your own goggles and gloves.\n\nVery truly yours,\n\nH. T. Morrison\nEmployment Office",
+        ],
         'lb_shipyard' => [
             'title' => 'Peg and Frank at the shipyard',
             'date' => '1943-04-17 16:00', 'place' => 'Long Beach, California, USA', 'album' => 'long_beach',
@@ -2489,5 +2497,68 @@ return [
             'people' => ['daniel'], 'uploader' => 'daniel', 'tags' => ['work', 'garden', 'school'], 'orientation' => 'landscape',
             'scene' => '2020s photo in a schoolyard where asphalt has been replaced by young shade trees, a rain garden of rushes and a vegetable patch: dozens of children planting seedlings, the bearded landscape architect kneeling among them showing how to firm the soil. Bright morning, murals on the school wall.',
         ],
+    ],
+
+    // Album themes (page staging) and roles (couple, best man…).
+    'album_themes' => [
+        'archives_sullivan' => 'archives', 'hoffmann_archives' => 'archives', 'guadalajara_archives' => 'archives',
+        'long_beach' => 'archives', 'bracero' => 'archives', 'parents_wedding' => 'mariage', 'twins_childhood' => 'moment',
+        'route66' => 'voyage', 'quince' => 'anniversaire', 'roots_trip' => 'voyage', 'berkeley_grad' => 'fete',
+        'thanksgiving' => 'reunion', 'hoffmann_reunion' => 'reunion', 'muertos' => 'fete', 'oahu_wedding' => 'mariage',
+        'oahu_life' => 'moment', 'daniel_wedding' => 'mariage', 'mateo' => 'moment', 'yosemite' => 'voyage',
+        'cal_reunion' => 'reunion', 'dawn_patrol' => 'moment', 'baja' => 'voyage',
+    ],
+    'album_roles' => [
+        'parents_wedding' => ['marie' => ['mike', 'maria_elena']],
+        'oahu_wedding' => ['marie' => ['sofia', 'kai']],
+        'daniel_wedding' => ['marie' => ['daniel', 'naomi']],
+        'quince' => ['fete' => ['sofia']],
+    ],
+
+    // The photo chosen for a union (timeline: the wedding, with its picture).
+    'wedding_photos' => [
+        ['mike', 'maria_elena', 'pw_church_steps'],
+    ],
+
+    // Family stories.
+    'stories' => [
+        'shipyard' => [
+            'title' => 'Peg and Frank build the Liberty ships',
+            'summary' => 'How a Denver motorman and his wife became shipyard welders in wartime Long Beach — told by their grandson Mike.',
+            'kind' => 'documented',
+            'credits' => 'Told by Mike Sullivan, from Aunt Eileen’s memories and the papers in her steamer trunk.',
+            'album' => 'long_beach',
+            'author' => 'mike',
+            'people' => ['frank', 'peg', 'patrick'],
+            'chapters' => [
+                ['title' => 'A letter from Terminal Island', 'when' => 'Fall 1941', 'blocks' => [
+                    ['text', 'In October 1941 a cousin wrote from Long Beach: the shipyards were hiring anyone who could hold a torch. Frank, forty-five, packed the family into the Ford and drove west from Denver.'],
+                    ['media', 'lb_hiring_letter', 'The hiring letter, found in Aunt Eileen’s trunk — 87 cents an hour.'],
+                ]],
+                ['title' => 'Peg picks up the torch', 'when' => '1942 – 1945', 'blocks' => [
+                    ['text', 'After Pearl Harbor the yards ran day and night. In March 1942 Peg signed up too: one of the women who welded the hulls of the Liberty ships while Patrick was away with the Navy.'],
+                    ['media', 'lb_shipyard', 'Peg and Frank at the shipyard.'],
+                    ['quote', 'She said the worst part wasn’t the sparks, it was the noise — she heard rivets in her sleep until 1950.', 'Eileen Sullivan'],
+                ]],
+                ['title' => 'Staying by the sea', 'when' => 'After the war', 'blocks' => [
+                    ['text', 'When the war ended, nobody went back to Denver. The family stayed in Long Beach, and every Christmas ended up on the same street of palms.'],
+                    ['media', 'lb_christmas_1965', 'Christmas 1965, three generations.'],
+                ]],
+            ],
+            'questions' => [
+                'Does anyone still have Peg’s welding goggles? Eileen mentioned them in the trunk inventory.',
+                'Which cousin wrote the letter in 1941 — a Brennan or a Walsh?',
+            ],
+        ],
+    ],
+
+    // Guided life story, already started.
+    'life_stories' => [
+        ['person' => 'mike', 'author' => 'mike', 'chapters' => [
+            'naissance' => 'Born in Long Beach in July 1958, a few blocks from the docks where Dad worked. First memory: the smell of salt and diesel, and Grandma Peg’s kitchen radio.',
+            'lycee' => 'Long Beach Poly, 1972–1976. Surfing before class, the history teacher who made the Gold Rush sound like a heist movie — that’s when I decided to teach.',
+            'etudes' => 'Cal State Long Beach, B.A. in History in 1980, then a teaching credential in L.A. I paid for it working summers on the docks with Dad.',
+            'travail' => 'Thirty-eight years teaching history in Highland Park, plus evening English classes for adults — where I met María Elena in Room 12.',
+        ]],
     ],
 ];

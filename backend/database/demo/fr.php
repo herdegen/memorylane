@@ -41,6 +41,9 @@ return [
         'Villefranche-sur-Saône, France' => [45.99, 4.719],
         'Amsterdam, Pays-Bas' => [52.373, 4.893],
         'Florence, Italie' => [43.769, 11.256],
+        'Vernazza, Italie' => [44.135, 9.684],
+        'Sienne, Italie' => [43.318, 11.331],
+        'Amalfi, Italie' => [40.634, 14.603],
         'Santorin, Grèce' => [36.393, 25.461],
         'Chambord, France' => [47.616, 1.517],
         'Oxford, Royaume-Uni' => [51.752, -1.258],
@@ -188,8 +191,9 @@ return [
         'try' => [
             ['icon' => '⏳', 'title' => 'La famille dans le temps', 'text' => 'Regardez les Lambert se déplacer sur la carte, génération après génération.', 'link' => '/map?temps=1&proches=moi'],
             ['icon' => '🔗', 'title' => 'Votre lien avec Jean-Baptiste Arnaud', 'text' => 'L’ancêtre de Barcelonnette que vous partagez avec une famille californienne.', 'link' => '/family-tree?kinship={person:shared:jb_arnaud}'],
-            ['icon' => '🎞️', 'title' => 'La vie de Joseph Lambert', 'text' => 'Marin pêcheur à Quimper, puis gardien de phare à Brest.', 'link' => '/people/{person:joseph}'],
-            ['icon' => '💍', 'title' => 'Le mariage de Sophie et Thomas', 'text' => 'Chambord, juin 2004.', 'link' => '/albums/{album:mariage}'],
+            ['icon' => '📖', 'title' => 'L’histoire du phare', 'text' => 'Joseph, gardien du phare de Brest, raconté par son petit-fils : chapitres, photos, une lettre de 1918.', 'link' => '/stories/{story:phare}'],
+            ['icon' => '🧭', 'title' => 'L’Italie jour par jour', 'text' => 'Florence, les Cinque Terre, Sienne, la côte amalfitaine : l’album raconte le voyage étape par étape.', 'link' => '/albums/{album:italie}'],
+            ['icon' => '✍️', 'title' => 'Raconter une vie', 'text' => 'Jean a commencé son récit étape par étape : l’enfance, les études, le métier… À vous de continuer.', 'link' => '/people/{person:jean}/recit'],
         ],
     ],
 
@@ -221,11 +225,11 @@ return [
 
     // Photos provisoires Lorem Picsum, sans visage (voir l'en-tête de us.php pour les photos générées).
     'photos' => [
-        'vieille_ville' => ['picsum' => 61, 'width' => 3264, 'height' => 2448, 'author' => 'Alex', 'title' => 'Brest vue du château', 'date' => '1934-08-15 15:00', 'place' => 'Brest, France', 'album' => 'brest', 'people' => [], 'uploader' => 'jean', 'tags' => ['archives']],
+        'vieille_ville' => ['picsum' => 61, 'width' => 3264, 'height' => 2448, 'author' => 'Alex', 'title' => 'Brest vue du château', 'date' => '1934-08-15 15:00', 'precision' => 'year', 'place' => 'Brest, France', 'album' => 'brest', 'people' => [], 'uploader' => 'jean', 'tags' => ['archives']],
         'phare' => ['picsum' => 58, 'width' => 1280, 'height' => 853, 'author' => 'Tony Naccarato', 'title' => 'Le phare où travaillait Joseph', 'date' => '1936-07-02 15:00', 'place' => 'Brest, France', 'album' => 'brest', 'people' => ['joseph'], 'uploader' => 'jean', 'tags' => ['archives']],
-        'roue_charrette' => ['picsum' => 99, 'width' => 4912, 'height' => 3264, 'author' => 'Jon Toney', 'title' => 'La charrette de la ferme Le Bihan', 'date' => '1928-09-10 15:00', 'place' => 'Quimper, France', 'album' => 'brest', 'people' => ['marie'], 'uploader' => 'jean', 'tags' => ['archives']],
-        'vieille_porte' => ['picsum' => 78, 'width' => 1584, 'height' => 2376, 'author' => 'Paul Evans', 'title' => 'La porte de la maison du port', 'date' => '1931-04-20 15:00', 'place' => 'Brest, France', 'album' => 'brest', 'people' => ['joseph', 'marie'], 'uploader' => 'jean', 'tags' => ['archives']],
-        'grange_velo' => ['picsum' => 76, 'width' => 4912, 'height' => 3264, 'author' => 'Alexander Shustov', 'title' => 'Le vélo de Pierre, devant la grange', 'date' => '1937-06-12 15:00', 'place' => 'Quimper, France', 'album' => 'brest', 'people' => ['pierre'], 'uploader' => 'jean', 'tags' => ['archives']],
+        'roue_charrette' => ['picsum' => 99, 'width' => 4912, 'height' => 3264, 'author' => 'Jon Toney', 'title' => 'La charrette de la ferme Le Bihan', 'date' => '1925-01-01 12:00', 'precision' => 'decade', 'place' => 'Quimper, France', 'album' => 'brest', 'people' => ['marie'], 'uploader' => 'jean', 'tags' => ['archives']],
+        'vieille_porte' => ['picsum' => 78, 'width' => 1584, 'height' => 2376, 'author' => 'Paul Evans', 'title' => 'La porte de la maison du port', 'date' => '1931-04-01 12:00', 'precision' => 'month', 'place' => 'Brest, France', 'album' => 'brest', 'people' => ['joseph', 'marie'], 'uploader' => 'jean', 'tags' => ['archives']],
+        'grange_velo' => ['picsum' => 76, 'width' => 4912, 'height' => 3264, 'author' => 'Alexander Shustov', 'title' => 'Le vélo de Pierre, devant la grange', 'date' => '1937-01-01 12:00', 'precision' => 'year', 'place' => 'Quimper, France', 'album' => 'brest', 'people' => ['pierre'], 'uploader' => 'jean', 'tags' => ['archives']],
         'plage_annees60' => ['picsum' => 100, 'width' => 2500, 'height' => 1656, 'author' => 'Tina Rataj', 'title' => 'Dimanche à la plage du Moulin Blanc', 'date' => '1958-07-27 15:00', 'place' => 'Brest, France', 'album' => 'brest', 'people' => ['pierre', 'odette', 'jean', 'michel'], 'uploader' => 'jean', 'tags' => ['archives', 'plage']],
         'voiture_ancienne' => ['picsum' => 111, 'width' => 4400, 'height' => 2656, 'author' => 'Gabe Rodriguez', 'title' => 'La première voiture de Pierre', 'date' => '1955-05-01 15:00', 'place' => 'Nantes, France', 'album' => 'brest', 'people' => ['pierre', 'odette'], 'uploader' => 'jean', 'tags' => ['archives']],
         'raisins' => ['picsum' => 75, 'width' => 1999, 'height' => 2998, 'author' => 'Jassy Onyae', 'title' => 'Vendanges chez l’oncle Lucien', 'date' => '1987-09-26 15:00', 'place' => 'Villefranche-sur-Saône, France', 'album' => 'vendanges', 'people' => ['lucien', 'michel'], 'uploader' => 'jean', 'tags' => ['vendanges']],
@@ -254,14 +258,76 @@ return [
         'toits_neige' => ['picsum' => 188, 'width' => 2896, 'height' => 1936, 'author' => 'Wojtek Witkowski', 'title' => 'Chamonix sous la neige', 'date' => '2019-02-16 15:00', 'place' => 'Chamonix, France', 'album' => 'ski', 'people' => ['camille'], 'uploader' => 'camille', 'tags' => ['ski']],
         'linge_italie' => ['picsum' => 308, 'width' => 1536, 'height' => 1024, 'author' => 'Charles L.', 'title' => 'Ruelle de Florence', 'date' => '2022-08-03 15:00', 'place' => 'Florence, Italie', 'album' => 'italie', 'people' => ['camille'], 'uploader' => 'camille', 'tags' => ['voyage', 'vacances']],
         'ruelle_italie' => ['picsum' => 322, 'width' => 5000, 'height' => 3333, 'author' => 'Afroz Nawaf', 'title' => 'Balade dans l’Oltrarno', 'date' => '2022-08-04 15:00', 'place' => 'Florence, Italie', 'album' => 'italie', 'people' => ['camille', 'antoine'], 'uploader' => 'camille', 'tags' => ['voyage']],
-        'village_colore' => ['picsum' => 369, 'width' => 4692, 'height' => 3128, 'author' => 'Lou Levit', 'title' => 'Le village des Cinque Terre', 'date' => '2022-08-06 15:00', 'place' => 'Florence, Italie', 'album' => 'italie', 'people' => ['antoine', 'ines', 'jade'], 'uploader' => 'camille', 'tags' => ['voyage', 'vacances']],
-        'toscane' => ['picsum' => 116, 'width' => 3504, 'height' => 2336, 'author' => 'Anton Sulsky', 'title' => 'La maison en Toscane', 'date' => '2022-08-07 15:00', 'place' => 'Florence, Italie', 'album' => 'italie', 'people' => ['camille', 'antoine', 'ines', 'jade'], 'uploader' => 'camille', 'tags' => ['voyage', 'vacances']],
-        'falaises_mer' => ['picsum' => 323, 'width' => 3831, 'height' => 2554, 'author' => 'Paweł Wojciechowski', 'title' => 'Les falaises, en route vers le sud', 'date' => '2022-08-09 15:00', 'place' => 'Florence, Italie', 'album' => 'italie', 'people' => [], 'uploader' => 'camille', 'tags' => ['voyage']],
+        'village_colore' => ['picsum' => 369, 'width' => 4692, 'height' => 3128, 'author' => 'Lou Levit', 'title' => 'Le village des Cinque Terre', 'date' => '2022-08-06 15:00', 'place' => 'Vernazza, Italie', 'album' => 'italie', 'people' => ['antoine', 'ines', 'jade'], 'uploader' => 'camille', 'tags' => ['voyage', 'vacances']],
+        'toscane' => ['picsum' => 116, 'width' => 3504, 'height' => 2336, 'author' => 'Anton Sulsky', 'title' => 'La maison en Toscane', 'date' => '2022-08-07 15:00', 'place' => 'Sienne, Italie', 'album' => 'italie', 'people' => ['camille', 'antoine', 'ines', 'jade'], 'uploader' => 'camille', 'tags' => ['voyage', 'vacances']],
+        'falaises_mer' => ['picsum' => 323, 'width' => 3831, 'height' => 2554, 'author' => 'Paweł Wojciechowski', 'title' => 'Les falaises de la côte amalfitaine', 'date' => '2022-08-09 15:00', 'place' => 'Amalfi, Italie', 'album' => 'italie', 'people' => [], 'uploader' => 'camille', 'tags' => ['voyage']],
         'canal' => ['picsum' => 164, 'width' => 1200, 'height' => 800, 'author' => 'Linh Nguyen', 'title' => 'Week-end à Amsterdam', 'date' => '2015-05-09 15:00', 'place' => 'Amsterdam, Pays-Bas', 'album' => 'amis', 'people' => ['camille', 'mathilde', 'karim'], 'uploader' => 'mathilde', 'tags' => ['amis', 'voyage']],
         'combi_vw' => ['picsum' => 183, 'width' => 2316, 'height' => 1544, 'author' => 'müllermarc', 'title' => 'Le combi de Karim', 'date' => '2015-05-08 15:00', 'place' => 'Amsterdam, Pays-Bas', 'album' => 'amis', 'people' => ['karim', 'paul'], 'uploader' => 'mathilde', 'tags' => ['amis']],
         'montgolfiere' => ['picsum' => 174, 'width' => 1600, 'height' => 589, 'author' => 'Linh Nguyen', 'title' => 'Vol en montgolfière', 'date' => '2015-05-10 15:00', 'place' => 'Amsterdam, Pays-Bas', 'album' => 'amis', 'people' => ['camille', 'mathilde'], 'uploader' => 'mathilde', 'tags' => ['amis']],
         'universite' => ['picsum' => 193, 'width' => 3578, 'height' => 2451, 'author' => 'Vadim Sherbakov', 'title' => 'Le college d’Oxford pendant Erasmus', 'date' => '2011-03-18 15:00', 'place' => 'Oxford, Royaume-Uni', 'album' => null, 'people' => ['camille'], 'uploader' => 'camille', 'tags' => ['études']],
         'tour_eiffel' => ['picsum' => 318, 'width' => 3264, 'height' => 2448, 'author' => 'Louis Pellissier', 'title' => 'Premier appartement à Paris', 'date' => '2016-10-02 15:00', 'place' => 'Paris, France', 'album' => null, 'people' => ['camille'], 'uploader' => 'camille', 'tags' => []],
+        'lettre_1918' => ['file' => 'lettre_1918.jpg', 'title' => 'Lettre de Joseph à Marie, novembre 1918', 'date' => '1918-11-14 12:00', 'place' => 'Brest, France', 'album' => 'brest', 'people' => ['joseph', 'marie'], 'uploader' => 'jean', 'tags' => ['archives', 'lettre'],
+            'document' => "Brest, le 14 novembre 1918\n\nMa chère Marie,\n\nLa nouvelle est arrivée au port hier à onze heures : c'est fini. Toutes les cloches de la ville ont sonné en même temps, et les sirènes des bateaux avec elles. Je n'avais jamais entendu Brest faire autant de bruit.\n\nOn nous libère avant Noël. Je rentrerai à Quimper par le train du soir, avec mon sac et le petit cadeau que je t'ai trouvé chez le marchand de la rue de Siam.\n\nDis à ta mère que je viendrai lui demander ta main le premier dimanche. J'ai mis de côté de quoi louer la maison près du port, celle avec la porte bleue.\n\nJe t'embrasse de tout mon coeur,\n\nJoseph"],
+        'fairepart_1948' => ['file' => 'fairepart_1948.jpg', 'title' => 'Faire-part du mariage de Pierre et Odette', 'date' => '1948-04-01 12:00', 'precision' => 'month', 'place' => 'Lyon, France', 'album' => 'brest', 'people' => ['pierre', 'odette'], 'uploader' => 'jean', 'tags' => ['archives', 'mariage'],
+            'document' => "Monsieur et Madame Joseph LAMBERT\nMonsieur et Madame Auguste MOREAU\nont l'honneur de vous faire part du mariage de leurs enfants\n\nPierre LAMBERT et Odette MOREAU\n\nLa bénédiction nuptiale leur sera donnée le samedi 22 mai 1948, à onze heures, en l'église Saint-Bruno des Chartreux, à Lyon.\n\nBrest, 4 rue du Port — Lyon, 12 montée de la Grande-Côte"],
         'tricycle' => ['picsum' => 146, 'width' => 5000, 'height' => 3333, 'author' => 'Florian Klauer', 'title' => 'Le tricycle de Lucas', 'date' => '2008-05-17 15:00', 'place' => 'Nantes, France', 'album' => null, 'people' => ['lucas'], 'uploader' => 'sophie', 'tags' => ['enfance']],
+    ],
+
+    // Thème de chaque album (mise en scène de la page) et rôles (mariés, témoins…).
+    'album_themes' => [
+        'brest' => 'archives', 'vendanges' => 'moment', 'mariage' => 'mariage', 'saintmalo' => 'reunion',
+        'ski' => 'voyage', 'italie' => 'voyage', 'amis' => 'voyage',
+    ],
+    'album_roles' => [
+        'mariage' => ['marie' => ['sophie', 'thomas'], 'temoin' => ['camille', 'nicolas']],
+    ],
+
+    // Photo choisie pour une union (frise : « le mariage », avec sa photo).
+    'wedding_photos' => [
+        ['thomas', 'sophie', 'chateau'],
+        ['pierre', 'odette', 'fairepart_1948'],
+    ],
+
+    // Histoires de famille : [clé => titre, résumé, genre, crédits, album, auteur, personnes (la 1re = principale), chapitres, questions].
+    'stories' => [
+        'phare' => [
+            'title' => 'Le gardien du phare',
+            'summary' => 'Joseph Lambert, marin pêcheur devenu gardien de phare à Brest, raconté par son fils Pierre à Jean, puis mis en forme par Camille.',
+            'kind' => 'memory',
+            'credits' => 'Souvenirs de Pierre Lambert, recueillis par Jean ; mis en forme par Camille.',
+            'album' => 'brest',
+            'author' => 'camille',
+            'people' => ['joseph', 'marie', 'pierre'],
+            'chapters' => [
+                ['title' => 'La lettre de l’armistice', 'when' => 'Novembre 1918', 'blocks' => [
+                    ['text', 'Joseph a vingt-six ans quand la guerre s’arrête. Il est à Brest, au port, et il écrit tout de suite à Marie, restée à Quimper. Sa lettre a traversé un siècle dans la boîte à chaussures de la grand-mère.'],
+                    ['media', 'lettre_1918', 'La lettre du 14 novembre 1918, retrouvée par Jean.'],
+                    ['quote', 'J’ai mis de côté de quoi louer la maison près du port, celle avec la porte bleue.', 'Joseph, à Marie'],
+                ]],
+                ['title' => 'La maison du port', 'when' => '1920 – 1931', 'blocks' => [
+                    ['text', 'Ils se marient en juin 1919 à Quimper et s’installent l’année suivante dans la maison du port, à Brest. Marie y coud pour tout le quartier ; Joseph part en mer avant le jour.'],
+                    ['media', 'vieille_porte', 'La porte bleue de la maison du port.'],
+                ]],
+                ['title' => 'Gardien de phare', 'when' => '1932 – 1957', 'blocks' => [
+                    ['text', 'En 1932, Joseph quitte la pêche et devient gardien de phare. Pierre, dix ans, l’accompagne les jours sans école : « Il me laissait remonter le mécanisme de la lanterne, mais jamais allumer la mèche. »'],
+                    ['media', 'phare', 'Le phare où travaillait Joseph.'],
+                    ['quote', 'La nuit de la grande tempête de 1938, il n’a pas dormi : il comptait les bateaux qui rentraient.', 'Pierre Lambert'],
+                ]],
+            ],
+            'questions' => [
+                'Quelqu’un sait-il ce qu’est devenue la lanterne que Joseph a rapportée chez lui ?',
+                'Le petit cadeau de la rue de Siam : est-ce la broche que portait Marie sur les photos ?',
+            ],
+        ],
+    ],
+
+    // Récit de vie guidé, déjà commencé : [fiche, auteur, étapes => texte].
+    'life_stories' => [
+        ['person' => 'jean', 'author' => 'jean', 'chapters' => [
+            'naissance' => 'Je suis né à Nantes en août 1950, dans la maison de l’Erdre que mon père venait d’acheter. Mes premiers souvenirs : l’odeur de la peinture de ma mère, qui dessinait dans la véranda, et les bateaux du chantier qu’on voyait passer.',
+            'primaire' => 'L’école Saint-Félix, à dix minutes à pied. La maîtresse, Mme Kerjean, nous lisait Jules Verne le samedi. J’y allais avec Michel, mon petit frère, qui traînait toujours derrière.',
+            'etudes' => 'La faculté de médecine de Nantes à partir de 1968 : les amphithéâtres bondés, les grèves de mai, puis l’internat. C’est là que j’ai rencontré Françoise, en pharmacie.',
+            'travail' => 'Médecin de famille à Nantes de 1977 à 2015. Trois générations de patients : j’ai soigné des enfants dont je soignais déjà les grands-parents.',
+        ]],
     ],
 ];

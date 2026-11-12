@@ -28,4 +28,21 @@ return [
         ['jb_arnaud', 'job', 'Marchand drapier sur la place de Barcelonnette', '1832', 'Barcelonnette, France', null, null],
         ['jb_arnaud', 'residence', 'Maison de la rue Manuel', '1834', 'Barcelonnette, France', null, null],
     ],
+
+    // Correction proposée par la famille non référente (calculée à la construction).
+    'proposals' => [
+        [
+            'person' => 'jb_arnaud',
+            'fields' => ['death_date' => '1879-11-12', 'death_place' => 'Jausiers, France'],
+            'source' => [
+                'fr' => 'Acte de décès n° 41, Jausiers, 1879 (Archives des Alpes-de-Haute-Provence, état civil en ligne, vue 23).',
+                'en' => 'Death record no. 41, Jausiers, 1879 (Alpes-de-Haute-Provence archives, online civil records, image 23).',
+            ],
+            'message' => [
+                'fr' => 'En cherchant Honoré, nous sommes tombés sur l’acte : Jean-Baptiste serait mort chez sa fille, à Jausiers, dix jours plus tard. Vous confirmez ?',
+                'en' => 'While looking for Honoré we found this record: Jean-Baptiste seems to have died at his daughter’s in Jausiers, ten days later. Can you confirm?',
+            ],
+        ],
+    ],
 ];
+
