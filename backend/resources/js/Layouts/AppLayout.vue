@@ -5,8 +5,10 @@
     <!-- Fête d'anniversaire : première visite du jour d'un anniversaire -->
     <BirthdayGreeting />
     <nav class="bg-white border-b border-surface-200 sticky top-0 z-40">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
+      <!-- Pleine largeur : sur grand écran, le menu ne reste pas serré au
+           milieu (cercle tronqué, recherche réduite à quelques lettres). -->
+      <div class="px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between gap-4 h-16">
           <!-- Logo + nav links -->
           <div class="flex">
             <div class="shrink-0 flex items-center">
@@ -41,12 +43,18 @@
               <NavLink v-if="isFriends" href="/network" :active="$page.component.startsWith('Network/')">{{ $t('Réseau') }}</NavLink>
               <NavLink v-else href="/family-tree" :active="$page.component.startsWith('FamilyTree/') || $page.component.startsWith('Network/')">{{ $t('Arbre') }}</NavLink>
               <NavLink href="/map" :active="$page.component.startsWith('Map/')">{{ $t('Carte') }}</NavLink>
+              <!-- Écran moyen : pas la place, « Histoires » passe dans le menu du compte. -->
+              <NavLink v-if="!isFriends" href="/stories" class="hidden! min-[1180px]:inline-flex!" :active="$page.component.startsWith('Stories/')">{{ $t('Histoires') }}</NavLink>
             </div>
           </div>
 
           <!-- Right: admin + user -->
-          <div class="hidden sm:flex sm:items-center gap-3">
-            <SearchBar v-if="user" />
+          <div class="hidden sm:flex sm:items-center gap-3 min-w-0">
+            <!-- Largeur propre : la recherche ne se tasse plus à la taille de
+                 son texte, et rétrécit d'abord si la place manque. -->
+            <div v-if="user" class="min-w-0 w-40 lg:w-56 xl:w-72">
+              <SearchBar />
+            </div>
 
             <button
               @click="toggleTheme"
@@ -58,20 +66,25 @@
               <IconTheme :dark="isDark" icon-class="icon-sm" />
             </button>
 
-            <a v-if="isAdmin" href="/admin" class="btn-admin">
-              <IconSettings icon-class="icon-sm mr-1.5" />
-              {{ $t('Admin') }}
+            <!-- Écran moyen : icône seule (place pour la recherche) -->
+            <a v-if="isAdmin" href="/admin" class="btn-admin shrink-0" :title="$t('Admin')">
+              <IconSettings icon-class="icon-sm min-[1400px]:mr-1.5" />
+              <span class="sr-only min-[1400px]:not-sr-only">{{ $t('Admin') }}</span>
             </a>
 
             <template v-if="user">
               <div class="relative" ref="dropdownRef">
                 <button
                   @click="showDropdown = !showDropdown"
+                  :title="user.name"
                   class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-surface-700
                          hover:bg-surface-100 hover:text-surface-900 focus:outline-hidden transition-colors"
                 >
-                  <PersonAvatar :name="user.name" :size="7" />
-                  <span>{{ user.name }}</span>
+                  <span class="relative">
+                    <PersonAvatar :name="user.name" :size="7" />
+                    <span v-if="sharedBadge" class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-brand-600 ring-2 ring-white dark:ring-surface-50" aria-hidden="true" />
+                  </span>
+                  <span class="hidden min-[1400px]:inline">{{ user.name }}</span>
                   <IconChevron class="w-4 h-4 text-surface-400 transition-transform" :class="{ 'rotate-180': showDropdown }" />
                 </button>
 
@@ -81,7 +94,13 @@
                     <p class="text-sm font-semibold text-surface-900 truncate">{{ user.email }}</p>
                   </div>
                   <Link href="/profile" class="dropdown-item" @click="showDropdown = false">{{ $t('Mon profil') }}</Link>
+                  <Link v-if="!isFriends" href="/stories" class="dropdown-item min-[1180px]:hidden" @click="showDropdown = false">{{ $t('Histoires') }}</Link>
                   <Link href="/households" class="dropdown-item" @click="showDropdown = false">{{ $t('Cercles') }}</Link>
+                  <Link v-if="sharedVisible" href="/shared-people" class="dropdown-item flex items-center" @click="showDropdown = false">
+                    {{ $t('Fiches communes') }}
+                    <span v-if="sharedBadge" class="ml-auto inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-brand-600 text-white text-[11px] font-bold">{{ sharedBadge }}</span>
+                  </Link>
+                  <Link href="/recaps" class="dropdown-item" @click="showDropdown = false">{{ $t('Récaps') }}</Link>
                   <Link href="/tags" class="dropdown-item" @click="showDropdown = false">{{ $t('Tags') }}</Link>
                   <Link href="/guide" class="dropdown-item" @click="showDropdown = false">{{ $t("Guide d'utilisation") }}</Link>
                   <Link href="/tv" class="dropdown-item" @click="showDropdown = false">{{ $t('Relier une télévision') }}</Link>
@@ -123,7 +142,10 @@
               data-tour="account"
               @click="showAccountSheet = true"
             >
-              <PersonAvatar :name="user.name" :size="8" />
+              <span class="relative">
+                <PersonAvatar :name="user.name" :size="8" />
+                <span v-if="sharedBadge" class="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-brand-600 ring-2 ring-white dark:ring-surface-50" aria-hidden="true" />
+              </span>
             </button>
             <Link v-else href="/login" class="btn-primary">{{ $t('Connexion') }}</Link>
           </div>
@@ -179,6 +201,7 @@
 import { ref, watchEffect, onMounted, onUnmounted } from 'vue';
 import { formatLongDate } from '@/utils/format';
 import { Link, router, usePage } from '@inertiajs/vue3';
+import { useSharedPeople } from '@/Composables/useSharedPeople';
 import NavLink from '@/Components/NavLink.vue';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
 import MobileTabBar from '@/Components/MobileTabBar.vue';
@@ -260,6 +283,7 @@ const logout = async () => {
 };
 
 const page = usePage();
+const { visible: sharedVisible, badge: sharedBadge } = useSharedPeople();
 const launchTour = () => {
   showDropdown.value = false;
   showAccountSheet.value = false;

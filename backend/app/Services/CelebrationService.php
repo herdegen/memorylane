@@ -85,6 +85,11 @@ class CelebrationService
             ->where('death_date', '>', $today->copy()->subYears(self::MEMORIAL_MAX_YEARS + 1))
             ->get()
             ->map(function (Person $person) use ($today, $windowDays) {
+                // Décès connu à l'année seulement (saisi au 1er janvier) : pas
+                // de faux « En mémoire » le jour de l'An.
+                if ($person->death_date->format('m-d') === '01-01') {
+                    return null;
+                }
                 $days = self::daysUntilAnniversary($person->death_date, $today, $windowDays);
                 if ($days === null) {
                     return null;

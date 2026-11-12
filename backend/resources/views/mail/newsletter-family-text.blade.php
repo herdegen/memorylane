@@ -16,6 +16,15 @@
 @foreach ($s['lines'] as $line)
 - {!! $line['count'] !!} {!! $line['label'] !!}{!! $line['detail'] ? ' '.$line['detail'] : '' !!}
 @endforeach
+@elseif ($s['key'] === 'shared_people')
+{!! __('Fiches communes') !!}
+@if ($s['to_decide'] > 0)
+- {!! trans_choice('Une proposition de correction attend ton avis.|:count propositions de correction attendent ton avis.', $s['to_decide']) !!}
+@endif
+@if ($s['changed'] > 0)
+- {!! trans_choice('Cette semaine, :count fiche que ta famille partage avec une autre a été complétée ou corrigée de leur côté.|Cette semaine, :count fiches que ta famille partage avec d’autres ont été complétées ou corrigées de leur côté.', $s['changed']) !!}
+@endif
+{!! $s['url'] !!}
 @elseif ($s['key'] === 'friends')
 {{-- Noms de cercles et de personnes : {!! !!} (texte brut, une apostrophe ne doit pas devenir « &#039; »). --}}{!! __('Côté amis — :title', ['title' => \Illuminate\Support\Str::ucfirst($s['photos'] ? trans_choice(':circle : :count nouvelle photo|:circle : :count nouvelles photos', $s['photos'], ['circle' => $s['circle']]) : __('Du nouveau avec :circle', ['circle' => $s['circle']]))]) !!}
 @if ($s['tagged'])

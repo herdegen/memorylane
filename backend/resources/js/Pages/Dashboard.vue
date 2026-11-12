@@ -18,6 +18,12 @@
         <!-- Médias ajoutés à SA fiche par d'autres, à valider -->
         <FichePendingCard :initial-items="fichePending" />
 
+        <!-- Corrections proposées par une autre famille sur une fiche commune -->
+        <SharedPeopleCard />
+
+        <!-- Récaps à la une : « Prénom au fil des ans » autour de son anniversaire -->
+        <RecapStrip v-if="recaps.length" :recaps="recaps" />
+
         <!-- ============ Souvenirs « Il y a N ans » ============ -->
         <div v-if="onThisDay.length > 0" class="space-y-4" data-tour="today">
           <div class="flex items-center justify-between">
@@ -143,6 +149,23 @@
           </div>
         </div>
 
+        <!-- ============ Une histoire de famille ============ -->
+        <Link
+          v-if="story"
+          :href="`/stories/${story.id}`"
+          class="group flex flex-col sm:flex-row overflow-hidden bg-white border border-surface-200 rounded-2xl hover:border-brand-400 hover:shadow-warm-md transition"
+        >
+          <div v-if="story.cover" class="relative sm:w-56 h-36 sm:h-auto shrink-0 bg-surface-100 overflow-hidden">
+            <img :src="story.cover" alt="" class="absolute inset-0 w-full h-full object-cover object-top" loading="lazy" decoding="async" />
+          </div>
+          <div class="p-4 sm:p-5 flex flex-col gap-1.5 min-w-0">
+            <span class="text-xs font-semibold uppercase tracking-wider text-brand-600">{{ story.new ? $t('Nouvelle histoire de famille') : $t('Une histoire de famille') }}</span>
+            <span class="font-display text-xl font-bold text-surface-900 leading-snug">{{ story.title }}</span>
+            <span v-if="story.summary" class="text-sm text-surface-600 line-clamp-3">{{ story.summary }}</span>
+            <span class="mt-1 text-sm font-semibold text-brand-700 group-hover:underline">{{ $tc('Lire l’histoire (:count chapitre)|Lire l’histoire (:count chapitres)', story.chapters) }} →</span>
+          </div>
+        </Link>
+
         <!-- ============ Quêtes : complétez la mémoire familiale (téléphone : en premier) ============ -->
         <QuestCard data-tour="quests" class="order-first sm:order-none" />
 
@@ -257,11 +280,13 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import { formatLongDate } from '@/utils/format';
 import { tc, intlLocale } from '@/i18n';
 import FullscreenSlideshow from '@/Components/FullscreenSlideshow.vue';
+import RecapStrip from '@/Components/RecapStrip.vue';
 import QuestCard from '@/Components/QuestCard.vue';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
 import PushPromptCard from '@/Components/PushPromptCard.vue';
 import InstallAppBanner from '@/Components/InstallAppBanner.vue';
 import FichePendingCard from '@/Components/FichePendingCard.vue';
+import SharedPeopleCard from '@/Components/SharedPeopleCard.vue';
 import { useAuth } from '@/Composables/useAuth';
 import { useCircle } from '@/Composables/useCircle';
 import { conversionUrl, slideUrl, thumbnailUrl } from '@/utils/media';
@@ -271,6 +296,7 @@ const { isFriends } = useCircle();
 const { user } = useAuth();
 
 const props = defineProps({
+  recaps: { type: Array, default: () => [] },
   onThisDay: {
     type: Array,
     default: () => [],
@@ -280,6 +306,11 @@ const props = defineProps({
     default: () => [],
   },
   personOfTheDay: {
+    type: Object,
+    default: null,
+  },
+  // Histoire mise en avant : { id, title, summary, kind, chapters, cover, main, new } ou null
+  story: {
     type: Object,
     default: null,
   },

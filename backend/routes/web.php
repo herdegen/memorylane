@@ -118,6 +118,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::get('/arbre/{person}/famille', 'treeData')->name('tree.data');
         Route::get('/arbre/{person?}', 'tree')->name('tree');
         Route::get('/carte', 'map')->name('map');
+        Route::get('/carte/temps', 'timeline')->name('timeline');
         Route::get('/ce-jour-la', 'memories')->name('memories');
         Route::get('/qui-est-ce', 'game')->name('game');
         Route::post('/cercle', 'circle')->name('circle');
@@ -145,6 +146,11 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/dashboard/hide-guide', [DashboardController::class, 'hideGuide'])->name('dashboard.hideGuide');
+    // Récaps : « Prénom au fil des ans »…
+    Route::get('/recaps', [\App\Http\Controllers\RecapController::class, 'index'])->name('recaps.index');
+    Route::get('/recaps/years/{person}', [\App\Http\Controllers\RecapController::class, 'years'])->name('recaps.years');
+    Route::get('/recaps/year/{year}', [\App\Http\Controllers\RecapController::class, 'year'])->whereNumber('year')->name('recaps.year');
+    Route::post('/recaps/seen', [\App\Http\Controllers\RecapController::class, 'seen'])->name('recaps.seen');
     // Premiers pas : mini-tuto d'envoi de photos, visite guidée (vus une fois)
     Route::post('/onboarding/{step}', [\App\Http\Controllers\OnboardingController::class, 'store'])
         ->whereIn('step', \App\Http\Controllers\OnboardingController::STEPS)
@@ -259,6 +265,8 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::post('/{media}/fiches', [\App\Http\Controllers\MediaFicheController::class, 'store'])->name('fiches.store');
         Route::delete('/{media}/fiches/{person}', [\App\Http\Controllers\MediaFicheController::class, 'destroy'])->name('fiches.destroy');
         Route::post('/{media}/fiche-decision', [\App\Http\Controllers\MediaFicheController::class, 'decide'])->name('fiches.decide');
+        // Annuler une correction (date, lieu, visage) de l'historique de la photo
+        Route::post('/changes/{mediaChange}/revert', [\App\Http\Controllers\MediaChangeController::class, 'revert'])->name('changes.revert');
     });
 
     // Tag routes
@@ -318,6 +326,8 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         // « Qui était du voyage ? »
         Route::get('/{album}/participants', [AlbumParticipantController::class, 'index'])->name('participants.index');
         Route::put('/{album}/participants', [AlbumParticipantController::class, 'update'])->name('participants.update');
+        // Rôles d'un album à thème (mariés, témoins, baptisé…)
+        Route::put('/{album}/roles', [\App\Http\Controllers\AlbumRoleController::class, 'update'])->name('roles.update');
         // Partage avec un cercle entier
         Route::get('/{album}/circles', [AlbumController::class, 'circles'])->name('circles.list');
         Route::post('/{album}/circles', [AlbumController::class, 'shareWithCircle'])->name('circles.share');
@@ -341,6 +351,11 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::post('/{household}/members', [HouseholdController::class, 'invite'])->name('members.invite');
         Route::get('/{household}/members/{user}/removal', [HouseholdController::class, 'removalSummary'])->name('members.removal');
         Route::delete('/{household}/members/{user}', [HouseholdController::class, 'removeMember'])->name('members.remove');
+        Route::patch('/{household}/members/{user}/role', [HouseholdController::class, 'setRole'])->name('members.role');
+        Route::get('/{household}/branch-candidates', [HouseholdController::class, 'branchCandidates'])->name('branchCandidates');
+        Route::post('/{household}/closure', [HouseholdController::class, 'requestClosure'])->name('closure.request');
+        Route::delete('/{household}/closure', [HouseholdController::class, 'cancelClosure'])->name('closure.cancel');
+        Route::post('/{household}/takeover', [HouseholdController::class, 'takeOver'])->name('takeover');
 
         // Fiches rattachées à un cercle d'amis (administrateur)
         Route::get('/{household}/people/candidates', [HouseholdController::class, 'personCandidates'])->name('people.candidates');
@@ -388,6 +403,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         // Portrait stocké (versionné par ?v=) : cache navigateur illimité.
         Route::get('/{person}/portrait', [PersonController::class, 'portrait'])->name('portrait');
         Route::put('/{person}', [PersonController::class, 'update'])->name('update');
+        Route::post('/{person}/avatar', [PersonController::class, 'uploadAvatar'])->name('uploadAvatar');
         Route::delete('/{person}', [PersonController::class, 'destroy'])->name('destroy');
         Route::post('/attach', [PersonController::class, 'attachToMedia'])->name('attach');
         Route::post('/detach', [PersonController::class, 'detachFromMedia'])->name('detach');
@@ -399,6 +415,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         // Inviter ce proche à créer son accès (mail + lien /bienvenue)
         Route::post('/{person}/invite', [InvitationController::class, 'store'])->name('invite');
         Route::post('/{person}/spouse', [PersonController::class, 'addSpouse'])->name('addSpouse');
+        Route::put('/{person}/spouse', [PersonController::class, 'updateSpouse'])->name('updateSpouse');
         Route::delete('/{person}/spouse', [PersonController::class, 'removeSpouse'])->name('removeSpouse');
         Route::post('/{person}/child', [PersonController::class, 'addChild'])->name('addChild');
 
@@ -411,12 +428,43 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         // Cercles d'une fiche : ajouter une fiche existante à un cercle
         Route::get('/{person}/circles', [PersonCircleController::class, 'index'])->name('circles.index');
         Route::post('/{person}/circles', [PersonCircleController::class, 'store'])->name('circles.store');
+        Route::get('/{person}/share-branch', [\App\Http\Controllers\BranchShareController::class, 'preview'])->name('shareBranch.preview');
+        Route::post('/{person}/share-branch', [\App\Http\Controllers\BranchShareController::class, 'store'])->name('shareBranch.store');
         Route::delete('/{person}/circles/{household}', [PersonCircleController::class, 'destroy'])->name('circles.destroy');
         // « Comment on s'est connus » (une version par compte)
         Route::get('/{person}/links', [PersonLinkController::class, 'index'])->name('links.index');
         Route::put('/{person}/links', [PersonLinkController::class, 'upsert'])->name('links.upsert');
         Route::delete('/{person}/links', [PersonLinkController::class, 'destroy'])->name('links.destroy');
         Route::post('/{person}/events', [LifeEventController::class, 'store'])->name('events.store');
+        // Récit de vie guidé, étape par étape (remplit la frise)
+        Route::get('/{person}/recit', [\App\Http\Controllers\LifeStoryController::class, 'show'])->name('lifeStory');
+        Route::post('/{person}/recit/{chapter}', [\App\Http\Controllers\LifeStoryController::class, 'save'])->name('lifeStory.save');
+        Route::post('/{person}/recit/{chapter}/audio', [\App\Http\Controllers\LifeStoryController::class, 'audio'])->name('lifeStory.audioStore');
+    });
+    // Histoires de famille : bibliothèque, lecture, écriture, ajouts des lecteurs
+    Route::prefix('stories')->name('stories.')->controller(\App\Http\Controllers\StoryController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/create', 'create')->name('create');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{story}', 'show')->name('show');
+        Route::get('/{story}/edit', 'edit')->name('edit');
+        Route::put('/{story}', 'update')->name('update');
+        Route::delete('/{story}', 'destroy')->name('destroy');
+        Route::post('/{story}/notes', 'storeNote')->middleware('throttle:30,1')->name('notes.store');
+    });
+    Route::delete('/story-notes/{note}', [\App\Http\Controllers\StoryController::class, 'destroyNote'])->name('stories.notes.destroy');
+    // Suggestions de lieux (monde entier) pendant la saisie
+    Route::get('/places/suggest', \App\Http\Controllers\PlaceSuggestController::class)->middleware('throttle:120,1')->name('places.suggest');
+    Route::get('/life-story-audio/{answer}', [\App\Http\Controllers\LifeStoryController::class, 'audioFile'])->name('lifeStory.audio');
+
+    // Fiches communes à plusieurs familles : propositions, désaccords
+    Route::prefix('shared-people')->name('shared-people.')->controller(\App\Http\Controllers\SharedPeopleController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/proposals/{proposal}/accept', 'accept')->name('accept');
+        Route::post('/proposals/{proposal}/reject', 'reject')->name('reject');
+        Route::delete('/proposals/{proposal}', 'cancel')->name('cancel');
+        Route::post('/proposals/{proposal}/messages', 'message')->name('message');
+        Route::post('/changes/{change}/dispute', 'dispute')->name('dispute');
     });
 
     // Édition / suppression d'un moment de vie

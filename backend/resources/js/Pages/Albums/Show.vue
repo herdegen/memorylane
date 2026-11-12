@@ -65,6 +65,13 @@
           <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
           {{ $t('Diaporama') }}
         </button>
+        <Link
+          :href="storyHref"
+          class="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-snow/90 backdrop-blur text-sm font-semibold text-ink shadow-warm-md hover:bg-snow transition"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 012-2h5v16H6a2 2 0 00-2 2V5zm16 0a2 2 0 00-2-2h-5v16h5a2 2 0 012 2V5z" /></svg>
+          {{ story ? $t('Lire l’histoire') : $t('Raconter l’histoire') }}
+        </Link>
         <button
           v-if="isOwner"
           @click="showSharePanel = !showSharePanel"
@@ -141,7 +148,10 @@
           </svg>
         </Link>
         <div class="min-w-0">
-          <div class="text-xs font-medium uppercase tracking-widest" :class="heroLight ? 'text-ink/65' : 'text-snow/75'">{{ $t('Albums') }}</div>
+          <div class="text-xs font-medium uppercase tracking-widest" :class="heroLight ? 'text-ink/65' : 'text-snow/75'">
+            <template v-if="album.theme && album.theme !== 'moment'">{{ themeEmoji(album.theme) }} {{ themeLabel(album.theme) }}</template>
+            <template v-else>{{ $t('Albums') }}</template>
+          </div>
           <h1
             class="font-display text-[28px] leading-tight sm:text-5xl font-bold truncate"
             :class="heroLight ? 'text-ink [text-shadow:0_1px_10px_rgba(255,255,255,0.8)]' : 'text-snow [text-shadow:0_2px_12px_rgba(23,20,15,0.55)]'"
@@ -194,6 +204,10 @@
           {{ selectionMode ? $t('Terminer') : $t('Sélection') }}
         </button>
       </div>
+      <Link :href="storyHref" class="h-11 rounded-2xl border bg-white border-surface-300 text-surface-900 text-sm font-bold flex items-center justify-center gap-1.5">
+        <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 012-2h5v16H6a2 2 0 00-2 2V5zm16 0a2 2 0 00-2-2h-5v16h5a2 2 0 012 2V5z" /></svg>
+        {{ story ? $t('Lire l’histoire : :title', { title: story.title }) : $t('Raconter l’histoire de cet album') }}
+      </Link>
 
       <button
         v-if="participantsPreview.length || isOwner"
@@ -351,6 +365,36 @@
       </button>
     </div>
 
+    <!-- « Tout voir » d'un bloc du thème : seuls ces médias -->
+    <div
+      v-if="idsFilter"
+      class="flex flex-wrap items-center gap-3 px-4 sm:px-8 py-3 bg-surface-50 border-b border-surface-200"
+    >
+      <span class="text-sm text-surface-800">
+        <strong>{{ idsFilter.label }}</strong>
+        <span class="text-surface-500"> ({{ $tc(':count média|:count médias', albumMedia.length) }})</span>
+      </span>
+      <button type="button" class="ml-auto text-sm font-medium text-brand-700 hover:text-brand-900" @click="idsFilter = null">
+        {{ $t('Tout l’album') }}
+      </button>
+    </div>
+
+    <!-- ================= Album à thème : mis en avant ================= -->
+    <template v-if="showHighlights">
+      <AlbumHighlights
+        :highlights="album.highlights"
+        :media="album.media"
+        :can-edit="!!album.can_edit"
+        @open="openFromHighlights"
+        @filter="filterTo"
+        @edit-role="editRole"
+      />
+      <h2 class="px-4 sm:px-8 pt-8 sm:pt-10 pb-3 font-display text-xl sm:text-2xl font-semibold text-surface-900">
+        {{ album.theme === 'mariage' ? $t('Toute la journée') : $t('Toutes les photos') }}
+        <span class="font-sans text-[13px] font-normal text-surface-500 ml-1">{{ $tc(':count média|:count médias', album.media_count || 0) }}</span>
+      </h2>
+    </template>
+
     <!-- ================= Galerie mosaïque pleine largeur ================= -->
     <div
       v-if="album.media && album.media.length > 0"
@@ -460,6 +504,16 @@
       @close="showParticipants = false"
       @saved="router.reload({ only: ['album'] })"
     />
+    <AlbumRoleModal
+      v-if="roleEdit"
+      :album-id="album.id"
+      :role="roleEdit.role"
+      :title="roleEdit.title"
+      :selected="roleEdit.people"
+      :suggestions="album.highlights?.candidates || []"
+      @close="roleEdit = null"
+      @saved="router.reload({ only: ['album'], preserveScroll: true })"
+    />
     <MomentFromPhotos
       :open="showMakeMoment"
       :photos="selectedPhotosForMoment"
@@ -482,12 +536,15 @@ import SharePanel from '@/Components/SharePanel.vue';
 import MediaPickerModal from '@/Components/MediaPickerModal.vue';
 import FullscreenSlideshow from '@/Components/FullscreenSlideshow.vue';
 import BaseModal from '@/Components/BaseModal.vue';
-import { formatDuration, formatLongDate } from '@/utils/format';
+import { formatDuration, formatMediaDate } from '@/utils/format';
 import { usePhotoSwipe } from '@/Composables/usePhotoSwipe';
 import { useToast } from '@/Composables/useToast';
 import { useConfirm } from '@/Composables/useConfirm';
 import { slideUrl, thumbnailUrl as smallThumbUrl } from '@/utils/media';
 import AlbumParticipantsModal from '@/Components/AlbumParticipantsModal.vue';
+import AlbumHighlights from '@/Components/AlbumHighlights.vue';
+import AlbumRoleModal from '@/Components/AlbumRoleModal.vue';
+import { themeEmoji, themeLabel } from '@/utils/albumThemes';
 import MomentFromPhotos from '@/Components/MomentFromPhotos.vue';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
 import Trans from '@/Components/Trans.vue';
@@ -501,7 +558,14 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  // Histoire tirée de l'album : { id, title } ou null
+  story: {
+    type: Object,
+    default: null,
+  },
 });
+
+const storyHref = computed(() => (props.story ? `/stories/${props.story.id}` : `/stories/create?album=${props.album.id}`));
 
 const toast = useToast();
 const { confirm } = useConfirm();
@@ -684,6 +748,22 @@ const albumMediaIds = computed(() => {
 
 // Étape choisie sur la carte-trajet (null : tout l'album).
 const placeFilter = ref(null);
+// Album à thème : « Tout voir » d'un bloc (les mariés, une décennie…).
+const idsFilter = ref(null);
+const roleEdit = ref(null);
+const showHighlights = computed(() => !!props.album.highlights?.sections?.length
+  && !idsFilter.value && !placeFilter.value && !unidentifiedOnly.value);
+const filterTo = (f) => {
+  idsFilter.value = f;
+  requestAnimationFrame(() => document.getElementById('album-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+};
+const editRole = (section) => {
+  roleEdit.value = { role: section.role, title: section.title, people: section.people || [] };
+};
+const openFromHighlights = (media) => {
+  const index = albumMedia.value.findIndex((m) => m.id === media.id);
+  if (index >= 0) handleMediaClick(media, index);
+};
 // « Qui est-ce ? » (téléphone) : seules les photos avec des visages à nommer.
 const unidentifiedOnly = ref(false);
 const pendingFacesCount = computed(() =>
@@ -693,6 +773,10 @@ const participantsPreview = computed(() => props.album.participants_preview || [
 const albumMedia = computed(() => {
   let all = props.album.media || [];
   if (unidentifiedOnly.value) all = all.filter((m) => (m.pending_faces_count || 0) > 0);
+  if (idsFilter.value) {
+    const keep = new Set(idsFilter.value.ids);
+    all = all.filter((m) => keep.has(m.id));
+  }
   if (!placeFilter.value) return all;
   const ids = new Set(placeFilter.value.media_ids);
   return all.filter((m) => ids.has(m.id));
@@ -898,7 +982,7 @@ const slideshowSlides = computed(() => {
       type: m.type,
       src: slideUrl(m),
       label: m.title || m.original_name,
-      when: m.taken_at ? formatLongDate(m.taken_at) : null,
+      when: m.taken_at ? formatMediaDate(m) : null,
       weight: m.matched_faces_count > 0 ? 3 : 1,
       place: place ? { index: place.index, label: place.label, latitude: place.latitude, longitude: place.longitude } : null,
     };

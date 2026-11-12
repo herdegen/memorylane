@@ -146,6 +146,13 @@ class QuestService
                 && ! $this->strangerInCircle($subject, $user),
             QuestType::MediaDate => $subject->taken_at === null,
             QuestType::MediaGeo => $subject->metadata()->whereNotNull('latitude')->doesntExist(),
+            // Histoire lisible, pas la sienne, et pas encore d'ajout de sa part sur cette question.
+            QuestType::StoryQuestion => $user !== null
+                && $subject->story !== null
+                && $subject->story->published_at !== null
+                && $subject->story->user_id !== $user->id
+                && $subject->story->isVisibleTo($user)
+                && ! $subject->notes()->where('user_id', $user->id)->exists(),
         };
     }
 
@@ -184,6 +191,7 @@ class QuestService
                     $this->detectHouseholdAddressGaps($user),
                     $this->detectFaceGaps($user),
                     $this->detectMediaGaps($user),
+                    $this->detectStoryQuestionGaps($user),
                 );
             }
 
@@ -379,6 +387,26 @@ class QuestService
      *
      * @return array<string,int>
      */
+    /** Questions ouvertes des histoires de famille lisibles (pas les siennes), quelques-unes. */
+    private function detectStoryQuestionGaps(User $user): array
+    {
+        $stories = \App\Models\Story::visibleTo($user)
+            ->whereNotNull('published_at')
+            ->where('user_id', '!=', $user->id)
+            ->pluck('id');
+        if ($stories->isEmpty()) {
+            return [];
+        }
+
+        return \App\Models\StoryQuestion::whereIn('story_id', $stories)
+            ->whereDoesntHave('notes', fn ($q) => $q->where('user_id', $user->id))
+            ->orderBy('position')
+            ->limit(6)
+            ->pluck('id')
+            ->map(fn ($id) => ['type' => QuestType::StoryQuestion->value, 'subject_id' => $id, 'distance' => 2])
+            ->all();
+    }
+
     private function friendsCircle(User $user): array
     {
         return Person::inContext($user)
@@ -854,6 +882,20 @@ class QuestService
                 'title' => $subject->title,
                 'origin' => $this->photoOrigin($user, $subject),
             ];
+        } elseif ($subject instanceof \App\Models\StoryQuestion) {
+            $story = $subject->story;
+            $main = $story->load('people')->mainPerson();
+            $question['prompt'] = $subject->text;
+            $question['story'] = [
+                'id' => $story->id,
+                'title' => $story->title,
+                'summary' => \Illuminate\Support\Str::limit((string) $story->summary, 180),
+                'url' => url("/stories/{$story->id}#doutes"),
+            ];
+            // Le personnage principal : son portrait et sa fiche, comme les autres questions.
+            if ($main && $main->isVisibleTo($user)) {
+                $question['person'] = $this->personPayload($main);
+            }
         } elseif ($subject instanceof DetectedFace) {
             $question['prompt'] = __('Qui est cette personne ?');
             $question['face'] = [
@@ -917,6 +959,8 @@ class QuestService
         return [
             'albums' => $albums,
             'date' => $media->taken_at?->toDateString(),
+            // Vieilles photos : « années 1970 » plutôt qu'un faux 1er janvier.
+            'date_precision' => $media->taken_at_precision,
             'owner' => $media->user_id !== $user->id ? $media->user?->name : null,
         ];
     }

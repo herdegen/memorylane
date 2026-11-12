@@ -35,6 +35,20 @@ class MediaPolicy
         return $media->user_id === $user->id;
     }
 
+    /**
+     * Corriger les détails (date, titre, description, lieu, visages) : tout
+     * compte qui voit la photo, sauf l'invité temporaire (lecture seule).
+     * Chaque correction est journalisée et annulable (MediaHistory).
+     */
+    public function editDetails(User $user, Media $media): bool
+    {
+        if ($user->isGuest()) {
+            return false;
+        }
+
+        return $media->user_id === $user->id || $user->isAdmin() || $this->view($user, $media);
+    }
+
     public function delete(User $user, Media $media): bool
     {
         return $media->user_id === $user->id;

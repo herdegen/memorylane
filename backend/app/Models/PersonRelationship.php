@@ -19,6 +19,8 @@ class PersonRelationship extends Model
         'start_date',
         'end_date',
         'start_place',
+        // Photo de l'union (carte « Mariage » de la frise), au choix.
+        'media_id',
     ];
 
     protected static function booted(): void
@@ -33,6 +35,11 @@ class PersonRelationship extends Model
             'start_date' => 'date',
             'end_date' => 'date',
         ];
+    }
+
+    public function media()
+    {
+        return $this->belongsTo(Media::class);
     }
 
     public function person1()

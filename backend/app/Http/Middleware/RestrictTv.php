@@ -23,6 +23,8 @@ class RestrictTv
         'quests.faces.next', 'quests.answer',
         // Frise de vie d'une fiche (lecture seule).
         'people.timeline',
+        // « La famille dans le temps » (lecture seule).
+        'map.heatmapTimeline',
     ];
 
     public function handle(Request $request, Closure $next): Response

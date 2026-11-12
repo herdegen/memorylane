@@ -10,7 +10,7 @@
           {{ $t('Retour aux cercles') }}
         </Link>
 
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6 flex items-start justify-between gap-4">
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
           <div>
             <div class="flex items-center gap-2">
               <h1 class="font-display text-2xl font-semibold text-surface-900">{{ household.name }}</h1>
@@ -24,7 +24,7 @@
             </div>
             <p class="mt-1 text-sm text-surface-500">{{ $tc(':count membre|:count membres', members.length) }}</p>
           </div>
-          <div class="flex items-center gap-1">
+          <div class="flex flex-wrap items-center gap-1 -ml-3 sm:ml-0">
             <button
               v-if="household.is_member"
               @click="leaveHousehold"
@@ -33,7 +33,14 @@
               {{ $t('Quitter le cercle') }}
             </button>
             <button
-              v-if="household.can_manage"
+              v-if="household.can_manage && household.kind === 'family' && !household.closes_on"
+              @click="requestClosure"
+              class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
+            >
+              {{ $t('Fermer la famille…') }}
+            </button>
+            <button
+              v-else-if="household.can_manage && household.kind !== 'family'"
               @click="destroyHousehold"
               class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
             >
@@ -41,6 +48,48 @@
             </button>
           </div>
         </div>
+
+        <!-- Fermeture demandée : la date, reprendre ou annuler, exporter ses photos -->
+        <div v-if="household.closes_on" class="mb-6 rounded-2xl border border-red-200 bg-red-50 dark:bg-red-500/10 dark:border-red-500/30 p-5 space-y-3" role="status">
+          <p class="font-semibold text-surface-900">
+            {{ $t('Cette famille fermera le :date (demande de :name).', { date: formatDate(household.closes_on), name: household.closure_by ?? '?' }) }}
+          </p>
+          <p class="text-sm text-surface-700">{{ $t('Un membre peut la reprendre d’ici là : il en devient responsable et elle continue. Sinon, chacun garde son compte et ses photos ; les fiches communes restent dans les autres familles.') }}</p>
+          <div class="flex flex-wrap items-center gap-3">
+            <button v-if="household.is_member && !household.is_manager" type="button" class="btn-primary btn-sm" @click="takeOver">{{ $t('Reprendre la famille') }}</button>
+            <button v-if="household.can_manage" type="button" class="btn-secondary btn-sm" @click="cancelClosure">{{ $t('Annuler la fermeture') }}</button>
+            <ExportMediaButton v-if="household.is_member" />
+          </div>
+        </div>
+
+        <!-- Nouvelle famille presque vide : pour bien démarrer -->
+        <div v-if="household.kind === 'family' && household.is_member && !household.closes_on && household.family_people !== null && household.family_people < 10" class="mb-6 rounded-2xl border border-brand-200 bg-brand-50 p-5">
+          <h2 class="font-display text-lg font-semibold text-surface-900">{{ $t('Pour bien démarrer') }}</h2>
+          <p class="mt-1 text-sm text-surface-600">{{ tc('La famille compte :count fiche. Trois façons de la faire grandir :|La famille compte :count fiches. Trois façons de la faire grandir :', household.family_people, { count: household.family_people }) }}</p>
+          <div class="mt-4 grid gap-3 sm:grid-cols-3">
+            <button v-if="household.can_invite" type="button" class="rounded-xl border border-surface-200 bg-white p-4 text-left hover:border-brand-300" @click="showShareBranch = true">
+              <span class="block text-xl" aria-hidden="true">🌳</span>
+              <span class="mt-1 block font-semibold text-surface-900">{{ $t('Reprendre une branche') }}</span>
+              <span class="block text-sm text-surface-600">{{ $t('Des personnes de vos autres familles : une fiche, ses descendants ou ses ancêtres.') }}</span>
+            </button>
+            <a href="#membres" class="rounded-xl border border-surface-200 bg-white p-4 text-left hover:border-brand-300">
+              <span class="block text-xl" aria-hidden="true">✉️</span>
+              <span class="mt-1 block font-semibold text-surface-900">{{ $t('Inviter des proches') }}</span>
+              <span class="block text-sm text-surface-600">{{ $t('Un compte existant ci-dessous, ou par e-mail depuis la fiche de la personne.') }}</span>
+            </a>
+            <button type="button" class="rounded-xl border border-surface-200 bg-white p-4 text-left hover:border-brand-300" @click="openFamily">
+              <span class="block text-xl" aria-hidden="true">👪</span>
+              <span class="mt-1 block font-semibold text-surface-900">{{ household.is_current ? $t('Compléter l’arbre') : $t('Aller dans cette famille') }}</span>
+              <span class="block text-sm text-surface-600">{{ $t('Ajouter des personnes, des liens, des souvenirs.') }}</span>
+            </button>
+          </div>
+        </div>
+        <ShareBranchModal
+          v-if="showShareBranch"
+          :families="[{ id: household.id, name: household.name }]"
+          @close="showShareBranch = false"
+          @shared="router.reload({ preserveScroll: true })"
+        />
 
         <!-- Réglage : qui peut faire entrer quelqu'un (administrateur) -->
         <div v-if="household.can_manage" class="bg-white rounded-lg shadow-xs p-4 mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -94,6 +143,7 @@
         </div>
 
         <!-- Membres -->
+        <span id="membres" class="block -mt-2" aria-hidden="true"></span>
         <div class="bg-white rounded-lg shadow-xs divide-y divide-surface-100">
           <div
             v-for="m in members"
@@ -104,19 +154,28 @@
               <span class="font-medium text-surface-800">{{ m.name }}</span>
               <span class="text-sm text-surface-500 ml-2">{{ m.email }}</span>
               <span
-                v-if="m.is_creator"
+                v-if="m.is_manager"
                 class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-700"
               >
-                {{ $t('Créateur') }}
+                {{ $t('Responsable') }}
               </span>
             </div>
-            <button
-              v-if="household.can_manage && m.user_id !== $page.props.auth?.user?.id"
-              @click="removeMember(m)"
-              class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
-            >
-              {{ $t('Retirer') }}
-            </button>
+            <div v-if="household.can_manage && m.user_id !== $page.props.auth?.user?.id" class="flex items-center gap-4">
+              <button
+                type="button"
+                class="text-sm text-surface-600 hover:text-surface-900"
+                :disabled="roleBusy === m.user_id"
+                @click="toggleRole(m)"
+              >
+                {{ m.is_manager ? $t('Retirer le rôle de responsable') : $t('Nommer responsable') }}
+              </button>
+              <button
+                @click="removeMember(m)"
+                class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
+              >
+                {{ $t('Retirer') }}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -215,7 +274,10 @@ import { useToast } from '@/Composables/useToast';
 import { useConfirm } from '@/Composables/useConfirm';
 import { usePhotoSwipe } from '@/Composables/usePhotoSwipe';
 import Trans from '@/Components/Trans.vue';
-import { t } from '@/i18n';
+import ShareBranchModal from '@/Components/ShareBranchModal.vue';
+import ExportMediaButton from '@/Components/ExportMediaButton.vue';
+import { formatDate } from '@/utils/format';
+import { t, tc } from '@/i18n';
 
 const toast = useToast();
 const { confirm } = useConfirm();
@@ -277,6 +339,33 @@ const invite = async (candidate) => {
 // Retirer un membre : mêmes choix qu'un départ (ses photos, successeur).
 const removing = ref(null);
 const removeMember = (member) => { removing.value = member; };
+
+// « Pour bien démarrer » : reprendre une branche, ou entrer dans la famille.
+const showShareBranch = ref(false);
+function openFamily() {
+  if (props.household.is_current) {
+    router.visit('/family-tree');
+    return;
+  }
+  router.post('/circles/current', { household_id: props.household.id }, { onSuccess: () => router.visit('/family-tree') });
+}
+
+// Responsables : nommer un membre, ou lui retirer le rôle (il en reste
+// toujours au moins un — le serveur refuse sinon).
+const roleBusy = ref(null);
+async function toggleRole(member) {
+  roleBusy.value = member.user_id;
+  try {
+    await axios.patch(`/households/${props.household.id}/members/${member.user_id}/role`, {
+      role: member.is_manager ? 'member' : 'manager',
+    });
+    router.reload({ only: ['members'], preserveScroll: true });
+  } catch (e) {
+    toast.error(e.response?.data?.errors?.role?.[0] || e.response?.data?.message || t('Impossible de changer le rôle.'));
+  } finally {
+    roleBusy.value = null;
+  }
+}
 const onRemoved = () => {
   toast.success(t(':name a été retiré·e du cercle.', { name: removing.value.name }));
   removing.value = null;
@@ -356,6 +445,36 @@ const onLeft = () => {
   toast.success(t('Vous avez quitté le cercle.'));
   router.visit('/households');
 };
+
+// Fermer une famille : 30 jours pendant lesquels un membre peut la reprendre.
+async function requestClosure() {
+  const ok = await confirm({
+    title: t('Fermer la famille'),
+    message: t('Les membres seront prévenus et auront 30 jours pour la reprendre. Ensuite, chacun garde son compte et ses photos, les fiches communes restent dans les autres familles, et les autres fiches sont gardées sans photos pour la généalogie.'),
+    confirmLabel: t('Demander la fermeture'),
+    danger: true,
+  });
+  if (!ok) return;
+  try {
+    await axios.post(`/households/${props.household.id}/closure`);
+    router.reload({ preserveScroll: true });
+  } catch (e) {
+    toast.error(e.response?.data?.message || t('Impossible de demander la fermeture.'));
+  }
+}
+async function cancelClosure() {
+  await axios.delete(`/households/${props.household.id}/closure`);
+  router.reload({ preserveScroll: true });
+}
+async function takeOver() {
+  try {
+    await axios.post(`/households/${props.household.id}/takeover`);
+    toast.success(t('Vous êtes maintenant responsable de cette famille.'));
+    router.reload({ preserveScroll: true });
+  } catch (e) {
+    toast.error(e.response?.data?.message || t('Impossible de reprendre la famille.'));
+  }
+}
 
 const destroyHousehold = async () => {
   const ok = await confirm({

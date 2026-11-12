@@ -209,6 +209,12 @@ class Person extends Model
         return $this->hasMany(LifeEvent::class);
     }
 
+    /** Histoires où la personne apparaît (principale ou non). */
+    public function stories()
+    {
+        return $this->belongsToMany(Story::class, 'story_person')->withPivot(['is_main', 'role', 'position']);
+    }
+
     public function father()
     {
         return $this->belongsTo(Person::class, 'father_id');
@@ -239,14 +245,14 @@ class Person extends Model
     public function spousesAsFirst()
     {
         return $this->belongsToMany(Person::class, 'person_relationships', 'person1_id', 'person2_id')
-            ->withPivot('type', 'start_date', 'end_date', 'start_place')
+            ->withPivot('type', 'start_date', 'end_date', 'start_place', 'media_id')
             ->withTimestamps();
     }
 
     public function spousesAsSecond()
     {
         return $this->belongsToMany(Person::class, 'person_relationships', 'person2_id', 'person1_id')
-            ->withPivot('type', 'start_date', 'end_date', 'start_place')
+            ->withPivot('type', 'start_date', 'end_date', 'start_place', 'media_id')
             ->withTimestamps();
     }
 
@@ -310,6 +316,8 @@ class Person extends Model
             return $query;
         }
 
+        // Fiche archivée (plus dans aucune famille) : invisible de tous.
+        $query->whereNull('people.archived_at');
         $friendCircles = $user->friendCircleIds();
         $familyCircles = $user->familyCircleIds();
         // Installation d'une seule famille sans cercle famille : répertoire

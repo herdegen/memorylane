@@ -6,6 +6,7 @@ use App\Models\Media;
 use App\Models\NewsletterSend;
 use App\Models\Person;
 use App\Models\QuestAnswer;
+use App\Models\Story;
 use App\Models\User;
 use App\Models\VoiceNote;
 use App\Services\CelebrationService;
@@ -127,6 +128,9 @@ class FamilyNewsletterBuilder
             $this->taggedYou(),
             $this->upcoming(),
             $this->familyActivity(),
+            $this->sharedPeople(),
+            // Feuilleton : le chapitre suivant d'une histoire de famille (rien si aucune n'est en cours).
+            $this->storyEpisode(),
             // Encart « Côté amis » (null sans cercle d'amis ou sans nouveauté).
             $this->friends->corner($user, $this->now),
         ]));
@@ -167,6 +171,28 @@ class FamilyNewsletterBuilder
     }
 
     // ── Chiffres récurrents ────────────────────────────────────────────
+
+    /**
+     * Fiches communes avec d'autres familles : propositions qui attendent
+     * l'avis du destinataire, fiches que les autres ont changées cette semaine.
+     */
+    private function sharedPeople(): ?array
+    {
+        $shared = app(\App\Services\SharedFiches::class);
+        $toDecide = $shared->toDecideFor($this->user)->count();
+        $sharedIds = $shared->sharedIdsFor($this->user);
+        $changed = $sharedIds === [] ? 0 : $shared->newsFor($this->user, $this->since, $sharedIds)->distinct()->count('person_id');
+        if ($toDecide === 0 && $changed === 0) {
+            return null;
+        }
+
+        return [
+            'key' => 'shared_people',
+            'to_decide' => $toDecide,
+            'changed' => $changed,
+            'url' => url('/shared-people'),
+        ];
+    }
 
     private function newPhotos(): ?array
     {
@@ -332,6 +358,69 @@ class FamilyNewsletterBuilder
                 3,
             ),
             'url' => url("/people/{$person->id}"),
+        ];
+    }
+
+    /** Une histoire nouvelle entre au feuilleton pendant ce délai après sa publication. */
+    private const STORY_FRESH_DAYS = 90;
+
+    /**
+     * Histoires de famille en feuilleton : un chapitre par lettre. Celle que
+     * le destinataire a commencée continue ; sinon une histoire publiée
+     * récemment qu'il n'a jamais reçue commence. Sans histoire, pas d'encart.
+     */
+    private function storyEpisode(): ?array
+    {
+        // Chapitres déjà reçus : [id de l'histoire => [n° du dernier, date]].
+        $sent = [];
+        foreach (NewsletterSend::where('user_id', $this->user->id)->where('edition', self::EDITION)->orderBy('sent_at')->get() as $send) {
+            foreach (collect($send->sections)->where('key', 'story') as $section) {
+                [$id, $n] = array_pad(explode(':', (string) ($section['ref'] ?? '')), 2, null);
+                if ($id !== null && $n !== null) {
+                    $sent[$id] = [max((int) $n, $sent[$id][0] ?? -1), $send->sent_at];
+                }
+            }
+        }
+
+        $stories = Story::visibleTo($this->user)
+            ->whereNotNull('published_at')
+            ->where('user_id', '!=', $this->user->id)
+            ->with('chapters')
+            ->get()
+            ->filter(fn (Story $s) => $s->chapters->isNotEmpty());
+
+        // Celle en cours (la dernière reçue), sinon la plus ancienne des nouvelles.
+        $current = $stories
+            ->filter(fn (Story $s) => isset($sent[$s->id]) && $sent[$s->id][0] < $s->chapters->count() - 1)
+            ->sortByDesc(fn (Story $s) => $sent[$s->id][1])
+            ->first();
+        $current ??= $stories
+            ->filter(fn (Story $s) => ! isset($sent[$s->id]) && $s->published_at->gte($this->now->copy()->subDays(self::STORY_FRESH_DAYS)))
+            ->sortBy('published_at')
+            ->first();
+        if (! $current) {
+            return null;
+        }
+
+        $index = isset($sent[$current->id]) ? $sent[$current->id][0] + 1 : 0;
+        $chapter = $current->chapters->values()[$index];
+        $blocks = collect($chapter->blocks);
+        $mediaId = $blocks->firstWhere('type', 'media')['media_id'] ?? null;
+        $image = $mediaId ? Media::accessibleBy($this->user)->with('conversions')->find($mediaId) : null;
+        $text = (string) ($blocks->firstWhere('type', 'text')['text'] ?? '');
+
+        return [
+            'key' => 'story',
+            'ref' => "{$current->id}:{$index}",
+            'title' => $current->title,
+            'summary' => $index === 0 ? $current->summary : null,
+            'chapter' => $chapter->title,
+            'when' => $chapter->when_label,
+            'number' => $index + 1,
+            'total' => $current->chapters->count(),
+            'excerpt' => \Illuminate\Support\Str::limit($text, 650),
+            'image' => $image ? $this->media->thumbnailUrl($image, ['medium', 'small'], self::IMAGE_TTL_MINUTES, presigned: true) : null,
+            'url' => url("/stories/{$current->id}#ch-{$chapter->id}"),
         ];
     }
 
@@ -618,6 +707,7 @@ class FamilyNewsletterBuilder
         $media = $this->familyMedia()
             ->where('type', 'photo')
             ->whereNotNull('taken_at')
+            ->exactDate()
             ->whereRaw('EXTRACT(WEEK FROM taken_at) = ?', [(int) $this->now->format('W')])
             ->whereRaw('EXTRACT(YEAR FROM taken_at) < ?', [$this->now->year])
             ->with(['conversions', 'people'])
@@ -730,6 +820,11 @@ class FamilyNewsletterBuilder
         }
         if ($b = collect($by->get('upcoming')['items'] ?? [])->firstWhere('kind', 'birthday')) {
             $parts[] = __('l\'anniversaire de :name', ['name' => $b['name']]);
+        }
+        if ($st = $by->get('story')) {
+            $parts[] = $st['number'] === 1
+                ? __('une histoire de famille, « :title »', ['title' => $st['title']])
+                : __('la suite de « :title »', ['title' => $st['title']]);
         }
         if ($p = $by->get('person_of_week')) {
             $parts[] = __(':name à l\'honneur', ['name' => $p['first_name']]);

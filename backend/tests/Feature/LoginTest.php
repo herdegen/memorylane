@@ -33,6 +33,26 @@ class LoginTest extends TestCase
         $response->assertRedirect('/dashboard');
     }
 
+    /**
+     * L'adresse est retrouvée quelle que soit la casse : enregistrée avec une
+     * majuscule, saisie en minuscules (ou l'inverse), la connexion passe.
+     */
+    public function test_users_can_authenticate_whatever_the_email_case(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'Jean.Dupont@Example.com',
+            'password' => bcrypt('password123'),
+        ]);
+        $this->assertSame('jean.dupont@example.com', $user->fresh()->email);
+
+        $this->post('/login', ['email' => ' jean.dupont@example.com ', 'password' => 'password123']);
+        $this->assertAuthenticatedAs($user);
+
+        auth()->logout();
+        $this->post('/login', ['email' => 'JEAN.dupont@example.COM', 'password' => 'password123']);
+        $this->assertAuthenticatedAs($user);
+    }
+
     public function test_users_cannot_authenticate_with_invalid_password(): void
     {
         $user = User::factory()->create([

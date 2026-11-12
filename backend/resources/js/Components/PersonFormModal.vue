@@ -2,6 +2,10 @@
   <BaseModal :title="person ? $t('Modifier la personne') : $t('Nouvelle personne')" @close="$emit('close')">
     <!-- Formulaire -->
     <form @submit.prevent="submit" class="px-6 py-4 space-y-4">
+      <!-- Fiche commune : nos ajouts passent, nos corrections sont proposées à la référente -->
+      <p v-if="proposes" class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+        {{ $t('Fiche commune avec :family : ce que vous ajoutez dans un champ vide est enregistré tout de suite ; vos corrections lui seront proposées.', { family: shared.referent }) }}
+      </p>
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label for="first_name" class="block text-sm font-medium text-surface-700 mb-1">
@@ -76,12 +80,10 @@
           <label for="birth_place" class="block text-sm font-medium text-surface-700 mt-3 mb-1">
             {{ $t('Lieu de naissance') }}
           </label>
-          <input
-            id="birth_place"
+          <PlaceInput
             v-model="form.birth_place"
-            type="text"
             :placeholder="$t('Ville, pays')"
-            class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+            input-class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
           />
         </div>
 
@@ -98,12 +100,10 @@
           <label for="death_place" class="block text-sm font-medium text-surface-700 mt-3 mb-1">
             {{ $t('Lieu de décès') }}
           </label>
-          <input
-            id="death_place"
+          <PlaceInput
             v-model="form.death_place"
-            type="text"
             :placeholder="$t('Ville, pays')"
-            class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+            input-class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
           />
         </div>
       </div>
@@ -140,6 +140,20 @@
           :placeholder="$t('Notes sur cette personne...')"
         ></textarea>
       </div>
+
+      <div v-if="proposes">
+        <label for="source" class="block text-sm font-medium text-surface-700 mb-1">
+          {{ $t('Source de vos corrections (facultatif)') }}
+        </label>
+        <input
+          id="source"
+          v-model="source"
+          type="text"
+          maxlength="1000"
+          class="w-full px-4 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+          :placeholder="$t('Acte de naissance, livret de famille, lien…')"
+        />
+      </div>
     </form>
 
     <!-- Pied de page -->
@@ -163,6 +177,7 @@
 import { ref, reactive } from 'vue';
 import axios from 'axios';
 import BaseModal from '@/Components/BaseModal.vue';
+import PlaceInput from '@/Components/PlaceInput.vue';
 import { useToast } from '@/Composables/useToast';
 import { useCircle } from '@/Composables/useCircle';
 import { t } from '@/i18n';
@@ -171,6 +186,11 @@ const { isFriends } = useCircle();
 
 const props = defineProps({
   person: {
+    type: Object,
+    default: null,
+  },
+  // Fiche commune (cf. People/Show) : une famille non référente propose ses corrections.
+  shared: {
     type: Object,
     default: null,
   },
@@ -186,6 +206,8 @@ const toast = useToast();
 
 const submitting = ref(false);
 const errors = ref({});
+const proposes = !!(props.person && props.shared && !props.shared.is_referent);
+const source = ref('');
 
 // initialName (nom complet tapé ailleurs) : dernier mot = nom de famille
 const splitInitialName = (full) => {
@@ -224,7 +246,8 @@ const submit = async () => {
 
   try {
     if (props.person) {
-      const response = await axios.put(`/people/${props.person.id}`, form);
+      const response = await axios.put(`/people/${props.person.id}`, proposes ? { ...form, source: source.value } : form);
+      if (response.data.proposed) toast.success(response.data.proposed.message);
       emit('updated', response.data.person);
     } else {
       const response = await axios.post('/people', form);

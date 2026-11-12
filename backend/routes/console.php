@@ -28,6 +28,8 @@ Schedule::command('memorylane:birthday-push')->dailyAt('09:00')->timezone('Europ
 Schedule::command('memorylane:prune-upload-sessions')->dailyAt('03:30');
 // Départs de l'application arrivés au bout des 30 jours de grâce.
 Schedule::command('memorylane:process-departures')->dailyAt('03:45')->skip($demo);
+// Familles dont la fermeture demandée arrive à échéance (30 jours).
+Schedule::command('households:process-closures')->dailyAt('03:50')->skip($demo);
 
 // Fêtes des prénoms : précharge le cache Nominis pour les prochains jours.
 Schedule::command('memorylane:refresh-namedays')->dailyAt('00:10');
@@ -55,6 +57,9 @@ Schedule::command('people:refresh-portraits')->dailyAt('04:30')->timezone('Europ
 // le filet de sécurité (Nominatim, 1 req/s). Les introuvables ne sont
 // retentés qu'au bout d'une semaine.
 Schedule::command('people:geocode-places')->dailyAt('05:10')->timezone('Europe/Paris')->withoutOverlapping();
+
+// Lecture du texte des photos jamais lues (repère les documents), par lots la nuit.
+Schedule::command('media:read-documents --limit=400')->dailyAt('01:10')->timezone('Europe/Paris')->withoutOverlapping()->skip($demo);
 
 // Démo uniquement : retour à l'état de départ chaque nuit (instantané + dates recalées).
 Schedule::command('demo:reset')->dailyAt('04:10')->timezone('Europe/Paris')->when($demo)->withoutOverlapping();

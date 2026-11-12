@@ -191,7 +191,13 @@ class MediaService
 
         // Filter by type if provided
         if (isset($filters['type'])) {
-            $query->where('type', $filters['type']);
+            // « Documents » : les fichiers (PDF…) et les photos de documents
+            // (lettres, actes, journaux) ; « Photos » : les autres photos.
+            match ($filters['type']) {
+                'document' => $query->where(fn ($q) => $q->where('type', 'document')->orWhere('is_document', true)),
+                'photo' => $query->where('type', 'photo')->where('is_document', false),
+                default => $query->where('type', $filters['type']),
+            };
         }
 
         // Filter by tags if provided

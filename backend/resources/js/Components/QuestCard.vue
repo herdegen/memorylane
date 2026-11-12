@@ -59,6 +59,11 @@
             >
               {{ question.person.birth_year ? $t('Voir sa fiche — né·e en :year', { year: question.person.birth_year }) : $t('Voir sa fiche') }}
             </Link>
+            <!-- Question d'une histoire de famille : de quelle histoire il s'agit -->
+            <p v-if="question.story" class="text-sm text-surface-600 mt-1">
+              {{ $t('Une question de l’histoire') }}
+              <Link :href="question.story.url" class="font-semibold text-brand-700 hover:underline">« {{ question.story.title }} »</Link>
+            </p>
             <!-- D'où vient la photo : album(s), date, qui l'a envoyée -->
             <p v-if="originText" class="text-xs text-surface-500 mt-0.5">
               📁 <template v-for="(a, i) in origin.albums" :key="a.id"><Link :href="`/albums/${a.id}`" class="hover:text-brand-700 hover:underline">{{ a.name }}</Link><span v-if="i < origin.albums.length - 1">, </span></template>
@@ -77,9 +82,16 @@
 
           <!-- Saisie par famille d'UI -->
           <div class="space-y-3">
-            <!-- Date simple (naissance, décès ancien, photo sans date) -->
+            <!-- Photo sans date : jour, mois, année ou décennie (vieilles photos) -->
+            <PhotoDateInput
+              v-if="uiKind === 'date' && question.type === 'media_date'"
+              :key="question.subject_id"
+              v-model="photoDate"
+              class="max-w-md"
+            />
+            <!-- Date simple (naissance, décès ancien) -->
             <input
-              v-if="uiKind === 'date'"
+              v-else-if="uiKind === 'date'"
               v-model="form.value"
               type="date"
               class="form-input max-w-xs"
@@ -94,6 +106,16 @@
               :placeholder="textPlaceholder"
               @keyup.enter="submitAnswer"
             />
+
+            <!-- Histoire : ce qu'on sait, librement -->
+            <textarea
+              v-else-if="uiKind === 'story'"
+              v-model="form.value"
+              rows="3"
+              class="form-input max-w-xl"
+              :placeholder="$t('Ce que vous savez, d’où vous le tenez…')"
+              :aria-label="$t('Votre ajout')"
+            ></textarea>
 
             <!-- Encore en vie ? -->
             <div v-else-if="uiKind === 'death_status'" class="space-y-3">
@@ -408,6 +430,8 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, defineAsyncComponent } from 'vue';
+import PhotoDateInput from '@/Components/PhotoDateInput.vue';
+import { formatPartialDate } from '@/utils/format';
 import { Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import RelationshipPicker from '@/Components/RelationshipPicker.vue';
@@ -415,7 +439,7 @@ import PersonAvatar from '@/Components/PersonAvatar.vue';
 import { useToast } from '@/Composables/useToast';
 import { useCircle } from '@/Composables/useCircle';
 import { usePeopleDirectory } from '@/Composables/usePeopleDirectory';
-import { t, tc, intlLocale } from '@/i18n';
+import { t, tc } from '@/i18n';
 
 // Chargé à l'ouverture seulement : la carte embarque Leaflet (~45 ko gzip).
 const GeolocatePickerModal = defineAsyncComponent(() => import('@/Components/GeolocatePickerModal.vue'));
@@ -445,7 +469,11 @@ const showLightbox = ref(false);
 
 const currentYear = new Date().getFullYear();
 
+// Date d'une photo à précision variable : { date, precision }.
+const photoDate = ref({ date: null, precision: null });
+
 const resetForm = () => {
+  photoDate.value = { date: null, precision: null };
   form.value = { type: 'spouse' };
   pickedPerson.value = null;
   deceased.value = false;
@@ -476,6 +504,7 @@ const UI_KINDS = {
   face_identify: 'face',
   media_geo: 'media_geo',
   how_met: 'how_met',
+  story_question: 'story',
 };
 
 const uiKind = computed(() => UI_KINDS[question.value?.type]);
@@ -488,7 +517,7 @@ const originSuffix = computed(() => {
   const o = origin.value;
   if (!o) return '';
   return [
-    o.date ? new Date(o.date).toLocaleDateString(intlLocale(), { day: 'numeric', month: 'long', year: 'numeric' }) : null,
+    o.date ? formatPartialDate(o.date, o.date_precision || 'day') : null,
     o.owner ? t('envoyée par :name', { name: o.owner }) : null,
   ].filter(Boolean).join(' · ');
 });
@@ -554,8 +583,14 @@ const currentPayload = computed(() => {
   if (!q) return null;
   switch (uiKind.value) {
     case 'date':
+      if (q.type === 'media_date') {
+        return photoDate.value.date ? { value: photoDate.value.date, precision: photoDate.value.precision } : null;
+      }
+      return form.value.value ? { value: form.value.value } : null;
     case 'text':
       return form.value.value ? { value: form.value.value } : null;
+    case 'story':
+      return form.value.value?.trim() ? { value: form.value.value.trim() } : null;
     case 'death_status':
       return deceased.value ? { death_date: form.value.death_date || null } : null;
     case 'parent':

@@ -4,6 +4,7 @@
     <div class="flex items-center justify-between" :class="expanded ? 'mb-4' : 'sm:mb-4'">
       <button
         type="button"
+        data-guide="media-info"
         class="flex items-center gap-2 text-left sm:pointer-events-none"
         :aria-expanded="expanded"
         @click="open = !open"
@@ -12,7 +13,8 @@
         <svg class="sm:hidden w-5 h-5 text-surface-400 transition-transform" :class="expanded ? 'rotate-180' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
       </button>
       <button
-        v-if="!isEditing"
+        v-if="!isEditing && canEdit"
+        data-guide="media-edit"
         @click="startEditing"
         class="text-sm text-brand-600 hover:text-brand-800"
         :class="expanded ? '' : 'hidden sm:inline'"
@@ -54,13 +56,26 @@
         <label for="taken_at" class="block text-sm font-medium text-surface-700 mb-1">
           {{ $t('Date') }}
         </label>
-        <input
-          id="taken_at"
-          v-model="form.taken_at"
-          type="datetime-local"
-          class="w-full px-3 py-2 border border-surface-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-        />
-        <p class="mt-1 text-xs text-surface-400">{{ $t('Date de prise de vue affichée dans la galerie.') }}</p>
+        <PhotoDateInput id="taken_at" :key="editKey" v-model="form.date" with-time />
+        <p class="mt-1 text-xs text-surface-400">{{ $t('Vieille photo ? Choisissez « Année » ou « Décennie » si vous ne connaissez pas le jour exact.') }}</p>
+      </div>
+
+      <!-- Document (lettre, acte, journal) : rangé dans « Documents », avec son texte -->
+      <div v-if="media.type === 'photo'" class="flex flex-col gap-2">
+        <label class="flex items-center gap-2 text-sm text-surface-700">
+          <input id="is_document" v-model="form.is_document" type="checkbox" class="rounded border-surface-300 text-brand-600 focus:ring-brand-500" />
+          {{ $t('C’est un document (lettre, acte, journal…)') }}
+        </label>
+        <div v-if="form.is_document">
+          <label for="transcription" class="block text-sm font-medium text-surface-700 mb-1">{{ $t('Texte du document') }}</label>
+          <textarea
+            id="transcription"
+            v-model="form.transcription"
+            rows="8"
+            class="w-full px-3 py-2 border border-surface-300 rounded-lg text-sm focus:outline-hidden focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+            :placeholder="$t('Recopiez le texte du document : il deviendra lisible sur téléphone et retrouvable par la recherche.')"
+          ></textarea>
+        </div>
       </div>
 
       <div class="flex justify-end gap-2">
@@ -91,6 +106,14 @@
       <div v-if="media.description">
         <dt class="text-sm font-medium text-surface-500">{{ $t('Description') }}</dt>
         <dd class="mt-1 text-sm text-surface-900 whitespace-pre-wrap">{{ media.description }}</dd>
+      </div>
+
+      <div v-if="media.transcription">
+        <dt class="text-sm font-medium text-surface-500 flex items-center gap-2">
+          {{ $t('Texte du document') }}
+          <span v-if="media.transcription_source === 'ocr'" class="px-1.5 rounded bg-surface-100 text-[11px] font-semibold text-surface-500">{{ $t('lu automatiquement') }}</span>
+        </dt>
+        <dd class="mt-1 text-sm text-surface-900 whitespace-pre-wrap max-h-80 overflow-y-auto">{{ media.transcription }}</dd>
       </div>
 
       <div>
@@ -129,7 +152,7 @@
 
       <div v-if="media.taken_at">
         <dt class="text-sm font-medium text-surface-500">{{ $t('Pris le') }}</dt>
-        <dd class="mt-1 text-sm text-surface-900">{{ formatDateTime(media.taken_at) }}</dd>
+        <dd class="mt-1 text-sm text-surface-900">{{ formatMediaDate(media, { withTime: true }) }}</dd>
       </div>
 
       <div v-if="media.user">
@@ -174,7 +197,8 @@
 import { ref, reactive, computed } from 'vue';
 import axios from 'axios';
 import { useToast } from '@/Composables/useToast';
-import { formatFileSize, formatDuration, formatDateTime } from '@/utils/format';
+import { formatFileSize, formatDuration, formatDateTime, formatMediaDate } from '@/utils/format';
+import PhotoDateInput from '@/Components/PhotoDateInput.vue';
 import { t } from '@/i18n';
 
 const toast = useToast();
@@ -183,6 +207,11 @@ const props = defineProps({
   media: {
     type: Object,
     required: true,
+  },
+  // Corriger les détails : tout membre qui voit la photo (MediaPolicy::editDetails).
+  canEdit: {
+    type: Boolean,
+    default: true,
   },
 });
 
@@ -208,16 +237,29 @@ const toLocalInput = (value) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
+// Date à précision variable (jour exact avec l'heure, mois, année, décennie).
+const dateOf = (media) => {
+  const precision = media.taken_at_precision && media.taken_at_precision !== 'day' ? media.taken_at_precision : null;
+  return { date: precision ? (media.taken_at ? String(media.taken_at).slice(0, 10) : null) : (toLocalInput(media.taken_at) || null), precision };
+};
+
 const form = reactive({
   title: props.media.title || '',
   description: props.media.description || '',
-  taken_at: toLocalInput(props.media.taken_at),
+  date: dateOf(props.media),
+  is_document: !!props.media.is_document,
+  transcription: props.media.transcription || '',
 });
+// Recrée le champ date à chaque ouverture (il lit sa valeur au montage).
+const editKey = ref(0);
 
 const startEditing = () => {
   form.title = props.media.title || '';
   form.description = props.media.description || '';
-  form.taken_at = toLocalInput(props.media.taken_at);
+  form.date = dateOf(props.media);
+  form.is_document = !!props.media.is_document;
+  form.transcription = props.media.transcription || '';
+  editKey.value += 1;
   isEditing.value = true;
 };
 
@@ -231,7 +273,10 @@ const save = async () => {
     const response = await axios.put(`/media/${props.media.id}`, {
       title: form.title || null,
       description: form.description || null,
-      taken_at: form.taken_at || null,
+      taken_at: form.date.date || null,
+      taken_at_precision: form.date.precision,
+      ...(props.media.type === 'photo' && form.is_document !== !!props.media.is_document ? { is_document: form.is_document } : {}),
+      ...(form.transcription !== (props.media.transcription || '') ? { transcription: form.transcription || null } : {}),
     });
     isEditing.value = false;
     emit('updated', response.data.media);
@@ -245,6 +290,7 @@ const save = async () => {
 
 const formatType = (type) => {
   const types = { photo: t('Photo'), video: t('Vidéo'), document: t('Document') };
+  if (type === 'photo' && props.media.is_document) return t('Document');
   return types[type] || type;
 };
 

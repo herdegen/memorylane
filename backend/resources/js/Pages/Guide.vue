@@ -21,6 +21,12 @@
         <!-- Sommaire -->
         <nav class="flex flex-wrap gap-2 mb-10" :aria-label="$t('Sommaire du guide')">
           <a
+            href="#pas-a-pas"
+            class="px-3.5 py-1.5 rounded-full text-[13px] font-semibold bg-brand-50 border border-brand-300 text-brand-800 hover:bg-brand-100 transition dark:bg-brand-900/30 dark:text-brand-200 dark:border-brand-700"
+          >
+            📅 {{ $t('Dater une photo, nommer quelqu’un') }}
+          </a>
+          <a
             v-for="section in guideSections"
             :key="section.id"
             :href="`#${section.id}`"
@@ -65,6 +71,37 @@
             </div>
           </section>
         </div>
+
+        <!-- ============ Pas-à-pas : dater une photo, nommer quelqu'un ============
+             Le chemin à expliquer aux néophytes : ouvrir la photo, bouton ⓘ
+             (« Détails » sur téléphone), puis « Modifier ». Captures ordinateur +
+             téléphone, bouton entouré (scripts/guide-captures.mjs, tuto-*). -->
+        <section id="pas-a-pas" class="scroll-mt-20 mb-14 rounded-2xl border border-brand-200 dark:border-brand-800 bg-brand-50/40 dark:bg-brand-900/10 p-5 sm:p-7">
+          <h2 class="font-display text-2xl font-semibold text-surface-900">📅 {{ $t('Dater une photo, nommer quelqu’un') }}</h2>
+          <p class="mt-2 text-sm text-surface-600 leading-relaxed max-w-2xl">
+            {{ $t('Le chemin à connaître pour corriger la date d’une photo ou mettre un nom sur un visage, sur ordinateur comme sur téléphone.') }}
+          </p>
+          <ol class="mt-6 space-y-8">
+            <li v-for="(item, i) in howTo" :key="item.title" class="flex gap-4">
+              <span class="shrink-0 w-8 h-8 rounded-full bg-brand-600 text-white font-semibold flex items-center justify-center">{{ i + 1 }}</span>
+              <div class="min-w-0 flex-1">
+                <h3 class="font-semibold text-surface-900">{{ item.title }}</h3>
+                <p class="mt-1 text-sm text-surface-700 leading-relaxed max-w-2xl">{{ item.text }}</p>
+                <p v-if="item.note" class="mt-2 text-sm text-surface-600 leading-relaxed max-w-2xl border-l-2 border-brand-300 pl-3">{{ item.note }}</p>
+                <div v-if="item.image" class="mt-4 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 items-start">
+                  <figure>
+                    <GuideImage :name="item.image" :alt="item.title" />
+                    <figcaption class="mt-1 text-xs text-surface-500">{{ $t('Sur ordinateur') }}</figcaption>
+                  </figure>
+                  <figure class="justify-self-center">
+                    <GuideImage :name="`${item.image}-phone`" :alt="item.title" phone />
+                    <figcaption class="mt-1 text-xs text-surface-500 text-center">{{ $t('Sur téléphone') }}</figcaption>
+                  </figure>
+                </div>
+              </div>
+            </li>
+          </ol>
+        </section>
 
         <!-- ============ Sections de référence ============ -->
         <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400 mb-4">{{ $t('Toutes les fonctionnalités') }}</h2>
@@ -425,6 +462,36 @@ const friendsSectionOverrides = {
     link: { href: '/network', label: t('Ouvrir le Réseau') },
   },
 };
+
+// Pas-à-pas « dater une photo, nommer quelqu'un » : images tuto-* (ordinateur)
+// et tuto-*-phone (téléphone), générées par scripts/guide-captures.mjs.
+const howTo = [
+  {
+    title: t('Ouvrez la photo'),
+    text: t('Touchez-la dans un album, sur la fiche d’une personne ou dans Mes photos : elle s’affiche en grand.'),
+  },
+  {
+    title: t('Ouvrez sa fiche'),
+    text: t('Sur ordinateur, cliquez le bouton ⓘ en haut à droite. Sur téléphone, touchez « Détails » en bas de l’écran. Depuis Mes photos, la fiche s’ouvre directement.'),
+    image: 'tuto-fiche',
+  },
+  {
+    title: t('Changez la date'),
+    text: t('Dans le cadre « Informations », cliquez « Modifier » (sur téléphone, touchez d’abord « Informations » pour le déplier). Corrigez la date, puis « Enregistrer ». Vieille photo dont on ne connaît pas le jour ? Choisissez « Mois », « Année » ou « Décennie » : elle s’affichera par exemple « années 1970 ».'),
+    note: t('Toute la famille peut corriger une photo qu’elle voit : sa date, son lieu, les personnes. Chaque correction est notée dans l’« Historique des corrections », en bas de la page : la personne qui a envoyé la photo peut l’annuler.'),
+    image: 'tuto-date',
+  },
+  {
+    title: t('Mettez un nom sur un visage'),
+    text: t('Sur la photo, les visages sont encadrés : cliquez un cadre et choisissez la personne, MemoryLane en suggère. Un visage oublié ? « ＋ Ajouter un visage » sous la photo, puis entourez-le.'),
+    note: t('Le panneau « Identifier le visage » s’ouvre à côté de la photo (sur téléphone, juste en dessous). L’accueil vous pose aussi la question « Qui est-ce ? » pour les visages encore inconnus.'),
+    image: 'tuto-visage',
+  },
+  {
+    title: t('Plusieurs photos d’un coup'),
+    text: t('Pour vos propres photos : dans Mes photos, touchez « Sélectionner », cochez les photos, puis « Dater » : la même date pour toutes.'),
+  },
+];
 
 const guideSteps = computed(() => (isFriends.value ? friendsSteps : steps));
 const guideSections = computed(() => (isFriends.value

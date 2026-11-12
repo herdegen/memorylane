@@ -560,7 +560,7 @@ class FamilyTimelineMapTest extends TestCase
         ], $this->tripsOf($track));
     }
 
-    public function test_un_emploi_long_est_un_lieu_de_vie_un_court_une_sortie(): void
+    public function test_le_lieu_de_travail_ne_place_jamais_personne_les_etudes_longues_oui(): void
     {
         $this->place('Bordeaux', 44.8378, -0.5792);
         $this->place('Strasbourg', 48.5734, 7.7521);
@@ -568,23 +568,24 @@ class FamilyTimelineMapTest extends TestCase
             'birth_date' => '1900-01-01', 'birth_place' => 'Paris',
             'death_date' => '1980-01-01', 'death_place' => 'Marseille',
         ]);
-        // Dix ans d'emploi à Lyon : un lieu de vie, qui compte dans les médianes.
-        $this->moment($father, 'job', '1930-01-01', ['end_date' => '1940-01-01', 'place' => 'Lyon']);
-        // Deux mois à Bordeaux : une sortie de toute sa durée.
+        // Emplois, longs, courts ou sans fin : ni lieu de vie ni sortie.
+        $this->moment($father, 'job', '1930-01-01', ['end_date' => '1940-01-01', 'place' => 'Bordeaux']);
         $this->moment($father, 'job', '1950-03-01', ['end_date' => '1950-04-30', 'place' => 'Bordeaux']);
+        $this->moment($father, 'job', '1960-03-01', ['place' => 'Bordeaux']);
+        // Cinq ans d'études à Lyon : un lieu de vie, qui compte dans les médianes.
+        $this->moment($father, 'education', '1920-01-01', ['end_date' => '1925-01-01', 'place' => 'Lyon']);
         // Des études sans date de fin : une sortie du mois.
-        $this->moment($father, 'education', '1925-09-15', ['place' => 'Strasbourg']);
+        $this->moment($father, 'education', '1927-09-15', ['place' => 'Strasbourg']);
 
         $track = $this->timeline()['tracks'][0];
 
         $this->assertSame([
-            [1900.0, 1930.0, 48.86, 2.35],   // Paris jusqu'à l'arrivée à Lyon
-            [1930.0, 1940.0, 45.76, 4.84],   // Lyon de 1930 à 1940 (départ daté)
-            [1940.0, 1980.0, 43.3, 5.37],
+            [1900.0, 1920.0, 48.86, 2.35],   // Paris jusqu'à l'arrivée à Lyon
+            [1920.0, 1925.0, 45.76, 4.84],   // Lyon de 1920 à 1925 (départ daté)
+            [1925.0, 1980.0, 43.3, 5.37],
         ], $this->background($track));
         $this->assertSame([
-            [self::year('1925-09-01'), self::year('1925-10-01'), 48.57, 7.75],
-            [self::year('1950-03-01'), self::year('1950-05-01'), 44.84, -0.58],
+            [self::year('1927-09-01'), self::year('1927-10-01'), 48.57, 7.75],
         ], $this->tripsOf($track));
     }
 

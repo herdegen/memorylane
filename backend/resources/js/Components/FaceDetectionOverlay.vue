@@ -21,6 +21,7 @@
       <div
         v-for="face in visibleFaces"
         :key="face.id"
+        data-guide="face"
         class="absolute border-2 transition-all duration-200"
         :class="[faceBoxClasses(face), drawMode ? 'pointer-events-none' : 'cursor-pointer hover:border-4']"
         :style="faceBoxStyle(face)"

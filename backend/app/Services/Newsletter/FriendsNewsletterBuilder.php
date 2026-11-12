@@ -287,6 +287,7 @@ class FriendsNewsletterBuilder
         $media = $this->circleMedia()
             ->where('media.type', 'photo')
             ->whereNotNull('media.taken_at')
+            ->exactDate()
             ->whereRaw('EXTRACT(WEEK FROM media.taken_at) = ?', [(int) $this->now->format('W')])
             ->whereRaw('EXTRACT(YEAR FROM media.taken_at) < ?', [$this->now->year])
             ->whereNotIn('media.id', $this->recentRefs('years_ago', self::HISTORY_SIZE))

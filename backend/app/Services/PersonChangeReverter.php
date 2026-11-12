@@ -30,13 +30,16 @@ class PersonChangeReverter
                 'deleted' => $person->restore(),
                 'spouse_added' => $this->spouses($person->id, $change->diff['spouse_id'])->get()->each->delete(),
                 'spouse_removed' => $this->restoreSpouse($person->id, $change->diff['spouse_id']),
+                'union_updated' => $this->spouses($person->id, $change->diff['spouse_id'])->first()?->update(
+                    collect($change->diff['changes'])->map(fn ($pair) => $pair[0] ?? null)->all()
+                ),
             };
 
             $this->markReverted($change, $by);
 
             // Les changements de couple sont journalisés sur les deux fiches :
             // on clôt aussi la ligne jumelle.
-            if (in_array($change->action, ['spouse_added', 'spouse_removed'], true)) {
+            if (in_array($change->action, ['spouse_added', 'spouse_removed', 'union_updated'], true)) {
                 PersonChange::where('person_id', $change->diff['spouse_id'])
                     ->where('action', $change->action)
                     ->whereNull('reverted_at')

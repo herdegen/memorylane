@@ -8,6 +8,7 @@ use Filament\Panel;
 use App\Support\Locales;
 use App\Support\SiteSettings;
 use Illuminate\Contracts\Translation\HasLocalePreference;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -54,6 +55,15 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference
         'remember_token',
         'tablet_token_hash',
     ];
+
+    /**
+     * Adresse toujours enregistrée en minuscules : la connexion (mot de passe
+     * ou lien magique) la retrouve quelle que soit la casse saisie.
+     */
+    protected function email(): Attribute
+    {
+        return Attribute::make(set: fn (?string $value) => $value === null ? null : mb_strtolower(trim($value)));
+    }
 
     /**
      * Get the attributes that should be cast.

@@ -28,9 +28,11 @@ class PersonTimelineTest extends TestCase
         // lieu (Wikimedia) : aucun appel réseau réel pendant les tests.
         Http::fake([
             'nominatim.openstreetmap.org/*' => Http::response([]),
+            'www.wikidata.org/*' => Http::response(['entities' => []]),
             'commons.wikimedia.org/*' => Http::response([]),
             'fr.wikipedia.org/*' => Http::response([], 404),
         ]);
+        config(['memorylane.nominatim_interval' => 0]);
     }
 
     public function test_show_returns_siblings(): void
@@ -364,8 +366,9 @@ class PersonTimelineTest extends TestCase
         $this->actingAs($this->user)->getJson("/people/{$person->id}/timeline")->assertOk();
         \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\EnrichTimelinePlaces::class, 1);
 
-        // Le job résout (ici : géocodage déjà en cache, Wikipédia et Commons
-        // répondent vide → raté mémorisé) ; la frise suivante n'attend plus rien.
+        // Le job résout (ici : géocodage déjà en cache ; Wikidata, la commune
+        // du point, Wikipédia et Commons répondent vide → raté mémorisé) ; la
+        // frise suivante n'attend plus rien.
         \Illuminate\Support\Facades\Cache::put(
             'geocode:' . md5(mb_strtolower('Croix, Nord')),
             ['latitude' => 50.678, 'longitude' => 3.149],
@@ -373,7 +376,7 @@ class PersonTimelineTest extends TestCase
         );
         (new \App\Jobs\EnrichTimelinePlaces([['place' => 'Croix, Nord', 'latitude' => null, 'longitude' => null]]))
             ->handle(app(\App\Services\GeocodeService::class), app(\App\Services\PlacePhotoService::class));
-        Http::assertSentCount(2);
+        Http::assertSentCount(4);
 
         $birth = collect($this->actingAs($this->user)->getJson("/people/{$person->id}/timeline")->json())->firstWhere('kind', 'birth');
         $this->assertArrayNotHasKey('place_pending', $birth);
@@ -389,13 +392,13 @@ class PersonTimelineTest extends TestCase
             ['latitude' => 50.678, 'longitude' => 3.149],
             now()->addDay(),
         );
+        // Photo du lieu déjà trouvée (la résolution elle-même est testée dans
+        // PlacePhotoServiceTest) : rien ne reste à résoudre.
         \Illuminate\Support\Facades\Cache::put(
-            sprintf('placephoto:%.4f,%.4f', 50.678, 3.149),
+            'placephoto:v3:' . md5('croix') . ':50.68,3.15',
             'https://upload.wikimedia.org/exemple.jpg',
             now()->addDay(),
         );
-        // Article Wikipédia déjà tenté (sans image) : rien ne reste à résoudre.
-        \Illuminate\Support\Facades\Cache::put('placephoto:wp:' . md5('croix'), 'miss', now()->addDay());
 
         $person = Person::factory()->create([
             'user_id' => $this->user->id,
@@ -417,11 +420,11 @@ class PersonTimelineTest extends TestCase
             ['latitude' => 45.293, 'longitude' => 0.754],
             now()->addDay(),
         );
-        // Résultat Wikipédia déjà en cache (la résolution elle-même est
-        // testée dans PlacePhotoServiceTest) : la frise doit le préférer à
-        // la géo-recherche Commons.
+        // Photo du lieu déjà en cache pour la localité (la résolution
+        // elle-même est testée dans PlacePhotoServiceTest) : la frise la
+        // retrouve d'après « Agonac » dans le lieu saisi.
         \Illuminate\Support\Facades\Cache::put(
-            'placephoto:wp:' . md5('agonac'),
+            'placephoto:v3:' . md5('agonac') . ':45.29,0.75',
             'https://upload.wikimedia.org/eglise-agonac.jpg',
             now()->addDay(),
         );

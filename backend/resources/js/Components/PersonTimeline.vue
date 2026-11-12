@@ -12,13 +12,22 @@
         <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
         {{ $t('Lire') }}
       </button>
+      <!-- Récit de vie guidé, étape par étape : remplit la frise -->
+      <Link
+        v-if="canManage"
+        :href="`/people/${personId}/recit`"
+        class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-brand-50 border border-brand-200 text-sm font-medium text-brand-800 hover:bg-brand-100 transition dark:bg-brand-500/10 dark:border-brand-500/30 dark:text-brand-200"
+      >
+        ✍️ {{ $t('Raconter sa vie') }}
+      </Link>
       <button
         v-if="canManage"
         @click="openCreate"
-        class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-surface-300 text-sm font-medium text-surface-700 hover:bg-surface-50 transition"
+        class="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-full bg-white border border-surface-300 text-sm font-medium text-surface-700 hover:bg-surface-50 transition"
+        :aria-label="$t('Ajouter un moment')"
       >
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-        {{ $t('Ajouter un moment') }}
+        <span class="hidden sm:inline">{{ $t('Ajouter un moment') }}</span>
       </button>
       </div>
     </div>
@@ -79,12 +88,37 @@
                 decoding="async"
                 @click="playSlideshow"
               />
+              <!-- Sans photo de famille : la photo du lieu (Wikipédia /
+                   Commons), signalée comme telle. -->
+              <template v-else-if="item.place_photo_url">
+                <img
+                  :src="placeThumb(item.place_photo_url)"
+                  class="w-full h-full object-cover cursor-pointer"
+                  loading="lazy"
+                  decoding="async"
+                  alt=""
+                  @error="onPlaceThumbError($event, item.place_photo_url)"
+                  @click="playSlideshow"
+                />
+                <span
+                  class="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-ink/55 text-snow text-[10.5px] font-medium pointer-events-none"
+                  :title="$t('Photo du lieu — Wikimedia Commons')"
+                >{{ kindIcon(item.kind) }} {{ $t('Photo du lieu') }}</span>
+              </template>
               <div v-else class="w-full h-full flex items-center justify-center bg-brand-50 dark:bg-brand-500/10 text-4xl">
                 {{ kindIcon(item.kind) }}
               </div>
 
+              <!-- Cartes automatiques (mariage, naissance, décès) : modifiables
+                   aussi — l'union (date, lieu, photo) ou la fiche elle-même. -->
+              <div v-if="canManage && !item.life_event_id && (item.union || item.kind === 'birth' || item.kind === 'death')" class="absolute top-2 right-2 flex gap-1 pointer-fine:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+                <button @click.stop="editAuto(item)" class="p-1.5 rounded-full bg-white/90 text-surface-600 hover:text-brand-600 shadow-sm" :title="$t('Modifier')">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                </button>
+              </div>
+
               <!-- Actions gestionnaire sur les moments (au survol) -->
-              <div v-if="canManage && item.life_event_id" class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div v-if="canManage && item.life_event_id" class="absolute top-2 right-2 flex gap-1 pointer-fine:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                 <button @click.stop="openEdit(item)" class="p-1.5 rounded-full bg-white/90 text-surface-600 hover:text-brand-600 shadow-sm" :title="$t('Modifier')">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                 </button>
@@ -125,6 +159,15 @@
 
     </div>
 
+    <UnionFormModal
+      v-if="unionEditing"
+      :person-id="personId"
+      :person-name="personName"
+      :item="unionEditing"
+      @close="unionEditing = null"
+      @saved="unionEditing = null; load()"
+    />
+
     <LifeEventFormModal
       v-if="showModal"
       :person-id="personId"
@@ -157,6 +200,7 @@ import { t } from '@/i18n';
 // Modale d'un moment et diaporama chargés à la demande : tous deux embarquent
 // Leaflet (~45 ko gzip), inutile tant qu'on ne les ouvre pas.
 const LifeEventFormModal = defineAsyncComponent(() => import('@/Components/LifeEventFormModal.vue'));
+const UnionFormModal = defineAsyncComponent(() => import('@/Components/UnionFormModal.vue'));
 const storyPlayerComponent = shallowRef(null);
 
 const toast = useToast();
@@ -167,6 +211,8 @@ const props = defineProps({
   personName: { type: String, default: '' },
   canManage: { type: Boolean, default: false },
 });
+// Naissance / décès : la fiche ouvre son propre formulaire.
+const emit = defineEmits(['edit-person']);
 
 const items = ref([]);
 const loading = ref(true);
@@ -215,6 +261,12 @@ const load = async ({ silent = false } = {}) => {
 
 const openCreate = () => { editing.value = null; showModal.value = true; };
 const openEdit = (item) => { editing.value = item; showModal.value = true; };
+// Carte automatique : un mariage s'édite ici (union), naissance et décès dans la fiche.
+const unionEditing = ref(null);
+const editAuto = (item) => {
+  if (item.union) unionEditing.value = item;
+  else emit('edit-person');
+};
 const onSaved = () => { showModal.value = false; load(); };
 
 const removeEvent = async (item) => {
@@ -255,7 +307,20 @@ defineExpose({ play: playSlideshow, hasPlayable });
 // Chapitres du récit de vie (logique partagée avec la télévision).
 const storyEvents = computed(() => buildStoryEvents(items.value));
 
-const thumb = (item) => item.media?.medium_url || item.media?.thumbnail_url || item.related?.avatar_url || null;
+// Image de la carte : photo du moment, sinon la première de sa galerie ou
+// de son album, sinon le portrait de la personne liée (mariage, enfant).
+const thumb = (item) => {
+  const m = item.media || item.photos?.[0] || item.album?.media?.[0];
+  return m?.medium_url || m?.thumbnail_url || item.related?.avatar_url || null;
+};
+
+// Photo du lieu : la vignette Commons de 500 px suffit à la carte (l'URL
+// reçue est celle de 1280 px, pour le récit de vie) ; repli sur celle-ci si
+// Commons ne sert pas cette taille.
+const placeThumb = (url) => url.replace('/1280px-', '/500px-');
+const onPlaceThumbError = (event, url) => {
+  if (event.target.src !== url) event.target.src = url;
+};
 
 
 

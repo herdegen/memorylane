@@ -57,11 +57,14 @@ class HouseholdMembershipTest extends TestCase
         $this->assertFalse($household->isMember($this->admin));
     }
 
-    public function test_un_membre_cree_son_cercle_d_amis_mais_pas_un_cercle_famille(): void
+    public function test_un_membre_cree_son_cercle_d_amis_ou_sa_famille(): void
     {
         $user = User::factory()->create();
 
-        $this->actingAs($user)->postJson('/households', ['name' => 'Famille à moi', 'kind' => 'family'])->assertForbidden();
+        // Plusieurs familles par installation : chacun peut créer la sienne.
+        $this->actingAs($user)->postJson('/households', ['name' => 'Famille à moi', 'kind' => 'family', 'join' => false])->assertCreated();
+        $family = Household::firstWhere('name', 'Famille à moi');
+        $this->assertTrue($family->isMember($user) && $family->isManager($user));
 
         $this->actingAs($user)->postJson('/households', ['name' => 'Mes potes', 'kind' => 'friends', 'join' => false])->assertCreated();
         $circle = Household::firstWhere('name', 'Mes potes');

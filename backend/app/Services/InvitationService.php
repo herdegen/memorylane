@@ -45,7 +45,9 @@ class InvitationService
             return __('Cette personne semble appartenir à une génération ancienne de l\'arbre.');
         }
 
-        if (User::where('person_id', $person->id)->exists()) {
+        // Un compte jamais activé (créé d'avance, jamais utilisé) ne bloque
+        // pas : l'invitation le lui fait reprendre.
+        if (User::where('person_id', $person->id)->exists() && ! $this->dormantAccountOf($person)) {
             return __('Cette personne a déjà un compte.');
         }
 
@@ -54,6 +56,23 @@ class InvitationService
         }
 
         return null;
+    }
+
+    /**
+     * Compte relié à la fiche mais jamais activé : adresse jamais confirmée
+     * et aucune trace d'utilisation (préférences vides). Une invitation
+     * acceptée le reprend (nom, mot de passe), avec ses accès.
+     */
+    public function dormantAccountOf(Person $person): ?User
+    {
+        return User::realPeople()->where('person_id', $person->id)->get()
+            ->first(fn (User $u) => self::isDormant($u));
+    }
+
+    public static function isDormant(User $user): bool
+    {
+        return $user->email_verified_at === null && empty($user->preferences)
+            && ! $user->isGuest() && ! $user->simple_mode && $user->memorial_at === null;
     }
 
     /**
@@ -97,6 +116,12 @@ class InvitationService
                 $person->circles()->where('kind', Household::KIND_FAMILY)->pluck('households.id')->all(),
                 $inviter->familyCircleIds(),
             ));
+            // Fiche commune à plusieurs de ses familles : celle où il navigue
+            // (sélecteur de l'en-tête) — jamais une autre au hasard.
+            $current = $inviter->currentFamilyCircle()?->id;
+            if ($current && in_array($current, $sharedFamilies, true)) {
+                return $current;
+            }
 
             return $sharedFamilies[0]
                 ?? $inviter->currentFamilyCircle()?->id
@@ -171,7 +196,8 @@ class InvitationService
             throw ValidationException::withMessages(['person_id' => $reason]);
         }
 
-        if (User::whereRaw('lower(email) = ?', [$email])->exists()) {
+        $dormant = $this->dormantAccountOf($person);
+        if (User::whereRaw('lower(email) = ?', [$email])->where('id', '!=', $dormant?->id)->exists()) {
             throw ValidationException::withMessages(['email' => __('Un compte existe déjà avec cette adresse.')]);
         }
 
@@ -263,20 +289,34 @@ class InvitationService
 
             abort_unless($invitation->isUsable(), 410, __('Cette invitation n\'est plus valable.'));
 
-            if (User::whereRaw('lower(email) = ?', [Str::lower($invitation->email)])->exists()) {
+            // Compte jamais activé de la fiche : on le reprend (il garde ses
+            // accès, albums partagés compris) au lieu d'en créer un second.
+            $dormant = $invitation->person ? $this->dormantAccountOf($invitation->person) : null;
+
+            if (User::whereRaw('lower(email) = ?', [Str::lower($invitation->email)])->where('id', '!=', $dormant?->id)->exists()) {
                 throw ValidationException::withMessages(['email' => __('Un compte existe déjà avec cette adresse : connectez-vous plutôt.')]);
             }
 
-            $personTaken = User::where('person_id', $invitation->person_id)->exists();
+            if ($dormant) {
+                $dormant->forceFill([
+                    'name' => $data['name'],
+                    'email' => $invitation->email,
+                    'password' => $data['password'],
+                    'email_verified_at' => now(),
+                ])->save();
+                $user = $dormant;
+            } else {
+                $personTaken = User::where('person_id', $invitation->person_id)->exists();
 
-            $user = User::create([
-                'name' => $data['name'],
-                'email' => $invitation->email,
-                'password' => $data['password'],
-                'role' => 'user',
-                'person_id' => $personTaken ? null : $invitation->person_id,
-            ]);
-            $user->forceFill(['email_verified_at' => now()])->save();
+                $user = User::create([
+                    'name' => $data['name'],
+                    'email' => $invitation->email,
+                    'password' => $data['password'],
+                    'role' => 'user',
+                    'person_id' => $personTaken ? null : $invitation->person_id,
+                ]);
+                $user->forceFill(['email_verified_at' => now()])->save();
+            }
 
             if ($invitation->household_id) {
                 $user->households()->syncWithoutDetaching([

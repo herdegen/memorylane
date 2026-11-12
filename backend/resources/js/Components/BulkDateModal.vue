@@ -6,13 +6,8 @@
       </p>
 
       <label class="form-label" for="bulk-taken-at">{{ $t('Date de prise de vue') }}</label>
-      <input
-        id="bulk-taken-at"
-        v-model="takenAt"
-        type="date"
-        class="form-input"
-        :max="today"
-      />
+      <!-- Vieilles photos : mois, année ou décennie si le jour est inconnu. -->
+      <PhotoDateInput id="bulk-taken-at" v-model="value" />
 
       <!-- Photo papier numérisée : la date est celle du scan, pas la vraie. -->
       <div class="mt-5 border-t border-surface-200 pt-4">
@@ -36,9 +31,9 @@
     <template #footer>
       <button @click="$emit('close')" type="button" class="btn-secondary">{{ $t('Annuler') }}</button>
       <button
-        @click="$emit('apply', takenAt)"
+        @click="$emit('apply', value.date, value.precision)"
         type="button"
-        :disabled="!takenAt || saving"
+        :disabled="!value.date || saving"
         class="btn-primary"
       >
         {{ saving ? $t('Application…') : $t('Appliquer la date') }}
@@ -50,6 +45,7 @@
 <script setup>
 import { ref } from 'vue';
 import BaseModal from '@/Components/BaseModal.vue';
+import PhotoDateInput from '@/Components/PhotoDateInput.vue';
 
 defineProps({
   count: { type: Number, required: true },
@@ -58,13 +54,6 @@ defineProps({
 });
 defineEmits(['close', 'apply']);
 
-const takenAt = ref('');
-// Date locale (pas toISOString/UTC : vers minuit, un fuseau UTC+ ne
-// pourrait plus sélectionner le jour courant).
-const now = new Date();
-const today = [
-  now.getFullYear(),
-  String(now.getMonth() + 1).padStart(2, '0'),
-  String(now.getDate()).padStart(2, '0'),
-].join('-');
+// { date: 'AAAA-MM-JJ', precision: null | 'month' | 'year' | 'decade' }
+const value = ref({ date: null, precision: null });
 </script>

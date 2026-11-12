@@ -594,6 +594,20 @@ class TvController extends Controller
         ]);
     }
 
+    /**
+     * « La famille dans le temps » à la télécommande : la carte animée de la
+     * famille (données : /map/heatmap/timeline, comme sur le site). Famille
+     * seulement.
+     */
+    public function timeline(Request $request)
+    {
+        if (! $this->familyMode($request->user())) {
+            return redirect()->route('tv.screen.map');
+        }
+
+        return Inertia::render('Tv/Timeline', $this->frame($request, 'map'));
+    }
+
     // ---- Données communes -------------------------------------------------
 
     private function device(Request $request): ?TvDevice
@@ -660,6 +674,7 @@ class TvController extends Controller
         return Media::inContext($user)
             ->whereIn('type', ['photo', 'video'])
             ->whereNotNull('taken_at')
+            ->exactDate()
             ->whereRaw('EXTRACT(MONTH FROM taken_at) = ?', [$today->month])
             ->whereRaw('EXTRACT(DAY FROM taken_at) = ?', [$today->day])
             ->whereRaw('EXTRACT(YEAR FROM taken_at) < ?', [$today->year]);

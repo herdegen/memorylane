@@ -635,13 +635,14 @@ const finishBulk = (data) => {
   selectedIds.value = [];
 };
 
-const applyBulkDate = async (takenAt) => {
+const applyBulkDate = async (takenAt, precision = null) => {
   bulkSaving.value = true;
   bulkError.value = null;
   try {
     const { data } = await axios.post('/media/bulk/taken-at', {
       media_ids: selectedIds.value,
       taken_at: takenAt,
+      taken_at_precision: takenAt ? precision : null,
     });
     finishBulk(data);
     // La date change l'ordre de la galerie : on recharge avec les filtres courants.

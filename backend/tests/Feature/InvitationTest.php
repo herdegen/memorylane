@@ -111,6 +111,43 @@ class InvitationTest extends TestCase
         app(InvitationService::class)->invite($this->admin, strtoupper($this->member->email), $this->person);
     }
 
+    public function test_un_compte_jamais_active_peut_etre_invite_et_le_reprend(): void
+    {
+        // Compte créé d'avance pour la fiche, jamais utilisé ; un album lui est partagé.
+        $dormant = User::factory()->create(['name' => 'elodie', 'email' => 'elodie@example.fr', 'person_id' => $this->person->id,
+            'email_verified_at' => null, 'preferences' => null]);
+        $this->family->members()->attach($dormant->id);
+        $album = \App\Models\Album::factory()->create(['user_id' => $this->admin->id]);
+        \Illuminate\Support\Facades\DB::table('album_access')->insert(['id' => (string) \Illuminate\Support\Str::uuid7(), 'album_id' => $album->id,
+            'user_id' => $dormant->id, 'granted_by' => $this->admin->id, 'created_at' => now(), 'updated_at' => now()]);
+
+        $this->actingAs($this->member)->get("/people/{$this->person->id}")
+            ->assertInertia(fn ($page) => $page->where('account.hasAccount', false)->where('account.canInvite', true));
+        $token = $this->tokenOf($this->invite());
+        auth()->logout();
+
+        $this->post("/bienvenue/{$token}", [
+            'name' => 'Élodie Durand', 'password' => 'un-mot-de-passe', 'password_confirmation' => 'un-mot-de-passe',
+        ])->assertRedirect(route('dashboard'));
+
+        $this->assertSame(1, User::where('person_id', $this->person->id)->count(), 'pas de second compte');
+        $dormant->refresh();
+        $this->assertAuthenticatedAs($dormant);
+        $this->assertSame('Élodie Durand', $dormant->name);
+        $this->assertNotNull($dormant->email_verified_at);
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('un-mot-de-passe', $dormant->password));
+        $this->assertTrue($this->family->isMember($dormant));
+        $this->assertTrue(\Illuminate\Support\Facades\DB::table('album_access')->where('user_id', $dormant->id)->exists(), 'ses accès restent');
+    }
+
+    public function test_un_compte_deja_utilise_reste_bloquant(): void
+    {
+        User::factory()->create(['person_id' => $this->person->id, 'email_verified_at' => null,
+            'preferences' => ['onboarding' => ['tour' => now()->toIso8601String()]]]);
+
+        $this->assertSame('Cette personne a déjà un compte.', app(InvitationService::class)->personIneligibility($this->person));
+    }
+
     public function test_welcome_page_shows_the_person(): void
     {
         $token = $this->tokenOf($this->invite());

@@ -4,7 +4,7 @@ FROM docker.io/library/php:8.3-fpm-alpine
 ARG UID=1000
 ARG GID=1000
 
-# Install system dependencies
+# Install system dependencies (tesseract : lecture du texte des documents, fr + de + orientation)
 RUN apk add --no-cache \
     bash \
     curl \
@@ -24,6 +24,10 @@ RUN apk add --no-cache \
     libheif-tools \
     ffmpeg \
     redis \
+    tesseract-ocr \
+    tesseract-ocr-data-fra \
+    tesseract-ocr-data-deu \
+    tesseract-ocr-data-osd \
     icu-dev \
     oniguruma-dev \
     linux-headers \

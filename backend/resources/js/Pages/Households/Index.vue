@@ -10,7 +10,7 @@
           </p>
         </div>
 
-        <!-- Créer un cercle (administrateur) -->
+        <!-- Créer un cercle : sa famille ou un groupe d'amis (on en devient responsable) -->
         <form
           v-if="canManage"
           class="mb-8 bg-white rounded-2xl border border-surface-200 shadow-warm-sm p-5 flex flex-col gap-4"
@@ -53,7 +53,7 @@
                 class="form-input"
               />
             </div>
-            <label v-if="canCreateFamily" class="flex items-center gap-2 text-sm text-surface-700 h-10">
+            <label v-if="canSkipJoin" class="flex items-center gap-2 text-sm text-surface-700 h-10">
               <input v-model="join" type="checkbox" class="rounded border-surface-300 text-brand-600 focus:ring-brand-500" />
               {{ $t("J'en fais partie") }}
             </label>
@@ -84,7 +84,7 @@
             <p class="mt-2 text-sm text-surface-500">
               {{ $tc(':count membre|:count membres', h.members_count) }}
               · {{ h.invite_policy === 'admin' ? $t("invitations par l'admin") : $t('tout le monde invite') }}
-              <span v-if="canCreateFamily && !h.is_member"> · {{ $t("vous n'en faites pas partie") }}</span>
+              <span v-if="canSkipJoin && !h.is_member"> · {{ $t("vous n'en faites pas partie") }}</span>
             </p>
           </Link>
         </div>
@@ -116,6 +116,8 @@ const props = defineProps({
   households: { type: Array, default: () => [] },
   canManage: { type: Boolean, default: false },
   canCreateFamily: { type: Boolean, default: false },
+  // Admin : peut créer un cercle sans en faire partie.
+  canSkipJoin: { type: Boolean, default: false },
   defaultKind: { type: String, default: 'family' },
 });
 

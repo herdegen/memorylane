@@ -73,13 +73,17 @@
               <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
               {{ $t('Modifier la fiche') }}
             </button>
-            <button v-if="canManage && media.length > 0" @click="menuAction(() => showAvatarPicker = true)" class="dropdown-item w-full text-left flex items-center gap-2.5">
+            <button v-if="canManage" @click="menuAction(() => showAvatarPicker = true)" class="dropdown-item w-full text-left flex items-center gap-2.5">
               <svg class="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-              {{ $t('Choisir un avatar') }}
+              {{ $t('Photo de profil') }}
             </button>
             <button v-if="hasCircles" @click="menuAction(() => showCircles = true)" class="dropdown-item w-full text-left flex items-center gap-2.5">
               <CircleKindIcon kind="friends" class="w-4 h-4 text-surface-400" />
               {{ $t('Cercles…') }}
+            </button>
+            <button v-if="shareFamilies.length" @click="menuAction(() => showShareBranch = true)" class="dropdown-item w-full text-left flex items-center gap-2.5">
+              <CircleKindIcon kind="family" class="w-4 h-4 text-surface-400" />
+              {{ $t('Partager avec une autre famille…') }}
             </button>
             <template v-if="canDelete">
               <hr class="dropdown-divider" />
@@ -104,7 +108,7 @@
           </svg>
         </Link>
 
-        <!-- Avatar (clic = choisir parmi les photos) -->
+        <!-- Avatar (clic = photo de profil : envoyer ou choisir) -->
         <div class="relative group shrink-0">
           <PersonAvatar
             :person="person"
@@ -114,15 +118,23 @@
             fallback-class="text-5xl font-bold text-brand-700"
           />
           <button
-            v-if="canManage && media.length > 0"
+            v-if="canManage"
             @click="showAvatarPicker = true"
             class="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/40 flex items-center justify-center transition-all"
-            :title="$t('Changer l\'avatar')"
+            :title="$t('Photo de profil')"
+            :aria-label="$t('Photo de profil')"
           >
-            <svg class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
+            <!-- Toujours visible (pas de survol sur téléphone) -->
+            <span class="absolute bottom-1 right-1 w-9 h-9 rounded-full bg-brand-600 text-white border-2 border-white shadow-warm-md flex items-center justify-center group-hover:opacity-0 transition-opacity" aria-hidden="true">
+              <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </span>
           </button>
         </div>
 
@@ -158,6 +170,15 @@
           <p v-if="person.notes" class="mt-2 text-sm text-surface-600 whitespace-pre-wrap max-w-2xl">
             {{ person.notes }}
           </p>
+          <!-- Fiche commune à plusieurs familles : la référente corrige, les autres proposent -->
+          <div v-if="shared" class="mt-3 inline-flex flex-wrap items-center justify-center sm:justify-start gap-x-2 gap-y-1 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+            <CircleKindIcon kind="family" class="w-3.5 h-3.5 shrink-0" />
+            <span>{{ $t('Fiche commune : :families.', { families: shared.families.map((f) => f.name).join(', ') }) }}</span>
+            <span>{{ shared.is_referent ? $t('Votre famille est la référente : vous la corrigez directement.') : $t('Référente : :family, qui valide les corrections.', { family: shared.referent }) }}</span>
+            <Link v-if="shared.pending" href="/shared-people" class="font-semibold underline">
+              {{ $tc(':count proposition en attente|:count propositions en attente', shared.pending) }}
+            </Link>
+          </div>
           <!-- Compte MemoryLane : présent, invitation en cours, ou bouton d'invitation -->
           <div v-if="account.memorial" class="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-surface-500">
             🕯️ {{ $t('En mémoire') }}
@@ -225,10 +246,35 @@
       :can-manage="canManage"
     />
 
+    <!-- ================= Histoires où la personne apparaît ================= -->
+    <section v-if="!isFriends && (stories.length || canManage)" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+      <div class="flex items-center justify-between gap-3 mb-3">
+        <h2 class="font-display text-xl sm:text-2xl font-bold text-surface-900">{{ $t('Histoires') }}</h2>
+        <Link :href="`/stories/create?person=${person.id}`" class="btn-secondary btn-sm">{{ $t('Raconter une histoire') }}</Link>
+      </div>
+      <div v-if="stories.length" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <Link
+          v-for="s in stories"
+          :key="s.id"
+          :href="`/stories/${s.id}`"
+          class="rounded-2xl bg-white border border-surface-200 px-4 py-3.5 flex flex-col gap-1.5 hover:border-brand-400 transition"
+        >
+          <span class="flex items-center gap-2 text-xs text-surface-500">
+            <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 012-2h5v16H6a2 2 0 00-2 2V5zm16 0a2 2 0 00-2-2h-5v16h5a2 2 0 012 2V5z" /></svg>
+            <span v-if="s.role">{{ s.role }}</span>
+            <span v-if="!s.published" class="px-1.5 rounded bg-surface-100 font-semibold">{{ $t('Brouillon') }}</span>
+          </span>
+          <span class="font-display text-lg font-bold text-surface-900 leading-snug">{{ s.title }}</span>
+          <span v-if="s.summary" class="text-sm text-surface-600 line-clamp-2">{{ s.summary }}</span>
+        </Link>
+      </div>
+      <p v-else class="text-sm text-surface-500">{{ $t('Une anecdote, un souvenir, une affaire de famille : racontez ce qu’on sait de :name.', { name: personLabel(person) }) }}</p>
+    </section>
+
     <!-- ================= Sa vie (frise horizontale) ================= -->
     <!-- Amis : « Vos souvenirs ensemble » à la place de la frise de vie -->
     <FriendshipTimeline v-if="isFriends" :person-id="person.id" :person-name="personLabel(person)" />
-    <PersonTimeline v-else ref="timelineRef" :person-id="person.id" :person-name="personLabel(person)" :can-manage="canManage" />
+    <PersonTimeline v-else ref="timelineRef" :person-id="person.id" :person-name="personLabel(person)" :can-manage="canManage" @edit-person="showEditModal = true" />
 
     <!-- ================= Galeries, séparées par album puis par année ================= -->
     <div v-if="media.length > 0" id="photos" class="pt-7 sm:pt-9 pb-12 scroll-mt-16">
@@ -313,6 +359,15 @@
       @sent="onInvited"
     />
 
+    <ShareBranchModal
+      v-if="showShareBranch"
+      :person-id="person.id"
+      :person-name="personLabel(person)"
+      :families="shareFamilies"
+      @close="showShareBranch = false"
+      @shared="router.reload({ preserveScroll: true })"
+    />
+
     <!-- Edit Modal -->
     <BaseModal v-if="showCircles" :title="$t('Cercles de :name', { name: personLabel(person) })" max-width="md" @close="showCircles = false">
       <div class="px-6 py-5">
@@ -323,6 +378,7 @@
     <PersonFormModal
       v-if="showEditModal"
       :person="person"
+      :shared="shared"
       @close="showEditModal = false"
       @updated="handlePersonUpdated"
     />
@@ -330,11 +386,28 @@
     <!-- Avatar Picker Modal -->
     <BaseModal
       v-if="showAvatarPicker"
-      :title="$t('Choisir un avatar')"
+      :title="$t('Photo de profil')"
       max-width="2xl"
       @close="showAvatarPicker = false"
     >
-      <div class="p-6 grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 max-h-96 overflow-y-auto">
+      <div class="px-6 pt-6">
+        <label
+          class="flex items-center justify-center gap-2.5 w-full h-14 rounded-xl border-2 border-dashed border-brand-300 text-brand-700 dark:text-brand-300 font-semibold cursor-pointer hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-colors"
+          :class="{ 'opacity-60 pointer-events-none': uploadingAvatar }"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          {{ uploadingAvatar ? $t('Envoi… :percent %', { percent: avatarProgress }) : $t('Envoyer une photo') }}
+          <input type="file" accept="image/*" class="sr-only" :disabled="uploadingAvatar" @change="uploadAvatar" />
+        </label>
+        <p class="mt-2 text-xs text-center text-surface-500">
+          {{ $t('Depuis l’appareil photo ou la galerie du téléphone, ou un fichier de l’ordinateur. Elle rejoint aussi les photos de :name.', { name: person.first_name || person.name }) }}
+        </p>
+        <h3 v-if="photoMedia.length" class="mt-6 text-sm font-semibold text-surface-700">{{ $t('Ou choisir parmi ses photos') }}</h3>
+      </div>
+      <div v-if="photoMedia.length" class="px-6 pt-3 pb-6 grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 max-h-80 overflow-y-auto">
         <button
           v-for="item in photoMedia"
           :key="item.id"
@@ -357,7 +430,7 @@
           @click="removeAvatar"
           class="mr-auto px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-white border border-red-300 dark:border-red-500/40 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10"
         >
-          {{ $t("Supprimer l'avatar") }}
+          {{ $t('Retirer la photo de profil') }}
         </button>
         <button @click="showAvatarPicker = false" class="btn-secondary">
           {{ $t('Fermer') }}
@@ -380,6 +453,7 @@ import PersonFormModal from '@/Components/PersonFormModal.vue';
 import FamilyPanel from '@/Components/FamilyPanel.vue';
 import HowWeMetPanel from '@/Components/HowWeMetPanel.vue';
 import PersonCircles from '@/Components/PersonCircles.vue';
+import ShareBranchModal from '@/Components/ShareBranchModal.vue';
 import FriendshipTimeline from '@/Components/FriendshipTimeline.vue';
 import CircleKindIcon from '@/Components/CircleKindIcon.vue';
 import { useCircle } from '@/Composables/useCircle';
@@ -456,6 +530,16 @@ const props = defineProps({
     type: String,
     default: null,
   },
+  // Fiche commune à plusieurs familles (familles, référente, propositions).
+  shared: {
+    type: Object,
+    default: null,
+  },
+  // Histoires où la personne apparaît : [{ id, title, summary, kind, published, role }]
+  stories: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const capitalize = (t) => t.charAt(0).toUpperCase() + t.slice(1);
@@ -487,6 +571,16 @@ const toggleSelf = () => {
 
 const showEditModal = ref(false);
 const showCircles = ref(false);
+// « Partager avec une autre famille » : pour qui est membre d'au moins deux
+// familles — vers ses autres familles que la famille courante.
+const showShareBranch = ref(false);
+const shareFamilies = computed(() => {
+  const circle = usePage().props.circle;
+  const families = (circle?.list ?? []).filter((c) => c.kind === 'family');
+  return families.length > 1 && props.person.in_family_directory !== false
+    ? families.filter((c) => c.id !== circle?.current?.id).map((c) => ({ id: c.id, name: c.name }))
+    : [];
+});
 // Menu « Cercles… » : seulement pour un compte qui a des cercles.
 const hasCircles = computed(() => (usePage().props.circle?.list?.length ?? 0) > 0 || usePage().props.circle?.can_manage);
 const showAvatarPicker = ref(false);
@@ -553,6 +647,31 @@ const setAvatar = async (mediaId) => {
   }
 };
 
+// Photo envoyée depuis l'appareil (appareil photo, galerie, fichier).
+const uploadingAvatar = ref(false);
+const avatarProgress = ref(0);
+const uploadAvatar = async (event) => {
+  const file = event.target.files?.[0];
+  event.target.value = '';
+  if (!file) return;
+  const data = new FormData();
+  data.append('photo', file);
+  uploadingAvatar.value = true;
+  avatarProgress.value = 0;
+  try {
+    const response = await axios.post(`/people/${props.person.id}/avatar`, data, {
+      onUploadProgress: (e) => { if (e.total) avatarProgress.value = Math.round((e.loaded / e.total) * 100); },
+    });
+    toast.success(response.data.message);
+    showAvatarPicker.value = false;
+    router.reload();
+  } catch (error) {
+    toast.error(apiError(error, t('Erreur lors de l\'envoi de la photo.')));
+  } finally {
+    uploadingAvatar.value = false;
+  }
+};
+
 const removeAvatar = async () => {
   try {
     await axios.put(`/people/${props.person.id}`, {
@@ -584,16 +703,27 @@ const handlePersonUpdated = () => {
 };
 
 const deletePerson = async () => {
-  const ok = await confirm({
-    title: t('Supprimer cette fiche'),
-    message: t('Êtes-vous sûr de vouloir supprimer :name ? Cette action ne supprimera pas les médias.', { name: props.person.name }),
-    confirmLabel: t('Supprimer'),
-    danger: true,
-  });
+  // Fiche commune : elle quitte seulement nos familles.
+  const elsewhere = (props.shared?.families || []).filter((f) => !f.mine).map((f) => f.name);
+  const ok = await confirm(elsewhere.length && props.shared.families.some((f) => f.mine)
+    ? {
+      title: t('Retirer cette fiche de votre famille'),
+      message: t(':name restera dans :families, avec ses informations.', { name: props.person.name, families: elsewhere.join(', ') }),
+      confirmLabel: t('Retirer'),
+      danger: true,
+    }
+    : {
+      title: t('Supprimer cette fiche'),
+      message: t('Êtes-vous sûr de vouloir supprimer :name ? Cette action ne supprimera pas les médias.', { name: props.person.name }),
+      confirmLabel: t('Supprimer'),
+      danger: true,
+    });
   if (!ok) return;
 
   try {
-    await axios.delete(`/people/${props.person.id}`);
+    const { data } = await axios.delete(`/people/${props.person.id}`);
+    // Fiche commune : retirée de notre famille seulement.
+    if (data?.detached) toast.success(data.message);
     router.visit('/people');
   } catch (error) {
     toast.error(apiError(error, t('Erreur lors de la suppression de la personne.')));

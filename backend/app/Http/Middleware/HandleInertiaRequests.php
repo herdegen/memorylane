@@ -75,6 +75,8 @@ class HandleInertiaRequests extends Middleware
             ] : null,
             // Cercles : mode courant (famille/amis), cercle courant, liste pour
             // le sélecteur (affiché seulement s'il y en a plusieurs).
+            // Pastille « Fiches communes » (propositions à trancher, nouveautés).
+            'sharedPeople' => fn () => $request->user() ? app(\App\Services\SharedFiches::class)->counts($request->user()) : null,
             'circle' => fn () => $request->user() ? [
                 'mode' => $request->user()->mode(),
                 'current' => ($c = $request->user()->currentCircle())

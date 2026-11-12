@@ -278,6 +278,10 @@ class MediaController extends Controller
         return Inertia::render('Media/Show', [
             'media' => $media,
             'voiceNotes' => $voiceNotes,
+            // Corriger date, lieu, visages : tout membre qui voit la photo
+            // (journalisé, annulable — historique ci-dessous).
+            'can' => ['edit_details' => Gate::allows('editDetails', $media)],
+            'history' => \App\Http\Controllers\MediaChangeController::payload($media, $viewer),
             'ficheRequest' => $ficheRequest,
             // « Ajouter une personne » : présents sur l'album, même d'un autre cercle
             'albumPeople' => app(\App\Services\Vision\AlbumParticipants::class)->identifiedAround($media, auth()->user()),
@@ -304,15 +308,38 @@ class MediaController extends Controller
      */
     public function update(Request $request, Media $media)
     {
-        Gate::authorize('update', $media);
+        // Tout membre qui voit la photo corrige ses détails ; journalisé et
+        // annulable (MediaHistory).
+        Gate::authorize('editDetails', $media);
 
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
             'description' => 'nullable|string|max:2000',
+            // Texte d'un document (coupure de presse, lettre…), cherchable.
+            'transcription' => 'nullable|string|max:50000',
+            // Rangé dans « Documents » (classement à la main : définitif).
+            'is_document' => 'sometimes|boolean',
             'taken_at' => 'nullable|date',
+            // Vieilles photos : mois, année ou décennie seulement.
+            'taken_at_precision' => 'nullable|in:'.implode(',', Media::DATE_PRECISIONS),
         ]);
+        if (array_key_exists('taken_at', $validated)) {
+            $precision = $validated['taken_at_precision'] ?? null;
+            $validated['taken_at'] = Media::normalizeTakenAt($validated['taken_at'], $precision);
+            $validated['taken_at_precision'] = $validated['taken_at'] && $precision !== 'day' ? $precision : null;
+        }
 
+        if (array_key_exists('is_document', $validated)) {
+            $validated['document_source'] = 'manual';
+        }
+        if (array_key_exists('transcription', $validated) && $validated['transcription'] !== $media->transcription) {
+            $validated['transcription_source'] = filled($validated['transcription']) ? 'manual' : null;
+        }
+
+        $history = app(\App\Services\MediaHistory::class);
+        $before = $history->snapshot($media);
         $media->update($validated);
+        $history->logUpdate($media, $before);
 
         if ($request->wantsJson()) {
             return response()->json([
@@ -336,13 +363,20 @@ class MediaController extends Controller
             'media_ids.*' => 'uuid',
             // null : retirer la date (ex. date du scan d'une photo papier).
             'taken_at' => 'present|nullable|date',
+            // Vieilles photos : mois, année ou décennie seulement.
+            'taken_at_precision' => 'nullable|in:'.implode(',', Media::DATE_PRECISIONS),
         ]);
+        $precision = $validated['taken_at_precision'] ?? null;
+        $takenAt = Media::normalizeTakenAt($validated['taken_at'], $precision);
 
         $ids = Media::whereIn('id', $validated['media_ids'])
             ->where('user_id', $request->user()->id)
             ->pluck('id');
-        $updated = Media::whereIn('id', $ids)
-            ->update(['taken_at' => $validated['taken_at'], 'taken_at_album_id' => null]);
+        $updated = Media::whereIn('id', $ids)->update([
+            'taken_at' => $takenAt,
+            'taken_at_precision' => $takenAt && $precision !== 'day' ? $precision : null,
+            'taken_at_album_id' => null,
+        ]);
         // Sans date : celle de leur album daté, s'il y en a un.
         if ($validated['taken_at'] === null) {
             app(\App\Services\AlbumDating::class)->syncMedia($ids);

@@ -13,8 +13,6 @@ use App\Models\PersonChange;
  */
 class PersonObserver
 {
-    private const DATE_FIELDS = ['birth_date', 'death_date'];
-
     public function created(Person $person): void
     {
         $this->log($person, 'created', ['name' => $person->name]);
@@ -53,15 +51,7 @@ class PersonObserver
 
     private function normalize(string $field, mixed $value): mixed
     {
-        if ($value === '' || $value === null) {
-            return null;
-        }
-
-        if (in_array($field, self::DATE_FIELDS, true)) {
-            return substr((string) $value, 0, 10);
-        }
-
-        return is_scalar($value) ? (string) $value : $value;
+        return PersonChange::normalizeValue($field, $value);
     }
 
     private function log(Person $person, string $action, array $changes): void

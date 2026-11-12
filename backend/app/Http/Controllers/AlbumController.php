@@ -44,6 +44,7 @@ class AlbumController extends Controller
             'description' => 'nullable|string|max:1000',
             // Date de l'album : héritée par ses photos et vidéos sans date.
             'date' => 'nullable|date',
+            'theme' => ['nullable', 'string', \Illuminate\Validation\Rule::in(Album::THEMES)],
             'cover_media_id' => 'nullable|uuid|exists:media,id',
             'is_smart' => 'boolean',
             'smart_rules' => 'nullable|required_if:is_smart,true|array',
@@ -88,7 +89,8 @@ class AlbumController extends Controller
 
         return Inertia::render('Albums/Index', [
             'albums' => $albums,
-            'discovery' => app(AlbumDiscovery::class)->sections($request->user(), $albums),
+            // Seul l'album à l'honneur sert ici (les rangées restent pour la télévision).
+            'discovery' => app(AlbumDiscovery::class)->sections($request->user(), $albums, withRows: false),
         ]);
     }
 
@@ -206,12 +208,19 @@ class AlbumController extends Controller
 
         $album->places = $this->placesOf($album);
 
+        // Album à thème : ce que la page met en avant avant toutes les photos.
+        $album->highlights = app(\App\Services\AlbumHighlights::class)->for($album, $request->user());
+        $album->can_edit = Gate::allows('update', $album);
+
         if ($request->wantsJson()) {
             return response()->json($album);
         }
 
         return Inertia::render('Albums/Show', [
             'album' => $album,
+            // Histoire tirée de cet album (lisible par le visiteur), s'il y en a une.
+            'story' => \App\Models\Story::visibleTo(auth()->user())->where('album_id', $album->id)
+                ->orderByRaw('published_at IS NULL')->first(['id', 'title']),
         ]);
     }
 

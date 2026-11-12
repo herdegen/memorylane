@@ -7,7 +7,8 @@
        sans boîte n'est jamais chargé par le navigateur. -->
   <div
     v-if="!failed"
-    class="aspect-[16/10] rounded-xl overflow-hidden border border-surface-200 bg-surface-100 shadow-warm-sm"
+    class="rounded-xl overflow-hidden border border-surface-200 bg-surface-100 shadow-warm-sm"
+    :class="phone ? 'aspect-[9/19] w-44 sm:w-48' : 'aspect-[16/10]'"
   >
     <img
       :src="src"
@@ -29,6 +30,8 @@ const props = defineProps({
   // Nom de base de la vignette (cf. scripts/guide-captures.mjs).
   name: { type: String, required: true },
   alt: { type: String, default: '' },
+  // Capture de téléphone (portrait, plus étroite).
+  phone: { type: Boolean, default: false },
 });
 
 const { isDark } = useTheme();

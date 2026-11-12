@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\FamilyTimelineService;
 use App\Services\GenealogyService;
 use App\Services\MediaService;
+use App\Support\ExternalHttp;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Http;
@@ -76,6 +77,7 @@ class MapController extends Controller
             'type' => $item->type,
             'original_name' => $item->original_name,
             'taken_at' => $item->taken_at,
+            'taken_at_precision' => $item->taken_at_precision,
             'latitude' => $item->metadata->latitude,
             'longitude' => $item->metadata->longitude,
             'altitude' => $item->metadata->altitude,
@@ -264,7 +266,7 @@ class MapController extends Controller
      */
     public function updateGeolocation(Request $request, Media $media)
     {
-        Gate::authorize('update', $media);
+        Gate::authorize('editDetails', $media);
 
         $validated = $request->validate([
             'latitude' => 'required|numeric|between:-90,90',
@@ -272,6 +274,8 @@ class MapController extends Controller
             'altitude' => 'nullable|numeric',
         ]);
 
+        $history = app(\App\Services\MediaHistory::class);
+        $before = $history->position($media);
         $media->metadata()->updateOrCreate(
             ['media_id' => $media->id],
             [
@@ -280,6 +284,7 @@ class MapController extends Controller
                 'altitude' => $validated['altitude'] ?? null,
             ]
         );
+        $history->log($media, 'geolocated', ['before' => $before, 'after' => $history->position($media)]);
 
         return response()->json([
             'message' => 'Geolocation updated successfully',
@@ -292,8 +297,13 @@ class MapController extends Controller
      */
     public function removeGeolocation(Media $media)
     {
-        Gate::authorize('update', $media);
+        Gate::authorize('editDetails', $media);
 
+        $history = app(\App\Services\MediaHistory::class);
+        $before = $history->position($media);
+        if ($before) {
+            $history->log($media, 'geolocation_removed', ['before' => $before]);
+        }
         $media->metadata()->update([
             'latitude' => null,
             'longitude' => null,
@@ -316,7 +326,7 @@ class MapController extends Controller
 
         try {
             $response = Http::withHeaders([
-                'User-Agent' => 'MemoryLane/1.3.0 (family media hub)',
+                'User-Agent' => ExternalHttp::userAgent(),
             ])->get('https://nominatim.openstreetmap.org/search', [
                 'q' => $validated['query'],
                 'format' => 'json',
@@ -375,6 +385,7 @@ class MapController extends Controller
                 'type' => $item->type,
                 'original_name' => $item->original_name,
                 'taken_at' => $item->taken_at,
+            'taken_at_precision' => $item->taken_at_precision,
                 'latitude' => $item->metadata->latitude,
                 'longitude' => $item->metadata->longitude,
                 'thumbnail_url' => $this->thumbnailUrl($item),

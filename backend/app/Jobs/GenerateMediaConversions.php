@@ -92,6 +92,10 @@ class GenerateMediaConversions implements ShouldQueue
             if ($this->analyzeFaces && \App\Services\Vision\FaceEngine::enabled()) {
                 AnalyzeFaces::dispatch($this->media);
             }
+            // Texte : une lettre tapée, un journal… rangés dans « Documents ».
+            if ($this->media->type === 'photo' && \App\Services\DocumentReader::available()) {
+                ReadDocumentText::dispatch($this->media);
+            }
         } catch (\Exception $e) {
             Log::error('GenerateMediaConversions: Conversion generation failed', [
                 'media_id' => $this->media->id,

@@ -33,6 +33,7 @@ enum QuestType: string
     case MediaDate = 'media_date';
     case MediaGeo = 'media_geo';
     case HowMet = 'how_met';                // mode amis : « comment as-tu connu X ? »
+    case StoryQuestion = 'story_question';  // question ouverte d'une histoire de famille
 
     /** Classe Eloquent du sujet de la question. */
     public function subjectClass(): string
@@ -40,6 +41,7 @@ enum QuestType: string
         return match ($this) {
             self::FaceIdentify => DetectedFace::class,
             self::MediaDate, self::MediaGeo => Media::class,
+            self::StoryQuestion => \App\Models\StoryQuestion::class,
             default => Person::class,
         };
     }
@@ -50,7 +52,8 @@ enum QuestType: string
      */
     public function perUser(): bool
     {
-        return $this === self::HowMet;
+        // Chacun peut savoir quelque chose sur une histoire : on demande à chacun.
+        return $this === self::HowMet || $this === self::StoryQuestion;
     }
 
     /**
@@ -135,11 +138,16 @@ enum QuestType: string
                 'year' => 'required|integer|between:1500,'.now()->year,
             ],
             self::FaceIdentify => ['person_id' => ['required', 'uuid', new VisiblePerson]],
-            self::MediaDate => ['value' => 'required|date|before:tomorrow'],
+            self::MediaDate => [
+                'value' => 'required|date|before:tomorrow',
+                // Vieilles photos : mois, année ou décennie seulement.
+                'precision' => 'nullable|in:day,month,year,decade',
+            ],
             self::MediaGeo => [
                 'latitude' => 'required|numeric|between:-90,90',
                 'longitude' => 'required|numeric|between:-180,180',
             ],
+            self::StoryQuestion => ['value' => 'required|string|max:5000'],
             self::HowMet => [
                 'context' => 'required|in:'.implode(',', array_keys(\App\Models\PersonLink::CONTEXTS)),
                 'via_person_id' => ['nullable', 'uuid', new VisiblePerson],

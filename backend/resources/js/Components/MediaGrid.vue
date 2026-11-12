@@ -228,6 +228,11 @@ const sectionOf = (item) => {
     const label = date.toLocaleDateString(intlLocale(), { month: 'long', year: 'numeric' });
     return { key: `${date.getFullYear()}-${date.getMonth()}`, label: t('Ajoutées en :month', { month: label }) };
   }
+  // Vieilles photos datées à la décennie : leur propre section « Années 1970 ».
+  if (item.taken_at_precision === 'decade') {
+    const decade = Math.floor(date.getFullYear() / 10) * 10;
+    return { key: `decade-${decade}`, label: t('Années :decade', { decade }) };
+  }
   return { key: String(date.getFullYear()), label: String(date.getFullYear()) };
 };
 

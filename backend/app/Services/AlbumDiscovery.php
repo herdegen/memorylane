@@ -53,6 +53,7 @@ class AlbumDiscovery
             ->whereIn('am.album_id', $ids)->whereNull('m.deleted_at')
             ->groupBy('am.album_id')
             ->selectRaw('am.album_id, min(m.taken_at) as first_at, max(m.taken_at) as last_at, max(am.created_at) as added_at,
+                percentile_disc(0.5) within group (order by m.taken_at) as mid_at,
                 sum(case when extract(month from m.taken_at) = ? and extract(year from m.taken_at) < ? then 1 else 0 end) as month_photos,
                 min(case when extract(month from m.taken_at) = ? and extract(year from m.taken_at) < ? then extract(year from m.taken_at) end) as month_year',
                 [now()->month, now()->year, now()->month, now()->year])
@@ -70,6 +71,11 @@ class AlbumDiscovery
             $st = $stats[$album->id] ?? null;
             $album->first_at = $st?->first_at ? substr($st->first_at, 0, 10) : null;
             $album->last_at = $st?->last_at ? substr($st->last_at, 0, 10) : null;
+            // Place dans la frise : la date de l'album, sinon la date MÉDIANE
+            // de ses photos (un album 2009 → 2018 aux photos surtout de 2009
+            // reste en 2009 ; la première photo tirerait tout vers le passé).
+            $album->placed_at = $album->date?->format('Y-m-d')
+                ?? ($st?->mid_at ? substr($st->mid_at, 0, 10) : null);
             $album->added_at = $st?->added_at;
             $album->month_photos = (int) ($st->month_photos ?? 0);
             $album->month_year = $st?->month_year ? (int) $st->month_year : null;
@@ -81,7 +87,7 @@ class AlbumDiscovery
      * (anniversaire ce mois-ci, sinon récemment enrichi, sinon au hasard) et
      * des rangées thématiques — sur les albums du cercle courant.
      */
-    public function sections(User $user, $albums): array
+    public function sections(User $user, $albums, bool $withRows = true): array
     {
         $here = $albums->filter(fn ($a) => $a->in_context && ($a->media_count ?? 0) > 0 && count($a->previews ?? []) > 0)->values();
         if ($here->isEmpty()) {
@@ -102,6 +108,9 @@ class AlbumDiscovery
         }
 
         $rows = [];
+        if (! $withRows) {
+            return ['featured' => $featured, 'rows' => [], 'decades' => []];
+        }
         if ($thisMonth->count() >= 1) {
             $rows[] = ['key' => 'month', 'title' => __('Ce mois-ci, les années passées'), 'ids' => $thisMonth->pluck('id')->all()];
         }

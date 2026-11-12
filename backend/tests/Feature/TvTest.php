@@ -299,4 +299,29 @@ class TvTest extends TestCase
                 ->where('places.0.lat', fn ($lat) => abs($lat - 48.65) < 0.01));
         \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\ResolvePlaceNames::class);
     }
+
+    public function test_la_famille_dans_le_temps_a_la_television(): void
+    {
+        $this->actingAs($this->me);
+
+        // Famille : la page s'ouvre (les données viennent de /map/heatmap/timeline).
+        $this->get('/tv/ecran/carte/temps')->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Tv/Timeline', false)->where('family', true));
+        $this->get('/tv/ecran/carte')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('family', true));
+
+        // Cercle d'amis : pas de « famille dans le temps », retour à la carte.
+        $this->me->forceFill(['current_household_id' => $this->friends->id])->save();
+        $this->get('/tv/ecran/carte/temps')->assertRedirect(route('tv.screen.map'));
+    }
+
+    public function test_une_tv_reliee_charge_les_donnees_de_la_famille_dans_le_temps(): void
+    {
+        $this->me->forceFill(['current_household_id' => $this->family->id])->save();
+        $this->pairTv();
+
+        // Session de la TV (lecture seule) : les données de la carte animée passent.
+        $this->getJson('/map/heatmap/timeline')->assertOk()->assertJsonStructure(['tracks']);
+        $this->getJson('/map/heatmap/timeline?proches=moi&voyages=0')->assertOk();
+    }
 }

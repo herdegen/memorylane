@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Household;
+use App\Models\Person;
 use App\Models\User;
 use App\Notifications\Push\HouseholdMemberAdded;
 use App\Notifications\Push\PushNotification;
@@ -53,7 +54,9 @@ class HouseholdController extends Controller
         return Inertia::render('Households/Index', [
             'households' => $households,
             'canManage' => Gate::allows('create', Household::class),
-            'canCreateFamily' => $user->isAdmin(),
+            // Plusieurs familles par installation : chacun peut créer la sienne.
+            'canCreateFamily' => true,
+            'canSkipJoin' => $user->isAdmin(),
             'defaultKind' => config('memorylane.default_mode'),
         ]);
     }
@@ -72,9 +75,9 @@ class HouseholdController extends Controller
         ]);
 
         $kind = $validated['kind'] ?? config('memorylane.default_mode');
-        // Un membre crée son cercle d'amis ; la famille reste l'affaire de l'admin.
+        // Chacun crée sa famille ou son groupe d'amis, et en fait partie ;
+        // l'admin peut créer un cercle sans y entrer.
         if (! $request->user()->isAdmin()) {
-            abort_if($kind !== Household::KIND_FRIENDS, 403, __('Seul un administrateur crée un cercle famille.'));
             $validated['join'] = true;
         }
         $household = Household::create([
@@ -85,7 +88,8 @@ class HouseholdController extends Controller
         ]);
 
         if ($validated['join'] ?? true) {
-            $this->addMember($household, $request->user(), $request->user());
+            // Le créateur en est le premier responsable.
+            $household->addMember($request->user(), $request->user(), Household::ROLE_MANAGER);
         }
 
         if ($request->wantsJson()) {
@@ -111,6 +115,7 @@ class HouseholdController extends Controller
             // E-mail des membres : visible de ceux qui gèrent le cercle seulement.
             'email' => $canManage ? $u->email : null,
             'is_creator' => $u->id === $household->created_by,
+            'is_manager' => $u->pivot->role === Household::ROLE_MANAGER,
         ]);
 
         // Galerie du foyer : les médias partagés par les membres, plus
@@ -140,6 +145,13 @@ class HouseholdController extends Controller
                 'is_creator' => $isCreator,
                 'is_member' => $household->isMember($request->user()),
                 'can_manage' => $canManage,
+                'is_manager' => $household->isManager($request->user()),
+                'is_current' => $request->user()->currentCircle()?->id === $household->id,
+                // Famille : nombre de fiches (« Pour bien démarrer » tant qu'elle est presque vide).
+                'family_people' => $household->isFamily() ? $household->people()->where('people.in_family_directory', true)->count() : null,
+                // Fermeture demandée : date et auteur.
+                'closes_on' => $household->closure_requested_at?->copy()->addDays(\App\Services\FamilyClosure::DAYS)->toDateString(),
+                'closure_by' => $household->closure_requested_by ? User::find($household->closure_requested_by)?->name : null,
             ],
             'members' => $members,
             'media' => $media,
@@ -149,6 +161,83 @@ class HouseholdController extends Controller
                     ->map(fn ($p) => ['id' => $p->id, 'name' => $p->name])->values()
                 : [],
         ]);
+    }
+
+    /**
+     * Nomme un membre responsable du cercle, ou lui retire ce rôle. Le cercle
+     * garde toujours au moins un responsable.
+     */
+    public function setRole(Request $request, Household $household, User $user)
+    {
+        Gate::authorize('manageMembers', $household);
+        $validated = $request->validate(['role' => ['required', 'in:'.Household::ROLE_MANAGER.','.Household::ROLE_MEMBER]]);
+        abort_unless($household->isMember($user), 404);
+
+        if ($validated['role'] === Household::ROLE_MEMBER && $household->isManager($user)
+            && $household->managers()->where('users.id', '!=', $user->id)->doesntExist()) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'role' => __('Le cercle doit garder au moins un responsable : nommez-en un autre d’abord.'),
+            ]);
+        }
+
+        $household->setRole($user, $validated['role']);
+
+        return response()->json(['ok' => true]);
+    }
+
+    /** Demander la fermeture d'une famille (un responsable) : 30 jours pour la reprendre. */
+    public function requestClosure(Request $request, Household $household, \App\Services\FamilyClosure $closure)
+    {
+        Gate::authorize('update', $household);
+        abort_unless($household->isFamily() && ! $household->closure_requested_at, 422);
+        $closure->request($household, $request->user());
+
+        return response()->json(['closes_on' => $closure->closesOn($household)?->toDateString()]);
+    }
+
+    /** Annuler la fermeture (un responsable). */
+    public function cancelClosure(Request $request, Household $household, \App\Services\FamilyClosure $closure)
+    {
+        Gate::authorize('update', $household);
+        $closure->cancel($household);
+
+        return response()->json(['ok' => true]);
+    }
+
+    /** Reprendre une famille qui allait fermer (un membre) : il en devient responsable. */
+    public function takeOver(Request $request, Household $household, \App\Services\FamilyClosure $closure)
+    {
+        abort_unless($household->isFamily() && $household->closure_requested_at && $household->isMember($request->user()), 422);
+        $closure->takeOver($household, $request->user());
+
+        return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Personnes à reprendre dans une famille (« Pour bien démarrer » : partager
+     * une branche de ses autres familles) : fiches de famille qu'il voit, pas
+     * encore dans celle-ci, par nom.
+     */
+    public function branchCandidates(Request $request, Household $household)
+    {
+        abort_unless($household->isFamily() && $household->allowsInvitesFrom($request->user()), 403);
+        $q = trim((string) $request->query('q', ''));
+        if (mb_strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        return response()->json(Person::visibleTo($request->user())
+            ->where('people.in_family_directory', true)
+            ->whereDoesntHave('circles', fn ($c) => $c->whereKey($household->id))
+            ->whereUnaccentLike('people.name', $q)
+            ->orderBy('people.name')
+            ->limit(8)
+            ->get(['people.id', 'people.name', 'people.birth_date', 'people.death_date'])
+            ->map(fn (Person $p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'years' => trim(($p->birth_date?->year ?? '').($p->death_date ? '–'.$p->death_date->year : ''), '–'),
+            ]));
     }
 
     /**
@@ -287,7 +376,14 @@ class HouseholdController extends Controller
     {
         Gate::authorize('delete', $household);
 
-        $household->delete();
+        // Une famille ne s'efface pas d'un clic : elle se ferme en 30 jours
+        // (ses membres peuvent la reprendre) ; l'admin la ferme tout de suite.
+        if ($household->isFamily()) {
+            abort_unless($request->user()->isAdmin(), 422, __('Une famille se ferme en 30 jours : utilisez « Fermer la famille ».'));
+            app(\App\Services\FamilyClosure::class)->close($household);
+        } else {
+            $household->delete();
+        }
 
         if ($request->wantsJson()) {
             return response()->json(['message' => __('Foyer supprimé.')]);

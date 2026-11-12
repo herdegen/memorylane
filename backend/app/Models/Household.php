@@ -18,6 +18,11 @@ class Household extends Model
     use HasFactory, HasUuids;
 
     public const KIND_FAMILY = 'family';
+
+    /** Rôle d'un membre : responsable (gère le cercle) ou simple membre. */
+    public const ROLE_MANAGER = 'manager';
+
+    public const ROLE_MEMBER = 'member';
     public const KIND_FRIENDS = 'friends';
 
     public const INVITE_EVERYONE = 'everyone';
@@ -76,12 +81,32 @@ class Household extends Model
      * sur une installation : on n'entre pas dans celle des autres).
      */
     /**
-     * Responsable du cercle : l'admin ; pour un cercle d'amis, aussi celui
-     * qui l'a créé (tout membre peut créer son propre groupe d'amis).
+     * Le cercle est-il géré par ce compte ? L'admin de l'installation, ou un
+     * responsable du cercle (son créateur, et ceux qu'il a désignés) — pour
+     * une famille comme pour un groupe d'amis.
      */
     public function isManagedBy(User $user): bool
     {
-        return $user->isAdmin() || ($this->isFriends() && $this->created_by === $user->id);
+        return $user->isAdmin() || $this->isManager($user)
+            || ($this->isFriends() && $this->created_by === $user->id);
+    }
+
+    /** Ce compte est-il responsable du cercle ? */
+    public function isManager(User $user): bool
+    {
+        return $this->members()->whereKey($user->id)->wherePivot('role', self::ROLE_MANAGER)->exists();
+    }
+
+    /** Responsables du cercle (comptes). */
+    public function managers()
+    {
+        return $this->members()->wherePivot('role', self::ROLE_MANAGER);
+    }
+
+    /** Nomme ce membre responsable, ou lui retire ce rôle. */
+    public function setRole(User $member, string $role): void
+    {
+        $this->members()->updateExistingPivot($member->id, ['role' => $role]);
     }
 
     public function allowsInvitesFrom(User $user): bool
@@ -112,6 +137,7 @@ class Household extends Model
     {
         return [
             'is_default' => 'boolean',
+            'closure_requested_at' => 'datetime',
         ];
     }
 
@@ -138,7 +164,7 @@ class Household extends Model
     public function members()
     {
         return $this->belongsToMany(User::class, 'household_user')
-            ->withPivot('invited_by')
+            ->withPivot('invited_by', 'role')
             ->withTimestamps();
     }
 
@@ -146,9 +172,12 @@ class Household extends Model
      * Ajoute un compte au cercle ; sa fiche suit (dans une famille : si
      * c'est une fiche de famille).
      */
-    public function addMember(User $member, User $by): void
+    public function addMember(User $member, User $by, string $role = self::ROLE_MEMBER): void
     {
-        $this->members()->syncWithoutDetaching([$member->id => ['invited_by' => $by->id]]);
+        // Déjà membre : son rôle ne change pas (un responsable ré-invité le reste).
+        if (! $this->members()->whereKey($member->id)->exists()) {
+            $this->members()->attach($member->id, ['invited_by' => $by->id, 'role' => $role]);
+        }
         $member->forgetCircles();
 
         if ($member->person_id && ($this->isFriends()

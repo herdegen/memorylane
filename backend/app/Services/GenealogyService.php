@@ -237,19 +237,7 @@ class GenealogyService
     public function closeOf(string $personId): array
     {
         [$parents, $children] = $this->parentLinks();
-        $walk = function (array $start, array $edges): array {
-            $seen = array_fill_keys($start, true);
-            for ($queue = $start; $queue !== [];) {
-                foreach ($edges[array_shift($queue)] ?? [] as $next) {
-                    if (! isset($seen[$next])) {
-                        $seen[$next] = true;
-                        $queue[] = $next;
-                    }
-                }
-            }
-
-            return $seen;
-        };
+        $walk = fn (array $start, array $edges) => self::walk($start, $edges);
 
         $grandparents = [];
         foreach ($parents[$personId] ?? [] as $parentId) {
@@ -261,6 +249,50 @@ class GenealogyService
             + $walk([$personId, ...($parents[$personId] ?? []), ...$grandparents], $children);
 
         return array_keys($close);
+    }
+
+    /**
+     * Une branche de l'arbre autour d'une personne, pour la partager avec une
+     * autre famille : elle seule (« person »), ses descendants, ses ancêtres,
+     * ou les deux (« both »).
+     *
+     * @return array<int, string> ids, la personne comprise
+     */
+    public function branchOf(string $personId, string $scope): array
+    {
+        [$parents, $children] = $this->parentLinks();
+        $ids = [$personId => true];
+        if (in_array($scope, ['descendants', 'both'], true)) {
+            $ids += self::walk([$personId], $children);
+        }
+        if (in_array($scope, ['ancestors', 'both'], true)) {
+            $ids += self::walk([$personId], $parents);
+        }
+
+        return array_keys($ids);
+    }
+
+    /**
+     * Parcours en largeur depuis $start le long des liens $edges (parents ou
+     * enfants) : toutes les fiches atteintes, départ compris.
+     *
+     * @param  list<string>  $start
+     * @param  array<string, list<string>>  $edges
+     * @return array<string, true>
+     */
+    private static function walk(array $start, array $edges): array
+    {
+        $seen = array_fill_keys($start, true);
+        for ($queue = $start; $queue !== [];) {
+            foreach ($edges[array_shift($queue)] ?? [] as $next) {
+                if (! isset($seen[$next])) {
+                    $seen[$next] = true;
+                    $queue[] = $next;
+                }
+            }
+        }
+
+        return $seen;
     }
 
     /**
@@ -292,9 +324,9 @@ class GenealogyService
      *
      * @return array{ids: array<int,string>, edges: array<int,string>}|null
      */
-    public function pathBetween(string $fromId, string $toId): ?array
+    public function pathBetween(string $fromId, string $toId, ?array $graph = null): ?array
     {
-        $adj = $this->labeledGraph();
+        $adj = $graph ?? $this->labeledGraph();
 
         if (! isset($adj[$fromId], $adj[$toId])) {
             return null;
@@ -331,6 +363,20 @@ class GenealogyService
         }
 
         return ['ids' => $ids, 'edges' => $edges];
+    }
+
+    /**
+     * Plusieurs chemins depuis la même personne, en ne lisant l'arbre qu'une
+     * fois : [id cible => chemin|null].
+     *
+     * @param  array<int,string>  $toIds
+     * @return array<string, array{ids: array<int,string>, edges: array<int,string>}|null>
+     */
+    public function pathsBetween(string $fromId, array $toIds): array
+    {
+        $graph = $this->labeledGraph();
+
+        return collect($toIds)->unique()->mapWithKeys(fn ($id) => [$id => $this->pathBetween($fromId, $id, $graph)])->all();
     }
 
     /**
@@ -384,6 +430,75 @@ class GenealogyService
         }
 
         return null;
+    }
+
+    /**
+     * Lien lointain, faute de nom usuel : « votre trisaïeul », « frère de
+     * Thadée, votre trisaïeul », « neveu de Thadée… », « descendante de Jean,
+     * votre arrière-grand-père ». Seulement pour des chemins sans conjoint qui montent puis
+     * descendent ; null sinon. $people : [id => Person] des personnes du chemin.
+     *
+     * @param  array{ids: array<int,string>, edges: array<int,string>}  $path
+     */
+    public static function distantRelationLabel(array $path, array $people): ?string
+    {
+        $edges = $path['edges'];
+        $up = 0;
+        while ($up < count($edges) && $edges[$up] === 'parent') {
+            $up++;
+        }
+        $down = count($edges) - $up;
+        if ($up === 0 || array_slice($edges, $up) !== array_fill(0, $down, 'child')) {
+            return null;
+        }
+        $target = $people[end($path['ids'])] ?? null;
+        if ($down === 0) {
+            return self::ancestorLabel($up, $target?->gender);
+        }
+        // Frère ou sœur d'un ancêtre, neveu ou nièce d'un ancêtre, sinon
+        // descendant de l'ancêtre commun.
+        $anchorIndex = $down <= 2 ? $up - 1 : $up;
+        if ($anchorIndex < 1) {
+            return null;
+        }
+        $anchor = $people[$path['ids'][$anchorIndex]] ?? null;
+        if (! $anchor) {
+            return null;
+        }
+        $params = ['name' => $anchor->first_name ?: $anchor->name, 'relation' => self::ancestorLabel($anchorIndex, $anchor->gender)];
+        $female = $target?->gender === 'F';
+
+        return match ($down) {
+            1 => $female ? __('sœur de :name, :relation', $params) : __('frère de :name, :relation', $params),
+            2 => $female ? __('nièce de :name, :relation', $params) : __('neveu de :name, :relation', $params),
+            default => $female ? __('descendante de :name, :relation', $params) : __('descendant de :name, :relation', $params),
+        };
+    }
+
+    /** Ascendant à $n générations : « votre trisaïeule », « your great-great-grandmother »… */
+    public static function ancestorLabel(int $n, ?string $gender): string
+    {
+        $f = $gender === 'F';
+
+        return match (app()->getLocale()) {
+            'en' => 'your '.str_repeat('great-', max(0, $n - 2)).($n > 1 ? 'grand' : '').($f ? 'mother' : 'father'),
+            'es' => 'tu '.match (true) {
+                $n === 1 => $f ? 'madre' : 'padre',
+                $n === 2 => $f ? 'abuela' : 'abuelo',
+                $n === 3 => $f ? 'bisabuela' : 'bisabuelo',
+                $n === 4 => $f ? 'tatarabuela' : 'tatarabuelo',
+                $n === 5 => $f ? 'trastatarabuela' : 'trastatarabuelo',
+                default => ($f ? 'antepasada' : 'antepasado').' ('.$n.' generaciones)',
+            },
+            default => 'votre '.match (true) {
+                $n === 1 => $f ? 'mère' : 'père',
+                $n === 2 => $f ? 'grand-mère' : 'grand-père',
+                $n === 3 => $f ? 'arrière-grand-mère' : 'arrière-grand-père',
+                $n === 4 => $f ? 'trisaïeule' : 'trisaïeul',
+                $n === 5 => $f ? 'quadrisaïeule' : 'quadrisaïeul',
+                default => 'ancêtre ('.$n.' générations)',
+            },
+        };
     }
 
     /**

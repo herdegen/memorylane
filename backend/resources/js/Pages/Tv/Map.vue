@@ -15,6 +15,10 @@
     <div class="fixed inset-x-0 bottom-0 h-[26rem] z-[1] pointer-events-none" style="background: linear-gradient(to top, rgba(18,16,12,.96) 40%, rgba(18,16,12,0))"></div>
 
     <div class="relative z-10 flex-1 flex flex-col justify-end px-24 pb-10">
+      <!-- Famille : la carte animée de la famille à travers le temps. -->
+      <div v-if="family" class="mb-5 flex">
+        <Link href="/tv/ecran/carte/temps" data-tv class="tv-chip">⏳ {{ $t('La famille dans le temps') }}</Link>
+      </div>
       <p v-if="!places.length" class="text-[2rem] text-[#c9bfb1] mb-10">{{ $t('Aucun album avec des photos géolocalisées dans ce cercle pour l\'instant.') }}</p>
       <button
         v-else
@@ -50,12 +54,12 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import TvLayout from '@/Layouts/TvLayout.vue';
 import { onTvKey } from '@/Tv/remote';
 import { L, createTvMap, showAll } from '@/Tv/map';
 
-const props = defineProps({ tab: String, circle: Object, circles: Array, account: Object, places: Array });
+const props = defineProps({ tab: String, circle: Object, circles: Array, account: Object, places: Array, family: Boolean });
 
 // -1 : vue d'ensemble ; sinon l'album choisi.
 const index = ref(-1);
@@ -161,6 +165,8 @@ onBeforeUnmount(() => map?.remove());
 
 <style scoped>
 .tv-place { background: rgba(33, 29, 23, .92); }
+.tv-chip { padding: 0.8rem 1.6rem; border-radius: 999px; background: rgba(33, 29, 23, .92); color: #e7e0d6; font-size: 1.625rem; font-weight: 700; }
+.tv-root .tv-chip:focus { background: #f7f2ea; color: #14110d; box-shadow: 0 0 0 0.3rem #fcd34d; }
 .tv-root .tv-place:focus { background: rgba(44, 38, 30, .96); }
 /* Repère du lieu choisi : point plus gros, cerclé, qui pulse, et son nom. */
 :deep(.tv-pin) { position: relative; }

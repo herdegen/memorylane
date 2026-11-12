@@ -163,8 +163,7 @@
 // heatmap est recalculée sur les positions du moment. La logique
 // d'animation vit dans utils/familyTimeline.js (partagée avec l'aperçu).
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
-import L from 'leaflet';
-import 'leaflet.heat';
+import L from '@/utils/leafletHeat';
 import axios from 'axios';
 import { t, tc, intlLocale } from '@/i18n';
 import { apiError } from '@/utils/apiError';
