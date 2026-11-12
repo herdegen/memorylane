@@ -1269,6 +1269,8 @@
     "Gratuit et rien à créer : un petit serveur de stockage (Garage) est déjà prêt. Vos photos ne quittent pas la maison. Limites : l'espace du disque, et :lost sans sauvegarde (étape suivante). Pour un grand disque séparé, voir :var dans le fichier :file.": "Free and nothing to create: a small storage server (Garage) is already set up. Your photos never leave home. Limits: the disk space, and :lost without a backup (next step). For a separate large disk, see :var in the :file file.",
     "Guide d'utilisation": "User guide",
     "Guide masqué.": "Guide hidden.",
+    "Heure (facultative)": "Time (optional)",
+    "Heure facultative : midi si vide": "Optional time: noon if left empty",
     "Historique des corrections": "Edit history",
     "Homme": "Man",
     "Hors album": "Not in an album",

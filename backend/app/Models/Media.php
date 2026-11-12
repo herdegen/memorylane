@@ -247,7 +247,9 @@ class Media extends Model
             'month' => $d->startOfMonth()->setTime(12, 0)->format('Y-m-d H:i:s'),
             'year' => $d->startOfYear()->setTime(12, 0)->format('Y-m-d H:i:s'),
             'decade' => $d->setDate(intdiv($d->year, 10) * 10, 1, 1)->setTime(12, 0)->format('Y-m-d H:i:s'),
-            default => $d->format('Y-m-d H:i:s'),
+            // Jour sans heure (date seule, ou heure laissée vide) : midi, pas
+            // minuit qui ferait glisser la photo au jour d'avant selon le fuseau.
+            default => (preg_match('/^\d{4}-\d{2}-\d{2}$/', trim($date)) ? $d->setTime(12, 0) : $d)->format('Y-m-d H:i:s'),
         };
     }
 

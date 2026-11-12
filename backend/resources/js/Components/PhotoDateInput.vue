@@ -1,8 +1,9 @@
 <template>
   <!-- Date d'une photo à précision variable : jour exact, mois, année ou
        décennie (vieilles photos). v-model = { date, precision }, `date` au
-       format AAAA-MM-JJ (ou AAAA-MM-JJTHH:mm avec `with-time`), ramenée au début
-       de la période ; `precision` null pour une date exacte. -->
+       format AAAA-MM-JJ (ou AAAA-MM-JJTHH:mm avec `with-time` : heure vide =
+       midi), ramenée au début de la période ; `precision` null pour une date
+       exacte. -->
   <div class="space-y-2">
     <div class="flex flex-wrap gap-1.5" role="radiogroup" :aria-label="$t('Précision de la date')">
       <button
@@ -19,7 +20,11 @@
       </button>
     </div>
 
-    <input v-if="precision === 'day' && withTime" :id="id" v-model="dayTime" type="datetime-local" class="form-input" :max="maxDayTime" />
+    <!-- Jour exact : la date, et l'heure si on la connaît (vide = midi). -->
+    <div v-if="precision === 'day' && withTime" class="flex flex-wrap gap-2">
+      <input :id="id" v-model="day" type="date" class="form-input flex-1 min-w-[10rem]" :max="today" />
+      <input v-model="time" type="time" class="form-input w-[8.5rem]" :aria-label="$t('Heure (facultative)')" :title="$t('Heure facultative : midi si vide')" />
+    </div>
     <input v-else-if="precision === 'day'" :id="id" v-model="day" type="date" class="form-input" :max="today" />
     <input v-else-if="precision === 'month'" :id="id" v-model="month" type="month" class="form-input" :max="today.slice(0, 7)" />
     <input
@@ -54,7 +59,6 @@ const emit = defineEmits(['update:modelValue']);
 const now = new Date();
 const pad = (n) => String(n).padStart(2, '0');
 const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-const maxDayTime = `${today}T23:59`;
 const currentYear = now.getFullYear();
 const decades = Array.from({ length: Math.floor(currentYear / 10) - 184 }, (_, i) => Math.floor(currentYear / 10) * 10 - i * 10);
 
@@ -67,7 +71,7 @@ const options = [
 
 const initial = props.modelValue?.date ? String(props.modelValue.date) : '';
 const precision = ref(props.modelValue?.precision || 'day');
-const dayTime = ref(initial.slice(0, 16));
+const time = ref(initial.length > 10 ? initial.slice(11, 16) : '');
 const day = ref(initial.slice(0, 10));
 const month = ref(initial.slice(0, 7));
 const year = ref(initial ? Number(initial.slice(0, 4)) : null);
@@ -86,7 +90,9 @@ const value = computed(() => {
     case 'decade':
       return decade.value ? `${decade.value}-01-01` : null;
     default:
-      return props.withTime ? (dayTime.value || null) : (day.value || null);
+      if (!day.value) return null;
+      // Heure inconnue : midi (pas minuit, qui glisse d'un jour selon le fuseau).
+      return props.withTime ? `${day.value}T${time.value || '12:00'}` : day.value;
   }
 });
 

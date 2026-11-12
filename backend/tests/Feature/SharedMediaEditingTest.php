@@ -148,6 +148,21 @@ class SharedMediaEditingTest extends TestCase
         $this->assertTrue(Media::whereKey($media->id)->exactDate()->exists());
     }
 
+    public function test_jour_sans_heure_midi_par_defaut(): void
+    {
+        // Heure laissée vide (date seule) : midi, pas minuit.
+        $this->actingAs($this->owner)->putJson("/media/{$this->media->id}", ['taken_at' => '1988-07-14'])->assertOk();
+        $this->assertSame('1988-07-14 12:00:00', $this->media->fresh()->taken_at->format('Y-m-d H:i:s'));
+
+        // Heure donnée : gardée telle quelle.
+        $this->actingAs($this->owner)->putJson("/media/{$this->media->id}", ['taken_at' => '1988-07-14T09:30'])->assertOk();
+        $this->assertSame('1988-07-14 09:30:00', $this->media->fresh()->taken_at->format('Y-m-d H:i:s'));
+
+        // En masse, date seule : midi aussi.
+        $this->actingAs($this->owner)->postJson('/media/bulk/taken-at', ['media_ids' => [$this->media->id], 'taken_at' => '1990-03-02'])->assertOk();
+        $this->assertSame('1990-03-02 12:00:00', $this->media->fresh()->taken_at->format('Y-m-d H:i:s'));
+    }
+
     public function test_dater_en_masse_a_l_annee(): void
     {
         $this->actingAs($this->owner)->postJson('/media/bulk/taken-at', [
