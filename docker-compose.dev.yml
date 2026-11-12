@@ -30,6 +30,21 @@ services:
     container_name: memorylane_dev_mailpit
     ports: !override []
 
+  # Faux Scaleway JETABLE pour les tests de stockage (tests/Feature/
+  # S3StorageTest) : Garage, compatible S3. Démarré à la demande par
+  # scripts/test.sh (profil s3test), données en mémoire, aucun port publié.
+  s3test:
+    image: dxflrs/garage:v2.4.1
+    container_name: memorylane_dev_s3test
+    profiles: ["s3test"]
+    volumes:
+      - ./docker/garage-test/garage.toml:/etc/garage.toml:ro
+    tmpfs:
+      - /var/lib/garage
+    networks:
+      - memorylane
+    restart: unless-stopped
+
   app:
     container_name: memorylane_dev_app
     ports: !override []

@@ -30,12 +30,32 @@ echo "▶ Validation de $(git log --oneline -1 "$SHA")"
 # Dépendances PHP alignées sur le composer.lock du commit (rapide si à jour).
 docker compose exec -T app composer install --no-interaction --quiet
 
+# Faux Scaleway pour les tests de stockage (Garage, cf. docker-compose.dev.yml).
+# Clé fixe réservée aux tests : conteneur jetable, sans port, données en mémoire.
+S3_TEST_KEY=GK0123456789abcdef01234567
+S3_TEST_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+S3_TEST_BUCKET=memorylane-test
+docker compose --profile s3test up -d s3test > /dev/null 2>&1
+garage() { docker compose exec -T -e RUST_LOG=warn s3test /garage "$@"; }
+for _ in $(seq 1 30); do garage status > /dev/null 2>&1 && break; sleep 1; done
+if ! garage bucket info "$S3_TEST_BUCKET" > /dev/null 2>&1; then
+    node=$(garage status 2>/dev/null | awk '/HEALTHY NODES/ {f=1; next} f && $1 ~ /^[0-9a-f]+$/ {print $1; exit}')
+    [ -n "$node" ] || { echo "✗ Stockage S3 de test (Garage) injoignable : docker compose logs s3test"; exit 1; }
+    garage layout assign -z dc1 -c 1G "$node" > /dev/null
+    garage layout apply --version 1 > /dev/null
+    garage bucket create "$S3_TEST_BUCKET" > /dev/null
+    garage key import --yes -n tests "$S3_TEST_KEY" "$S3_TEST_SECRET" > /dev/null
+    garage bucket allow --read --write --owner "$S3_TEST_BUCKET" --key tests > /dev/null
+fi
+
 # Base de test réservée à la validation : d'autres sessions lancent leurs
 # tests sur memorylane_test depuis d'autres dossiers (autres migrations), et
 # deux suites sur la même base s'effacent les tables (vu le 2026-11-11).
 DB=memorylane_validation_test
 docker compose exec -T postgres sh -c "psql -U \"\$POSTGRES_USER\" -tAc \"SELECT 1 FROM pg_database WHERE datname = '$DB'\" | grep -q 1 || createdb -U \"\$POSTGRES_USER\" $DB"
-sed "s/value=\"memorylane_test\"/value=\"$DB\"/" backend/phpunit.xml > backend/phpunit.validation.xml
+sed -e "s/value=\"memorylane_test\"/value=\"$DB\"/" \
+    -e "s#</php>#    <env name=\"S3_TEST_ENDPOINT\" value=\"http://s3test:3900\" force=\"true\"/>\n        <env name=\"S3_TEST_KEY\" value=\"$S3_TEST_KEY\" force=\"true\"/>\n        <env name=\"S3_TEST_SECRET\" value=\"$S3_TEST_SECRET\" force=\"true\"/>\n        <env name=\"S3_TEST_BUCKET\" value=\"$S3_TEST_BUCKET\" force=\"true\"/>\n    </php>#" \
+    backend/phpunit.xml > backend/phpunit.validation.xml
 trap 'rm -f backend/phpunit.validation.xml' EXIT
 
 echo "▶ Tests PHPUnit (base $DB)"

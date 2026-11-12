@@ -69,7 +69,7 @@ class S3Service
             $stream = fopen($localPath, 'rb');
 
             try {
-                Storage::disk($this->disk)->put(
+                $stored = Storage::disk($this->disk)->put(
                     $storagePath,
                     $stream,
                     $visibility
@@ -78,6 +78,14 @@ class S3Service
                 if (is_resource($stream)) {
                     fclose($stream);
                 }
+            }
+
+            // Comme upload() : put() renvoie false (sans exception) si le
+            // stockage refuse l'écriture. Sans ce contrôle, miniatures, photos
+            // iPhone converties, remplacements HD et vidéos réoptimisées
+            // pointeraient vers un fichier absent, sans aucune erreur.
+            if ($stored === false) {
+                throw new \RuntimeException("Le stockage a refusé l'écriture de {$storagePath}");
             }
 
             return $storagePath;
