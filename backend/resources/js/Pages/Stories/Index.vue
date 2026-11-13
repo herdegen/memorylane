@@ -8,7 +8,7 @@
           <h1 class="font-display text-[26px] sm:text-4xl font-bold text-surface-900">{{ $t('Histoires') }}</h1>
           <p class="mt-1.5 text-sm text-surface-500">{{ $t('Ce qui s’est passé, et pourquoi on s’en souvient. Les plus proches de vous d’abord.') }}</p>
         </div>
-        <Link href="/stories/create" class="btn-primary shrink-0">{{ $t('Raconter une histoire') }}</Link>
+        <Link href="/stories/create" class="btn-primary shrink-0" data-tour="new-story">{{ $t('Raconter une histoire') }}</Link>
       </div>
 
       <div v-if="stories.length" class="grid gap-4 sm:grid-cols-2">

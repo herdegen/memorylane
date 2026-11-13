@@ -226,8 +226,8 @@
           </form>
         </div>
 
-        <!-- Stats -->
-        <div class="mt-4 p-3 bg-brand-50 rounded-lg dark:bg-brand-500/10">
+        <!-- Stats (le tuto de l'arbre y accroche sa bulle « Et voici votre famille ») -->
+        <div class="mt-4 p-3 bg-brand-50 rounded-lg dark:bg-brand-500/10" data-tour="tree-count">
           <div class="text-sm text-surface-600">
             {{ $tc(":count personne dans l'arbre|:count personnes dans l'arbre", treeNodes.length) }}
           </div>
@@ -456,6 +456,7 @@ import { useToast } from '@/Composables/useToast';
 import { escapeHtml } from '@/utils/html';
 import { apiError } from '@/utils/apiError';
 import { t, tc } from '@/i18n';
+import { provideTourActions } from '@/Composables/useTour';
 
 const toast = useToast();
 
@@ -924,6 +925,59 @@ function stopKinship() {
   kinship.value = null;
 }
 
+// ---- Tuto de l'arbre (première ouverture, nouveaux comptes) -------------
+// « Vous voici » (recentré sur sa carte), « Et voici votre famille » (vue
+// d'ensemble), puis la marche du lien de parenté vers l'ancêtre le plus
+// lointain qui a une photo.
+let resolveTreeReady;
+const treeReady = new Promise((resolve) => { resolveTreeReady = resolve; });
+let farAncestorCache;
+function farAncestor() {
+  if (farAncestorCache !== undefined) return farAncestorCache;
+  const me = usePage().props?.auth?.user?.person_id;
+  let best = null;
+  let bestWithPhoto = null;
+  const seen = new Set([me]);
+  let level = [me];
+  for (let depth = 1; level.length && depth < 30; depth++) {
+    const next = [];
+    level.forEach((id) => {
+      const rels = rawById[id]?.rels || {};
+      [rels.father, rels.mother].filter((p) => p && rawById[p] && !seen.has(p)).forEach((p) => {
+        seen.add(p);
+        next.push(p);
+        best = { id: p, depth };
+        if (rawById[p].data?.avatar_url) bestWithPhoto = { id: p, depth };
+      });
+    });
+    level = next;
+  }
+  const pick = bestWithPhoto && bestWithPhoto.depth >= 2 ? bestWithPhoto : best;
+  farAncestorCache = pick && pick.depth >= 2 ? { id: pick.id, name: rawById[pick.id].data?.name || '' } : null;
+  return farAncestorCache;
+}
+provideTourActions('FamilyTree/Index', {
+  ready: () => treeReady,
+  count: () => treeNodes.value.length,
+  focusSelf: () => {
+    const me = usePage().props?.auth?.user?.person_id;
+    if (!chart || !rawById[me]) return;
+    selectedPerson.value = rawById[me];
+    chart.updateMainId(me);
+    chart.updateTree({ tree_position: 'main_to_middle', scale: isMobile() ? MOBILE_TREE_SCALE : undefined });
+  },
+  // Dézoom autour de soi : la famille proche reste reconnaissable (cadrer
+  // tout l'arbre d'un coup ne laisse voir que des traits).
+  zoomOut: () => {
+    const me = usePage().props?.auth?.user?.person_id;
+    if (!chart || !rawById[me]) return;
+    chart.updateMainId(me);
+    chart.updateTree({ tree_position: 'main_to_middle', scale: isMobile() ? 0.55 : 0.45 });
+  },
+  farAncestor,
+  walkTo: (id) => loadKinship(id),
+});
+
 onMounted(async () => {
   try {
     const response = await axios.get('/family-tree/data');
@@ -939,6 +993,7 @@ onMounted(async () => {
   await new Promise(r => requestAnimationFrame(r));
   renderChart();
   watchFacePositions();
+  resolveTreeReady();
 
   const kinshipTarget = new URLSearchParams(window.location.search).get('kinship');
   if (kinshipTarget) loadKinship(kinshipTarget);

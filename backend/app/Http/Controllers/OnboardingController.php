@@ -12,7 +12,12 @@ use Illuminate\Http\Request;
 class OnboardingController extends Controller
 {
     // pwa : l'app a été ouverte depuis son icône (installée) au moins une fois.
-    public const STEPS = ['upload_tutorial', 'tour', 'pwa'];
+    // page_tours : tutos de page activés (nouvel accueil, ou « Visite guidée ») ;
+    // page_* : tuto de cette page vu (cf. useTour.js).
+    public const STEPS = [
+        'upload_tutorial', 'tour', 'pwa', 'page_tours',
+        'page_tree', 'page_fiche', 'page_photo', 'page_media', 'page_albums', 'page_stories',
+    ];
 
     public function store(Request $request, string $step)
     {

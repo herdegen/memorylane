@@ -35,6 +35,20 @@ class OnboardingTest extends TestCase
                 ->has('auth.user.onboarding.tour'));
     }
 
+    /** Tutos de page : activés par le nouvel accueil, puis vus page par page. */
+    public function test_page_tutorials_are_remembered(): void
+    {
+        $user = User::factory()->create();
+
+        foreach (['page_tours', 'page_tree', 'page_fiche', 'page_photo', 'page_media', 'page_albums', 'page_stories'] as $step) {
+            $this->actingAs($user)->postJson("/onboarding/{$step}")->assertOk();
+        }
+
+        $prefs = $user->fresh()->preferences['onboarding'];
+        $this->assertArrayHasKey('page_tours', $prefs);
+        $this->assertArrayHasKey('page_stories', $prefs);
+    }
+
     public function test_unknown_step_is_rejected(): void
     {
         $this->actingAs(User::factory()->create())->postJson('/onboarding/autre')->assertNotFound();

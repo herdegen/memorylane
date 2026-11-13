@@ -39,7 +39,7 @@
           <div class="lg:col-span-2">
             <div class="bg-white rounded-lg shadow-xs overflow-hidden">
               <!-- Image with face detection overlay -->
-              <div v-if="media.type === 'photo'" class="relative bg-black">
+              <div v-if="media.type === 'photo'" class="relative bg-black" data-tour="faces">
                 <FaceDetectionOverlay
                   :image-url="photoUrl"
                   :alt="media.original_name"
@@ -239,7 +239,7 @@
                puis Informations (repliées) et le reste — via `order-*`. -->
           <div class="flex flex-col gap-4 sm:gap-6">
             <!-- Basic info with editor -->
-            <MediaInfoEditor class="order-6 sm:order-none" :media="media" :can-edit="canEditFaces" @updated="handleMediaUpdated" />
+            <MediaInfoEditor data-tour="info" class="order-6 sm:order-none" :media="media" :can-edit="canEditFaces" @updated="handleMediaUpdated" />
 
             <!-- Partagé avec une branche de l'arbre (propriétaire) -->
             <div v-if="branchList.length" class="order-6 sm:order-none bg-white rounded-xl border border-surface-200 shadow-xs p-4">
@@ -258,6 +258,7 @@
 
             <!-- Mémos vocaux : la famille raconte la photo -->
             <VoiceNotesPanel
+              data-tour="voice"
               class="order-3 sm:order-none"
               v-if="media.type === 'photo'"
               :media-id="media.id"
@@ -364,6 +365,7 @@
 
             <!-- People -->
             <PersonInput
+              data-tour="people"
               class="order-1 sm:order-none"
               :media-id="media.id"
               :initial-people="media.people || []"

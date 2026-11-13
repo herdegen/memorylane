@@ -253,6 +253,7 @@
 
           <!-- Tri + filtres (date, personnes, tags) -->
           <MediaFilters
+            data-tour="filters"
             :state="filterState"
             :years="years"
             :counts="counts"

@@ -15,6 +15,7 @@
       <!-- Récit de vie guidé, étape par étape : remplit la frise -->
       <Link
         v-if="canManage"
+        data-tour="tell-life"
         :href="`/people/${personId}/recit`"
         class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-brand-50 border border-brand-200 text-sm font-medium text-brand-800 hover:bg-brand-100 transition dark:bg-brand-500/10 dark:border-brand-500/30 dark:text-brand-200"
       >
@@ -302,7 +303,8 @@ const playSlideshow = async () => {
 };
 
 // Le bouton « Diaporama de sa vie » vit dans l'en-tête de la fiche personne.
-defineExpose({ play: playSlideshow, hasPlayable });
+// Tuto de la fiche : la frise est-elle chargée, combien de moments compte-t-elle ?
+defineExpose({ play: playSlideshow, hasPlayable, isLoaded: () => !loading.value, eventsCount: () => eventItems.value.length });
 
 // Chapitres du récit de vie (logique partagée avec la télévision).
 const storyEvents = computed(() => buildStoryEvents(items.value));

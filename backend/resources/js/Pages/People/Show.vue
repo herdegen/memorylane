@@ -458,6 +458,7 @@ import FriendshipTimeline from '@/Components/FriendshipTimeline.vue';
 import CircleKindIcon from '@/Components/CircleKindIcon.vue';
 import { useCircle } from '@/Composables/useCircle';
 import PersonTimeline from '@/Components/PersonTimeline.vue';
+import { provideTourActions } from '@/Composables/useTour';
 import InviteToMemoryLaneModal from '@/Components/InviteToMemoryLaneModal.vue';
 import { personLabel } from '@/utils/personName';
 import { formatLongDate } from '@/utils/format';
@@ -589,6 +590,17 @@ const showAvatarPicker = ref(false);
 // d'en-tête le déclenche via la ref.
 const timelineRef = ref(null);
 const playLifeSlideshow = () => timelineRef.value?.play();
+
+// Tuto de sa fiche (première ouverture) : la frise, son remplissage, le diaporama.
+provideTourActions('People/Show', {
+  ready: () => new Promise((resolve) => {
+    const started = Date.now();
+    const tick = () => (timelineRef.value?.isLoaded?.() || Date.now() - started > 5000 ? resolve() : setTimeout(tick, 150));
+    tick();
+  }),
+  eventsCount: () => timelineRef.value?.eventsCount?.() ?? 0,
+  play: playLifeSlideshow,
+});
 
 // « Ses proches dans le temps » : la carte animée, réduite à ses proches de
 // sang (famille seulement, et pour qui a une fiche « moi »).
