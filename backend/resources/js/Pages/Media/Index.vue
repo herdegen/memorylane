@@ -36,10 +36,10 @@
         </div>
 
         <!-- Barre d'actions de sélection -->
-        <!-- Téléphone : barre fixée en bas (sous le pouce, par-dessus les onglets) ; desktop : collante en haut -->
+        <!-- Téléphone : barre fixée en bas (sous le pouce, par-dessus les onglets) ; desktop : collante juste sous le menu (h-16), visible dès la première case cochée même plus bas dans la page -->
         <div
           v-if="selectedIds.length > 0"
-          class="fixed inset-x-0 bottom-0 z-50 pb-[env(safe-area-inset-bottom)] sm:pb-3 sm:static sm:mb-6 sm:sticky sm:top-2 sm:z-20 sm:inset-auto
+          class="fixed inset-x-0 bottom-0 z-50 pb-[env(safe-area-inset-bottom)] sm:pb-3 sm:mb-6 sm:sticky sm:top-[4.5rem] sm:z-30 sm:inset-auto
                  flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-3 sm:rounded-lg bg-brand-600 px-4 py-3 text-white shadow-md"
         >
           <span class="font-medium">
