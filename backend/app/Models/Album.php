@@ -194,6 +194,12 @@ class Album extends Model
             return true;
         }
 
+        // Partagé avec une branche de l'arbre dont le compte fait partie.
+        $branchIds = app(\App\Services\BranchAccess::class)->sharedIds($user, BranchShare::ALBUM);
+        if ($branchIds && $branchIds->where('shareable_id', $this->id)->exists()) {
+            return true;
+        }
+
         // Être identifié sur une photo n'ouvre l'album entier QUE si le
         // propriétaire l'a choisi (share_with_tagged) ; sinon on voit
         // seulement les photos où l'on apparaît (Media::scopeAccessibleBy).
@@ -277,6 +283,10 @@ class Album extends Model
             // Album partagé avec les personnes identifiées dedans.
             if ($user->person_id) {
                 $q->orWhere(fn ($t) => static::whereTaggedPerson($t, $user->person_id));
+            }
+            // Album partagé avec une branche de l'arbre dont le compte fait partie.
+            if ($branchIds = app(\App\Services\BranchAccess::class)->sharedIds($user, \App\Models\BranchShare::ALBUM)) {
+                $q->orWhereIn('albums.id', $branchIds);
             }
         });
     }

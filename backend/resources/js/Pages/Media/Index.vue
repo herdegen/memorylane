@@ -123,6 +123,16 @@
             <button
               type="button"
               class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-white text-brand-700 hover:bg-brand-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="selectedIds.length === 0"
+              :title="$t('Partager avec tous les descendants d’une personne (et leurs conjoints), même ceux qui n’étaient pas là')"
+              @click="showBranchModal = true"
+            >
+              <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v6m0 0l-5 5m5-5l5 5M7 14v4m10-4v4M5 21h4m6 0h4" /></svg>
+              {{ $t('Branche') }}
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-white text-brand-700 hover:bg-brand-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
               :disabled="selectedIds.length === 0 || markingStrangers"
               :title="$t('Tous les visages encore à identifier de la sélection passent en « personne inconnue »')"
               @click="markNoKnownFaces"
@@ -286,6 +296,13 @@
       @done="handleAlbumDone"
     />
 
+    <BranchShareModal
+      v-if="showBranchModal"
+      :media-ids="selectedIds"
+      @close="showBranchModal = false"
+      @done="showBranchModal = false; selectedIds = []; selectionMode = false"
+    />
+
     <ShareToHouseholdModal
       v-if="showHouseholdModal"
       :media-ids="selectedIds"
@@ -330,6 +347,7 @@ import MediaGrid from '@/Components/MediaGrid.vue';
 import MediaFilters from '@/Components/MediaFilters.vue';
 import AddToAlbumModal from '@/Components/AddToAlbumModal.vue';
 import ShareToHouseholdModal from '@/Components/ShareToHouseholdModal.vue';
+import BranchShareModal from '@/Components/BranchShareModal.vue';
 import BulkDateModal from '@/Components/BulkDateModal.vue';
 import { usePhotoSwipe } from '@/Composables/usePhotoSwipe';
 import { useToast } from '@/Composables/useToast';
@@ -414,6 +432,7 @@ const markNoKnownFaces = async () => {
 
 const showAlbumModal = ref(false);
 const showHouseholdModal = ref(false);
+const showBranchModal = ref(false);
 const albumFeedback = ref(null);
 const showDateModal = ref(false);
 const showGeoModal = ref(false);

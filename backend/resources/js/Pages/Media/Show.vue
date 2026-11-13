@@ -241,6 +241,21 @@
             <!-- Basic info with editor -->
             <MediaInfoEditor class="order-6 sm:order-none" :media="media" :can-edit="canEditFaces" @updated="handleMediaUpdated" />
 
+            <!-- Partagé avec une branche de l'arbre (propriétaire) -->
+            <div v-if="branchList.length" class="order-6 sm:order-none bg-white rounded-xl border border-surface-200 shadow-xs p-4">
+              <p class="text-sm font-semibold text-surface-900 mb-2">{{ $t('Partagé avec') }}</p>
+              <div class="flex flex-wrap gap-2">
+                <span
+                  v-for="b in branchList"
+                  :key="b.id"
+                  class="inline-flex items-center gap-1.5 h-8 pl-3 pr-1 rounded-full text-sm font-semibold border border-amber-300 bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-200"
+                >
+                  {{ $t('Branche de :name', { name: b.person.name }) }}<span v-if="b.include_spouses" class="font-normal">{{ $t(' + conjoints') }}</span>
+                  <button type="button" class="w-6 h-6 rounded-full hover:bg-black/10" :aria-label="$t('Ne plus partager avec la branche de :name', { name: b.person.name })" @click="removeBranch(b)">×</button>
+                </span>
+              </div>
+            </div>
+
             <!-- Mémos vocaux : la famille raconte la photo -->
             <VoiceNotesPanel
               class="order-3 sm:order-none"
@@ -516,6 +531,11 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  // Partages avec une branche de l'arbre : [{ id, person: { id, name }, include_spouses }]
+  branchShares: {
+    type: Array,
+    default: () => [],
+  },
   albumPeople: {
     type: Array,
     default: () => [],
@@ -742,6 +762,14 @@ const runDetection = async (force = false) => {
     // L'erreur est déjà exposée via detectError (composable).
     console.error('Détection des visages échouée :', e);
   }
+};
+
+// Partages avec une branche : retirer un partage (propriétaire).
+const branchList = ref([...props.branchShares]);
+watch(() => props.branchShares, (v) => { branchList.value = [...v]; });
+const removeBranch = async (b) => {
+  await axios.delete(`/branch-shares/${b.id}`);
+  branchList.value = branchList.value.filter((x) => x.id !== b.id);
 };
 
 // Vidéo en cours de conversion : la page se recharge seule (média seulement)

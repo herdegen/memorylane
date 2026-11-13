@@ -28,6 +28,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(\App\Services\Vision\DuplicateFaceResolver::class);
         // Familles et famille référente des fiches communes : une fois par requête.
         $this->app->scoped(\App\Services\SharedFiches::class);
+        // Partage par branche : racines du compte mémorisées pour la requête.
+        $this->app->scoped(\App\Services\BranchAccess::class);
 
     }
 

@@ -125,6 +125,40 @@
       </div>
     </div>
 
+    <!-- Partage vivant avec une branche de l'arbre (propriétaire) -->
+    <div v-if="isOwner" class="py-4 border-t border-surface-200">
+      <p class="text-sm font-medium text-surface-700 mb-2">{{ $t('Branche de la famille') }}</p>
+      <p class="text-xs text-surface-500 mb-3">
+        {{ $t('Tous les descendants d’une personne (et leurs conjoints) voient l’album, même ceux qui n’apparaissent pas sur les photos.') }}
+      </p>
+      <div v-if="branches.length" class="flex flex-wrap gap-2 mb-3">
+        <span
+          v-for="b in branches"
+          :key="b.id"
+          class="inline-flex items-center gap-1.5 h-9 pl-3 pr-1.5 rounded-full text-sm font-semibold border border-amber-300 bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-200"
+        >
+          {{ $t('Branche de :name', { name: b.person.name }) }}<span v-if="b.include_spouses" class="font-normal">{{ $t(' + conjoints') }}</span>
+          <button type="button" class="w-6 h-6 rounded-full hover:bg-black/10" :aria-label="$t('Ne plus partager avec la branche de :name', { name: b.person.name })" @click="removeBranch(b)">×</button>
+        </span>
+      </div>
+      <div v-if="addingBranch" class="space-y-3">
+        <BranchSharePicker v-model="branchChoice" />
+        <div class="flex gap-2">
+          <button type="button" class="btn-primary text-sm" :disabled="!branchChoice.person || savingBranch" @click="addBranch">{{ $t('Partager avec cette branche') }}</button>
+          <button type="button" class="btn-secondary text-sm" @click="addingBranch = false">{{ $t('Annuler') }}</button>
+        </div>
+      </div>
+      <button
+        v-else
+        type="button"
+        class="inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-sm font-semibold border border-dashed border-surface-300 text-surface-600 hover:border-surface-400 hover:text-surface-900"
+        @click="addingBranch = true"
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+        {{ $t('Une branche') }}
+      </button>
+    </div>
+
     <!-- Accès par compte (partage restreint + délégation) -->
     <div class="py-4 border-t border-surface-200">
       <p class="text-sm font-medium text-surface-700 mb-2">{{ $t('Personnes ayant accès') }}</p>
@@ -231,6 +265,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useToast } from '@/Composables/useToast';
 import CircleKindIcon from '@/Components/CircleKindIcon.vue';
+import BranchSharePicker from '@/Components/BranchSharePicker.vue';
 import axios from 'axios';
 import { useConfirm } from '@/Composables/useConfirm';
 import { t } from '@/i18n';
@@ -262,6 +297,44 @@ const accesses = ref([]);
 const search = ref('');
 const candidates = ref([]);
 let searchTimer = null;
+
+// ---- Branches de l'arbre (partage vivant) ----
+const branches = ref([]);
+const addingBranch = ref(false);
+const savingBranch = ref(false);
+const branchChoice = ref({ person: null, includeSpouses: true });
+const loadBranches = async () => {
+  if (!props.isOwner) return;
+  try {
+    const { data } = await axios.get(`/albums/${props.album.id}/branches`);
+    branches.value = data.shares;
+  } catch (e) {
+    console.error('Failed to load branches:', e);
+  }
+};
+const addBranch = async () => {
+  savingBranch.value = true;
+  try {
+    const { data } = await axios.post(`/albums/${props.album.id}/branches`, { person_id: branchChoice.value.person.id, include_spouses: branchChoice.value.includeSpouses });
+    branches.value = data.shares;
+    addingBranch.value = false;
+    branchChoice.value = { person: null, includeSpouses: true };
+    emit('updated');
+  } catch (e) {
+    errorMessage.value = e.response?.data?.message || t('Le partage n’a pas pu être enregistré.');
+  } finally {
+    savingBranch.value = false;
+  }
+};
+const removeBranch = async (b) => {
+  try {
+    await axios.delete(`/branch-shares/${b.id}`);
+    branches.value = branches.value.filter((x) => x.id !== b.id);
+    emit('updated');
+  } catch (e) {
+    errorMessage.value = e.response?.data?.message || t('Le partage n’a pas pu être retiré.');
+  }
+};
 
 // ---- Cercles ----
 const circlesShared = ref([]);
@@ -393,6 +466,7 @@ const originLabel = (a) => {
 onMounted(() => {
   loadAccesses();
   loadCircles();
+  loadBranches();
 });
 onUnmounted(() => clearTimeout(searchTimer));
 

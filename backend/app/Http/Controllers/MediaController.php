@@ -299,6 +299,10 @@ class MediaController extends Controller
         return Inertia::render('Media/Show', [
             'media' => $media,
             'voiceNotes' => $voiceNotes,
+            // Partages avec une branche de l'arbre (propriétaire seulement).
+            'branchShares' => $media->user_id === $viewer?->id
+                ? \App\Services\BranchAccess::listFor(\App\Models\BranchShare::MEDIA, $media->id)
+                : [],
             // Corriger date, lieu, visages : tout membre qui voit la photo
             // (journalisé, annulable — historique ci-dessous).
             'can' => ['edit_details' => Gate::allows('editDetails', $media)],

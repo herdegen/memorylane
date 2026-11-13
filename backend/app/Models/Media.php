@@ -308,8 +308,10 @@ class Media extends Model
         // la règle des albums pour toute la table album_media (≈ 1,5 s pour
         // un compte non admin sur les données réelles). Même ensemble.
         $albumIds = Album::query()->accessibleBy($user)->pluck('albums.id')->all();
+        // Partagé avec une branche de l'arbre dont le compte fait partie.
+        $branchIds = app(\App\Services\BranchAccess::class)->sharedIds($user, \App\Models\BranchShare::MEDIA);
 
-        return $query->where(function ($q) use ($user, $albumIds) {
+        return $query->where(function ($q) use ($user, $albumIds, $branchIds) {
             $q->where('user_id', $user->id)
                 ->orWhereHas('albums', fn ($a) => $a->whereIn('albums.id', $albumIds))
                 // Branche foyer : média partagé dans un foyer dont le viewer
@@ -324,6 +326,9 @@ class Media extends Model
             // identifiée, où qu'elles soient — mais pas le reste de l'album.
             if ($user->person_id) {
                 $q->orWhereHas('people', fn ($p) => $p->where('people.id', $user->person_id));
+            }
+            if ($branchIds) {
+                $q->orWhereIn('media.id', $branchIds);
             }
         });
     }

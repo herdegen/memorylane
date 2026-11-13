@@ -179,6 +179,10 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
     // Recherche unifiée
     Route::get('/search', [SearchController::class, 'index'])->name('search');
 
+    // Partage par branche : aperçu des membres, retrait d'un partage.
+    Route::get('/branch-shares/preview', [\App\Http\Controllers\MediaBranchShareController::class, 'preview'])->name('branchShares.preview');
+    Route::delete('/branch-shares/{share}', [\App\Http\Controllers\MediaBranchShareController::class, 'destroy'])->name('branchShares.destroy');
+
     // Web Share Target (PWA) : « Partager → MemoryLane » depuis le téléphone
     Route::post('/share-target', [ShareTargetController::class, 'store'])->name('share-target');
 
@@ -264,6 +268,9 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::post('/bulk/geolocation', [MediaController::class, 'bulkUpdateGeolocation'])->name('bulk.geolocation');
         // Partage foyer : ajoute/retire la sélection du périmètre d'un foyer
         Route::post('/bulk/household', [MediaController::class, 'bulkShareToHousehold'])->name('bulk.household.share');
+        // Partage vivant avec une branche de l'arbre (descendants + conjoints).
+        Route::post('/bulk/branch', [\App\Http\Controllers\MediaBranchShareController::class, 'shareMedia'])->name('bulk.branch.share');
+        Route::post('/bulk/branch/remove', [\App\Http\Controllers\MediaBranchShareController::class, 'unshareMedia'])->name('bulk.branch.remove');
         Route::post('/bulk/household/remove', [MediaController::class, 'bulkRemoveFromHousehold'])->name('bulk.household.remove');
         Route::get('/{media}', [MediaController::class, 'show'])->name('show');
         Route::put('/{media}', [MediaController::class, 'update'])->name('update');
@@ -346,6 +353,8 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::get('/{album}/circles', [AlbumController::class, 'circles'])->name('circles.list');
         Route::post('/{album}/circles', [AlbumController::class, 'shareWithCircle'])->name('circles.share');
         Route::delete('/{album}/circles/{household}', [AlbumController::class, 'unshareWithCircle'])->name('circles.unshare');
+        Route::get('/{album}/branches', [\App\Http\Controllers\MediaBranchShareController::class, 'albumIndex'])->name('branches.list');
+        Route::post('/{album}/branches', [\App\Http\Controllers\MediaBranchShareController::class, 'shareAlbum'])->name('branches.share');
     });
 
     // Cercle courant (sélecteur de l'en-tête)
