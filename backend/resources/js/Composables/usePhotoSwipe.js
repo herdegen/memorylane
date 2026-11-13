@@ -65,6 +65,7 @@ export function usePhotoSwipe(getMedia, options = {}) {
         alt: label,
         caption: label,
         mediaId: media.id,
+        converting: !!media.converting,
       };
     }
     const dims = imageDimensions(media);
@@ -97,6 +98,16 @@ export function usePhotoSwipe(getMedia, options = {}) {
       const { content } = e;
       if (content.type !== 'video') return;
       e.preventDefault();
+
+      // Pas encore lisible : un message à la place du lecteur.
+      if (content.data.converting) {
+        const box = document.createElement('div');
+        box.className = 'pswp__converting';
+        box.style.cssText = 'display:flex;align-items:center;justify-content:center;width:100%;height:100%;padding:2rem;text-align:center;color:#fff;font-size:1rem;line-height:1.5;';
+        box.textContent = t('Vidéo en cours de conversion : elle sera lisible dans quelques minutes.');
+        content.element = box;
+        return;
+      }
 
       const video = document.createElement('video');
       video.src = content.data.videoSrc;

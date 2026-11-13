@@ -79,6 +79,11 @@
               </div>
 
               <!-- Video -->
+              <div v-else-if="media.type === 'video' && media.converting" class="flex flex-col items-center justify-center gap-3 p-12 bg-surface-900 text-center text-white aspect-video">
+                <svg class="h-10 w-10 animate-spin text-white/80" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-opacity="0.3" stroke-width="3" /><path d="M21 12a9 9 0 00-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round" /></svg>
+                <p class="text-lg font-semibold">{{ $t('Vidéo en cours de conversion') }}</p>
+                <p class="max-w-md text-sm text-white/70">{{ $t('Elle sera lisible dans quelques minutes (un long film peut prendre un quart d’heure). Cette page se mettra à jour toute seule.') }}</p>
+              </div>
               <div v-else-if="media.type === 'video'">
                 <VideoPlayer
                   ref="playerRef"
@@ -456,7 +461,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, defineAsyncComponent } from 'vue';
+import { ref, computed, nextTick, defineAsyncComponent, watch, onUnmounted } from 'vue';
 import { Head, router, Link, usePage } from '@inertiajs/vue3';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -738,6 +743,17 @@ const runDetection = async (force = false) => {
     console.error('Détection des visages échouée :', e);
   }
 };
+
+// Vidéo en cours de conversion : la page se recharge seule (média seulement)
+// toutes les 20 s jusqu'à ce qu'elle soit lisible.
+let convertingTimer = null;
+const watchConversion = () => {
+  clearInterval(convertingTimer);
+  if (!props.media.converting) return;
+  convertingTimer = setInterval(() => router.reload({ only: ['media'] }), 20000);
+};
+watch(() => props.media.converting, watchConversion, { immediate: true });
+onUnmounted(() => clearInterval(convertingTimer));
 
 // Poster URL for the video player (medium or small conversion thumbnail)
 const thumbnailUrl = computed(() => conversionUrl(props.media, 'medium', 'small', 'thumbnail'));

@@ -148,7 +148,7 @@ class DirectUploadTest extends TestCase
         ]);
         $this->actingAs($this->user)->postJson('/media/uploads/complete', [
             'upload_session_id' => $session->id, 'parts' => [['part_number' => 1, 'etag' => '"aaa"']],
-        ])->assertStatus(201);
+        ])->assertStatus(201)->assertJsonPath('media.converting', true);
 
         // D'abord le MP4 optimisé ; miniatures et métadonnées viendront après.
         Queue::assertPushed(\App\Jobs\OptimizeUploadedVideo::class);

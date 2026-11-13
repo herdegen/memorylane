@@ -50,6 +50,7 @@ class TranscodeVideoForWeb implements ShouldQueue
             Log::warning('TranscodeVideoForWeb: Failed to download file from S3', [
                 'media_id' => $this->media->id,
             ]);
+            $this->media->markConverting(false);
             return;
         }
 
@@ -91,6 +92,8 @@ class TranscodeVideoForWeb implements ShouldQueue
                 ]
             );
 
+            $this->media->markConverting(false);
+
             Log::info('TranscodeVideoForWeb: Completed', [
                 'media_id' => $this->media->id,
                 'size'     => filesize($outputPath),
@@ -124,6 +127,7 @@ class TranscodeVideoForWeb implements ShouldQueue
 
     public function failed(\Throwable $exception): void
     {
+        $this->media->fresh()?->markConverting(false);
         Log::error('TranscodeVideoForWeb: Job failed permanently', [
             'media_id' => $this->media->id,
             'error'    => $exception->getMessage(),

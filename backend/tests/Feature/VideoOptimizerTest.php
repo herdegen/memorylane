@@ -133,10 +133,20 @@ class VideoOptimizerTest extends TestCase
         $video->refresh();
         $this->assertSame('video/mp4', $video->mime_type);
         $this->assertSame('noel-1994.mp4', $video->original_name);
+        $this->assertFalse($video->converting);
         Storage::disk($disk)->assertMissing('media/videos/2026/11/noel.mpg');
         Storage::disk($disk)->assertExists($video->file_path);
         $this->assertSame('h264', app(VideoOptimizer::class)->probe(Storage::disk($disk)->path($video->file_path))['codec']);
         Bus::assertDispatched(\App\Jobs\GenerateMediaConversions::class);
+    }
+
+    public function test_a_conversion_left_hanging_for_hours_is_no_longer_shown(): void
+    {
+        $video = Media::factory()->video()->create(['user_id' => User::factory()->create()->id]);
+        $video->markConverting(true);
+        $this->assertTrue($video->fresh()->converting);
+        $video->forceFill(['converting_since' => now()->subHours(7)])->saveQuietly();
+        $this->assertFalse($video->fresh()->converting);
     }
 
     public function test_an_unreadable_upload_keeps_its_original_and_goes_on(): void

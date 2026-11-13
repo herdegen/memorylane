@@ -402,6 +402,7 @@ class MediaService
     {
         // Vieux format vidéo : d'abord le MP4 optimisé, la suite après.
         if ($media->type === 'video' && in_array($media->mime_type, self::LEGACY_VIDEO_MIMES, true)) {
+            $media->markConverting(true);
             \App\Jobs\OptimizeUploadedVideo::dispatch($media);
 
             return;

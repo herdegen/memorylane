@@ -109,6 +109,9 @@ class Media extends Model
         'taken_at_album_id',
     ];
 
+    /** Toujours sérialisé : vidéo en cours de conversion (voir getConvertingAttribute). */
+    protected $appends = ['converting'];
+
     /**
      * The attributes that should be cast.
      *
@@ -127,7 +130,23 @@ class Media extends Model
             'is_source' => 'boolean',
             'is_document' => 'boolean',
             'text_checked_at' => 'datetime',
+            'converting_since' => 'datetime',
         ];
+    }
+
+    /**
+     * Vidéo en cours de conversion (MP4 optimisé, version web) : pas encore
+     * lisible. Au-delà de 6 h, on considère la conversion abandonnée.
+     */
+    public function getConvertingAttribute(): bool
+    {
+        return $this->converting_since !== null && $this->converting_since->gt(now()->subHours(6));
+    }
+
+    /** Pose ou retire le repère de conversion, sans toucher aux dates de modification. */
+    public function markConverting(bool $on): void
+    {
+        $this->forceFill(['converting_since' => $on ? now() : null])->saveQuietly();
     }
 
     /**

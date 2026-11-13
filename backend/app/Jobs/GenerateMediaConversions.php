@@ -266,6 +266,7 @@ class GenerateMediaConversions implements ShouldQueue
 
             // Transcodage web si le format source n'est pas lisible nativement
             if ($videoMetadataService->needsWebVersion($this->media)) {
+                $this->media->markConverting(true);
                 TranscodeVideoForWeb::dispatch($this->media);
             }
 

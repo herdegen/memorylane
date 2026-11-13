@@ -36,6 +36,13 @@ class OptimizeUploadedVideo implements ShouldQueue
         $this->onConnection('redis-long')->onQueue('video');
     }
 
+    /** Tâche abandonnée (délai dépassé…) : plus « en conversion », la suite habituelle prend le relais. */
+    public function failed(\Throwable $e): void
+    {
+        $this->media->fresh()?->markConverting(false);
+        app(MediaService::class)->startProcessing($this->media->fresh());
+    }
+
     public function handle(S3Service $s3, VideoOptimizer $optimizer, MediaService $mediaService): void
     {
         $media = $this->media->fresh();
@@ -86,6 +93,8 @@ class OptimizeUploadedVideo implements ShouldQueue
             @unlink($output);
         }
 
-        $mediaService->startProcessing($media->fresh());
+        $media = $media->fresh();
+        $media->markConverting(false);
+        $mediaService->startProcessing($media);
     }
 }

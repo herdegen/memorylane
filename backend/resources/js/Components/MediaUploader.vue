@@ -214,6 +214,7 @@
         <li v-if="summary.sharedWith">{{ sharedText(doneItems.length, summary.sharedWith) }}</li>
         <li v-if="summary.albumName">{{ filedText(doneItems.length, summary.albumName) }}</li>
         <li v-if="summary.warning" class="text-amber-700 dark:text-amber-300">{{ summary.warning }}</li>
+        <li v-if="convertingCount" class="text-sm font-medium text-amber-700 dark:text-amber-300">{{ $tc(':count vidéo est en cours de conversion : elle sera lisible dans quelques minutes (un long film peut prendre un quart d’heure).|:count vidéos sont en cours de conversion : elles seront lisibles dans quelques minutes (un long film peut prendre un quart d’heure).', convertingCount) }}</li>
         <li v-if="doneItems.length" class="text-sm text-surface-500">{{ $t('Dates, lieux et visages sont reconnus automatiquement dans les minutes qui suivent.') }}</li>
       </ul>
 
@@ -472,6 +473,8 @@ const canUpload = computed(() => {
 });
 
 const doneItems = computed(() => items.value.filter((i) => i.status === 'done'));
+// Vieux formats vidéo : convertis en MP4 après l'envoi (pas encore lisibles).
+const convertingCount = computed(() => doneItems.value.filter((i) => i.media?.converting).length);
 const failedItems = computed(() => items.value.filter((i) => i.status === 'error'));
 const doneCount = computed(() => doneItems.value.length + failedItems.value.length);
 const globalProgress = computed(() => {

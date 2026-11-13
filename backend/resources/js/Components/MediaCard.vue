@@ -146,6 +146,15 @@
       </div>
     </div>
 
+    <!-- Vidéo en cours de conversion (vieux format, version web) -->
+    <div
+      v-if="media.converting"
+      class="absolute inset-x-0 bottom-0 flex items-center gap-1.5 bg-black/60 px-2 py-1.5 text-xs font-medium text-white"
+    >
+      <svg class="h-3.5 w-3.5 animate-spin shrink-0" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-opacity="0.3" stroke-width="3" /><path d="M21 12a9 9 0 00-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round" /></svg>
+      <span class="truncate">{{ $t('Conversion en cours…') }}</span>
+    </div>
+
     <!-- Media Type Badge -->
     <div class="absolute top-2 left-2">
       <span
