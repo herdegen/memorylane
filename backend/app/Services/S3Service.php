@@ -144,13 +144,15 @@ class S3Service
 
     /**
      * URL présignée STABLE : même adresse pour un même fichier pendant une
-     * fenêtre d'une heure (signature datée du début de l'heure), valable
-     * $validityMinutes. Le navigateur peut donc garder l'image en cache au
-     * lieu de la retélécharger à chaque affichage.
+     * fenêtre d'une journée (signature datée du début de la fenêtre), valable
+     * $validityMinutes (48 h). Le navigateur garde donc l'image en cache toute
+     * la journée au lieu de la retélécharger à chaque changement d'heure.
+     * Compromis accepté (2026-11-13) : une adresse directe copiée reste
+     * ouverte jusqu'à 48 h (2 h auparavant).
      *
      * @return array{0: string, 1: int} URL et secondes de validité restantes
      */
-    public function getStableTemporaryUrl(string $path, int $windowMinutes = 60, int $validityMinutes = 120): array
+    public function getStableTemporaryUrl(string $path, int $windowMinutes = 1440, int $validityMinutes = 2880): array
     {
         if (in_array($this->disk, ['local', 'public'])) {
             return [Storage::disk($this->disk)->url($path), $windowMinutes * 60];
