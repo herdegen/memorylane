@@ -5,7 +5,9 @@
     <div v-if="person" class="flex items-center gap-3 rounded-xl border border-brand-300 bg-brand-50 dark:bg-brand-500/10 px-3 py-2">
       <PersonAvatar :person="person" :size="9" />
       <span class="flex-1 min-w-0">
-        <span class="block text-sm font-semibold text-surface-900 truncate">{{ $t('La branche de :name', { name: person.name }) }}</span>
+        <span class="block text-sm font-semibold text-surface-900 truncate">
+          {{ $t('La branche de :name', { name: person.name }) }}<span v-if="person.birth_date" class="font-normal text-surface-500"> ({{ String(person.birth_date).slice(0, 4) }})</span>
+        </span>
         <span class="block text-xs text-surface-500">{{ $t('Ses enfants, petits-enfants et tous leurs descendants') }}</span>
       </span>
       <button type="button" class="text-sm text-surface-500 hover:text-surface-800" :aria-label="$t('Changer de personne')" @click="clear">✕</button>
