@@ -142,7 +142,8 @@ class TvController extends Controller
                     $names = collect($section['people'])->pluck('first_name')->filter();
                     $items = $indices($section['ids'] ?? []);
                     if ($items) {
-                        $sections[] = ['key' => $section['key'], 'title' => $names->isNotEmpty() ? $names->join(' & ') : $section['title'], 'subtitle' => $names->isNotEmpty() ? $section['title'] : null, 'items' => $items];
+                        $title = $names->isNotEmpty() ? $names->join(' & ') : $section['title'];
+                        $sections[] = ['key' => $section['key'], 'title' => $title, 'subtitle' => $section['title'] !== $title ? $section['title'] : null, 'items' => $items];
                     }
                     break;
                 case 'tiles':
