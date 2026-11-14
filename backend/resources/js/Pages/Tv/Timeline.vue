@@ -151,13 +151,13 @@ async function reload() {
   focusInitial();
 
   // Cadrage sur le cœur de la famille, entre l'en-tête et le panneau : on
-  // écarte 5 % des lieux de chaque côté (en latitude et en longitude) — la
+  // écarte 8 % des lieux de chaque côté (en latitude et en longitude) — la
   // France d'une famille française remplit l'écran, les lointains (Allemagne,
   // Amérique…) apparaissent quand la frise y passe. Marges = hauteur réelle
   // de l'en-tête (≈ 12 %) et du panneau du bas (≈ 34 %).
   const points = tracks.flatMap((t) => t.filter((s) => !s.trip).map((s) => [Number(s.lat), Number(s.lng)]));
-  const frame = points.length >= 10 ? centralBox(points, 0.05) : (dataBounds(tracks) ?? points);
-  if (frame.length) showAll(map, frame, { top: 0.12, bottom: 0.34, maxZoom: 7, animate: false, pad: 0.06 });
+  const frame = points.length >= 10 ? centralBox(points, 0.08) : (dataBounds(tracks) ?? points);
+  if (frame.length) showAll(map, frame, { top: 0.12, bottom: 0.32, maxZoom: 7.5, animate: false, pad: 0.02 });
   seek(0);
   render();
   setTimeout(() => { if (mine === load && state.value === 'ready') play(); }, 1200);

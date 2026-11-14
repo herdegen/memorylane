@@ -70,6 +70,8 @@ export function showPlace(map, latlng, zoom, { offsetY = 0 } = {}) {
 /** Vue d'ensemble de plusieurs points (avec un fondu si la carte est déjà affichée). */
 export function showAll(map, points, { maxZoom = 9, top = 0, bottom = 0, animate = true, pad = 0.15 } = {}) {
     if (!points.length) return;
+    // Taille réelle du conteneur (il a pu changer depuis la création de la carte).
+    map.invalidateSize({ pan: false });
     const h = map.getSize().y;
     const fit = () => map.fitBounds(L.latLngBounds(points).pad(pad), {
         animate: false,
