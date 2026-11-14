@@ -4,17 +4,18 @@
        1080p) : l'écran garde ses proportions quelle que soit la résolution
        annoncée par le téléviseur. Couleurs fixes (pas de mode clair/sombre). -->
   <div class="tv-root min-h-screen bg-[#12100c] text-[#f7f2ea] font-sans flex flex-col" :class="{ 'h-screen overflow-hidden': fill }">
-    <nav v-if="!bare" :aria-label="$t('Navigation')" class="shrink-0 flex items-center gap-9 h-[4.5rem] mx-24 mt-[3.375rem]" :class="navClass">
-      <div class="font-display text-[2.25rem] font-bold whitespace-nowrap">MemoryLane</div>
-      <div class="flex gap-1.5 flex-1 min-w-0" data-tv-row>
+    <nav v-if="!bare" :aria-label="$t('Navigation')" class="shrink-0 flex items-center gap-6 h-[4.5rem] mx-24 mt-[3.375rem]" :class="navClass">
+      <div class="flex gap-1 flex-1 min-w-0 items-center" data-tv-row>
+        <!-- Le nom du site mène à l'accueil (pas d'onglet « Accueil » : le menu tient sur une ligne). -->
+        <Link href="/tv/ecran/accueil" data-tv class="tv-pill tv-logo font-display whitespace-nowrap mr-3" :class="{ 'tv-pill-on': tab === 'home' }" :aria-label="$t('Accueil')">MemoryLane</Link>
         <Link v-for="t in TABS" :key="t.key" :href="t.href" data-tv class="tv-pill" :class="{ 'tv-pill-on': tab === t.key }">{{ t.label }}</Link>
         <Link href="/tv/ecran/recherche" data-tv class="tv-pill flex items-center" :class="{ 'tv-pill-on': tab === 'search' }" :aria-label="$t('Recherche')">
           <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></svg>
         </Link>
       </div>
       <div class="flex items-center gap-4" data-tv-row>
-        <button v-if="circles.length > 1" type="button" data-tv class="tv-chip" @click="menu = 'circle'">{{ circle?.name || $t('Cercle') }}</button>
-        <span v-else-if="circle" class="tv-chip">{{ circle.name }}</span>
+        <button v-if="circles.length > 1" type="button" data-tv class="tv-chip max-w-[17rem] truncate" @click="menu = 'circle'">{{ circle?.name || $t('Cercle') }}</button>
+        <span v-else-if="circle" class="tv-chip max-w-[17rem] truncate">{{ circle.name }}</span>
         <button type="button" data-tv class="w-14 h-14 rounded-full bg-[#fcd34d] text-[#14110d] text-[1.625rem] font-extrabold flex items-center justify-center" :aria-label="$t('Compte de :name', { name: account?.name })" @click="menu = 'account'">
           {{ (account?.name || '?').slice(0, 1).toUpperCase() }}
         </button>
@@ -93,7 +94,6 @@ const props = defineProps({
 });
 
 const ALL_TABS = [
-  { key: 'home', label: t('Accueil'), href: '/tv/ecran/accueil' },
   { key: 'albums', label: t('Albums'), href: '/tv/ecran/albums' },
   { key: 'photos', label: t('Photos'), href: '/tv/ecran/photos' },
   { key: 'people', label: t('Proches'), href: '/tv/ecran/proches' },
@@ -221,6 +221,7 @@ html:has(.tv-root) { scrollbar-width: none; }
 .tv-root [data-tv]:focus { outline: none; box-shadow: 0 0 0 0.375rem #12100c, 0 0 0 0.75rem #f7f2ea; }
 .tv-pill { padding: 0.75rem 1.375rem; border-radius: 999px; color: #d8cfc2; font-size: 1.625rem; font-weight: 600; white-space: nowrap; }
 .tv-pill-on { background: #3a2f1e; color: #fcd34d; font-weight: 700; }
+.tv-logo { font-size: 2.125rem; font-weight: 700; color: #f7f2ea; }
 .tv-root .tv-pill:focus { background: #f7f2ea; color: #14110d; }
 .tv-chip { padding: 0.625rem 1.375rem; border-radius: 999px; border: 2px solid #b45309; color: #fcd34d; font-size: 1.5rem; font-weight: 700; }
 .tv-option { display: flex; white-space: nowrap; align-items: center; gap: 1rem; padding: 1.25rem 2rem; border-radius: 1.5rem; background: #2c261e; font-size: 2rem; font-weight: 700; text-align: left; }

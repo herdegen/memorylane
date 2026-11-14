@@ -160,6 +160,7 @@ class TvTest extends TestCase
 
     public function test_ecrans_tv(): void
     {
+        $this->withoutVite();
         $this->actingAs($this->me);
 
         $this->get('/tv/ecran/accueil')->assertOk()
@@ -170,9 +171,10 @@ class TvTest extends TestCase
             ->assertInertia(fn ($page) => $page->component('Tv/Albums', false)
                 ->where('rows', fn ($rows) => collect($rows)->firstWhere('key', 'all')['albums'][0]['id'] === $this->album->id));
         $this->get("/tv/ecran/albums/{$this->album->id}")->assertOk()
-            ->assertInertia(fn ($page) => $page->component('Tv/Collection', false)
-                ->where('title', 'Vacances')
+            ->assertInertia(fn ($page) => $page->component('Tv/Album', false)
+                ->where('album.title', 'Vacances')
                 ->has('items', 3)
+                ->where('sections', [])
                 ->where('gameAlbumId', $this->album->id));
         $this->get('/tv/ecran/qui-est-ce')->assertOk()
             ->assertInertia(fn ($page) => $page->component('Tv/Game', false));
@@ -182,6 +184,36 @@ class TvTest extends TestCase
         // Album d'un autre : refusé.
         $foreign = Album::factory()->create(['user_id' => User::factory()->create()->id]);
         $this->get("/tv/ecran/albums/{$foreign->id}")->assertForbidden();
+    }
+
+    public function test_albums_par_decennie_et_par_theme_et_voyage_jour_par_jour(): void
+    {
+        $this->withoutVite();
+        $trips = [];
+        foreach (['Italie' => '2022-08-03', 'Iran' => '2018-04-10'] as $name => $day) {
+            $trips[$name] = $album = Album::factory()->create(['user_id' => $this->me->id, 'name' => $name, 'theme' => 'voyage']);
+            foreach (range(0, 2) as $i) {
+                $album->media()->attach(Media::factory()->photo()->create(['user_id' => $this->me->id, 'taken_at' => \Carbon\Carbon::parse($day)->addDays($i)->setTime(12, 0)])->id);
+            }
+        }
+        $archives = Album::factory()->create(['user_id' => $this->me->id, 'name' => 'Vieilles photos', 'theme' => 'archives']);
+        $archives->media()->attach(Media::factory()->photo()->create(['user_id' => $this->me->id, 'taken_at' => '1955-06-01 12:00'])->id);
+
+        $this->actingAs($this->me);
+        $rows = collect($this->get('/tv/ecran/albums')->assertOk()->viewData('page')['props']['rows'])->keyBy('key');
+        $this->assertContains('Italie', collect($rows['decade-2020']['albums'])->pluck('name')->all());
+        $this->assertNotContains('Iran', collect($rows['decade-2020']['albums'])->pluck('name')->all());
+        $this->assertContains('Iran', collect($rows['decade-2010']['albums'])->pluck('name')->all());
+        $this->assertFalse($rows->has('decade-1950'), 'les archives sont rangées à part, pas dans leur décennie');
+        $this->assertSame(['Vieilles photos'], collect($rows['archives']['albums'])->pluck('name')->all());
+        $this->assertSame(['Italie', 'Iran'], collect($rows['theme-voyage']['albums'])->pluck('name')->all());
+        $this->assertSame('all', $rows->keys()->last());
+
+        $props = $this->get("/tv/ecran/albums/{$trips['Italie']->id}")->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Tv/Album', false))->viewData('page')['props'];
+        $this->assertStringContainsString('Voyage', $props['album']['theme']);
+        $this->assertSame(['Jour 1', 'Jour 2', 'Jour 3'], collect($props['sections'])->pluck('title')->all());
+        $this->assertCount(1, $props['sections'][0]['items']);
     }
 
     public function test_histoires_lues_a_la_television(): void

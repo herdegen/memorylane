@@ -38,6 +38,19 @@ class TvController extends Controller
     /** Relations chargées pour un média de visionneuse. */
     private const ITEM_RELATIONS = ['conversions', 'people', 'albums', 'voiceNotes.person', 'voiceNotes.user'];
 
+    /** Rangées par thème de la page Albums (comme les filtres du site). */
+    private const THEME_ROWS = [
+        'voyage' => ['🧭', 'Voyages'], 'reunion' => ['👨‍👩‍👧', 'Réunions de famille'], 'mariage' => ['💍', 'Mariages'],
+        'bapteme' => ['🕊️', 'Baptêmes & communions'], 'anniversaire' => ['🎈', 'Anniversaires'], 'fete' => ['🎉', 'Fêtes'],
+    ];
+
+    /** Emoji et libellé (au singulier) du thème d'un album. */
+    private const THEME_LABELS = [
+        'voyage' => ['🧭', 'Voyage'], 'reunion' => ['👨‍👩‍👧', 'Réunion de famille'], 'mariage' => ['💍', 'Mariage'],
+        'bapteme' => ['🕊️', 'Baptême ou communion'], 'anniversaire' => ['🎈', 'Anniversaire'], 'fete' => ['🎉', 'Fête'],
+        'archives' => ['📜', 'Archives'],
+    ];
+
     /** Albums au plus dans une rangée. */
     private const ROW_LIMIT = 24;
 
@@ -72,9 +85,22 @@ class TvController extends Controller
         $cards = fn (array $ids) => collect($ids)->map(fn ($id) => $byId[$id] ?? null)->filter()
             ->take(self::ROW_LIMIT)->map(fn ($a) => $this->albumCard($a))->values();
 
-        $rows = collect($sections['rows'])->map(fn ($r) => ['key' => $r['key'], 'title' => $r['title'], 'albums' => $cards($r['ids'])]);
+        // Comme la page Albums du site : une rangée par décennie (la plus
+        // récente d'abord), les archives à part (photos de plusieurs époques),
+        // puis une rangée par thème, et tous les albums.
+        $isArchive = fn ($id) => ($byId[$id]->theme ?? null) === 'archives';
+        $rows = collect();
         foreach (array_reverse($sections['decades']) as $d) {
-            $rows->push(['key' => 'decade-'.$d['decade'], 'title' => __('Les années :decade', ['decade' => $d['decade']]), 'albums' => $cards($d['ids'])]);
+            $rows->push(['key' => 'decade-'.$d['decade'], 'title' => self::decadeTitle($d['decade']),
+                'albums' => $cards(array_values(array_filter($d['ids'], fn ($id) => ! $isArchive($id))))]);
+        }
+        $rows->push(['key' => 'archives', 'title' => '📜 '.__('Archives de famille'),
+            'albums' => $cards($albums->filter(fn ($a) => $a->theme === 'archives')->pluck('id')->all())]);
+        foreach (self::THEME_ROWS as $theme => [$emoji, $label]) {
+            $ids = $albums->filter(fn ($a) => $a->theme === $theme)->sortByDesc('first_at')->pluck('id')->all();
+            if (count($ids) >= 2) {
+                $rows->push(['key' => 'theme-'.$theme, 'title' => $emoji.' '.__($label), 'albums' => $cards($ids)]);
+            }
         }
         $rows->push([
             'key' => 'all',
@@ -102,14 +128,74 @@ class TvController extends Controller
             ->with(self::ITEM_RELATIONS)
             ->limit(self::ITEMS_LIMIT)->get();
         $dates = $media->pluck('taken_at')->filter();
+        $index = $media->pluck('id')->flip();
 
-        return Inertia::render('Tv/Collection', [
+        // Rubriques du thème, celles du site (les mariés, jour par jour, les
+        // décennies…) : chacune devient une rangée parcourable.
+        $album->setRelation('media', $media);
+        $highlights = app(\App\Services\AlbumHighlights::class)->for($album, $user);
+        $sections = [];
+        $indices = fn (array $ids) => array_values(array_filter(array_map(fn ($id) => $index[$id] ?? null, $ids), fn ($i) => $i !== null));
+        foreach ($highlights['sections'] ?? [] as $section) {
+            switch ($section['type']) {
+                case 'role':
+                    $names = collect($section['people'])->pluck('first_name')->filter();
+                    $items = $indices($section['ids'] ?? []);
+                    if ($items) {
+                        $sections[] = ['key' => $section['key'], 'title' => $names->isNotEmpty() ? $names->join(' & ') : $section['title'], 'subtitle' => $names->isNotEmpty() ? $section['title'] : null, 'items' => $items];
+                    }
+                    break;
+                case 'tiles':
+                case 'undated':
+                    if ($items = $indices($section['ids'] ?? [])) {
+                        $sections[] = ['key' => $section['key'], 'title' => $section['title'], 'subtitle' => $section['why'] ?? null, 'items' => $items];
+                    }
+                    break;
+                case 'rows':
+                    foreach ($section['rows'] as $row) {
+                        if ($items = $indices($row['ids'] ?? [])) {
+                            $sections[] = ['key' => $section['key'].'-'.$row['key'], 'title' => $row['title'], 'subtitle' => $row['subtitle'] ?? null, 'items' => $items];
+                        }
+                    }
+                    break;
+                case 'people':
+                    $people = collect($section['people'])->map(fn ($p) => [
+                        'id' => $p['id'], 'name' => $p['name'], 'avatar_url' => $p['avatar_url'] ?? null,
+                        'sub' => trans_choice(':count photo|:count photos', count($p['ids'] ?? [])),
+                        'items' => $indices($p['ids'] ?? []),
+                    ])->filter(fn ($p) => $p['items'] !== [])->values();
+                    if ($people->count() >= 2) {
+                        $sections[] = ['key' => $section['key'], 'title' => $section['title'], 'subtitle' => $section['subtitle'] ?? null, 'people' => $people];
+                    }
+                    break;
+            }
+        }
+
+        [$emoji, $label] = self::THEME_LABELS[$album->theme] ?? [null, null];
+        $hero = $album->hero_media_id ? $media->firstWhere('id', $album->hero_media_id) : null;
+        $hero ??= $album->cover_media_id ? $media->firstWhere('id', $album->cover_media_id) : null;
+        $hero ??= $media->first();
+
+        return Inertia::render('Tv/Album', [
             ...$this->frame($request, 'albums'),
-            'title' => $album->name,
-            'subtitle' => $this->countLabel($media).($dates->isNotEmpty() ? ' · '.$this->periodLabel($dates->min(), $dates->max()) : ''),
+            'album' => [
+                'id' => $album->id,
+                'title' => $album->name,
+                'theme' => $label ? $emoji.' '.__($label) : null,
+                'subtitle' => $this->countLabel($media).($dates->isNotEmpty() ? ' · '.$this->periodLabel($dates->min(), $dates->max()) : ''),
+                'description' => $album->description,
+                'hero' => $hero ? $this->mediaService->thumbnailUrl($hero, ['large', 'medium']) : null,
+            ],
             'items' => $media->map(fn (Media $m) => $this->item($m, $user))->values(),
+            'sections' => $sections,
             'gameAlbumId' => $album->id,
         ]);
+    }
+
+    /** « Les années 2020 » (en anglais « The 2020s »). */
+    private static function decadeTitle(int $decade): string
+    {
+        return __('Les années :decade', ['decade' => $decade]);
     }
 
     /** Photos d'un proche (onglet Proches, carte « Personne du jour », recherche). */
