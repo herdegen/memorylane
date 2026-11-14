@@ -88,6 +88,12 @@ class StoryCirculationTest extends TestCase
         $this->assertSame(2, $first['total']);
         $this->assertSame('En 1890…', $first['summary']);
         $this->assertStringContainsString('« L’affaire Kieffer »', $issue['subject']);
+        // Une histoire qui commence passe en tête de l'objet, avant les photos.
+        $this->assertStringStartsWith('Cette semaine en famille : une histoire de famille, « L’affaire Kieffer »', $issue['subject']);
+        // Semaine de l'annonce « Les histoires de famille » (jusqu'au 30/11/2026) : l'épisode la suit aussitôt.
+        if (($issue['sections'][0]['ref'] ?? null) === 'histoires') {
+            $this->assertSame('story', $issue['sections'][1]['key']);
+        }
         $this->send($issue);
 
         Carbon::setTestNow(now()->addWeek());

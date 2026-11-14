@@ -18,7 +18,7 @@ class FeatureSpotlights
      *
      * @var array<string, string> clé => dernier jour de mise en avant
      */
-    public const NEW = ['carte_temps' => '2026-11-30'];
+    public const NEW = ['histoires' => '2026-11-30', 'carte_temps' => '2026-11-30'];
 
     /**
      * Les fonctionnalités, textes dans la langue courante.
@@ -28,6 +28,12 @@ class FeatureSpotlights
     public static function all(): array
     {
         return [
+            'histoires' => [
+                'title' => __('Les histoires de famille'),
+                'text' => __('Des documents, des souvenirs et des photos réunis en une vraie histoire, chapitre par chapitre, avec ce qu’on sait, ce qu’on suppose et les questions qui restent. Chaque dimanche, la lettre en publie un épisode. Toi aussi, tu peux en raconter une, ou répondre aux questions posées à la famille.'),
+                'url' => '/stories',
+                'cta' => __('Lire les histoires'),
+            ],
             'carte_temps' => [
                 'title' => __('La famille dans le temps'),
                 'text' => __('Sur la carte, « Dans le temps » fait défiler les années : naissances, mariages, maisons successives et voyages. Lance la lecture et regarde la famille se déplacer, génération après génération.'),

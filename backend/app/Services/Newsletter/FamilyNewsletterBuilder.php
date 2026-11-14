@@ -157,6 +157,12 @@ class FamilyNewsletterBuilder
         // Une nouveauté du site ouvre la lettre ; sinon la découverte la ferme.
         $spotlight = $this->spotlight($sections);
         if ($spotlight['new']) {
+            // Annonce des histoires : l'épisode du feuilleton la suit
+            // aussitôt, en exemple, au lieu d'attendre plus bas.
+            if ($spotlight['ref'] === 'histoires') {
+                $story = array_values(array_filter($sections, fn ($s) => $s['key'] === 'story'));
+                $sections = [...$story, ...array_values(array_filter($sections, fn ($s) => $s['key'] !== 'story'))];
+            }
             array_unshift($sections, $spotlight);
         } else {
             $sections[] = $spotlight;
@@ -815,16 +821,19 @@ class FamilyNewsletterBuilder
     {
         $by = collect($sections)->keyBy('key');
         $parts = [];
+        // Une histoire qui commence passe en tête de l'objet.
+        $story = $by->get('story');
+        if ($story && $story['number'] === 1) {
+            $parts[] = __('une histoire de famille, « :title »', ['title' => $story['title']]);
+        }
         if ($p = $by->get('new_photos')) {
             $parts[] = $p['count'] === 1 ? __('1 nouvelle photo') : __(':count nouvelles photos', ['count' => $p['count']]);
         }
         if ($b = collect($by->get('upcoming')['items'] ?? [])->firstWhere('kind', 'birthday')) {
             $parts[] = __('l\'anniversaire de :name', ['name' => $b['name']]);
         }
-        if ($st = $by->get('story')) {
-            $parts[] = $st['number'] === 1
-                ? __('une histoire de famille, « :title »', ['title' => $st['title']])
-                : __('la suite de « :title »', ['title' => $st['title']]);
+        if ($story && $story['number'] > 1) {
+            $parts[] = __('la suite de « :title »', ['title' => $story['title']]);
         }
         if ($p = $by->get('person_of_week')) {
             $parts[] = __(':name à l\'honneur', ['name' => $p['first_name']]);

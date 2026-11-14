@@ -122,22 +122,29 @@ class FamilyNewsletterTest extends TestCase
         $this->featuredPerson('Yves');
         $this->featuredPerson('Anne');
 
-        // Jamais montrée : en tête de lettre, « Nouveau », lien vers la carte
-        // ouverte sur « Dans le temps ».
+        // Jamais montrées : en tête de lettre, « Nouveau », une par semaine
+        // dans l'ordre (les histoires, puis la carte « Dans le temps »).
         $first = $this->build($this->me);
-        $this->assertSame(['spotlight', 'carte_temps', true], [$first['sections'][0]['key'], $first['sections'][0]['ref'], $first['sections'][0]['new']]);
-        $this->assertSame('Nouveau sur MemoryLane : la famille dans le temps.', $first['preheader']);
+        $this->assertSame(['spotlight', 'histoires', true], [$first['sections'][0]['key'], $first['sections'][0]['ref'], $first['sections'][0]['new']]);
+        $this->assertSame('Nouveau sur MemoryLane : les histoires de famille.', $first['preheader']);
         $html = (new FamilyNewsletterMail($this->me, $first))->render();
         $this->assertStringContainsString('Nouveau sur MemoryLane', $html);
-        $this->assertStringContainsString('/map?temps=1', $html);
+        $this->assertStringContainsString('/stories', $html);
         NewsletterSend::create(['user_id' => $this->me->id, 'sections' => $first['log'], 'subject' => $first['subject'], 'sent_at' => now()]);
 
-        // La semaine suivante : la rotation ordinaire reprend, en fin de lettre.
         Carbon::setTestNow(now()->addWeek());
         $second = $this->build($this->me);
-        $last = end($second['sections']);
+        $this->assertSame(['spotlight', 'carte_temps', true], [$second['sections'][0]['key'], $second['sections'][0]['ref'], $second['sections'][0]['new']]);
+        $this->assertStringContainsString('/map?temps=1', (new FamilyNewsletterMail($this->me, $second))->render());
+        NewsletterSend::create(['user_id' => $this->me->id, 'sections' => $second['log'], 'subject' => $second['subject'], 'sent_at' => now()]);
+
+        // Toutes vues : la rotation ordinaire reprend, en fin de lettre.
+        Carbon::setTestNow(now()->addWeek());
+        $this->featuredPerson('Lucie');
+        $third = $this->build($this->me);
+        $last = end($third['sections']);
         $this->assertSame('spotlight', $last['key']);
-        $this->assertNotSame('carte_temps', $last['ref']);
+        $this->assertNotContains($last['ref'], ['histoires', 'carte_temps']);
         $this->assertFalse($last['new']);
 
         // Passé la période de mise en avant, plus de priorité, même jamais montrée.
