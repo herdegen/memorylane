@@ -97,6 +97,7 @@ const ALL_TABS = [
   { key: 'albums', label: t('Albums'), href: '/tv/ecran/albums' },
   { key: 'photos', label: t('Photos'), href: '/tv/ecran/photos' },
   { key: 'people', label: t('Proches'), href: '/tv/ecran/proches' },
+  { key: 'stories', label: t('Histoires'), href: '/tv/ecran/histoires' },
   { key: 'tree', label: t('Arbre'), href: '/tv/ecran/arbre', family: true },
   { key: 'map', label: t('Carte'), href: '/tv/ecran/carte' },
   { key: 'game', label: t('Qui est-ce ?'), href: '/tv/ecran/qui-est-ce' },

@@ -184,6 +184,49 @@ class TvTest extends TestCase
         $this->get("/tv/ecran/albums/{$foreign->id}")->assertForbidden();
     }
 
+    public function test_histoires_lues_a_la_television(): void
+    {
+        $this->withoutVite();
+        $gaspard = Person::factory()->create(['user_id' => $this->me->id, 'name' => 'Gaspard', 'in_family_directory' => true]);
+        $this->family->people()->syncWithoutDetaching([$gaspard->id]);
+        $doc = $this->album->media()->first();
+        $hidden = Media::factory()->photo()->create(['user_id' => User::factory()->create()->id]);
+        $story = \App\Models\Story::create(['user_id' => $this->me->id, 'title' => 'L’affaire', 'summary' => 'En 1890…', 'kind' => 'documented', 'disagreements' => 'Deux dates.', 'published_at' => now()]);
+        $story->people()->attach($gaspard->id, ['is_main' => true]);
+        $long = str_repeat('Une phrase assez longue pour remplir la page de la télévision. ', 25);
+        $story->chapters()->create(['position' => 0, 'title' => 'Paris', 'when_label' => '1867 – 1889', 'blocks' => [
+            ['type' => 'text', 'text' => $long],
+            ['type' => 'quote', 'text' => 'Il est parti.', 'cite' => 'Annick'],
+            ['type' => 'media', 'media_id' => $doc->id, 'caption' => 'La coupure'],
+            ['type' => 'media', 'media_id' => $hidden->id, 'caption' => 'Pas pour nous'],
+        ]]);
+        $story->questions()->create(['position' => 0, 'text' => 'Qui sait ?']);
+
+        $this->actingAs($this->me);
+        $this->get('/tv/ecran/histoires')->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Tv/Stories', false)->where('tab', 'stories')
+                ->where('stories.0.title', 'L’affaire')->where('stories.0.period', '1867 – 1889')->where('stories.0.chapters', 1));
+
+        $pages = $this->get("/tv/ecran/histoires/{$story->id}")->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Tv/Story', false))
+            ->viewData('page')['props']['pages'];
+        $types = array_column($pages, 'type');
+        $this->assertSame('cover', $types[0]);
+        $this->assertSame('chapter', $types[1]);
+        $this->assertGreaterThan(1, count(array_keys($types, 'text')), 'texte long découpé en plusieurs pages');
+        $this->assertCount(1, array_keys($types, 'media'), 'le document que ce compte ne voit pas est retiré');
+        $this->assertSame('open', end($types));
+        $this->assertSame(['Qui sait ?'], end($pages)['questions']);
+        foreach (array_filter($pages, fn ($p) => $p['type'] === 'text') as $p) {
+            $this->assertLessThanOrEqual(700, mb_strlen($p['text']));
+        }
+
+        // Brouillon d'un autre, ou histoire d'une autre famille : introuvable.
+        $draft = \App\Models\Story::create(['user_id' => User::factory()->create()->id, 'title' => 'Brouillon', 'kind' => 'memory']);
+        $draft->people()->attach($gaspard->id, ['is_main' => true]);
+        $this->get("/tv/ecran/histoires/{$draft->id}")->assertNotFound();
+    }
+
     public function test_photos_par_annee_et_collections(): void
     {
         $this->actingAs($this->me);

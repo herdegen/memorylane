@@ -134,6 +134,8 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictGuest::class, \App\Http\
         Route::get('/carte/temps', 'timeline')->name('timeline');
         Route::get('/ce-jour-la', 'memories')->name('memories');
         Route::get('/qui-est-ce', 'game')->name('game');
+        Route::get('/histoires', 'stories')->name('stories');
+        Route::get('/histoires/{story}', 'story')->name('story');
         Route::post('/cercle', 'circle')->name('circle');
         Route::post('/delier', 'unlink')->name('unlink');
     });

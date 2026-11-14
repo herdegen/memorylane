@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Album;
 use App\Models\Media;
 use App\Models\Person;
+use App\Models\Story;
 use App\Models\TvDevice;
 use App\Models\User;
 use App\Models\VoiceNote;
@@ -412,6 +413,138 @@ class TvController extends Controller
             'title' => SimpleModeController::caption($m),
             'when' => $m->taken_at ? self::dateLabel($m->taken_at) : null,
         ])->values()]);
+    }
+
+    // ---- Histoires de famille ---------------------------------------------
+
+    /** Texte d'une page de lecture à 3 mètres : au plus ~ ce nombre de caractères. */
+    private const STORY_PAGE_CHARS = 620;
+
+    /** Les histoires publiées que le compte peut lire (et ses brouillons). */
+    public function stories(Request $request)
+    {
+        $user = $request->user();
+        $closeness = $this->genealogy->closeness($user->person_id);
+        $stories = Story::visibleTo($user)->with(['people', 'chapters'])->get()
+            ->sortBy(fn (Story $s) => [$closeness[$s->mainPerson()?->id] ?? PHP_INT_MAX, -($s->published_at ?? $s->updated_at)->timestamp])
+            ->values();
+        $covers = Media::accessibleBy($user)->whereIn('id', $stories->map(fn (Story $s) => $s->mediaIds()[0] ?? null)->filter()->all())
+            ->with('conversions')->get()->keyBy('id');
+
+        return Inertia::render('Tv/Stories', [
+            ...$this->frame($request, 'stories'),
+            'stories' => $stories->map(fn (Story $s) => [
+                'id' => $s->id,
+                'title' => $s->title,
+                'summary' => $s->summary,
+                'kind' => $s->kind,
+                'period' => self::storyPeriod($s),
+                'chapters' => $s->chapters->count(),
+                'main' => $s->mainPerson()?->name,
+                'draft' => $s->published_at === null,
+                'cover' => ($c = $covers->get($s->mediaIds()[0] ?? '')) ? $this->mediaService->thumbnailUrl($c, ['large', 'medium']) : null,
+            ])->values(),
+        ]);
+    }
+
+    /**
+     * Une histoire lue au salon : une suite de pages (couverture, ouverture de
+     * chapitre, texte découpé à taille d'écran, citation, document en grand,
+     * puis ce qu'on ignore et les questions), parcourues à la télécommande.
+     */
+    public function story(Request $request, Story $story)
+    {
+        $user = $request->user();
+        abort_unless($story->isVisibleTo($user), 404);
+        $story->load(['people', 'chapters', 'questions']);
+        $media = Media::accessibleBy($user)->whereIn('id', $story->mediaIds())->with('conversions')->get()->keyBy('id');
+
+        $pages = [[
+            'type' => 'cover',
+            'title' => $story->title,
+            'summary' => $story->summary,
+            'kind' => $story->kind,
+            'period' => self::storyPeriod($story),
+            'people' => $story->people->map(fn (Person $p) => $p->name)->values(),
+            'credits' => $story->credits,
+            'image' => ($c = $media->get($story->mediaIds()[0] ?? '')) ? $this->mediaService->thumbnailUrl($c, ['large', 'medium']) : null,
+        ]];
+        $total = $story->chapters->count();
+        foreach ($story->chapters->values() as $i => $chapter) {
+            $label = ['number' => $i + 1, 'total' => $total, 'title' => $chapter->title];
+            $pages[] = ['type' => 'chapter', 'when' => $chapter->when_label] + $label;
+            foreach ($chapter->blocks as $block) {
+                switch ($block['type'] ?? null) {
+                    case 'text':
+                        foreach (self::storyChunks((string) $block['text']) as $chunk) {
+                            $pages[] = ['type' => 'text', 'text' => $chunk, 'chapter' => $label];
+                        }
+                        break;
+                    case 'quote':
+                        $pages[] = ['type' => 'quote', 'text' => $block['text'], 'cite' => $block['cite'] ?? null, 'chapter' => $label];
+                        break;
+                    case 'media':
+                        // Document que ce compte ne voit pas : pas de page.
+                        if ($m = $media->get($block['media_id'] ?? '')) {
+                            $pages[] = [
+                                'type' => 'media',
+                                'src' => $this->mediaService->thumbnailUrl($m, ['large', 'medium']),
+                                'video' => $m->type === 'video',
+                                'caption' => $block['caption'] ?? $m->title,
+                                'chapter' => $label,
+                            ];
+                        }
+                        break;
+                }
+            }
+        }
+        if (filled($story->disagreements) || $story->questions->isNotEmpty()) {
+            $pages[] = [
+                'type' => 'open',
+                'unknown' => $story->disagreements,
+                'questions' => $story->questions->pluck('text')->values(),
+            ];
+        }
+
+        return Inertia::render('Tv/Story', [
+            ...$this->frame($request, 'stories'),
+            'story' => ['id' => $story->id, 'title' => $story->title],
+            'pages' => $pages,
+        ]);
+    }
+
+    /** Années couvertes par les chapitres (« 1915 – 1945 »). */
+    private static function storyPeriod(Story $story): ?string
+    {
+        $years = $story->chapters->flatMap(fn ($c) => preg_match_all('/\b(1[0-9]{3}|20[0-9]{2})\b/', (string) $c->when_label, $m) ? $m[1] : [])->map(fn ($y) => (int) $y);
+
+        return $years->isEmpty() ? null : ($years->min() === $years->max() ? (string) $years->min() : $years->min().' – '.$years->max());
+    }
+
+    /**
+     * Découpe un paragraphe en pages lisibles à la télévision, aux fins de
+     * phrases (une phrase trop longue reste entière).
+     *
+     * @return list<string>
+     */
+    private static function storyChunks(string $text): array
+    {
+        $sentences = preg_split('/(?<=[.!?…»])\s+(?=[A-ZÀ-ÖØ-Þ«“"(0-9])/u', trim($text)) ?: [$text];
+        $chunks = [];
+        $current = '';
+        foreach ($sentences as $sentence) {
+            if ($current !== '' && mb_strlen($current) + mb_strlen($sentence) + 1 > self::STORY_PAGE_CHARS) {
+                $chunks[] = $current;
+                $current = $sentence;
+            } else {
+                $current = $current === '' ? $sentence : $current.' '.$sentence;
+            }
+        }
+        if ($current !== '') {
+            $chunks[] = $current;
+        }
+
+        return $chunks;
     }
 
     // ---- Arbre de la famille -----------------------------------------------

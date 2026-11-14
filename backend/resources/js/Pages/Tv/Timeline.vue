@@ -152,14 +152,18 @@ async function reload() {
   await nextTick();
   focusInitial();
 
-  // Cadrage sur le cœur de la famille (lieux à moins de 1 500 km de son
-  // centre), entre l'en-tête et le panneau, en proportion de l'écran ; toute
-  // l'étendue seulement si la famille est vraiment dispersée.
+  // Cadrage sur le cœur de la famille, entre l'en-tête et le panneau : le
+  // plus petit cercle autour du centre (médiane) qui garde au moins 60 % des
+  // lieux — 450 km cadre un pays comme la France, les lointains (Allemagne,
+  // Amérique…) apparaissant quand la frise y passe. Toute l'étendue seulement
+  // si la famille est vraiment dispersée.
   const points = tracks.flatMap((t) => t.filter((s) => !s.trip).map((s) => [Number(s.lat), Number(s.lng)]));
   const middle = [median(points.map((p) => p[0])), median(points.map((p) => p[1]))];
-  const core = points.filter((p) => km(p, middle) <= 1500);
-  const frame = core.length >= points.length * 0.7 ? core : (dataBounds(tracks) ?? points);
-  if (frame.length) showAll(map, frame, { top: 0.18, bottom: 0.46, maxZoom: 7, animate: false });
+  const core = [450, 700, 1000, 1500]
+    .map((radius) => points.filter((p) => km(p, middle) <= radius))
+    .find((inside) => inside.length >= points.length * 0.6);
+  const frame = core ?? dataBounds(tracks) ?? points;
+  if (frame.length) showAll(map, frame, { top: 0.16, bottom: 0.44, maxZoom: 7, animate: false, pad: 0.05 });
   seek(0);
   render();
   setTimeout(() => { if (mine === load && state.value === 'ready') play(); }, 1200);
