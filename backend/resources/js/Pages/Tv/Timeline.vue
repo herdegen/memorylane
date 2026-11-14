@@ -90,14 +90,12 @@ let lastHeat = 0;
 let destroyed = false;
 let load = 0;
 
-const km = (a, b) => {
-  const r = Math.PI / 180;
-  const h = Math.sin(((b[0] - a[0]) * r) / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(((b[1] - a[1]) * r) / 2) ** 2;
-  return 12742 * Math.asin(Math.sqrt(h));
-};
-const median = (values) => {
-  const v = [...values].sort((x, y) => x - y);
-  return v.length ? v[Math.floor(v.length / 2)] : 0;
+/** Coins de la boîte qui garde les lieux entre les quantiles f et 1 − f, en latitude et en longitude. */
+const centralBox = (points, f) => {
+  const q = (values, at) => { const sorted = [...values].sort((x, y) => x - y); return sorted[Math.round((sorted.length - 1) * at)]; };
+  const lats = points.map((p) => p[0]);
+  const lngs = points.map((p) => p[1]);
+  return [[q(lats, f), q(lngs, f)], [q(lats, 1 - f), q(lngs, 1 - f)]];
 };
 
 const numberFormat = new Intl.NumberFormat(intlLocale());
@@ -152,18 +150,14 @@ async function reload() {
   await nextTick();
   focusInitial();
 
-  // Cadrage sur le cœur de la famille, entre l'en-tête et le panneau : le
-  // plus petit cercle autour du centre (médiane) qui garde au moins 60 % des
-  // lieux — 450 km cadre un pays comme la France, les lointains (Allemagne,
-  // Amérique…) apparaissant quand la frise y passe. Toute l'étendue seulement
-  // si la famille est vraiment dispersée.
+  // Cadrage sur le cœur de la famille, entre l'en-tête et le panneau : on
+  // écarte 5 % des lieux de chaque côté (en latitude et en longitude) — la
+  // France d'une famille française remplit l'écran, les lointains (Allemagne,
+  // Amérique…) apparaissent quand la frise y passe. Marges = hauteur réelle
+  // de l'en-tête (≈ 12 %) et du panneau du bas (≈ 34 %).
   const points = tracks.flatMap((t) => t.filter((s) => !s.trip).map((s) => [Number(s.lat), Number(s.lng)]));
-  const middle = [median(points.map((p) => p[0])), median(points.map((p) => p[1]))];
-  const core = [450, 700, 1000, 1500]
-    .map((radius) => points.filter((p) => km(p, middle) <= radius))
-    .find((inside) => inside.length >= points.length * 0.6);
-  const frame = core ?? dataBounds(tracks) ?? points;
-  if (frame.length) showAll(map, frame, { top: 0.16, bottom: 0.44, maxZoom: 7, animate: false, pad: 0.05 });
+  const frame = points.length >= 10 ? centralBox(points, 0.05) : (dataBounds(tracks) ?? points);
+  if (frame.length) showAll(map, frame, { top: 0.12, bottom: 0.34, maxZoom: 7, animate: false, pad: 0.06 });
   seek(0);
   render();
   setTimeout(() => { if (mine === load && state.value === 'ready') play(); }, 1200);

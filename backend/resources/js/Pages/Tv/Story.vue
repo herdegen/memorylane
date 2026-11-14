@@ -11,9 +11,8 @@
 
       <Transition name="tvpage" mode="out-in">
         <!-- Couverture -->
-        <section v-if="page.type === 'cover'" :key="index" class="relative flex-1 min-h-0 flex items-center px-24">
-          <img v-if="page.image" :src="page.image" alt="" class="absolute right-24 top-8 bottom-8 max-w-[44%] h-[calc(100%-4rem)] object-contain rounded-2xl opacity-90" />
-          <div class="relative w-[58%] flex flex-col gap-6">
+        <section v-if="page.type === 'cover'" :key="index" class="relative flex-1 min-h-0 flex items-center gap-12 px-24 py-8">
+          <div class="relative w-[52%] flex flex-col gap-6">
             <span class="self-start px-4.5 py-2 rounded-full bg-white/15 text-[1.375rem] font-extrabold tracking-[.08em] uppercase">
               {{ kindLabel(page.kind) }}<template v-if="page.period"> · {{ page.period }}</template>
             </span>
@@ -22,6 +21,7 @@
             <p v-if="page.people.length" class="text-[1.625rem] text-[#b9ad9c]">{{ page.people.join(' · ') }}</p>
             <p class="mt-4 text-[1.75rem] font-bold text-[#fcd34d]">▶ {{ $t('Appuyez sur ▶ pour commencer') }}</p>
           </div>
+          <img v-if="page.image" :src="page.image" alt="" class="ml-auto w-[42%] max-h-full object-contain rounded-2xl opacity-90" />
         </section>
 
         <!-- Ouverture d'un chapitre -->
