@@ -40,13 +40,18 @@ export function homonymNames(list) {
   return twice;
 }
 
-// Repère affiché à côté du nom : les années de vie ; à défaut, pour un
-// homonyme, le nombre de photos où il est déjà reconnu (« aucune photo »).
+// Repère affiché à côté du nom : les années de vie ; pour un homonyme, aussi
+// son nom de naissance, à défaut le nombre de photos où il est déjà reconnu.
 export function personHint(p, homonyms) {
   const years = lifeYears(p);
-  if (years || !homonyms?.has(normalize(p.name))) return years;
-  const n = p.matched_faces_count ?? 0;
-  return n > 0 ? tc(':count photo|:count photos', n) : t('aucune photo');
+  if (!homonyms?.has(normalize(p.name))) return years;
+  // Homonymes : nom de naissance en plus, puis les photos si rien d'autre.
+  const parts = [years, p.maiden_name ? t('née :name', { name: p.maiden_name }) : ''].filter(Boolean);
+  if (!parts.length) {
+    const n = p.matched_faces_count ?? 0;
+    parts.push(n > 0 ? tc(':count photo|:count photos', n) : t('aucune photo'));
+  }
+  return parts.join(' · ');
 }
 
 // Tolérance d'un an, comme le garde-fou serveur (vieilles photos mal datées).
