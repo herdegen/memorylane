@@ -29,6 +29,7 @@ export function lifeYears(p) {
 
 // Tolérance d'un an, comme le garde-fou serveur (vieilles photos mal datées).
 const TOLERANCE = 1;
+const PRESUMED_MAX_AGE = 100;
 
 // Vraisemblance sur la photo : 0 âge cohérent, 1 inconnu, 2 âge très éloigné
 // du visage, 3 impossible (pas encore né·e ou déjà décédé·e).
@@ -38,6 +39,8 @@ export function photoFit(p, photo) {
   const d = deathYear(p);
   if (b && b > photo.to + TOLERANCE) return 3;
   if (d && d < photo.from - TOLERANCE) return 3;
+  // Sans date de décès : présumé·e disparu·e au-delà de 100 ans (comme le serveur).
+  if (b && !d && photo.from - b > PRESUMED_MAX_AGE) return 3;
   if (!b) return 1;
   const age = photo.face_age;
   if (age == null) return 0;
