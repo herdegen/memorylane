@@ -283,6 +283,9 @@ class VisionController extends Controller
 
         return response()->json([
             'suggestions' => $suggestions,
+            // Années de la photo et âge du visage : le client classe toute la
+            // liste (vivants à cette date et d'un âge cohérent d'abord).
+            'photo' => app(\App\Services\Vision\FacePlausibility::class)->photoContext($detectedFace->media, $detectedFace),
             // Présents sur l'album mais sans ressemblance calculée : proposés
             // juste après les suggestions.
             'album_people' => $albumPeople->reject(fn ($p) => isset($suggested[$p['id']]))->values(),

@@ -81,7 +81,7 @@
             >
               <PersonAvatar :person="s.person" :size="9" class="shrink-0" />
               <span class="flex-1 min-w-0">
-                <span class="block text-[15px] font-bold truncate">{{ s.person.name }}</span>
+                <span class="block text-[15px] font-bold truncate">{{ s.person.name }}<span v-if="lifeYears(s.person)" class="font-medium text-stone-500 text-[13px] tabular-nums"> · {{ lifeYears(s.person) }}</span></span>
                 <span class="block h-1 rounded-full bg-stone-200 mt-1 overflow-hidden">
                   <span class="block h-full rounded-full" :class="s.score >= 0.75 ? 'bg-emerald-600' : 'bg-amber-500'" :style="{ width: Math.round(s.score * 100) + '%' }"></span>
                 </span>
@@ -159,13 +159,14 @@
           :key="p.id"
           type="button"
           class="w-full flex items-center gap-3 px-4 h-14 text-left active:bg-surface-50 disabled:opacity-50"
+          :class="{ 'opacity-50': isImpossible(p, card?.face?.photo) }"
           :disabled="busy"
           @click="confirmPerson(p)"
         >
           <PersonAvatar :person="p" :size="10" class="shrink-0" />
           <span class="flex-1 min-w-0">
             <span class="block text-[15px] font-semibold text-surface-900 truncate">{{ p.name }}</span>
-            <span v-if="p.birth_date" class="block text-xs text-surface-500">{{ String(p.birth_date).slice(0, 4) }}</span>
+            <span v-if="lifeYears(p)" class="block text-xs text-surface-500 tabular-nums">{{ lifeYears(p) }}</span>
           </span>
         </button>
         <p v-if="pickerQuery && !pickerResults.length" class="px-4 py-4 text-sm text-surface-500">{{ $t('Aucune fiche ne correspond.') }}</p>
@@ -184,7 +185,7 @@ import axios from 'axios';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
 import BottomSheet from '@/Components/BottomSheet.vue';
 import ToastContainer from '@/Components/ToastContainer.vue';
-import { searchPeople } from '@/utils/personSearch';
+import { rankForFace, lifeYears, isImpossible } from '@/utils/faceCandidates';
 import { useToast } from '@/Composables/useToast';
 import { t, tc } from '@/i18n';
 
@@ -379,9 +380,9 @@ const pickerInput = ref(null);
 const people = ref(null);
 const peopleLoading = ref(false);
 const pickerResults = computed(() => {
-  const list = people.value || [];
-  if (!pickerQuery.value.trim()) return list.slice(0, 30);
-  return searchPeople(pickerQuery.value, list).slice(0, 30);
+  // Du plus évident au moins évident pour CETTE photo (vivant à sa date,
+  // âge du visage, déjà reconnu, parenté) ; homonymes départagés par l'année.
+  return rankForFace(people.value || [], pickerQuery.value, card.value?.face?.photo).slice(0, 30);
 });
 const openPicker = async () => {
   pickerQuery.value = '';

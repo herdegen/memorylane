@@ -52,6 +52,7 @@ class FaceGameTest extends TestCase
         $this->assertEqualsCanonicalizing([$a->id, $b->id], array_column($first['questions'], 'subject_id'));
         $this->assertSame('face_identify', $first['questions'][0]['type']);
         $this->assertArrayHasKey('crop_url', $first['questions'][0]['face']);
+        $this->assertArrayHasKey('photo', $first['questions'][0]['face']);
 
         $second = $this->actingAs($user)->getJson('/quests/faces/next?exclude[]='.$a->id)->assertOk()->json();
         $this->assertSame([$b->id], array_column($second['questions'], 'subject_id'));

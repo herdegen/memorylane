@@ -130,6 +130,33 @@ class FaceGuardsTest extends TestCase
         $this->assertSame('baby', $babyRow['doubts'][0]['code']);
     }
 
+    public function test_suggest_gives_photo_years_face_age_and_life_years(): void
+    {
+        $grandma = $this->person(['birth_date' => '1931-03-02', 'death_date' => '2019-07-01']);
+        $this->face($this->photo('2010-01-01'), 0.10, $grandma);
+
+        $media = $this->photo('1960-06-01');
+        $media->forceFill(['taken_at_precision' => 'decade'])->save();
+        $target = $this->face($media, 0.101);
+        $target->forceFill(['age_estimate' => 30])->save();
+
+        $data = $this->actingAs($this->user)->getJson("/vision/faces/{$target->id}/suggest")->assertOk()->json();
+
+        // Photo datée à la décennie : elle couvre 1960-1969.
+        $this->assertSame(['from' => 1960, 'to' => 1969, 'face_age' => 30], $data['photo']);
+        $row = collect($data['suggestions'])->firstWhere('person.id', $grandma->id);
+        $this->assertSame(1931, $row['person']['birth_year']);
+        $this->assertSame(2019, $row['person']['death_year']);
+    }
+
+    public function test_undated_photo_has_no_photo_years(): void
+    {
+        $target = $this->face(Media::factory()->create(['user_id' => $this->user->id, 'type' => 'photo', 'taken_at' => null]), 0.2);
+
+        $this->actingAs($this->user)->getJson("/vision/faces/{$target->id}/suggest")
+            ->assertOk()->assertJsonPath('photo.from', null)->assertJsonPath('photo.to', null);
+    }
+
     public function test_doubtful_candidate_is_never_auto_matched(): void
     {
         $baby = $this->person(['birth_date' => '1949-05-01']);

@@ -905,6 +905,8 @@ class QuestService
                 // Photo entière + cadre (%) pour situer le visage dans son contexte.
                 'image_url' => url("/vision/media/{$subject->media_id}/image?conversion=large"),
                 'bounding_box' => $subject->bounding_box,
+                // Années de la photo et âge du visage : classement de « Quelqu'un d'autre ».
+                'photo' => app(\App\Services\Vision\FacePlausibility::class)->photoContext($subject->media, $subject),
                 'origin' => $this->photoOrigin($user, $subject->media),
                 // « Sur cette photo avec Antoine et Pauline » : les personnes
                 // déjà identifiées (visibles) aident à reconnaître la suivante.

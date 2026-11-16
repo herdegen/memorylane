@@ -36,7 +36,7 @@
     >
       <p class="text-sm text-surface-700 mb-2">
         <Trans text="Suggestion : :name :score">
-          <template #name><span class="font-semibold text-surface-900">{{ topSuggestion.person.name }}</span></template>
+          <template #name><span class="font-semibold text-surface-900">{{ topSuggestion.person.name }}</span><span v-if="lifeYears(topSuggestion.person)" class="text-surface-500"> · {{ lifeYears(topSuggestion.person) }}</span></template>
           <template #score><span class="text-surface-500">({{ Math.round(topSuggestion.score * 100) }}%)</span></template>
         </Trans>
       </p>
@@ -75,10 +75,13 @@
           @click="matchToPerson(person)"
           :disabled="matching"
           class="w-full px-3 py-2 text-left text-sm hover:bg-brand-50 flex items-center gap-2 border-b border-surface-100 last:border-b-0"
+          :class="{ 'opacity-50': isImpossible(person, photo) }"
+          :title="isImpossible(person, photo) ? $t('Pas encore né·e ou déjà décédé·e à la date de la photo') : undefined"
         >
           <!-- Initiale seule (pas de photo) : rendu historique de cette liste. -->
           <PersonAvatar :name="person.name" :size="8" fallback-class="bg-surface-200 text-surface-600 font-medium" />
           <span>{{ person.name }}</span>
+          <span v-if="lifeYears(person)" class="text-xs text-surface-500 tabular-nums">{{ lifeYears(person) }}</span>
           <span v-if="person.onAlbum" class="text-xs text-surface-400">· {{ $t('sur l\'album') }}</span>
           <span v-else-if="person.elsewhere" class="text-xs text-surface-400">· {{ person.elsewhere_label }}</span>
           <span
@@ -160,7 +163,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import axios from 'axios';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
-import { matchesPerson, relevanceTier } from '@/utils/personSearch';
+import { rankForFace, lifeYears, isImpossible } from '@/utils/faceCandidates';
 import { useToast } from '@/Composables/useToast';
 import { useConfirm } from '@/Composables/useConfirm';
 import { apiError } from '@/utils/apiError';
@@ -190,6 +193,8 @@ const emit = defineEmits(['matched', 'dismissed', 'reset', 'close']);
 const searchQuery = ref('');
 const people = ref([]);
 const suggestions = ref([]); // candidats classés par proximité (embedding)
+// Repères de la photo : années possibles et âge apparent du visage (tri).
+const photo = ref(null);
 const albumPeople = ref([]); // déjà identifiés dans un album de la photo
 const loadingPeople = ref(false);
 const matching = ref(false);
@@ -214,24 +219,6 @@ const loadPeople = async () => {
   }
 };
 
-// Tri des « autres » personnes : proximité de parenté d'abord (les proches du
-// user connecté remontent, ex. sa grand-mère avant des homonymes lointains),
-// puis date de naissance décroissante (familles récentes = plus de photos),
-// puis nom. Les personnes sans lien de parenté connu passent en fin.
-const byKinshipThenBirth = (a, b) => {
-  const pa = a.proximity, pb = b.proximity;
-  if (pa == null && pb != null) return 1;
-  if (pa != null && pb == null) return -1;
-  if (pa != null && pb != null && pa !== pb) return pa - pb;
-
-  const da = a.birth_date, db = b.birth_date;
-  if (da && db && da !== db) return da < db ? 1 : -1; // récent d'abord
-  if (da && !db) return -1;
-  if (!da && db) return 1;
-
-  return a.name.localeCompare(b.name);
-};
-
 // Score d'embedding par personne (pour afficher le %), indexé par id.
 const scoreByPersonId = computed(() => {
   const map = {};
@@ -248,38 +235,39 @@ const scoreByPersonId = computed(() => {
 const filteredPeople = computed(() => {
   const scores = scoreByPersonId.value;
   const q = searchQuery.value.trim();
+  const photoCtx = photo.value;
 
   if (q) {
-    return people.value
-      .filter((p) => matchesPerson(q, p.name))
-      .map((p) => ({ ...p, score: scores[p.id] }))
-      .sort((a, b) => {
-        const ta = relevanceTier(q, a.name);
-        const tb = relevanceTier(q, b.name);
-        if (ta !== tb) return ta - tb;
-        return byKinshipThenBirth(a, b);
-      });
+    return rankForFace(people.value, q, photoCtx).map((p) => ({ ...p, score: scores[p.id] }));
   }
 
+  // Fiches de l'annuaire par id : années de vie, photos, parenté (homonymes).
+  const byId = new Map(people.value.map((p) => [p.id, p]));
   const ranked = suggestions.value.map((s) => ({
-    id: s.person.id,
-    name: s.person.name,
+    ...(byId.get(s.person.id) || {}),
+    ...s.person,
     score: s.score,
     doubts: s.doubts || [],
     onAlbum: !!s.on_album,
   }));
   // Puis les personnes déjà identifiées dans l'album (même d'un autre cercle),
   // puis les fiches du cercle courant — pas celles des autres cercles
-  // (« elsewhere »), qu'on ne retrouve qu'en tapant leur nom.
-  const onAlbum = albumPeople.value
-    .filter((p) => !ranked.some((r) => r.id === p.id))
-    .map((p) => ({ ...p, onAlbum: true }));
+  // (« elsewhere »), qu'on ne retrouve qu'en tapant leur nom. Chaque groupe
+  // est classé du plus évident au moins évident pour CETTE photo.
+  const onAlbum = rankForFace(
+    albumPeople.value
+      .filter((p) => !ranked.some((r) => r.id === p.id))
+      .map((p) => ({ ...(byId.get(p.id) || {}), ...p, onAlbum: true })),
+    '',
+    photoCtx,
+  );
   const shownIds = new Set([...ranked, ...onAlbum].map((p) => p.id));
 
-  const others = people.value
-    .filter((p) => !p.elsewhere && !shownIds.has(p.id))
-    .slice()
-    .sort(byKinshipThenBirth);
+  const others = rankForFace(
+    people.value.filter((p) => !p.elsewhere && !shownIds.has(p.id)),
+    '',
+    photoCtx,
+  );
 
   return [...ranked, ...onAlbum, ...others];
 });
@@ -391,10 +379,12 @@ const createAndMatch = async () => {
 const loadSuggestion = async () => {
   topSuggestion.value = null;
   suggestions.value = [];
+  photo.value = null;
   albumPeople.value = [];
   try {
     const { data } = await axios.get(`/vision/faces/${props.face.id}/suggest`);
     suggestions.value = data.suggestions || [];
+    photo.value = data.photo || null;
     albumPeople.value = data.album_people || [];
     // Bannière de suggestion : seulement si le visage n'est pas déjà nommé.
     topSuggestion.value = props.face.person ? null : (suggestions.value[0] || null);

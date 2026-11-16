@@ -106,7 +106,7 @@ class FaceMatcher
      * seules les personnes qu'il peut voir sont proposées (pas de fiche d'un
      * autre cercle).
      *
-     * @return array<int, array{person: array{id: string, name: string}, distance: float, score: float}>
+     * @return array<int, array{person: array{id: string, name: string, birth_year: ?int, death_year: ?int}, distance: float, score: float}>
      */
     public function rankedCandidates(DetectedFace $face, float $maxDistance, string $ownerId, ?\App\Models\User $viewer = null): array
     {
@@ -166,7 +166,8 @@ class FaceMatcher
             }
             $distance = $bestDistance[$person->id];
             $bestByPerson[$person->id] = [
-                'person' => ['id' => $person->id, 'name' => $person->name],
+                // Années de vie : départagent deux homonymes dans la liste.
+                'person' => ['id' => $person->id, 'name' => $person->name, 'birth_year' => $person->birth_date?->year, 'death_year' => $person->death_date?->year],
                 'distance' => round($distance, 4),
                 // Score de similarité (0..1) : 1 = identique, 0 = au seuil de suggestion.
                 'score' => $this->score($distance),

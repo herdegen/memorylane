@@ -57,6 +57,24 @@ class FacePlausibility
     /** @var array<string, array{latest: ?int, earliest: ?int}>|null */
     private ?array $genealogyBounds = null;
 
+    /**
+     * Repères d'une photo pour classer les personnes proposées côté client :
+     * années possibles (une photo datée à la décennie couvre dix ans) et âge
+     * apparent du visage. from/to null si la photo n'est pas datée.
+     *
+     * @return array{from: ?int, to: ?int, face_age: ?int}
+     */
+    public function photoContext(Media $media, ?DetectedFace $face = null): array
+    {
+        $year = $media->taken_at?->year;
+
+        return [
+            'from' => $year,
+            'to' => $year === null ? null : ($media->taken_at_precision === 'decade' ? $year + 9 : $year),
+            'face_age' => $face?->age_estimate,
+        ];
+    }
+
     /** Raison pour laquelle la personne ne peut pas figurer sur la photo, ou null. */
     public function impossibility(Person $person, Media $media): ?string
     {
