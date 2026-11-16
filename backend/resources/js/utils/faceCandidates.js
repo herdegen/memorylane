@@ -7,7 +7,8 @@
 //
 // `photo` = { from, to, face_age } renvoyé par le serveur (années possibles de
 // la photo selon sa précision, âge apparent du visage) ; null si inconnu.
-import { matchesPerson, relevanceTier } from '@/utils/personSearch';
+import { matchesPerson, relevanceTier, normalize } from '@/utils/personSearch';
+import { t, tc } from '@/i18n';
 
 const yearOf = (date) => {
   const y = date ? Number(String(date).slice(0, 4)) : NaN;
@@ -25,6 +26,27 @@ export function lifeYears(p) {
   if (b) return String(b);
   if (d) return `† ${d}`;
   return '';
+}
+
+// Noms portés par plusieurs personnes de la liste (homonymes).
+export function homonymNames(list) {
+  const seen = new Set();
+  const twice = new Set();
+  for (const p of list) {
+    const key = normalize(p.name);
+    if (seen.has(key)) twice.add(key);
+    seen.add(key);
+  }
+  return twice;
+}
+
+// Repère affiché à côté du nom : les années de vie ; à défaut, pour un
+// homonyme, le nombre de photos où il est déjà reconnu (« aucune photo »).
+export function personHint(p, homonyms) {
+  const years = lifeYears(p);
+  if (years || !homonyms?.has(normalize(p.name))) return years;
+  const n = p.matched_faces_count ?? 0;
+  return n > 0 ? tc(':count photo|:count photos', n) : t('aucune photo');
 }
 
 // Tolérance d'un an, comme le garde-fou serveur (vieilles photos mal datées).

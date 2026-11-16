@@ -81,7 +81,7 @@
           <!-- Initiale seule (pas de photo) : rendu historique de cette liste. -->
           <PersonAvatar :name="person.name" :size="8" fallback-class="bg-surface-200 text-surface-600 font-medium" />
           <span>{{ person.name }}</span>
-          <span v-if="lifeYears(person)" class="text-xs text-surface-500 tabular-nums">{{ lifeYears(person) }}</span>
+          <span v-if="personHint(person, homonyms)" class="text-xs text-surface-500 tabular-nums">{{ personHint(person, homonyms) }}</span>
           <span v-if="person.onAlbum" class="text-xs text-surface-400">· {{ $t('sur l\'album') }}</span>
           <span v-else-if="person.elsewhere" class="text-xs text-surface-400">· {{ person.elsewhere_label }}</span>
           <span
@@ -163,7 +163,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import axios from 'axios';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
-import { rankForFace, lifeYears, isImpossible } from '@/utils/faceCandidates';
+import { rankForFace, lifeYears, isImpossible, homonymNames, personHint } from '@/utils/faceCandidates';
 import { useToast } from '@/Composables/useToast';
 import { useConfirm } from '@/Composables/useConfirm';
 import { apiError } from '@/utils/apiError';
@@ -271,6 +271,9 @@ const filteredPeople = computed(() => {
 
   return [...ranked, ...onAlbum, ...others];
 });
+
+// Homonymes de la liste affichée : départagés par les années ou les photos.
+const homonyms = computed(() => homonymNames(filteredPeople.value));
 
 const matchToPerson = async (person, allowDuplicate = false) => {
   if (!allowDuplicate && (await confirmBringIn(person)) === 'cancel') return;

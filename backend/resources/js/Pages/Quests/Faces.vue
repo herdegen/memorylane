@@ -166,7 +166,7 @@
           <PersonAvatar :person="p" :size="10" class="shrink-0" />
           <span class="flex-1 min-w-0">
             <span class="block text-[15px] font-semibold text-surface-900 truncate">{{ p.name }}</span>
-            <span v-if="lifeYears(p)" class="block text-xs text-surface-500 tabular-nums">{{ lifeYears(p) }}</span>
+            <span v-if="personHint(p, pickerHomonyms)" class="block text-xs text-surface-500 tabular-nums">{{ personHint(p, pickerHomonyms) }}</span>
           </span>
         </button>
         <p v-if="pickerQuery && !pickerResults.length" class="px-4 py-4 text-sm text-surface-500">{{ $t('Aucune fiche ne correspond.') }}</p>
@@ -185,7 +185,7 @@ import axios from 'axios';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
 import BottomSheet from '@/Components/BottomSheet.vue';
 import ToastContainer from '@/Components/ToastContainer.vue';
-import { rankForFace, lifeYears, isImpossible } from '@/utils/faceCandidates';
+import { rankForFace, lifeYears, isImpossible, homonymNames, personHint } from '@/utils/faceCandidates';
 import { useToast } from '@/Composables/useToast';
 import { t, tc } from '@/i18n';
 
@@ -384,6 +384,7 @@ const pickerResults = computed(() => {
   // âge du visage, déjà reconnu, parenté) ; homonymes départagés par l'année.
   return rankForFace(people.value || [], pickerQuery.value, card.value?.face?.photo).slice(0, 30);
 });
+const pickerHomonyms = computed(() => homonymNames(pickerResults.value));
 const openPicker = async () => {
   pickerQuery.value = '';
   pickerOpen.value = true;
