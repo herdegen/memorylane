@@ -117,7 +117,7 @@ class FamilyTreeController extends Controller
     private function storyPeople(): array
     {
         return $this->storyPeople ??= \Illuminate\Support\Facades\DB::table('story_person')
-            ->whereIn('story_id', \App\Models\Story::visibleTo(auth()->user())->whereNotNull('published_at')->select('stories.id'))
+            ->whereIn('story_id', \App\Models\Story::inContext(auth()->user())->whereNotNull('published_at')->select('stories.id'))
             ->pluck('person_id')->flip()->all();
     }
 

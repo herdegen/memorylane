@@ -73,6 +73,20 @@ class Story extends Model
             ->whereHas('people', fn ($p) => $p->where('story_person.is_main', true)->visibleTo($user));
     }
 
+    /**
+     * Histoires du cercle affiché : fiche principale dans le cercle courant
+     * (sa famille, ou ce cercle d'amis), comme le reste de l'appli. Pour les
+     * listes (accueil, bibliothèque, télé, quêtes, arbre) : un admin ou un
+     * membre de plusieurs cercles n'y voit pas les histoires d'un autre
+     * groupe. Ouvrir une histoire par son lien reste régi par visibleTo.
+     */
+    public function scopeInContext($query, User $user)
+    {
+        return $query
+            ->where(fn ($q) => $q->whereNotNull('published_at')->orWhere('user_id', $user->id))
+            ->whereHas('people', fn ($p) => $p->where('story_person.is_main', true)->inContext($user));
+    }
+
     public function isVisibleTo(?User $user): bool
     {
         return $user !== null && static::visibleTo($user)->whereKey($this->id)->exists();

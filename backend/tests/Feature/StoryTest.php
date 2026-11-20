@@ -109,6 +109,33 @@ class StoryTest extends TestCase
         $this->actingAs($this->carol)->post("/stories/{$story->id}/notes", ['body' => 'Coucou'])->assertNotFound();
     }
 
+    public function test_les_listes_ne_montrent_que_les_histoires_du_cercle_affiche(): void
+    {
+        $this->actingAs($this->alice)->post('/stories', $this->payload());
+        $story = Story::firstOrFail();
+
+        // Bob est aussi dans un cercle d'amis : affiché, il n'y voit pas l'histoire de sa famille.
+        $friends = Household::factory()->friends()->create(['created_by' => $this->bob->id]);
+        $friends->members()->attach($this->bob->id);
+        $this->bob->forceFill(['current_household_id' => $friends->id])->save();
+        $this->actingAs($this->bob)->get('/dashboard')->assertInertia(fn ($page) => $page->where('story', null));
+        $this->actingAs($this->bob)->get('/stories')->assertInertia(fn ($page) => $page->has('stories', 0));
+        // Le lien direct reste lisible.
+        $this->actingAs($this->bob)->get("/stories/{$story->id}")->assertOk();
+
+        // De retour dans sa famille, elle est là.
+        $this->bob->forceFill(['current_household_id' => $this->family->id])->save();
+        $this->actingAs($this->bob)->get('/dashboard')->assertInertia(fn ($page) => $page->where('story.id', $story->id));
+
+        // Un admin d'une autre famille ne la voit pas sur son accueil.
+        $admin = User::factory()->admin()->create();
+        $otherFamily = Household::factory()->create(['created_by' => $admin->id]);
+        $otherFamily->members()->attach($admin->id);
+        $admin->forceFill(['current_household_id' => $otherFamily->id])->save();
+        $this->actingAs($admin)->get('/dashboard')->assertInertia(fn ($page) => $page->where('story', null));
+        $this->actingAs($admin)->get('/stories')->assertInertia(fn ($page) => $page->has('stories', 0));
+    }
+
     public function test_un_brouillon_reste_a_son_auteur(): void
     {
         $this->actingAs($this->alice)->post('/stories', $this->payload(['publish' => false]));

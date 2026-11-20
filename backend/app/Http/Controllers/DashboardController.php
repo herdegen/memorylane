@@ -53,7 +53,7 @@ class DashboardController extends Controller
     private function storyOfTheWeek(): ?array
     {
         $user = auth()->user();
-        $stories = \App\Models\Story::visibleTo($user)->whereNotNull('published_at')
+        $stories = \App\Models\Story::inContext($user)->whereNotNull('published_at')
             ->with(['people', 'chapters'])->orderByDesc('published_at')->get();
         if ($stories->isEmpty()) {
             return null;

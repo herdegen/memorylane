@@ -390,7 +390,7 @@ class QuestService
     /** Questions ouvertes des histoires de famille lisibles (pas les siennes), quelques-unes. */
     private function detectStoryQuestionGaps(User $user): array
     {
-        $stories = \App\Models\Story::visibleTo($user)
+        $stories = \App\Models\Story::inContext($user)
             ->whereNotNull('published_at')
             ->where('user_id', '!=', $user->id)
             ->pluck('id');

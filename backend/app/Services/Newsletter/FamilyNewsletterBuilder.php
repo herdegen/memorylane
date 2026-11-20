@@ -388,7 +388,10 @@ class FamilyNewsletterBuilder
             }
         }
 
-        $stories = Story::visibleTo($this->user)
+        // Histoires de SA famille (un admin ne reçoit pas celles des autres
+        // familles) : comme sur l'accueil, vu depuis son cercle famille.
+        $family = $this->user->circles()->firstWhere('kind', \App\Models\Household::KIND_FAMILY);
+        $stories = Story::inContext($family ? $this->user->inCircle($family->id) : $this->user)
             ->whereNotNull('published_at')
             ->where('user_id', '!=', $this->user->id)
             ->with('chapters')

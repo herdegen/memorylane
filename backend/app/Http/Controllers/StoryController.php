@@ -34,7 +34,7 @@ class StoryController extends Controller
         $user = $request->user();
         $closeness = $this->genealogy->closeness($user->person_id);
 
-        $stories = Story::visibleTo($user)
+        $stories = Story::inContext($user)
             ->with(['people', 'chapters'])
             ->get()
             ->sortBy(fn (Story $s) => [$closeness[$s->mainPerson()?->id] ?? PHP_INT_MAX, -($s->published_at ?? $s->updated_at)->timestamp])

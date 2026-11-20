@@ -512,7 +512,7 @@ class TvController extends Controller
     {
         $user = $request->user();
         $closeness = $this->genealogy->closeness($user->person_id);
-        $stories = Story::visibleTo($user)->with(['people', 'chapters'])->get()
+        $stories = Story::inContext($user)->with(['people', 'chapters'])->get()
             ->sortBy(fn (Story $s) => [$closeness[$s->mainPerson()?->id] ?? PHP_INT_MAX, -($s->published_at ?? $s->updated_at)->timestamp])
             ->values();
         $covers = Media::accessibleBy($user)->whereIn('id', $stories->map(fn (Story $s) => $s->mediaIds()[0] ?? null)->filter()->all())
