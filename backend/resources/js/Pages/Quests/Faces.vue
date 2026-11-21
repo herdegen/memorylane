@@ -143,6 +143,7 @@
     <ToastContainer />
 
     <!-- Quelqu'un d'autre : recherche dans les fiches du cercle -->
+    <PhotoDateFix :refusal="dateRefusal" @close="dateRefusal = null" @fixed="onDateFixed" />
     <BottomSheet :open="pickerOpen" :title="$t('Qui est-ce ?')" @close="pickerOpen = false">
       <input
         ref="pickerInput"
@@ -184,6 +185,7 @@ import { Head, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import PersonAvatar from '@/Components/PersonAvatar.vue';
 import BottomSheet from '@/Components/BottomSheet.vue';
+import PhotoDateFix from '@/Components/PhotoDateFix.vue';
 import ToastContainer from '@/Components/ToastContainer.vue';
 import { rankForFace, lifeYears, isImpossible, homonymNames, personHint } from '@/utils/faceCandidates';
 import { useToast } from '@/Composables/useToast';
@@ -296,6 +298,11 @@ const send = async (kind, payload, text, good) => {
     if (e.response?.status === 409) {
       // Quelqu'un d'autre a répondu entre-temps : on passe à la suivante.
       advance(t('Déjà identifié par quelqu’un'), false);
+    } else if (e.response?.status === 422 && e.response.data?.code === 'photo_date') {
+      // Date de la photo incompatible : on propose de la corriger, puis on réessaie.
+      dateRefusal.value = e.response.data;
+      retryAfterDateFix = () => send(kind, payload, text, good);
+      resetDrag();
     } else {
       toast.error(e.response?.data?.message || t('Réponse non enregistrée.'));
       resetDrag();
@@ -303,6 +310,18 @@ const send = async (kind, payload, text, good) => {
   } finally {
     busy.value = false;
   }
+};
+
+// ---- Date de la photo à corriger (vieille photo reprise en photo) ----------
+const dateRefusal = ref(null);
+let retryAfterDateFix = null;
+const onDateFixed = ({ year, precision }) => {
+  dateRefusal.value = null;
+  const face = card.value?.face;
+  if (face) face.photo = { ...(face.photo || {}), from: year, to: precision === 'decade' ? year + 9 : year };
+  const retry = retryAfterDateFix;
+  retryAfterDateFix = null;
+  retry?.();
 };
 
 const confirmPerson = (p) => {

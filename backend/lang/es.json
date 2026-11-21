@@ -3377,5 +3377,11 @@
     "Pas encore dans un album": "Aún no está en un álbum",
     "Supprimer cet album vide": "Eliminar este álbum vacío",
     "Pas encore né·e ou déjà décédé·e à la date de la photo": "Aún no había nacido o ya había fallecido en la fecha de la foto",
-    "née :name": "de soltera :name"
+    "née :name": "de soltera :name",
+    "La date de la photo ne colle pas": "La fecha de la foto no encaja",
+    "Une ancienne photo reprise en photo garde la date du jour de la reprise. Indiquez plutôt son époque :": "Una foto antigua fotografiada de nuevo conserva la fecha en que se volvió a fotografiar. Indica mejor su época:",
+    "À cette époque non plus, :name ne pouvait pas être sur la photo.": "Tampoco en esa época podía :name aparecer en la foto.",
+    "Corriger la date et identifier :name": "Corregir la fecha e identificar a :name",
+    "Demandez à la personne qui a envoyé la photo de corriger sa date.": "Pide a la persona que subió la foto que corrija su fecha.",
+    "La date n’a pas pu être enregistrée.": "No se pudo guardar la fecha."
 }

@@ -63,6 +63,33 @@ class QuestController extends Controller
         ));
     }
 
+    /**
+     * Refus « date de la photo » d'une identification de visage, ou null.
+     *
+     * @return array{message: string, code: string, person: array, photo: array}|null
+     */
+    private function photoDateRefusal(\App\Models\User $user, \App\Models\DetectedFace $face, mixed $personId): ?array
+    {
+        $media = $face->media;
+        $person = is_string($personId) && \Illuminate\Support\Str::isUuid($personId) ? Person::visibleTo($user)->find($personId) : null;
+        if (! $media || ! $person || ! ($reason = app(\App\Services\Vision\FacePlausibility::class)->impossibility($person, $media))) {
+            return null;
+        }
+
+        return [
+            'message' => $reason,
+            'code' => 'photo_date',
+            'person' => ['id' => $person->id, 'name' => $person->name, 'birth_year' => $person->birth_date?->year, 'death_year' => $person->death_date?->year],
+            'photo' => [
+                'id' => $media->id,
+                'year' => $media->taken_at?->year,
+                'precision' => $media->taken_at_precision,
+                // Qui voit la photo corrige ses détails (édition partagée).
+                'can_edit' => $user->can('editDetails', $media),
+            ],
+        ];
+    }
+
     private function gameAlbum(Request $request): ?Album
     {
         $id = $request->query('album');
@@ -89,6 +116,13 @@ class QuestController extends Controller
 
         if ($kind === 'no' && ! $type->allowsNo()) {
             return response()->json(['message' => __('Cette question n\'accepte pas la réponse « non ».')], 422);
+        }
+
+        // Visage : personne pas encore née ou déjà décédée à la date de la
+        // photo. Souvent une vieille photo reprise en photo (datée du jour de
+        // la reprise) : on renvoie de quoi corriger la date sur place.
+        if ($type === QuestType::FaceIdentify && $kind === 'answered' && ($refusal = $this->photoDateRefusal($user, $subject, $request->input('payload.person_id')))) {
+            return response()->json($refusal, 422);
         }
 
         $payload = match ($kind) {

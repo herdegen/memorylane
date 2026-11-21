@@ -92,6 +92,38 @@ class FaceGameTest extends TestCase
         return [$me, $family, $friends, $media];
     }
 
+    public function test_vieille_photo_reprise_en_photo_date_corrigee_puis_identifiee(): void
+    {
+        $me = User::factory()->create();
+        // Vieille photo reprise en photo : datée du jour de la reprise.
+        $media = Media::factory()->photo()->create(['user_id' => $me->id, 'taken_at' => '2010-12-28 16:49:43']);
+        $face = $this->unmatchedFace($media);
+        $agnes = Person::create(['user_id' => $me->id, 'name' => 'Agnès CHRIST', 'birth_date' => '1884-01-22', 'death_date' => '1959-08-03']);
+        $answer = fn () => $this->actingAs($me)->postJson('/quests/answer', [
+            'question_type' => 'face_identify',
+            'subject_id' => $face->id,
+            'answer_kind' => 'answered',
+            'payload' => ['person_id' => $agnes->id],
+        ]);
+
+        // Refus « date de la photo », avec de quoi la corriger sur place.
+        $answer()->assertStatus(422)
+            ->assertJsonPath('code', 'photo_date')
+            ->assertJsonPath('photo.id', $media->id)
+            ->assertJsonPath('photo.year', 2010)
+            ->assertJsonPath('photo.can_edit', true)
+            ->assertJsonPath('person.birth_year', 1884)
+            ->assertJsonPath('person.death_year', 1959);
+        $this->assertSame('unmatched', $face->fresh()->status);
+        $this->assertDatabaseCount('quest_answers', 0);
+
+        // Époque donnée (années 1920), puis l'identification passe.
+        $this->actingAs($me)->putJson("/media/{$media->id}", ['taken_at' => '1920-01-01', 'taken_at_precision' => 'decade'])->assertOk();
+        $answer()->assertCreated();
+        $this->assertSame($agnes->id, $face->fresh()->person_id);
+        $this->assertSame('decade', $media->fresh()->taken_at_precision);
+    }
+
     public function test_inconnu_dans_un_groupe_ne_verrouille_pas_les_autres_cercles(): void
     {
         [$me, $family, $friends, $media] = $this->twoWorlds();

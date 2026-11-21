@@ -3373,5 +3373,11 @@
     "Pas encore dans un album": "Not in an album yet",
     "Supprimer cet album vide": "Delete this empty album",
     "Pas encore né·e ou déjà décédé·e à la date de la photo": "Not yet born or already deceased at the date of the photo",
-    "née :name": "née :name"
+    "née :name": "née :name",
+    "La date de la photo ne colle pas": "The photo's date doesn't fit",
+    "Une ancienne photo reprise en photo garde la date du jour de la reprise. Indiquez plutôt son époque :": "An old photo that was re-photographed keeps the date it was re-photographed. Give its era instead:",
+    "À cette époque non plus, :name ne pouvait pas être sur la photo.": "At that time either, :name could not be in the photo.",
+    "Corriger la date et identifier :name": "Fix the date and identify :name",
+    "Demandez à la personne qui a envoyé la photo de corriger sa date.": "Ask the person who uploaded the photo to fix its date.",
+    "La date n’a pas pu être enregistrée.": "The date could not be saved."
 }

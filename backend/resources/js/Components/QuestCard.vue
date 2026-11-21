@@ -425,12 +425,14 @@
       @close="showGeoPicker = false"
       @apply="applyGeo"
     />
+    <PhotoDateFix :refusal="dateRefusal" @close="dateRefusal = null" @fixed="onDateFixed" />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, defineAsyncComponent } from 'vue';
 import PhotoDateInput from '@/Components/PhotoDateInput.vue';
+import PhotoDateFix from '@/Components/PhotoDateFix.vue';
 import { formatPartialDate } from '@/utils/format';
 import { Link } from '@inertiajs/vue3';
 import axios from 'axios';
@@ -657,7 +659,11 @@ const answer = async (kind, payload = null) => {
     question.value = data.next;
     exhausted.value = data.next === null;
   } catch (error) {
-    if (error.response?.status === 409) {
+    if (error.response?.status === 422 && error.response.data?.code === 'photo_date') {
+      // Visage : date de la photo incompatible, à corriger sur place.
+      dateRefusal.value = error.response.data;
+      retryAfterDateFix = () => answer(kind, payload);
+    } else if (error.response?.status === 409) {
       toast.info(t('Déjà complété par quelqu’un d’autre — question suivante !'));
       completedCount.value = error.response.data.completed_count;
       question.value = error.response.data.next;
@@ -668,6 +674,16 @@ const answer = async (kind, payload = null) => {
   } finally {
     sending.value = false;
   }
+};
+
+// Date de la photo à corriger avant d'identifier (vieille photo reprise en photo).
+const dateRefusal = ref(null);
+let retryAfterDateFix = null;
+const onDateFixed = () => {
+  dateRefusal.value = null;
+  const retry = retryAfterDateFix;
+  retryAfterDateFix = null;
+  retry?.();
 };
 
 const submitAnswer = () => {
