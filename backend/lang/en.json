@@ -3410,5 +3410,18 @@
     "Vous voici": "Here you are",
     "Vous êtes déjà dans l’arbre : allons voir. Ensuite, chaque page vous montrera l’essentiel la première fois que vous l’ouvrirez.": "You are already in the tree: let’s take a look. After that, each page will show you the essentials the first time you open it.",
     "Voyons votre lien avec :name, de carte en carte.": "Let’s see how you are related to :name, card by card.",
-    "Étape par étape, à l’écrit ou à voix haute : chaque réponse remplit la frise.": "Step by step, in writing or out loud: each answer fills the timeline."
+    "Étape par étape, à l’écrit ou à voix haute : chaque réponse remplit la frise.": "Step by step, in writing or out loud: each answer fills the timeline.",
+    "Votre génération": "Your generation",
+    "La génération de vos parents": "Your parents' generation",
+    "La génération de vos grands-parents": "Your grandparents' generation",
+    "La génération de vos arrière-grands-parents": "Your great-grandparents' generation",
+    "La génération de vos arrière-arrière-grands-parents": "Your great-great-grandparents' generation",
+    ":count générations avant vous": ":count generations before you",
+    "La génération de vos enfants": "Your children's generation",
+    "La génération de vos petits-enfants": "Your grandchildren's generation",
+    ":count générations après vous": ":count generations after you",
+    ":count génération|:count générations": ":count generation|:count generations",
+    "De génération en génération": "From generation to generation",
+    ":count photo sans personne identifiée|:count photos sans personne identifiée": ":count photo with no one identified|:count photos with no one identified",
+    "Dites qui est dessus, et la photo rejoint sa génération.": "Say who is in it, and the photo joins its generation."
 }

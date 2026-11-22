@@ -166,6 +166,15 @@ class AlbumHighlights
 
     private function archives(): array
     {
+        // Fonds relié par l'arbre : une rangée par génération (les photos sans
+        // date y trouvent leur place grâce aux personnes identifiées).
+        if ($generations = $this->generations()) {
+            return [
+                $this->peopleSection('people', __('Les personnes'), __('touchez un nom pour ne voir que ses photos'), exclude: [], limit: 16, lifeDates: true),
+                ...$generations,
+            ];
+        }
+
         $dated = $this->album->media->filter(fn ($m) => $m->taken_at !== null);
         $decades = $dated->groupBy(fn ($m) => intdiv((int) $m->taken_at->format('Y'), 10) * 10)
             ->sortKeys()
@@ -180,6 +189,76 @@ class AlbumHighlights
             $undated ? ['key' => 'undated', 'type' => 'undated', 'title' => trans_choice(':count photo sans date|:count photos sans date', count($undated)),
                 'text' => __('Une date, même approximative (« vers 1950 »), et la photo rejoint sa décennie.'), 'ids' => $undated] : null,
         ];
+    }
+
+    /**
+     * Archives par génération : chaque photo va dans la génération la plus
+     * ancienne présente (une photo de famille, c'est « les parents avec
+     * leurs enfants »), repérée « 3 générations » si elle en réunit au moins
+     * trois. Null s'il n'y a pas au moins deux générations.
+     *
+     * @return list<array>|null
+     */
+    private function generations(): ?array
+    {
+        $tagged = collect($this->tags)->flatten()->unique()->filter(fn ($id) => isset($this->people[$id]))->values()->all();
+        ['levels' => $levels, 'viewer' => $viewer] = app(ArchiveGenerations::class)->levels($tagged, $this->user->person_id);
+        if (count(array_unique($levels)) < 2) {
+            return null;
+        }
+
+        $byLevel = [];
+        $badges = [];
+        $unknown = [];
+        foreach ($this->ids as $media) {
+            $present = array_values(array_unique(array_filter(array_map(fn ($p) => $levels[$p] ?? null, $this->tags[$media] ?? []), fn ($l) => $l !== null)));
+            if ($present === []) {
+                $unknown[] = $media;
+
+                continue;
+            }
+            $byLevel[min($present)][] = $media;
+            if (count($present) >= 3) {
+                $badges[$media] = trans_choice(':count génération|:count générations', count($present));
+            }
+        }
+        ksort($byLevel);
+
+        $rows = [];
+        foreach ($byLevel as $level => $ids) {
+            // Les personnes de cette génération sur ces photos, les plus présentes d'abord.
+            $counts = [];
+            foreach ($ids as $media) {
+                foreach (array_unique($this->tags[$media] ?? []) as $p) {
+                    if (($levels[$p] ?? null) === $level) {
+                        $counts[$p] = ($counts[$p] ?? 0) + 1;
+                    }
+                }
+            }
+            uksort($counts, fn ($a, $b) => [$counts[$b], $this->people[$a]->birth_date] <=> [$counts[$a], $this->people[$b]->birth_date]);
+            $who = collect(array_keys($counts))->map(fn ($id) => $this->people[$id]);
+            $title = $this->names($who->take(3));
+            if ($who->count() > 3) {
+                $title .= ' '.trans_choice('et :count autre|et :count autres', $who->count() - 3);
+            }
+            $years = $who->flatMap(fn ($p) => array_filter([$p->birth_date?->year, $p->death_date?->year]));
+            $span = $years->isEmpty() ? null : ($years->min() === $years->max() ? (string) $years->min() : $years->min().' – '.$years->max());
+
+            $rows[] = [
+                'key' => 'gen-'.$level,
+                'title' => $title,
+                'subtitle' => implode(' · ', array_filter([$span, ArchiveGenerations::relationLabel($level, $viewer)])) ?: null,
+                'ids' => $this->ordered($ids),
+                'badges' => array_intersect_key($badges, array_flip($ids)) ?: null,
+            ];
+        }
+
+        return array_values(array_filter([
+            ['key' => 'generations', 'type' => 'rows', 'title' => __('De génération en génération'),
+                'subtitle' => trans_choice(':count génération|:count générations', count($rows)), 'rows' => $rows],
+            $unknown ? ['key' => 'unknown', 'type' => 'undated', 'title' => trans_choice(':count photo sans personne identifiée|:count photos sans personne identifiée', count($unknown)),
+                'text' => __('Dites qui est dessus, et la photo rejoint sa génération.'), 'ids' => $this->ordered($unknown)] : null,
+        ]));
     }
 
     /**
@@ -274,7 +353,8 @@ class AlbumHighlights
     {
         return app()->getLocale() === 'en'
             ? "{$decade}s"
-            : __('Années :decade', ['decade' => $decade < 2000 ? substr((string) $decade, 2) : (string) $decade]);
+            // « Années 50 » au XXe siècle seulement : avant 1900, « Années 1790 ».
+            : __('Années :decade', ['decade' => $decade >= 1900 && $decade < 2000 ? substr((string) $decade, 2) : (string) $decade]);
     }
 
     // ---- Briques --------------------------------------------------------------

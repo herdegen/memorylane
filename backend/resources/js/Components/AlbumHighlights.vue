@@ -108,7 +108,7 @@
           </button>
         </div>
 
-        <!-- Lignes : une décennie (archives), un jour (voyage)… -->
+        <!-- Lignes : une génération ou une décennie (archives), un jour (voyage)… -->
         <div v-if="s.type === 'rows'">
           <div v-for="r in s.rows" :key="r.key" class="grid sm:grid-cols-[11rem_1fr] gap-2 sm:gap-5 py-3 border-t border-surface-200">
             <button type="button" class="text-left self-start" @click="$emit('filter', { label: rowLabel(r), ids: r.ids })">
@@ -126,6 +126,8 @@
                 @click="$emit('open', m)"
               >
                 <MediaCard :media="m" fill class="pointer-events-none" />
+                <!-- Archives : photo qui réunit plusieurs générations -->
+                <span v-if="r.badges?.[m.id]" class="absolute left-1 bottom-1 px-1.5 py-0.5 rounded-md bg-black/60 text-snow text-[10px] font-semibold leading-none pointer-events-none">{{ r.badges[m.id] }}</span>
               </button>
               <button
                 v-if="r.ids.length > 4"

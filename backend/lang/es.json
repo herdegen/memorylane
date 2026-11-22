@@ -3414,5 +3414,18 @@
     "Vous voici": "Aquí estás",
     "Vous êtes déjà dans l’arbre : allons voir. Ensuite, chaque page vous montrera l’essentiel la première fois que vous l’ouvrirez.": "Ya estás en el árbol: vamos a verlo. Después, cada página te mostrará lo esencial la primera vez que la abras.",
     "Voyons votre lien avec :name, de carte en carte.": "Veamos tu vínculo con :name, de tarjeta en tarjeta.",
-    "Étape par étape, à l’écrit ou à voix haute : chaque réponse remplit la frise.": "Paso a paso, por escrito o en voz alta: cada respuesta llena la línea de vida."
+    "Étape par étape, à l’écrit ou à voix haute : chaque réponse remplit la frise.": "Paso a paso, por escrito o en voz alta: cada respuesta llena la línea de vida.",
+    "Votre génération": "Tu generación",
+    "La génération de vos parents": "La generación de tus padres",
+    "La génération de vos grands-parents": "La generación de tus abuelos",
+    "La génération de vos arrière-grands-parents": "La generación de tus bisabuelos",
+    "La génération de vos arrière-arrière-grands-parents": "La generación de tus tatarabuelos",
+    ":count générations avant vous": ":count generaciones antes que tú",
+    "La génération de vos enfants": "La generación de tus hijos",
+    "La génération de vos petits-enfants": "La generación de tus nietos",
+    ":count générations après vous": ":count generaciones después de ti",
+    ":count génération|:count générations": ":count generación|:count generaciones",
+    "De génération en génération": "De generación en generación",
+    ":count photo sans personne identifiée|:count photos sans personne identifiée": ":count foto sin nadie identificado|:count fotos sin nadie identificado",
+    "Dites qui est dessus, et la photo rejoint sa génération.": "Di quién aparece y la foto se une a su generación."
 }

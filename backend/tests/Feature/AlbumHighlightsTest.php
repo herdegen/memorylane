@@ -139,6 +139,52 @@ class AlbumHighlightsTest extends TestCase
         $this->assertSame([$undated->id], $s['undated']['ids']);
     }
 
+    public function test_archives_decennie_avant_1900_en_entier(): void
+    {
+        $album = Album::factory()->create(['user_id' => $this->me->id, 'theme' => 'archives']);
+        $this->photo($album, [$this->person('Charles', ['birth_date' => '1795-01-21'])], takenAt: '1795-01-22');
+
+        $this->assertSame('Années 1790', $this->sections($album)['decades']['rows'][0]['title']);
+    }
+
+    public function test_archives_par_generation_d_apres_l_arbre(): void
+    {
+        $album = Album::factory()->create(['user_id' => $this->me->id, 'theme' => 'archives']);
+        $aloys = $this->person('Aloïs', ['birth_date' => '1809-04-13', 'death_date' => '1865-12-16']);
+        $maria = $this->person('Maria', ['birth_date' => '1810-01-01', 'death_date' => '1857-10-11']);
+        $franz = $this->person('Franz', ['birth_date' => '1845-09-09', 'death_date' => '1908-04-06', 'father_id' => $aloys->id, 'mother_id' => $maria->id]);
+        $marie = $this->person('Marie', ['birth_date' => '1847-09-05']); // sa femme : même génération
+        PersonRelationship::create(['person1_id' => $franz->id, 'person2_id' => $marie->id, 'type' => 'spouse']);
+        $agnes = $this->person('Agnès', ['birth_date' => '1884-01-22', 'father_id' => $franz->id, 'mother_id' => $marie->id]);
+        // Le visiteur : petit-fils d'Agnès.
+        $son = $this->person('René', ['birth_date' => '1911-06-25', 'mother_id' => $agnes->id]);
+        $me = $this->person('Guy', ['birth_date' => '1946-01-01', 'father_id' => $son->id]);
+        $this->me->forceFill(['person_id' => $me->id])->save();
+
+        $buchen = $this->photo($album, [$aloys, $maria, $franz], takenAt: null);      // 2 générations : chez les parents
+        $naturalisation = $this->photo($album, [$franz, $marie, $agnes], takenAt: '1893-11-14');
+        $portrait = $this->photo($album, [$agnes], takenAt: null);
+        $trois = $this->photo($album, [$agnes, $franz, $aloys], takenAt: null);       // 3 générations
+        $inconnue = $this->photo($album, [], takenAt: null);
+
+        $s = $this->sections($album);
+        $this->assertArrayNotHasKey('decades', $s);
+        $rows = collect($s['generations']['rows'])->keyBy('key');
+        $this->assertSame(['gen-0', 'gen-1', 'gen-2'], $rows->keys()->all());
+        // Chaque photo dans la génération la plus ancienne présente, datée ou non.
+        $this->assertSame([$buchen->id, $trois->id], $rows['gen-0']['ids']);
+        $this->assertSame([$naturalisation->id], $rows['gen-1']['ids']);
+        $this->assertSame([$portrait->id], $rows['gen-2']['ids']);
+        $this->assertSame('Aloïs & Maria', $rows['gen-0']['title']);
+        $this->assertSame('Franz & Marie', $rows['gen-1']['title']);
+        // Années et parenté vue par le visiteur.
+        $this->assertSame('1809 – 1865 · La génération de vos arrière-arrière-grands-parents', $rows['gen-0']['subtitle']);
+        $this->assertStringContainsString('La génération de vos grands-parents', $rows['gen-2']['subtitle']);
+        $this->assertSame([$trois->id => '3 générations'], $rows['gen-0']['badges']);
+        $this->assertNull($rows['gen-1']['badges']);
+        $this->assertSame([$inconnue->id], $s['unknown']['ids']);
+    }
+
     public function test_voyage_jour_par_jour_avec_le_lieu_et_les_photos_egarees_a_part(): void
     {
         \Illuminate\Support\Facades\Queue::fake();
