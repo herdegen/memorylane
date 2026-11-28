@@ -195,6 +195,25 @@ class FaceGuardsTest extends TestCase
         $this->assertSame('distant', $rows->firstWhere('person.id', $stranger->id)['doubts'][0]['code']);
     }
 
+    public function test_photo_older_than_its_uploader_still_links_the_family(): void
+    {
+        // L'envoyeur est né après la photo : on passe par ses ascendants.
+        $grandpa = $this->person(['birth_date' => '1928-05-18', 'in_family_directory' => true]);
+        $mother = $this->person(['birth_date' => '1958-01-01', 'father_id' => $grandpa->id, 'in_family_directory' => true]);
+        $uncle = $this->person(['birth_date' => '1956-07-05', 'father_id' => $grandpa->id, 'in_family_directory' => true]);
+        $me = $this->person(['birth_date' => '1986-01-01', 'mother_id' => $mother->id, 'in_family_directory' => true]);
+        $stranger = $this->person(['birth_date' => '1950-01-01', 'in_family_directory' => true]);
+        $this->user->forceFill(['person_id' => $me->id])->save();
+
+        $media = $this->photo('1981-09-05 12:00:00')->fresh();
+        $plausibility = app(\App\Services\Vision\FacePlausibility::class);
+        $kin = $plausibility->kinDistances($media);
+
+        $this->assertSame(3, $kin[$uncle->id]);  // moi → maman → grand-père → oncle
+        $this->assertSame([], $plausibility->doubts($uncle, $media, $kin));
+        $this->assertSame('distant', $plausibility->doubts($stranger, $media, $kin)[0]['code']);
+    }
+
     public function test_a_friend_is_never_flagged_as_distant_kin(): void
     {
         $parent = $this->person();

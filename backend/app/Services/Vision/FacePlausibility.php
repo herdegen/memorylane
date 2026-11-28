@@ -362,23 +362,46 @@ class FacePlausibility
 
         $adj = $this->graphAt($media->taken_at?->copy()->addYears(self::DATE_TOLERANCE_YEARS));
 
-        // Parcours en largeur depuis tous les repères à la fois.
-        $distance = [];
-        $queue = [];
+        // Départs : les repères présents à la date de la photo. Un repère pas
+        // encore né (souvent celui qui envoie une photo d'avant sa naissance)
+        // part de ses ascendants déjà nés, à autant de liens.
+        $start = [];
         foreach ($anchors as $anchor) {
-            if (isset($adj[$anchor])) {
-                $distance[$anchor] = 0;
-                $queue[] = $anchor;
+            $frontier = [$anchor];
+            for ($up = 0; $frontier !== [] && $up <= 4; $up++) {
+                $next = [];
+                foreach ($frontier as $id) {
+                    if (isset($adj[$id])) {
+                        $start[$id] = min($start[$id] ?? PHP_INT_MAX, $up);
+                    } else {
+                        $row = DB::table('people')->where('id', $id)->first(['father_id', 'mother_id']);
+                        array_push($next, ...array_filter([$row?->father_id, $row?->mother_id]));
+                    }
+                }
+                $frontier = $next;
             }
         }
-        for ($k = 0; $k < count($queue); $k++) {
-            $current = $queue[$k];
-            foreach ($adj[$current] as $next) {
-                if (! isset($distance[$next])) {
-                    $distance[$next] = $distance[$current] + 1;
-                    $queue[] = $next;
+
+        // Plus courts chemins (liens de poids 1, départs à distances diverses) :
+        // on traite les personnes par distance croissante.
+        $distance = [];
+        $buckets = [];
+        foreach ($start as $id => $d) {
+            $buckets[$d][] = $id;
+        }
+        for ($d = 0; $buckets !== []; $d++) {
+            foreach ($buckets[$d] ?? [] as $current) {
+                if (isset($distance[$current])) {
+                    continue;
+                }
+                $distance[$current] = $d;
+                foreach ($adj[$current] as $next) {
+                    if (! isset($distance[$next])) {
+                        $buckets[$d + 1][] = $next;
+                    }
                 }
             }
+            unset($buckets[$d]);
         }
 
         return $distance;
