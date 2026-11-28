@@ -428,6 +428,21 @@
 /* =============================================================================
    PhotoSwipe (visionneuse partagée — montée sur <body>, donc styles globaux)
    ============================================================================= */
+/* Photo retouchée : bouton texte « Original » / « Retouchée » de la visionneuse. */
+.pswp__button--scan {
+  width: auto !important;
+  padding: 0 12px !important;
+  margin-top: 12px;
+  height: 32px !important;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45) !important;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.9;
+}
+.pswp__button--scan:hover { opacity: 1; }
+
 .pswp__custom-caption {
   background: rgba(0, 0, 0, 0.75);
   color: white;

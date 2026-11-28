@@ -3427,5 +3427,12 @@
     ":count génération|:count générations": ":count generación|:count generaciones",
     "De génération en génération": "De generación en generación",
     ":count photo sans personne identifiée|:count photos sans personne identifiée": ":count foto sin nadie identificado|:count fotos sin nadie identificado",
-    "Dites qui est dessus, et la photo rejoint sa génération.": "Di quién aparece y la foto se une a su generación."
+    "Dites qui est dessus, et la photo rejoint sa génération.": "Di quién aparece y la foto se une a su generación.",
+    "Scan d’origine": "Escaneo original",
+    "Retouchée": "Retocada",
+    "✨ Voir la version retouchée": "✨ Ver la versión retocada",
+    "🎞️ Voir le scan d’origine": "🎞️ Ver el escaneo original",
+    "Voir le scan d’origine": "Ver el escaneo original",
+    "Voir la version retouchée": "Ver la versión retocada",
+    "Original": "Original"
 }

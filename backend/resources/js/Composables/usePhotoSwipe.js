@@ -69,8 +69,12 @@ export function usePhotoSwipe(getMedia, options = {}) {
       };
     }
     const dims = imageDimensions(media);
+    const src = imageUrl(media);
     return {
-      src: imageUrl(media),
+      src,
+      // Photo retouchée : le scan d'origine, pour basculer (bouton « Original »).
+      retouchedSrc: src,
+      scanSrc: media.retouched ? `/media/${media.id}/file/scan` : null,
       width: dims.width,
       height: dims.height,
       alt: label,
@@ -163,6 +167,38 @@ export function usePhotoSwipe(getMedia, options = {}) {
         outlineID: 'pswp__icn-info',
       },
       onClick: (event, el, pswp) => openDetail(pswp.currSlide?.data?.mediaId),
+    });
+  };
+
+  // ---- Photo retouchée : bouton « Original » / « Retouchée » -------------
+  const registerScanButton = (lb) => {
+    if (!options.detailLink) return;
+    lb.pswp.ui.registerElement({
+      name: 'scan',
+      order: 7,
+      isButton: true,
+      className: 'pswp__button--scan',
+      title: t('Voir le scan d’origine'),
+      html: '',
+      onInit: (el, pswp) => {
+        const render = () => {
+          const data = pswp.currSlide?.data;
+          el.style.display = data?.scanSrc ? '' : 'none';
+          el.textContent = data?.showingScan ? t('Retouchée') : t('Original');
+          el.title = data?.showingScan ? t('Voir la version retouchée') : t('Voir le scan d’origine');
+        };
+        pswp.on('change', render);
+        render();
+      },
+      onClick: (event, el, pswp) => {
+        const data = pswp.currSlide?.data;
+        if (!data?.scanSrc) return;
+        data.showingScan = !data.showingScan;
+        data.src = data.showingScan ? data.scanSrc : data.retouchedSrc;
+        pswp.refreshSlideContent(pswp.currIndex);
+        el.textContent = data.showingScan ? t('Retouchée') : t('Original');
+        el.title = data.showingScan ? t('Voir la version retouchée') : t('Voir le scan d’origine');
+      },
     });
   };
 
@@ -338,6 +374,7 @@ export function usePhotoSwipe(getMedia, options = {}) {
 
     lightbox.on('uiRegister', () => {
       registerInfoButton(lightbox);
+      registerScanButton(lightbox);
       registerCaption(lightbox);
       registerMobileBar(lightbox);
     });

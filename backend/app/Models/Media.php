@@ -109,8 +109,15 @@ class Media extends Model
         'taken_at_album_id',
     ];
 
-    /** Toujours sérialisé : vidéo en cours de conversion (voir getConvertingAttribute). */
-    protected $appends = ['converting'];
+    /**
+     * Toujours sérialisés : vidéo en cours de conversion (voir
+     * getConvertingAttribute) ; photo retouchée dont le scan d'origine est
+     * gardé (voir getRetouchedAttribute).
+     */
+    protected $appends = ['converting', 'retouched'];
+
+    /** Chemins de stockage du scan d'origine : jamais envoyés au navigateur. */
+    protected $hidden = ['original_scan_path', 'original_scan_preview_path'];
 
     /**
      * The attributes that should be cast.
@@ -131,7 +138,17 @@ class Media extends Model
             'is_document' => 'boolean',
             'text_checked_at' => 'datetime',
             'converting_since' => 'datetime',
+            'retouched_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Photo retouchée (usure corrigée) dont le scan d'origine est gardé : on
+     * peut basculer de l'une à l'autre (/media/{id}/file/scan).
+     */
+    public function getRetouchedAttribute(): bool
+    {
+        return ! empty($this->attributes['original_scan_path']);
     }
 
     /**

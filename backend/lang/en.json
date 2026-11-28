@@ -3423,5 +3423,12 @@
     ":count génération|:count générations": ":count generation|:count generations",
     "De génération en génération": "From generation to generation",
     ":count photo sans personne identifiée|:count photos sans personne identifiée": ":count photo with no one identified|:count photos with no one identified",
-    "Dites qui est dessus, et la photo rejoint sa génération.": "Say who is in it, and the photo joins its generation."
+    "Dites qui est dessus, et la photo rejoint sa génération.": "Say who is in it, and the photo joins its generation.",
+    "Scan d’origine": "Original scan",
+    "Retouchée": "Retouched",
+    "✨ Voir la version retouchée": "✨ View the retouched version",
+    "🎞️ Voir le scan d’origine": "🎞️ View the original scan",
+    "Voir le scan d’origine": "View the original scan",
+    "Voir la version retouchée": "View the retouched version",
+    "Original": "Original"
 }

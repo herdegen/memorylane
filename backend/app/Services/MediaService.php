@@ -451,6 +451,11 @@ class MediaService
             }
         }
 
+        // Photo retouchée : le scan d'origine et son aperçu.
+        foreach (array_filter([$media->original_scan_path, $media->original_scan_preview_path]) as $path) {
+            $this->s3Service->delete($path);
+        }
+
         // Mémos vocaux : les lignes partent en cascade avec le média, pas les fichiers.
         foreach ($media->voiceNotes()->pluck('file_path') as $path) {
             $this->s3Service->delete($path);

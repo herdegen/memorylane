@@ -621,6 +621,14 @@ class MediaController extends Controller
             Gate::authorize('view', $media);
         }
 
+        // Photo retouchée : le scan d'origine (aperçu, ou fichier entier).
+        if ($conversion === 'scan' || $conversion === 'scan-full') {
+            $path = $conversion === 'scan' ? ($media->original_scan_preview_path ?: $media->original_scan_path) : $media->original_scan_path;
+            abort_unless($path, 404);
+
+            return $this->mediaService->cachedFileRedirect($media, $path);
+        }
+
         $conversionPath = null;
         if ($conversion !== null) {
             $conversionModel = $media->conversions()->where('conversion_name', $conversion)->first();

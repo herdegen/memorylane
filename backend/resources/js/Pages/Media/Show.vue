@@ -40,8 +40,13 @@
             <div class="bg-white rounded-lg shadow-xs overflow-hidden">
               <!-- Image with face detection overlay -->
               <div v-if="media.type === 'photo'" class="relative bg-black" data-tour="faces">
+                <!-- Photo retouchée : on bascule vers le scan d'origine et retour. -->
+                <span
+                  v-if="media.retouched"
+                  class="absolute left-2 top-2 z-10 px-2 py-1 rounded-md bg-black/60 text-snow text-xs font-semibold pointer-events-none"
+                >{{ showScan ? $t('Scan d’origine') : $t('Retouchée') }}</span>
                 <FaceDetectionOverlay
-                  :image-url="photoUrl"
+                  :image-url="shownPhotoUrl"
                   :alt="media.original_name"
                   :faces="media.detected_faces || []"
                   :draw-mode="addingFace"
@@ -61,6 +66,15 @@
                 >
                   🔍 {{ $t('Voir l’original') }}
                   <span v-if="media.width && media.height" class="font-normal text-surface-500">({{ media.width }} × {{ media.height }})</span>
+                </button>
+                <button
+                  v-if="media.retouched"
+                  type="button"
+                  class="text-sm font-medium text-brand-600 hover:text-brand-800"
+                  :aria-pressed="showScan"
+                  @click="showScan = !showScan"
+                >
+                  {{ showScan ? $t('✨ Voir la version retouchée') : $t('🎞️ Voir le scan d’origine') }}
                 </button>
                 <template v-if="canEditFaces">
                   <button
@@ -464,8 +478,8 @@
     />
     <OriginalViewer
       v-if="viewingOriginal"
-      :original-url="media.url"
-      :preview-url="photoUrl"
+      :original-url="showScan ? `/media/${media.id}/file/scan-full` : media.url"
+      :preview-url="shownPhotoUrl"
       :width="media.width"
       :height="media.height"
       :title="media.title || media.original_name"
@@ -663,6 +677,9 @@ const clipThumb = (clip) => conversionUrl(clip, 'small', 'thumbnail', 'medium') 
 // Mo). Les cadres des visages sont en % : indépendants de la résolution.
 // L'original reste accessible via « Télécharger ».
 const photoUrl = computed(() => displayUrl(props.media));
+// Photo retouchée : afficher le scan d'origine plutôt que la retouche.
+const showScan = ref(false);
+const shownPhotoUrl = computed(() => (showScan.value && props.media.retouched ? `/media/${props.media.id}/file/scan` : photoUrl.value));
 
 // Détection de visages : côté serveur (InsightFace) ou, à défaut, dans le
 // navigateur (face-api, chargé seulement s'il sert).
